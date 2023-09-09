@@ -8,12 +8,14 @@ use App\Models\Category;
 use Filament\Forms\Form;
 use Filament\Tables\Table;
 use Filament\Resources\Resource;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Forms\Components\TextInput;
 use Illuminate\Database\Eloquent\Builder;
 use App\Filament\Resources\CategoryResource\Pages;
+use Awcodes\Curator\Components\Forms\CuratorPicker;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Awcodes\Curator\Components\Tables\CuratorColumn;
 use App\Filament\Resources\CategoryResource\RelationManagers;
-use Filament\Tables\Columns\TextColumn;
 
 class CategoryResource extends Resource
 {
@@ -25,7 +27,9 @@ class CategoryResource extends Resource
     {
         return $form
             ->schema([
-                TextInput::make('name')
+                TextInput::make('name'),
+                CuratorPicker::make('featured_image_id')
+                    ->relationship('featuredImage', 'id'),
             ]);
     }
 
@@ -33,7 +37,9 @@ class CategoryResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('name')
+                TextColumn::make('name'),
+                CuratorColumn::make('featured_image')
+                    ->size(40)
             ])
             ->filters([
                 //
