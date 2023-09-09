@@ -2,14 +2,15 @@
 
 namespace App\Filament\Fabricator\PageBlocks;
 
+use App\Models\Category;
 use Filament\Forms\Components\Builder\Block;
 use Z3d0X\FilamentFabricator\PageBlocks\PageBlock;
 
-class MyBlock extends PageBlock
+class CategoriesBlock extends PageBlock
 {
     public static function getBlockSchema(): Block
     {
-        return Block::make('my')
+        return Block::make('categories')
             ->schema([
                 //
             ]);
@@ -17,6 +18,8 @@ class MyBlock extends PageBlock
 
     public static function mutateData(array $data): array
     {
-        return $data;
+        return [
+            'categories' => Category::get()->pluck('name', 'id')->toArray()
+        ];
     }
 }
