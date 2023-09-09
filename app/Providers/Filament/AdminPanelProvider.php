@@ -59,13 +59,13 @@ class AdminPanelProvider extends PanelProvider
                 FilamentFabricatorPlugin::make(),
 
                 \Awcodes\Curator\CuratorPlugin::make()
-                    ->label('Media')
+                /*->label('Media')
                     ->pluralLabel('Media')
                     ->navigationIcon('heroicon-o-photo')
                     ->navigationGroup('Content')
                     ->navigationSort(3)
                     ->navigationCountBadge()
-                //->resource(\App\Filament\Resources\CustomMediaResource::class)
+                    ->resource(\App\Filament\Resources\CustomMediaResource::class)*/
 
             ]);;
     }

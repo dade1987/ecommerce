@@ -29,7 +29,9 @@ class CategoryResource extends Resource
             ->schema([
                 TextInput::make('name'),
                 CuratorPicker::make('featured_image_id')
-                    ->relationship('featuredImage', 'id'),
+                    ->relationship('featuredImage', 'id')
+
+                    ->imageResizeTargetWidth(10)
             ]);
     }
 
