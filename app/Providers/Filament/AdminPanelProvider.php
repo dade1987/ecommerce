@@ -4,6 +4,7 @@ namespace App\Providers\Filament;
 
 use Filament\Pages;
 use Filament\Panel;
+use App\Models\Team;
 use Filament\Widgets;
 use Filament\PanelProvider;
 use Awcodes\Curator\CuratorPlugin;
@@ -11,6 +12,7 @@ use Filament\Support\Colors\Color;
 use Filament\Http\Middleware\Authenticate;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Cookie\Middleware\EncryptCookies;
+use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\AuthenticateSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
@@ -57,16 +59,8 @@ class AdminPanelProvider extends PanelProvider
                 Authenticate::class,
             ])->plugins([
                 FilamentFabricatorPlugin::make(),
-
-                \Awcodes\Curator\CuratorPlugin::make()
-                /*->label('Media')
-                    ->pluralLabel('Media')
-                    ->navigationIcon('heroicon-o-photo')
-                    ->navigationGroup('Content')
-                    ->navigationSort(3)
-                    ->navigationCountBadge()
-                    ->resource(\App\Filament\Resources\CustomMediaResource::class)*/
-
-            ]);;
+                FilamentShieldPlugin::make(),
+                CuratorPlugin::make()
+            ]);
     }
 }
