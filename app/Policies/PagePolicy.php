@@ -31,6 +31,7 @@ class PagePolicy
      */
     public function view(User $user, Page $page): bool
     {
+
         return $user->can('view_page');
     }
 

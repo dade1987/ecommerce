@@ -1,6 +1,9 @@
 <?php
 
 // config for Z3d0X/FilamentFabricator
+
+use Filament\Http\Middleware\Authenticate;
+
 return [
     'routing' => [
         'enabled' => true,
@@ -31,6 +34,8 @@ return [
         \Illuminate\View\Middleware\ShareErrorsFromSession::class,
         \Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class,
         \Illuminate\Routing\Middleware\SubstituteBindings::class,
+        // per vedere la pagina solo da autenticati
+        Authenticate::class
     ],
 
     'page-model' => \Z3d0X\FilamentFabricator\Models\Page::class,
