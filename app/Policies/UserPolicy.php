@@ -3,10 +3,10 @@
 namespace App\Policies;
 
 use App\Models\User;
-use Z3d0X\FilamentFabricator\Models\Page;
+
 use Illuminate\Auth\Access\HandlesAuthorization;
 
-class PagePolicy
+class UserPolicy
 {
     use HandlesAuthorization;
 
@@ -18,19 +18,18 @@ class PagePolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->can('view_any_page');
+        return $user->can('view_any_user');
     }
 
     /**
      * Determine whether the user can view the model.
      *
      * @param  \App\Models\User  $user
-     * @param  \Z3d0X\FilamentFabricator\Models\Page  $page
      * @return \Illuminate\Auth\Access\Response|bool
      */
-    public function view(User $user, Page $page): bool
+    public function view(User $user): bool
     {
-        return $user->can('view_page');
+        return $user->can('view_user');
     }
 
     /**
@@ -41,31 +40,29 @@ class PagePolicy
      */
     public function create(User $user): bool
     {
-        return $user->can('create_page');
+        return $user->can('create_user');
     }
 
     /**
      * Determine whether the user can update the model.
      *
      * @param  \App\Models\User  $user
-     * @param  \Z3d0X\FilamentFabricator\Models\Page  $page
      * @return \Illuminate\Auth\Access\Response|bool
      */
-    public function update(User $user, Page $page): bool
+    public function update(User $user): bool
     {
-        return $user->can('update_page');
+        return $user->can('update_user');
     }
 
     /**
      * Determine whether the user can delete the model.
      *
      * @param  \App\Models\User  $user
-     * @param  \Z3d0X\FilamentFabricator\Models\Page  $page
      * @return \Illuminate\Auth\Access\Response|bool
      */
-    public function delete(User $user, Page $page): bool
+    public function delete(User $user): bool
     {
-        return $user->can('delete_page');
+        return $user->can('delete_user');
     }
 
     /**
@@ -76,19 +73,18 @@ class PagePolicy
      */
     public function deleteAny(User $user): bool
     {
-        return $user->can('delete_any_page');
+        return $user->can('delete_any_user');
     }
 
     /**
      * Determine whether the user can permanently delete.
      *
      * @param  \App\Models\User  $user
-     * @param  \Z3d0X\FilamentFabricator\Models\Page  $page
      * @return \Illuminate\Auth\Access\Response|bool
      */
-    public function forceDelete(User $user, Page $page): bool
+    public function forceDelete(User $user): bool
     {
-        return $user->can('force_delete_page');
+        return $user->can('force_delete_user');
     }
 
     /**
@@ -99,19 +95,18 @@ class PagePolicy
      */
     public function forceDeleteAny(User $user): bool
     {
-        return $user->can('force_delete_any_page');
+        return $user->can('force_delete_any_user');
     }
 
     /**
      * Determine whether the user can restore.
      *
      * @param  \App\Models\User  $user
-     * @param  \Z3d0X\FilamentFabricator\Models\Page  $page
      * @return \Illuminate\Auth\Access\Response|bool
      */
-    public function restore(User $user, Page $page): bool
+    public function restore(User $user): bool
     {
-        return $user->can('restore_page');
+        return $user->can('restore_user');
     }
 
     /**
@@ -122,19 +117,18 @@ class PagePolicy
      */
     public function restoreAny(User $user): bool
     {
-        return $user->can('restore_any_page');
+        return $user->can('restore_any_user');
     }
 
     /**
-     * Determine whether the user can replicate.
+     * Determine whether the user can bulk restore.
      *
      * @param  \App\Models\User  $user
-     * @param  \Z3d0X\FilamentFabricator\Models\Page  $page
      * @return \Illuminate\Auth\Access\Response|bool
      */
-    public function replicate(User $user, Page $page): bool
+    public function replicate(User $user): bool
     {
-        return $user->can('replicate_page');
+        return $user->can('replicate_user');
     }
 
     /**
@@ -145,7 +139,6 @@ class PagePolicy
      */
     public function reorder(User $user): bool
     {
-        return $user->can('reorder_page');
+        return $user->can('reorder_user');
     }
-
 }
