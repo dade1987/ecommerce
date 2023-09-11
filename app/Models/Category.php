@@ -33,4 +33,9 @@ class Category extends Model
             ->withPivot($pivot_fields)
             ->withTimestamps();
     }
+
+    public function getLinkAttribute()
+    {
+        return route('categories.products.index', ['category' => $this]);
+    }
 }
