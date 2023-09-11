@@ -42,7 +42,7 @@ return [
 
     'page-resource' => \Z3d0X\FilamentFabricator\Resources\PageResource::class,
 
-    'enable-view-page' => false,
+    'enable-view-page' => true,
 
     /*
      * This is the name of the table that will be created by the migration and

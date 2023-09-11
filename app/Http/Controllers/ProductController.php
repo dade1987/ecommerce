@@ -2,18 +2,20 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Product;
+use App\Models\Category;
 use App\Http\Requests\StoreProductRequest;
 use App\Http\Requests\UpdateProductRequest;
-use App\Models\Product;
 
 class ProductController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(?int $category_id)
     {
-        //
+        $products = Category::find($category_id)->products;
+        return view('categories.products.index', compact('products'));
     }
 
     /**
