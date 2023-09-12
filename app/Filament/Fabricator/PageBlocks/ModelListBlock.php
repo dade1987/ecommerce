@@ -36,8 +36,12 @@ class ModelListBlock extends PageBlock
                 if ($parent != null) {
                     $container = $parent->$param;
                 } else {
+                    /*
                     $row_class = 'App\\Models\\' . Str::singular(Str::title($param));
                     $container = $row_class::get();
+                    */
+                    $controller_class = 'App\\Http\\Controllers\\' . Str::singular(Str::title($param)) . 'Controller';
+                    $container = app($controller_class)->index();
                 }
             }
 

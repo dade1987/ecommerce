@@ -22,7 +22,7 @@ class AuthServiceProvider extends ServiceProvider
     protected $policies = [
         //Page::class => PagePolicy::class, //questo no
         //Media::class => MediaPolicy::class //questo va
-        //Category::class => CategoryPolicy::class
+        Category::class => CategoryPolicy::class
     ];
 
     /**

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Product;
 use App\Models\Category;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Diglactic\Breadcrumbs\Breadcrumbs;
 use App\Http\Requests\StoreProductRequest;
@@ -16,10 +17,9 @@ class ProductController extends Controller
      */
     public function index(?int $category_id)
     {
-        $category = Category::findOrFail($category_id);
-        $products = $category->products;
-        $breadcrumbs = collect(Breadcrumbs::generate(Route::currentRouteName(), $category))->pluck('title', 'url')->toArray();
-        return view('categories.products.index', compact('breadcrumbs', 'category', 'products'));
+        $this->authorize('viewAny', Auth::user());
+
+        return Product::get();
     }
 
     /**
