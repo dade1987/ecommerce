@@ -18,9 +18,11 @@ use Z3d0X\FilamentFabricator\Facades\FilamentFabricator;
 |
 */
 
+require __DIR__ . '/auth.php';
+
 Route::get('/', function () {
     return view('welcome');
-});
+})->name('home');
 
 Route::get('/dashboard', function () {
     return view('dashboard');
@@ -31,8 +33,8 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    Route::resource('categories', CategoryController::class);
-    Route::resource('categories.products', ProductController::class);
-});
+    Route::resource('{container0}/{item0?}/{container1?}/{item1?}', PageController::class);
 
-require __DIR__ . '/auth.php';
+    // Route::resource('categories', CategoryController::class);
+    //Route::resource('categories.products', ProductController::class);
+});

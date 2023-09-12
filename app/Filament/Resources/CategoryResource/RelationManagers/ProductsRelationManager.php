@@ -3,12 +3,14 @@
 namespace App\Filament\Resources\CategoryResource\RelationManagers;
 
 use Filament\Forms;
-use Filament\Forms\Form;
-use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
+use Filament\Forms\Form;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Awcodes\Curator\Components\Forms\CuratorPicker;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Awcodes\Curator\Components\Tables\CuratorColumn;
+use Filament\Resources\RelationManagers\RelationManager;
 
 class ProductsRelationManager extends RelationManager
 {
@@ -27,6 +29,9 @@ class ProductsRelationManager extends RelationManager
                 Forms\Components\TextInput::make('price')
                     ->numeric()
                     ->prefix('$'),
+                CuratorPicker::make('featured_image_id')
+                    ->relationship('featuredImage', 'id')
+                    ->imageResizeTargetWidth(10)
             ]);
     }
 
@@ -35,7 +40,24 @@ class ProductsRelationManager extends RelationManager
         return $table
             ->recordTitleAttribute('name')
             ->columns([
-                Tables\Columns\TextColumn::make('name'),
+                Tables\Columns\TextColumn::make('created_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('updated_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('name')
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('price')
+                    ->money()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('user_id')
+                    ->numeric()
+                    ->sortable(),
+                CuratorColumn::make('featured_image')
+                    ->size(40)
             ])
             ->filters([
                 //

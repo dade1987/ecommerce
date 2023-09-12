@@ -3,10 +3,11 @@
 namespace App\Models;
 
 use Awcodes\Curator\Models\Media;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 
 class Category extends Model
@@ -14,6 +15,8 @@ class Category extends Model
     use HasFactory;
 
     protected $fillable = ['name'];
+
+
 
     public function featuredImage(): BelongsTo
     {
@@ -36,6 +39,12 @@ class Category extends Model
 
     public function getLinkAttribute()
     {
-        return route('categories.products.index', ['category' => $this]);
+
+        return route('{item1?}.index', ['container0' => 'categories', 'item0' => $this, 'container1' => 'products']);
+    }
+
+    public function getActionTextAttribute()
+    {
+        return 'Apri Categoria';
     }
 }

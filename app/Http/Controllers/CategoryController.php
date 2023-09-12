@@ -2,9 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Category;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Route;
+use Diglactic\Breadcrumbs\Breadcrumbs;
 use App\Http\Requests\StoreCategoryRequest;
 use App\Http\Requests\UpdateCategoryRequest;
-use App\Models\Category;
+use Z3d0X\FilamentFabricator\Facades\FilamentFabricator;
+use Z3d0X\FilamentFabricator\Http\Controllers\PageController;
 
 class CategoryController extends Controller
 {
@@ -13,9 +18,28 @@ class CategoryController extends Controller
      */
     public function index()
     {
-        $categories = Category::all();
+        /*$value = Route::current()->uri();
 
-        return view('categories.index', compact('categories'));
+        $pageModel = FilamentFabricator::getPageModel();
+
+        $pageUrls = FilamentFabricator::getPageUrls();
+
+        $value = Str::start($value, '/');
+
+        $pageId = array_search($value, $pageUrls);
+
+        $page = $pageModel::query()
+            ->where('id', $pageId)
+            ->firstOrFail();
+
+        $view = app(PageController::class)($page);
+
+        return $view;*/
+
+        //$categories = Category::all();
+        //$breadcrumbs = collect(Breadcrumbs::generate(Route::currentRouteName()))->pluck('title', 'url')->toArray();
+
+        // return view('categories.index', compact('breadcrumbs', 'categories'));
     }
 
     /**

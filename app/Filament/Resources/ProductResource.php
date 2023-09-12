@@ -2,16 +2,18 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\ProductResource\Pages;
-use App\Filament\Resources\ProductResource\RelationManagers;
-use App\Models\Product;
 use Filament\Forms;
-use Filament\Forms\Form;
-use Filament\Resources\Resource;
 use Filament\Tables;
+use App\Models\Product;
+use Filament\Forms\Form;
 use Filament\Tables\Table;
+use Filament\Resources\Resource;
 use Illuminate\Database\Eloquent\Builder;
+use App\Filament\Resources\ProductResource\Pages;
+use Awcodes\Curator\Components\Forms\CuratorPicker;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Awcodes\Curator\Components\Tables\CuratorColumn;
+use App\Filament\Resources\ProductResource\RelationManagers;
 
 class ProductResource extends Resource
 {
@@ -32,6 +34,9 @@ class ProductResource extends Resource
                 Forms\Components\TextInput::make('price')
                     ->numeric()
                     ->prefix('$'),
+                CuratorPicker::make('featured_image_id')
+                    ->relationship('featuredImage', 'id')
+                    ->imageResizeTargetWidth(10)
             ]);
     }
 
@@ -55,6 +60,8 @@ class ProductResource extends Resource
                 Tables\Columns\TextColumn::make('user_id')
                     ->numeric()
                     ->sortable(),
+                CuratorColumn::make('featured_image')
+                    ->size(40)
             ])
             ->filters([
                 //
