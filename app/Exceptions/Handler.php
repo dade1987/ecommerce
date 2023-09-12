@@ -30,9 +30,9 @@ class Handler extends ExceptionHandler
         });
 
         $this->renderable(function (Throwable $e) {
-            if ($e instanceof ViewException) {
+            /* if ($e instanceof ViewException) {
                 abort(404);
-            }
+            }*/
             if ($e instanceof ModelNotFoundException) {
                 abort(404);
             }

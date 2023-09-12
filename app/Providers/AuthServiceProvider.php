@@ -4,9 +4,11 @@ namespace App\Providers;
 
 // use Illuminate\Support\Facades\Gate;
 
+use App\Models\Product;
 use App\Models\Category;
 use App\Policies\PagePolicy;
 use App\Policies\MediaPolicy;
+use App\Policies\ProductPolicy;
 use App\Policies\CategoryPolicy;
 use Awcodes\Curator\Models\Media;
 use Z3d0X\FilamentFabricator\Models\Page;
@@ -19,11 +21,7 @@ class AuthServiceProvider extends ServiceProvider
      *
      * @var array<class-string, class-string>
      */
-    protected $policies = [
-        //Page::class => PagePolicy::class, //questo no
-        //Media::class => MediaPolicy::class //questo va
-        Category::class => CategoryPolicy::class
-    ];
+    protected $policies = [];
 
     /**
      * Register any authentication / authorization services.

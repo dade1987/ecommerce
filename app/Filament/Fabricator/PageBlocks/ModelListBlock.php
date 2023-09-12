@@ -2,8 +2,10 @@
 
 namespace App\Filament\Fabricator\PageBlocks;
 
+use App\Models\User;
 use App\Models\Category;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Diglactic\Breadcrumbs\Breadcrumbs;
 use Filament\Forms\Components\Builder\Block;
@@ -24,6 +26,8 @@ class ModelListBlock extends PageBlock
     {
         $params = Route::current()->parameters();
 
+        $user = Auth::user();
+
         $index = 0;
         $before_key = '';
         $parent = null;
@@ -33,13 +37,19 @@ class ModelListBlock extends PageBlock
                 $row_class = 'App\\Models\\' . Str::singular(Str::title($params[$before_key]));
                 $parent = $row_class::findOrFail($param);
             } else {
+                if (!$user->can('view_any_' . Str::singular($param))) {
+                    abort(403);
+                }
+
                 if ($parent != null) {
+
                     $container = $parent->$param;
                 } else {
-                    /*
-                    $row_class = 'App\\Models\\' . Str::singular(Str::title($param));
-                    $container = $row_class::get();
-                    */
+                    /*$row_class = 'App\\Models\\' . Str::singular(Str::title($param));
+                    $container = $row_class::get();*/
+
+                    //forse è meglio usare il controller perchè è il controller che dovrebbe fare da interfaccia tra modello e applicativo
+
                     $controller_class = 'App\\Http\\Controllers\\' . Str::singular(Str::title($param)) . 'Controller';
                     $container = app($controller_class)->index();
                 }

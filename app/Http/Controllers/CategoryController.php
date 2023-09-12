@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use App\Models\Category;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
@@ -14,13 +15,12 @@ use Z3d0X\FilamentFabricator\Http\Controllers\PageController;
 
 class CategoryController extends Controller
 {
+
     /**
      * Display a listing of the resource.
      */
     public function index()
     {
-        $this->authorize('viewAny', Auth::user());
-
         return Category::get();
     }
 

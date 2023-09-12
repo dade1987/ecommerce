@@ -17,8 +17,6 @@ class ProductController extends Controller
      */
     public function index(?int $category_id)
     {
-        $this->authorize('viewAny', Auth::user());
-
         return Product::get();
     }
 
