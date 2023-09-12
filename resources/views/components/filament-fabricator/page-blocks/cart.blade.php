@@ -2,9 +2,9 @@
 
 
 <section>
-    <div class="container py-3 mx-auto grid md:grid-cols-2 md:gap-2 sm:grid-cols-1 sm:gap-1">
+    <div class="container py-3 mx-auto w-full">
         <div class="text-center py-3 mx-auto">
-            <div class="flex flex-col max-w-3xl p-6 space-y-4 sm:p-10 dark:bg-gray-900 dark:text-gray-100">
+            <div class="flex flex-col p-6 space-y-4 sm:p-10 dark:bg-gray-900 dark:text-gray-100">
                 <h2 class="text-xl font-semibold">Your cart</h2>
                 <ul class="flex flex-col divide-y divide-gray-700">
                     <li class="flex flex-col py-6 sm:flex-row sm:justify-between">
