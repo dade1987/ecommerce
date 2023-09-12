@@ -9,7 +9,7 @@
                             <div class="flex w-full space-x-2 sm:space-x-4">
                                 <img class="flex-shrink-0 object-cover w-20 h-20 dark:border-transparent rounded outline-none sm:w-32 sm:h-32 dark:bg-gray-500"
                                     src='{{$item['image']}}'
-                                    alt="Polaroid camera">
+                                    alt="{{$item['name']}}">
                                 <div class="flex flex-col justify-between w-full pb-4">
                                     <div class="flex justify-between w-full pb-2 space-x-2">
                                         <div class="space-y-1">
