@@ -2,8 +2,11 @@
 
 namespace App\Exceptions;
 
-use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Throwable;
+use Illuminate\Http\Request;
+use Spatie\LaravelIgnition\Exceptions\ViewException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 
 class Handler extends ExceptionHandler
 {
@@ -24,7 +27,15 @@ class Handler extends ExceptionHandler
     public function register(): void
     {
         $this->reportable(function (Throwable $e) {
-            //
+        });
+
+        $this->renderable(function (Throwable $e) {
+            if ($e instanceof ViewException) {
+                abort(404);
+            }
+            if ($e instanceof ModelNotFoundException) {
+                abort(404);
+            }
         });
     }
 }
