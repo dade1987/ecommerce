@@ -1,3 +1,3 @@
 @aware(['categories'])
 
-<x-models-list :rows="$rows" />
+@livewire('models-list', compact('rows'))

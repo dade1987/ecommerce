@@ -22,4 +22,9 @@ class Product extends Model
     {
         return 'Aggiungi al Carrello';
     }
+
+    public function getActionAttribute()
+    {
+        return ' wire:click="$dispatch(\'add-to-cart\', { product_id: \'' . $this->id . '\' })"';
+    }
 }

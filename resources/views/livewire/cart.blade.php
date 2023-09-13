@@ -7,18 +7,18 @@
                     @foreach ($items as $item)
                         <li class="flex flex-col py-6 sm:flex-row sm:justify-between">
                             <div class="flex w-full space-x-2 sm:space-x-4">
-                                <img class="flex-shrink-0 object-cover w-20 h-20 dark:border-transparent rounded outline-none sm:w-32 sm:h-32 dark:bg-gray-500"
-                                    src='{{$item['image']}}'
-                                    alt="{{$item['name']}}">
+                                <x-curator-glider
+                                    class="flex-shrink-0 object-cover w-20 h-20 dark:border-transparent rounded outline-none sm:w-32 sm:h-32 dark:bg-gray-500"
+                                    :media="$item['featuredImage']" />
                                 <div class="flex flex-col justify-between w-full pb-4">
                                     <div class="flex justify-between w-full pb-2 space-x-2">
                                         <div class="space-y-1">
-                                            <h3 class="text-lg font-semibold leadi sm:pr-8">{{$item['name']}}</h3>
-                                            {{--<p class="text-sm dark:text-gray-400">Classic</p>--}}
+                                            <h3 class="text-lg font-semibold leadi sm:pr-8">{{ $item['name'] }}</h3>
+                                            {{-- <p class="text-sm dark:text-gray-400">Classic</p> --}}
                                         </div>
                                         <div class="text-right">
-                                            <p class="text-lg font-semibold">{{$item['price']}}</p>
-                                            {{--<p class="text-sm line-through dark:text-gray-600">75.50€</p>--}}
+                                            <p class="text-lg font-semibold">{{ $item['price'] }}</p>
+                                            {{-- <p class="text-sm line-through dark:text-gray-600">75.50€</p> --}}
                                         </div>
                                     </div>
                                     <div class="flex text-sm divide-x">
@@ -59,7 +59,7 @@
                 </ul>
                 <div class="space-y-1 text-right">
                     <p>Total amount:
-                        <span class="font-semibold">357 €</span>
+                        <span class="font-semibold">{{ $total }} €</span>
                     </p>
                     <p class="text-sm dark:text-gray-400">Not including taxes and shipping costs</p>
                 </div>

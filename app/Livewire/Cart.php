@@ -4,25 +4,17 @@ namespace App\Livewire;
 
 use Livewire\Component;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Session;
 
 class Cart extends Component
 {
-    public Collection $items;
+    public array $items;
+    public float $total;
     public function mount()
     {
-        $this->items = collect([
-            [
-                'name' => 'lasagne alla norma',
-                'price' => number_format(9, 2) . ' €',
-                'image' => ''
-            ],
-            [
-                'name' => 'polpette vegetariane',
-                'price' => number_format(5, 2) . ' €',
-                'image' => ''
+        $this->items = Session::get('cart') ?? [];
 
-            ]
-        ]);
+        $this->total = array_reduce($this->items, fn ($carry, $item) => $carry += $item['price'], 0);
     }
     public function render()
     {
