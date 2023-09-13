@@ -1,2 +1,3 @@
-@aware(['page'])
-@livewire('cart')
+@aware(['page','backToShopLink'])
+
+@livewire('cart', ['back_to_shop_link' => $backToShopLink])

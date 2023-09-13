@@ -3,6 +3,7 @@
 namespace App\Filament\Fabricator\PageBlocks;
 
 use Filament\Forms\Components\Builder\Block;
+use Filament\Forms\Components\TextInput;
 use Z3d0X\FilamentFabricator\PageBlocks\PageBlock;
 
 class CartBlock extends PageBlock
@@ -11,7 +12,7 @@ class CartBlock extends PageBlock
     {
         return Block::make('cart')
             ->schema([
-                //
+                TextInput::make('back_to_shop_link')
             ]);
     }
 

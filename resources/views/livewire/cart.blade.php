@@ -1,3 +1,5 @@
+@props(['back_to_shop_link'])
+
 <section>
     <div class="container py-3 mx-auto w-full">
         <div class="text-center py-3 mx-auto">
@@ -64,9 +66,10 @@
                     <p class="text-sm dark:text-gray-400">Not including taxes and shipping costs</p>
                 </div>
                 <div class="flex justify-end space-x-4">
-                    <button type="button" class="px-6 py-2 border rounded-md dark:border-violet-400">Back
+                    <a href="{{ url($back_to_shop_link) }}" type="button"
+                        class="px-6 py-2 border rounded-md dark:border-violet-400">Back
                         <span class="sr-only sm:not-sr-only">to shop</span>
-                    </button>
+                    </a>
                     <button type="button"
                         class="px-6 py-2 border rounded-md dark:bg-violet-400 dark:text-gray-900 dark:border-violet-400">
                         <span class="sr-only sm:not-sr-only">Continue to</span>Checkout
