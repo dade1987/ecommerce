@@ -980,7 +980,7 @@ END OF IMPORTANT
                                                                                 <tr>
                                                                                     <td class="esd-block-text es-p10b"
                                                                                         align="center">
-                                                                                        <h2>Thank You For Your Order!
+                                                                                        <h2>{{__('mail.thankyou')}}
                                                                                         </h2>
                                                                                     </td>
                                                                                 </tr>
@@ -989,10 +989,7 @@ END OF IMPORTANT
                                                                                         align="left">
                                                                                         <p
                                                                                             style="font-size: 16px; color: #777777;">
-                                                                                            Lorem ipsum dolor sit amet,
-                                                                                            consectetur adipisicing
-                                                                                            elit. Praesentium iste ipsa
-                                                                                            numquam odio dolores, nam.
+                                                                                            {{__('mail.subtitle')}}
                                                                                         </p>
                                                                                     </td>
                                                                                 </tr>
@@ -1040,8 +1037,8 @@ END OF IMPORTANT
                                                                                             <tbody>
                                                                                                 <tr>
                                                                                                     <td width="80%">
-                                                                                                        <h4>Order
-                                                                                                            Confirmation
+                                                                                                        <h4>
+                                                                                                           {{__('mail.order')}}
                                                                                                             #</h4>
                                                                                                     </td>
                                                                                                     <td width="20%">
@@ -1132,7 +1129,7 @@ END OF IMPORTANT
                                                                                             <tbody>
                                                                                                 <tr>
                                                                                                     <td width="80%">
-                                                                                                        <h4>TOTAL</h4>
+                                                                                                        <h4>{{__('mail.total')}}</h4>
                                                                                                     </td>
                                                                                                     <td width="20%">
                                                                                                         <h4>€{{$total}}</h4>
@@ -1166,7 +1163,7 @@ END OF IMPORTANT
                                                                                 <tr>
                                                                                     <td class="esd-block-text es-p15b"
                                                                                         align="left">
-                                                                                        <h4>Delivery Address</h4>
+                                                                                        <h4>{{__('mail.address')}}</h4>
                                                                                     </td>
                                                                                 </tr>
                                                                                 <tr>
@@ -1196,7 +1193,7 @@ END OF IMPORTANT
                                                                                 <tr>
                                                                                     <td class="esd-block-text es-p15b"
                                                                                         align="left">
-                                                                                        <h4>Estimated Delivery Date<br>
+                                                                                        <h4>{{__('mail.date')}}<br>
                                                                                         </h4>
                                                                                     </td>
                                                                                 </tr>
@@ -1315,14 +1312,8 @@ END OF IMPORTANT
                                                                                     <td esdev-links-color="#777777"
                                                                                         class="esd-block-text es-m-txt-c es-p5b"
                                                                                         align="left">
-                                                                                        <p style="color: #777777;">If
-                                                                                            you didn't create an account
-                                                                                            using this email address,
-                                                                                            please ignore this email
-                                                                                            or&nbsp;<u><a
-                                                                                                    target="_blank"
-                                                                                                    style="color: #777777;"
-                                                                                                    class="unsubscribe">unsubscribe</a></u>.
+                                                                                        <p style="color: #777777;">
+                                                                                           {{__('mail.unsubscribe')}}
                                                                                         </p>
                                                                                     </td>
                                                                                 </tr>
