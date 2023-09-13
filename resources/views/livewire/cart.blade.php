@@ -70,7 +70,7 @@
                         class="px-6 py-2 border rounded-md dark:border-violet-400">Back
                         <span class="sr-only sm:not-sr-only">to shop</span>
                     </a>
-                    <button type="button"
+                    <button wire:click="sendOrder" type="button"
                         class="px-6 py-2 border rounded-md dark:bg-violet-400 dark:text-gray-900 dark:border-violet-400">
                         <span class="sr-only sm:not-sr-only">Continue to</span>Checkout
                     </button>

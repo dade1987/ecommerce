@@ -2,9 +2,11 @@
 
 namespace App\Livewire;
 
+use App\Notifications\CustomerOrder;
 use Livewire\Component;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\Notification;
 
 class Cart extends Component
 {
@@ -19,6 +21,18 @@ class Cart extends Component
 
         $this->total = array_reduce($this->items, fn ($carry, $item) => $carry += $item['price'], 0);
     }
+
+    public function sendOrder()
+    {
+        Notification::route('mail', [
+            'davidecavallini1987@gmail.com' => 'Davide Cavallini',
+        ])->notify(new CustomerOrder($this->items));
+
+        Session::remove('cart');
+
+        return response()->redirectToRoute('{item1?}.index', ['container0' => 'order-completed']);
+    }
+
     public function render()
     {
         return view('livewire.cart');
