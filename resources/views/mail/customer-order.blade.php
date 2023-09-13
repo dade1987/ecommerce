@@ -855,7 +855,7 @@ END OF IMPORTANT
                                                                                         align="left">
                                                                                         <h1
                                                                                             style="color: #ffffff; line-height: 100%;">
-                                                                                            Beretun</h1>
+                                                                                            {{config('app.name', 'Laravel')}}</h1>
                                                                                     </td>
                                                                                 </tr>
                                                                             </tbody>
@@ -910,7 +910,7 @@ END OF IMPORTANT
                                                                                                                         align="right">
                                                                                                                         <p><a target="_blank"
                                                                                                                                 style="font-size: 18px; line-height: 120%;"
-                                                                                                                                href="https://viewstripo.email">Shop</a>
+                                                                                                                                href="https://viewstripo.email">{{__('mail.shop')}}</a>
                                                                                                                         </p>
                                                                                                                     </td>
                                                                                                                 </tr>
