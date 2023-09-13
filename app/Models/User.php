@@ -62,6 +62,7 @@ class User extends Authenticatable implements FilamentUser
 
     public function canAccessPanel(Panel $panel): bool
     {
+        //dd(app()->getLocale());
         return true;
     }
 }
