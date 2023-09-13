@@ -12,25 +12,25 @@ class Cart extends Component
 {
     public string $back_to_shop_link;
     public array $items;
-    public float $total;
+    public string $total;
     public function mount(string $back_to_shop_link)
     {
         $this->back_to_shop_link = $back_to_shop_link;
 
         $this->items = Session::get('cart') ?? [];
 
-        $this->total = array_reduce($this->items, fn ($carry, $item) => $carry += $item['price'], 0);
+        $this->total = number_format(array_reduce($this->items, fn ($carry, $item) => $carry += $item['price'], 0), 2);
     }
 
     public function sendOrder()
     {
         Notification::route('mail', [
             'davidecavallini1987@gmail.com' => 'Davide Cavallini',
-        ])->notify(new CustomerOrder($this->items));
+        ])->notify(new CustomerOrder($this->items, $this->total));
 
         Session::remove('cart');
 
-        return response()->redirectToRoute('{item1?}.index', ['container0' => 'order-completed']);
+        return redirect()->route('{item1?}.index', ['container0' => 'order-completed']);
     }
 
     public function render()

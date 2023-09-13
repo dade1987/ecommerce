@@ -24,7 +24,9 @@
                                         </div>
                                     </div>
                                     <div class="flex text-sm divide-x">
-                                        <button type="button" class="flex items-center px-2 py-1 pl-0 space-x-1">
+                                        <button
+                                            wire:click="$dispatch('remove-from-cart, {product_id: '{{ $item['id'] }}')"
+                                            type="button" class="flex items-center px-2 py-1 pl-0 space-x-1">
                                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"
                                                 class="w-4 h-4 fill-current">
                                                 <path
@@ -72,7 +74,7 @@
                     </a>
                     <button wire:click="sendOrder" type="button"
                         class="px-6 py-2 border rounded-md dark:bg-violet-400 dark:text-gray-900 dark:border-violet-400">
-                        <span class="sr-only sm:not-sr-only">Continue to</span>Checkout
+                        <span class="sr-only sm:not-sr-only">Continue to</span> Checkout
                     </button>
                 </div>
             </div>

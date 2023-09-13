@@ -12,12 +12,14 @@ class CustomerOrder extends Notification
     use Queueable;
 
     public array $items;
+    public string $total;
     /**
      * Create a new notification instance.
      */
-    public function __construct(array $items)
+    public function __construct(array $items, string $total)
     {
         $this->items = $items;
+        $this->total = $total;
     }
 
     /**
@@ -35,7 +37,7 @@ class CustomerOrder extends Notification
      */
     public function toMail(object $notifiable): MailMessage
     {
-        return (new MailMessage)->markdown('mail.customer-order', ['items' => $this->items]);
+        return (new MailMessage)->view('mail.customer-order', ['items' => $this->items, 'total' => $this->total]);
     }
 
     /**

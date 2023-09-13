@@ -20,9 +20,11 @@ use Z3d0X\FilamentFabricator\Facades\FilamentFabricator;
 
 require __DIR__ . '/auth.php';
 
-Route::get('/', function () {
+/*Route::get('/', function () {
     return view('welcome');
-})->name('home');
+})->name('home');*/
+
+Route::redirect('/', '/categories')->name('home');
 
 Route::get('/dashboard', function () {
     return view('dashboard');

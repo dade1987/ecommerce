@@ -9,7 +9,10 @@ use Livewire\Component;
 class CartIcon extends Component
 {
     public int $count = 0;
-    protected $listeners = ['add-to-cart' => 'addToCart'];
+    protected $listeners = [
+        'add-to-cart' => 'addToCart',
+        'remove-from-cart' => 'removeFromCart',
+    ];
     public function render()
     {
         $this->count = collect(Session::get('cart'))->count();
@@ -18,10 +21,13 @@ class CartIcon extends Component
 
     public function addToCart(string $product_id)
     {
-        //Session::flush();
-        //dd(Session::get('cart'));
         $product = Product::find($product_id);
         Session::push('cart', $product);
         $this->count = collect(Session::get('cart'))->count();
+    }
+
+    public function removeFromCart(string $product_id)
+    {
+        dd($product_id);
     }
 }
