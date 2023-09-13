@@ -1,5 +1,5 @@
 <?php
 
 return [
-    'shop'=>'Shop'
+    'shop' => 'Shop'
 ];
