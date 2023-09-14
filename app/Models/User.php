@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Models\Traits\HasAddresses;
 use Filament\Panel;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
@@ -15,6 +16,9 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 class User extends Authenticatable implements FilamentUser
 {
     use HasApiTokens, HasFactory, Notifiable, HasRoles;
+
+    //custom traits
+    use HasAddresses;
 
     /**
      * The attributes that are mass assignable.
@@ -47,18 +51,7 @@ class User extends Authenticatable implements FilamentUser
         'password' => 'hashed',
     ];
 
-    public function addresses(): MorphToMany
-    {
-        $pivot_class = AddressMorph::class;
-        $pivot = app($pivot_class);
-        $pivot_table = $pivot->getTable();
-        $pivot_fields = $pivot->getFillable();
 
-        return $this->morphToMany(Address::class, 'model', $pivot_table)
-            ->using($pivot_class)
-            ->withPivot($pivot_fields)
-            ->withTimestamps();
-    }
 
     public function canAccessPanel(Panel $panel): bool
     {

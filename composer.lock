@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "99fd3fd04a4d684013806a2eb51d6382",
+    "content-hash": "ab1e6eb73685c5d52df92a5c1c877de6",
     "packages": [
         {
             "name": "awcodes/filament-curator",

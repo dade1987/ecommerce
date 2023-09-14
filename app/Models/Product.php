@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\ProductMorph;
 use Awcodes\Curator\Models\Media;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -13,6 +14,21 @@ class Product extends Model
     use HasFactory;
 
     protected $fillable = ['name', 'description', 'price', 'featured_image_id'];
+
+    //relations
+    public function orders(): MorphToMany
+    {
+        $pivot_class = ProductMorph::class;
+        $pivot = app($pivot_class);
+        $pivot_table = $pivot->getTable();
+        $pivot_fields = $pivot->getFillable();
+
+
+        return $this->morphedByMany(Order::class, 'model', $pivot_table)
+            ->using($pivot_class)
+            ->withPivot($pivot_fields)
+            ->withTimestamps();
+    }
 
     public function variations(): MorphToMany
     {
@@ -32,6 +48,8 @@ class Product extends Model
     {
         return $this->belongsTo(Media::class, 'featured_image_id', 'id');
     }
+
+    //mutators
 
     public function getActionTextAttribute()
     {
