@@ -2,9 +2,12 @@
 
 namespace App\Livewire;
 
-use App\Notifications\CustomerOrder;
+use App\Models\User;
+use App\Models\Order;
 use Livewire\Component;
 use Illuminate\Support\Collection;
+use App\Notifications\CustomerOrder;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Notification;
 
@@ -24,11 +27,19 @@ class Cart extends Component
 
     public function sendOrder()
     {
-        Notification::route('mail', [
-            'davidecavallini1987@gmail.com' => 'Davide Cavallini',
-        ])->notify(new CustomerOrder($this->items, $this->total));
+
+        $order = Order::create(['delivery_date' => now()]);
+        foreach ($this->items as $item) {
+            $order->products()->attach($item);
+        }
+        $order->addresses()->attach(Auth::user()->addresses()->first());
+        $order->save();
 
         Session::remove('cart');
+
+        Notification::route('mail', [
+            'davidecavallini1987@gmail.com' => 'Davide Cavallini',
+        ])->notify(new CustomerOrder($order->products->toArray(), $this->total));
 
         return redirect()->route('{item1?}.index', ['container0' => 'order-completed']);
     }

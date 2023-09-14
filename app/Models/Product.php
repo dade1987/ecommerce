@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\Order;
+use App\Models\Product;
 use App\Models\ProductMorph;
 use Awcodes\Curator\Models\Media;
 use Illuminate\Database\Eloquent\Model;
@@ -30,6 +32,7 @@ class Product extends Model
             ->withTimestamps();
     }
 
+
     public function variations(): MorphToMany
     {
         $pivot_class = ProductMorph::class;
@@ -39,6 +42,22 @@ class Product extends Model
 
 
         return $this->morphToMany(Product::class, 'model', $pivot_table)
+            ->using($pivot_class)
+            ->withPivot($pivot_fields)
+            ->withTimestamps();
+    }
+
+
+    //inversa delle varianti
+    public function products(): MorphToMany
+    {
+        $pivot_class = ProductMorph::class;
+        $pivot = app($pivot_class);
+        $pivot_table = $pivot->getTable();
+        $pivot_fields = $pivot->getFillable();
+
+
+        return $this->morphedByMany(Product::class, 'model', $pivot_table)
             ->using($pivot_class)
             ->withPivot($pivot_fields)
             ->withTimestamps();

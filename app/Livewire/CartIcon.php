@@ -28,6 +28,7 @@ class CartIcon extends Component
 
     public function removeFromCart(string $product_id)
     {
+        //TO-DO
         dd($product_id);
     }
 }
