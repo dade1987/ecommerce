@@ -14,13 +14,16 @@ class PageController extends Controller
      */
     public function index($container0, ?string $item0 = null, ?string $container1 = null, ?string $item1 = null, ?string $container2 = null, ?string $item2 = null)
     {
-
+        //dd(get_defined_vars());
         $value = $container0;
 
         if (isset($container1)) {
             $value = $container1;
         }
 
+        if (isset($container2)) {
+            $value = $container2;
+        }
 
         $pageModel = FilamentFabricator::getPageModel();
 
