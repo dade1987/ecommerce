@@ -34,6 +34,7 @@ class CartIcon extends Component
         foreach ($products as $key => $item) {
             if ($item->id === (int)$product_id) {
                 unset($products[$key]);
+                break;
             }
         }
         Session::put('cart', $products);
