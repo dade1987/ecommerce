@@ -3,24 +3,24 @@
 namespace App\Filament\Resources;
 
 use Filament\Forms;
+use App\Models\Team;
 use Filament\Tables;
-use App\Models\Category;
+use Filament\Forms\Set;
 use Filament\Forms\Form;
 use Filament\Tables\Table;
-use App\Models\Traits\HasTeams;
+use Illuminate\Support\Str;
 use Filament\Resources\Resource;
+use Filament\Forms\Components\Select;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Forms\Components\TextInput;
 use Illuminate\Database\Eloquent\Builder;
-use App\Filament\Resources\CategoryResource\Pages;
-use Awcodes\Curator\Components\Forms\CuratorPicker;
+use App\Filament\Resources\TeamResource\Pages;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Awcodes\Curator\Components\Tables\CuratorColumn;
-use App\Filament\Resources\CategoryResource\RelationManagers;
+use App\Filament\Resources\TeamResource\RelationManagers;
 
-class CategoryResource extends Resource
+class TeamResource extends Resource
 {
-    protected static ?string $model = Category::class;
+    protected static ?string $model = Team::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
@@ -28,10 +28,10 @@ class CategoryResource extends Resource
     {
         return $form
             ->schema([
-                TextInput::make('name'),
-                CuratorPicker::make('featured_image_id')
-                    ->relationship('featuredImage', 'id')
-                    ->imageResizeTargetWidth(10)
+                TextInput::make('name')
+                    ->live()
+                    ->afterStateUpdated(fn (Set $set, ?string $state) => $set('slug', Str::slug($state))),
+                TextInput::make('slug')
             ]);
     }
 
@@ -40,8 +40,7 @@ class CategoryResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('name'),
-                CuratorColumn::make('featured_image')
-                    ->size(40)
+                TextColumn::make('slug'),
             ])
             ->filters([
                 //
@@ -62,16 +61,16 @@ class CategoryResource extends Resource
     public static function getRelations(): array
     {
         return [
-            RelationManagers\ProductsRelationManager::class,
+            //
         ];
     }
 
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListCategories::route('/'),
-            'create' => Pages\CreateCategory::route('/create'),
-            'edit' => Pages\EditCategory::route('/{record}/edit'),
+            'index' => Pages\ListTeams::route('/'),
+            'create' => Pages\CreateTeam::route('/create'),
+            'edit' => Pages\EditTeam::route('/{record}/edit'),
         ];
     }
 }

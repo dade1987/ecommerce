@@ -9,11 +9,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
+use App\Models\Traits\HasTeams;
 
 class Category extends Model
 {
     use HasFactory;
 
+
+    use HasTeams;
     protected $fillable = ['name'];
 
 

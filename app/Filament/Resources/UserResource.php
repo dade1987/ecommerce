@@ -28,14 +28,18 @@ class UserResource extends Resource
                 Forms\Components\TextInput::make('name')
                     ->required(),
                 Forms\Components\TextInput::make('email')
-                    ->email()
-                    ->required()
-                    ->unique(),
-                Forms\Components\TextInput::make('password')
-                    ->required()
+                    ->email(),
+                //->required()
+                //->unique(),
+                /*Forms\Components\TextInput::make('password')
+                    //->required()
                     ->password()
                     ->maxLength(255)
-                    ->rule(Password::default())
+                    ->rule(Password::default()),*/
+                Forms\Components\Select::make('role_id')
+                    ->relationship(name: 'roles', titleAttribute: 'name'),
+                Forms\Components\Select::make('team_id')
+                    ->relationship(name: 'teams', titleAttribute: 'name')
             ]);
     }
 
@@ -46,6 +50,7 @@ class UserResource extends Resource
                 Tables\Columns\TextColumn::make('name')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('roles.name'),
+                Tables\Columns\TextColumn::make('teams.name'),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime(),
             ])

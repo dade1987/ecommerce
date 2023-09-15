@@ -3,8 +3,8 @@
 namespace App\Models;
 
 use App\Models\Order;
-use App\Models\Product;
 use App\Models\ProductMorph;
+use App\Models\Traits\HasTeams;
 use Awcodes\Curator\Models\Media;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -14,6 +14,8 @@ use Illuminate\Database\Eloquent\Relations\MorphToMany;
 class Product extends Model
 {
     use HasFactory;
+
+    use HasTeams;
 
     protected $fillable = ['name', 'description', 'price', 'featured_image_id'];
 

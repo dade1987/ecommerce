@@ -26,6 +26,7 @@ class AdminPanelProvider extends PanelProvider
 {
     public function panel(Panel $panel): Panel
     {
+
         return $panel
             ->default()
             ->id('admin')
@@ -62,5 +63,6 @@ class AdminPanelProvider extends PanelProvider
                 FilamentShieldPlugin::make(),
                 CuratorPlugin::make()
             ]);
+        //->tenant(Team::class);
     }
 }
