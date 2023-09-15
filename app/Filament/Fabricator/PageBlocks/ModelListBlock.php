@@ -11,6 +11,7 @@ use Diglactic\Breadcrumbs\Breadcrumbs;
 use Filament\Forms\Components\Builder\Block;
 use Z3d0X\FilamentFabricator\PageBlocks\PageBlock;
 use Awcodes\Curator\Components\Forms\CuratorPicker;
+use Filament\Forms\Components\Checkbox;
 
 class ModelListBlock extends PageBlock
 {
@@ -18,7 +19,7 @@ class ModelListBlock extends PageBlock
     {
         return Block::make('model-list')
             ->schema([
-                //CuratorPicker::make('header_image')
+                Checkbox::make('second_button')
             ]);
     }
 
@@ -66,10 +67,11 @@ class ModelListBlock extends PageBlock
             $before_key = $key;
             $index++;
         }
-
+        // dd($container);
         return [
 
-            'rows' => $container
+            'rows' => $container,
+            'second_button' => $data['second_button'] ?? false
         ];
     }
 }

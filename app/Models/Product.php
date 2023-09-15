@@ -6,6 +6,7 @@ use App\Models\Order;
 use App\Models\ProductMorph;
 use App\Models\Traits\HasTeams;
 use Awcodes\Curator\Models\Media;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -80,5 +81,19 @@ class Product extends Model
     public function getActionAttribute()
     {
         return ' wire:click="$dispatch(\'add-to-cart\', { product_id: \'' . $this->id . '\' })"';
+    }
+
+    public function getSecondActionTextAttribute()
+    {
+        return 'Aggiunte';
+    }
+
+    public function getSecondActionAttribute()
+    {
+
+        $item0 = Route::current()->parameter('item0');
+        return ' onClick=location.href=\'' . route('{item2?}.index', ['container0' => 'categories', 'item0' =>  $item0, 'container1' => 'products', 'item1' => $this, 'container2' => 'variations']) . '\' ';
+
+        //return ' wire:click="$dispatch(\'add-to-cart\', { product_id: \'' . $this->id . '\' })"';
     }
 }

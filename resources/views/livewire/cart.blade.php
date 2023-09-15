@@ -25,7 +25,7 @@
                                     </div>
                                     <div class="flex text-sm divide-x">
                                         <button
-                                            wire:click="$dispatch('remove-from-cart, {product_id: '{{ $item['id'] }}')"
+                                            wire:click="$dispatch('remove-from-cart', {product_id: '{{ $item['id'] }}'})"
                                             type="button" class="flex items-center px-2 py-1 pl-0 space-x-1">
                                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"
                                                 class="w-4 h-4 fill-current">

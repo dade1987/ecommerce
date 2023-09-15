@@ -28,7 +28,18 @@ class CartIcon extends Component
 
     public function removeFromCart(string $product_id)
     {
-        //TO-DO
-        dd($product_id);
+
+        $products = Session::get('cart');
+
+        foreach ($products as $key => $item) {
+            if ($item->id === (int)$product_id) {
+                unset($products[$key]);
+            }
+        }
+        Session::put('cart', $products);
+
+        $this->count = collect(Session::get('cart'))->count();
+
+        $this->dispatch('refresh-cart');
     }
 }
