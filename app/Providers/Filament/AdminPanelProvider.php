@@ -63,6 +63,6 @@ class AdminPanelProvider extends PanelProvider
                 FilamentShieldPlugin::make(),
                 CuratorPlugin::make()
             ]);
-        //->tenant(Team::class);
+        //->tenant(Team::class, 'slug');
     }
 }

@@ -1,5 +1,5 @@
 <div class="flex items-center">
-    <a href="{{ route('{item1?}.index', ['container0' => 'cart']) }}" class="flex items-center">
+    <a href="{{ route('{item2?}.index', ['container0' => 'cart']) }}" class="flex items-center">
         <span class="text-xs">{{ $count }}</span>
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
             class="w-6 h-6">

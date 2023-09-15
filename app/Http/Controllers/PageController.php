@@ -12,7 +12,7 @@ class PageController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index($container0, ?string $item0 = null, ?string $container1 = null, ?string $item1 = null)
+    public function index($container0, ?string $item0 = null, ?string $container1 = null, ?string $item1 = null, ?string $container2 = null, ?string $item2 = null)
     {
 
         $value = $container0;

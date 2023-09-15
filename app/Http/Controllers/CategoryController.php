@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Team;
 use App\Models\User;
 use App\Models\Category;
 use Illuminate\Support\Str;
@@ -19,8 +20,13 @@ class CategoryController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(/*?string $team = null*/)
     {
+
+        /*if ($team != null) {
+            return Team::firstWhere('slug', $team)->categories;
+        }*/
+        //return Team::firstWhere('slug')->categories;
         return Category::get();
     }
 

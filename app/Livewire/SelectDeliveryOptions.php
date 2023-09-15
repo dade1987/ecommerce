@@ -85,7 +85,7 @@ class SelectDeliveryOptions extends Component implements HasForms
             'davidecavallini1987@gmail.com' => 'Davide Cavallini',
         ])->notify(new CustomerOrder($order, $this->total));
 
-        return redirect()->route('{item1?}.index', ['container0' => 'order-completed']);
+        return redirect()->route('{item2?}.index', ['container0' => 'order-completed']);
     }
 
     public function render(): View

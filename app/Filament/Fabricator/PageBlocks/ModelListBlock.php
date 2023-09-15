@@ -37,14 +37,22 @@ class ModelListBlock extends PageBlock
                 $row_class = 'App\\Models\\' . Str::singular(Str::title($params[$before_key]));
                 $parent = $row_class::findOrFail($param);
             } else {
-                if (!$user->can('view_any_' . Str::singular($param))) {
-                    abort(403);
-                }
+
+
 
                 if ($parent != null) {
+                    $class_name = class_basename(Str::lower($parent->$param()->getModel()::class));
+
+                    if (!$user->can('view_any_' . Str::singular($class_name))) {
+                        abort(403);
+                    }
 
                     $container = $parent->$param;
                 } else {
+
+                    if (!$user->can('view_any_' . Str::singular($param))) {
+                        abort(403);
+                    }
                     /*$row_class = 'App\\Models\\' . Str::singular(Str::title($param));
                     $container = $row_class::get();*/
 

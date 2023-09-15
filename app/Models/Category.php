@@ -42,7 +42,7 @@ class Category extends Model
 
     public function getActionAttribute()
     {
-        return ' onClick=location.href=\'' . route('{item1?}.index', ['container0' => 'categories', 'item0' => $this, 'container1' => 'products']) . '\' ';
+        return ' onClick=location.href=\'' . route('{item2?}.index', ['container0' => 'categories', 'item0' => $this, 'container1' => 'products']) . '\' ';
     }
 
     public function getActionTextAttribute()

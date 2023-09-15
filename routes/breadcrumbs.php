@@ -13,7 +13,7 @@ Breadcrumbs::for('home', function (BreadcrumbTrail $trail) {
     $trail->push('Home', route('home'));
 });
 
-Breadcrumbs::for('{item1?}.index', function (BreadcrumbTrail $trail, array $params) {
+Breadcrumbs::for('{item2?}.index', function (BreadcrumbTrail $trail, array $params) {
     $trail->parent('home');
 
     $index = 0;
@@ -24,9 +24,9 @@ Breadcrumbs::for('{item1?}.index', function (BreadcrumbTrail $trail, array $para
         if (Str::startsWith($key, 'item')) {
             $row_class = 'App\\Models\\' . Str::singular(Str::title($params[$before_key]));
             $item = $row_class::findOrFail($param);
-            $trail->push($item->name, route('{item1?}.index', $parameters));
+            $trail->push($item->name, route('{item2?}.index', $parameters));
         } else {
-            $trail->push(Str::title($param), route('{item1?}.index', $parameters));
+            $trail->push(Str::title($param), route('{item2?}.index', $parameters));
         }
 
         $before_key = $key;
