@@ -1,8 +1,8 @@
 @aware(['breadcrumbs'])
 
 <section>
-    <div class="container py-3 mx-auto grid md:grid-cols-2 md:gap-2 sm:grid-cols-1 sm:gap-1">
-        <div class="text-center py-3 mx-auto">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+        <div class="flex justify-between h-16">
             <x-filament::breadcrumbs :breadcrumbs="$breadcrumbs" />
         </div>
     </div>

@@ -3,9 +3,10 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
-use App\Models\Traits\HasAddresses;
 use Filament\Panel;
+use App\Models\Traits\HasOrders;
 use Laravel\Sanctum\HasApiTokens;
+use App\Models\Traits\HasAddresses;
 use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Notifications\Notifiable;
 use Filament\Models\Contracts\FilamentUser;
@@ -19,6 +20,7 @@ class User extends Authenticatable implements FilamentUser
 
     //custom traits
     use HasAddresses;
+    use HasOrders;
 
     /**
      * The attributes that are mass assignable.

@@ -855,7 +855,8 @@ END OF IMPORTANT
                                                                                         align="left">
                                                                                         <h1
                                                                                             style="color: #ffffff; line-height: 100%;">
-                                                                                            {{config('app.name', 'Laravel')}}</h1>
+                                                                                            {{ config('app.name', 'Laravel') }}
+                                                                                        </h1>
                                                                                     </td>
                                                                                 </tr>
                                                                             </tbody>
@@ -910,7 +911,7 @@ END OF IMPORTANT
                                                                                                                         align="right">
                                                                                                                         <p><a target="_blank"
                                                                                                                                 style="font-size: 18px; line-height: 120%;"
-                                                                                                                                href="https://viewstripo.email">{{__('mail.shop')}}</a>
+                                                                                                                                href="https://viewstripo.email">{{ __('mail.shop') }}</a>
                                                                                                                         </p>
                                                                                                                     </td>
                                                                                                                 </tr>
@@ -980,7 +981,7 @@ END OF IMPORTANT
                                                                                 <tr>
                                                                                     <td class="esd-block-text es-p10b"
                                                                                         align="center">
-                                                                                        <h2>{{__('mail.thankyou')}}
+                                                                                        <h2>{{ __('mail.thankyou') }}
                                                                                         </h2>
                                                                                     </td>
                                                                                 </tr>
@@ -989,7 +990,7 @@ END OF IMPORTANT
                                                                                         align="left">
                                                                                         <p
                                                                                             style="font-size: 16px; color: #777777;">
-                                                                                            {{__('mail.subtitle')}}
+                                                                                            {{ __('mail.subtitle') }}
                                                                                         </p>
                                                                                     </td>
                                                                                 </tr>
@@ -1038,11 +1039,12 @@ END OF IMPORTANT
                                                                                                 <tr>
                                                                                                     <td width="80%">
                                                                                                         <h4>
-                                                                                                           {{__('mail.order')}}
+                                                                                                            {{ __('mail.order') }}
                                                                                                             #</h4>
                                                                                                     </td>
                                                                                                     <td width="20%">
-                                                                                                        <h4>2345678</h4>
+                                                                                                        <h4>{{ $order_number }}
+                                                                                                        </h4>
                                                                                                     </td>
                                                                                                 </tr>
                                                                                             </tbody>
@@ -1129,10 +1131,12 @@ END OF IMPORTANT
                                                                                             <tbody>
                                                                                                 <tr>
                                                                                                     <td width="80%">
-                                                                                                        <h4>{{__('mail.total')}}</h4>
+                                                                                                        <h4>{{ __('mail.total') }}
+                                                                                                        </h4>
                                                                                                     </td>
                                                                                                     <td width="20%">
-                                                                                                        <h4>€{{$total}}</h4>
+                                                                                                        <h4>€{{ $total }}
+                                                                                                        </h4>
                                                                                                     </td>
                                                                                                 </tr>
                                                                                             </tbody>
@@ -1163,15 +1167,24 @@ END OF IMPORTANT
                                                                                 <tr>
                                                                                     <td class="esd-block-text es-p15b"
                                                                                         align="left">
-                                                                                        <h4>{{__('mail.address')}}</h4>
+                                                                                        <h4>{{ __('mail.address') }}
+                                                                                        </h4>
                                                                                     </td>
                                                                                 </tr>
                                                                                 <tr>
                                                                                     <td class="esd-block-text es-p10b"
                                                                                         align="left">
-                                                                                        <p>675 Massachusetts Avenue</p>
-                                                                                        <p>11th Floor</p>
-                                                                                        <p>Cambridge, MA 02139</p>
+                                                                                        <p>{{ $delivery_address['street'] }}
+                                                                                        </p>
+                                                                                        <p>{{ $delivery_address['municipality'] }},
+                                                                                            {{ $delivery_address['province'] }}
+                                                                                            -
+                                                                                            {{ $delivery_address['postal_code'] }}
+                                                                                        </p>
+                                                                                        <p>{{ $delivery_address['region'] }}
+                                                                                            -
+                                                                                            {{ $delivery_address['nation'] }}
+                                                                                        </p>
                                                                                     </td>
                                                                                 </tr>
                                                                             </tbody>
@@ -1193,14 +1206,14 @@ END OF IMPORTANT
                                                                                 <tr>
                                                                                     <td class="esd-block-text es-p15b"
                                                                                         align="left">
-                                                                                        <h4>{{__('mail.date')}}<br>
+                                                                                        <h4>{{ __('mail.date') }}<br>
                                                                                         </h4>
                                                                                     </td>
                                                                                 </tr>
                                                                                 <tr>
                                                                                     <td class="esd-block-text"
                                                                                         align="left">
-                                                                                        <p>January 1st, 2016</p>
+                                                                                        <p>{{ $delivery_date }}</p>
                                                                                     </td>
                                                                                 </tr>
                                                                             </tbody>
@@ -1313,7 +1326,7 @@ END OF IMPORTANT
                                                                                         class="esd-block-text es-m-txt-c es-p5b"
                                                                                         align="left">
                                                                                         <p style="color: #777777;">
-                                                                                           {{__('mail.unsubscribe')}}
+                                                                                            {{ __('mail.unsubscribe') }}
                                                                                         </p>
                                                                                     </td>
                                                                                 </tr>

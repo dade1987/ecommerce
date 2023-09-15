@@ -2,23 +2,24 @@
 
 namespace App\Notifications;
 
+use App\Models\Order;
 use Illuminate\Bus\Queueable;
+use Illuminate\Notifications\Notification;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
-use Illuminate\Notifications\Notification;
 
 class CustomerOrder extends Notification
 {
     use Queueable;
 
-    public array $items;
+    public Order $order;
     public string $total;
     /**
      * Create a new notification instance.
      */
-    public function __construct(array $items, string $total)
+    public function __construct(Order $order, string $total)
     {
-        $this->items = $items;
+        $this->order = $order;
         $this->total = $total;
     }
 
@@ -37,7 +38,17 @@ class CustomerOrder extends Notification
      */
     public function toMail(object $notifiable): MailMessage
     {
-        return (new MailMessage)->view('mail.customer-order', ['items' => $this->items, 'total' => $this->total]);
+
+        return (new MailMessage)->view(
+            'mail.customer-order',
+            [
+                'items' => $this->order->products->toArray(),
+                'total' => $this->total,
+                'order_number' => str_pad($this->order->id, 8, '0'),
+                'delivery_address' => $this->order->addresses()->first(),
+                'delivery_date' => $this->order->delivery_date,
+            ]
+        );
     }
 
     /**
