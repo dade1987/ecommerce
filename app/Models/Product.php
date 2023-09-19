@@ -80,7 +80,7 @@ class Product extends Model
 
     public function getActionAttribute()
     {
-        return ' wire:click="$dispatch(\'add-to-cart\', { product_id: \'' . $this->id . '\' })"';
+        return ' wire:click="$dispatch(\'add-food-to-cart\', { product_id: \'' . $this->id . '\' })"';
     }
 
     public function getSecondActionTextAttribute()
@@ -93,7 +93,5 @@ class Product extends Model
 
         $item0 = Route::current()->parameter('item0');
         return ' onClick=location.href=\'' . route('{item2?}.index', ['container0' => 'categories', 'item0' =>  $item0, 'container1' => 'products', 'item1' => $this, 'container2' => 'variations']) . '\' ';
-
-        //return ' wire:click="$dispatch(\'add-to-cart\', { product_id: \'' . $this->id . '\' })"';
     }
 }

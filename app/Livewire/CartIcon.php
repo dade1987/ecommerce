@@ -6,24 +6,57 @@ use App\Models\Product;
 use Illuminate\Support\Facades\Session;
 use Livewire\Component;
 
-class CartIcon extends Component
+use Filament\Actions\Action;
+use Filament\Actions\Concerns\InteractsWithActions;
+use Filament\Actions\Contracts\HasActions;
+use Filament\Forms\Concerns\InteractsWithForms;
+use Filament\Forms\Contracts\HasForms;
+
+class CartIcon extends Component implements HasForms, HasActions
 {
+    use InteractsWithActions;
+    use InteractsWithForms;
+
     public int $count = 0;
+    public Product $product;
+
     protected $listeners = [
         'add-to-cart' => 'addToCart',
+        'add-food-to-cart' => 'addFoodToCart',
         'remove-from-cart' => 'removeFromCart',
     ];
-    public function render()
+
+
+    public function addToCart(string $product_id, ?string $option = null)
     {
+        $product = Product::findOrFail($product_id);
+
+        Session::push('cart',   $product);
+
         $this->count = collect(Session::get('cart'))->count();
-        return view('livewire.cart-icon');
     }
 
-    public function addToCart(string $product_id)
+    public function addFoodToCart(string $product_id, ?string $option = null)
     {
-        $product = Product::find($product_id);
-        Session::push('cart', $product);
-        $this->count = collect(Session::get('cart'))->count();
+        if ($option == null) {
+            $this->addToCart($product_id);
+
+            //se ci sono varianti apre il modal con la scelta
+            $this->product = Product::findOrFail($product_id);
+
+
+            if (!$this->product->variations->isEmpty()) {
+                //è giusta questa sintassi anche se è sottolineata
+                $this->dispatch('open-modal', id: 'add-variations');
+            }
+        } else {
+            $this->addToCart($product_id, $option);
+        }
+    }
+
+    public function closeVariantsModal()
+    {
+        $this->dispatch('close-modal', id: 'add-variations');
     }
 
     public function removeFromCart(string $product_id)
@@ -32,7 +65,7 @@ class CartIcon extends Component
         $products = Session::get('cart');
 
         foreach ($products as $key => $item) {
-            if ($item->id === (int)$product_id) {
+            if ((int)$item->id === (int)$product_id) {
                 unset($products[$key]);
                 break;
             }
@@ -42,5 +75,11 @@ class CartIcon extends Component
         $this->count = collect(Session::get('cart'))->count();
 
         $this->dispatch('refresh-cart');
+    }
+
+    public function render()
+    {
+        $this->count = collect(Session::get('cart'))->count();
+        return view('livewire.cart-icon');
     }
 }
