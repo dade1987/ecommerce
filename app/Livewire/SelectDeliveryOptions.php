@@ -5,19 +5,23 @@ namespace App\Livewire;
 use App\Models\User;
 use Livewire\Component;
 use Filament\Forms\Form;
+use Filament\Actions\Action;
 use Illuminate\Contracts\View\View;
 use App\Notifications\CustomerOrder;
-use Filament\Forms\Components\DatePicker;
 use Illuminate\Support\Facades\Auth;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Contracts\HasForms;
 use Illuminate\Support\Facades\Session;
+use Filament\Forms\Components\TextInput;
+use Filament\Actions\Contracts\HasActions;
 use Illuminate\Support\Facades\Notification;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Concerns\InteractsWithForms;
+use Filament\Actions\Concerns\InteractsWithActions;
 
-class SelectDeliveryOptions extends Component implements HasForms
+class SelectDeliveryOptions extends Component implements HasForms, HasActions
 {
+    use InteractsWithActions;
     use InteractsWithForms;
     public ?array $addressData = [];
     public ?array $dateData = [];
@@ -32,6 +36,24 @@ class SelectDeliveryOptions extends Component implements HasForms
         $this->selectAddressForm->fill();
         $this->selectDateForm->fill();
     }
+
+    public function addressAction(): Action
+    {
+
+        return Action::make('address')
+            ->label('Add Address')
+            ->form([
+                TextInput::make('nation')->required(),
+                TextInput::make('region')->required(),
+                TextInput::make('province')->required(),
+                TextInput::make('municipality')->required(),
+                TextInput::make('street')->required(),
+                TextInput::make('postal_code')->required(),
+            ])
+            //->requiresConfirmation()
+            ->action(fn (array $data) => Auth::user()->addresses()->create($data));
+    }
+
 
     public function selectAddressForm(Form $form): Form
     {

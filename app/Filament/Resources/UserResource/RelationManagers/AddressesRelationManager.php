@@ -18,12 +18,12 @@ class AddressesRelationManager extends RelationManager
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('nation'),
-                Forms\Components\TextInput::make('region'),
-                Forms\Components\TextInput::make('province'),
-                Forms\Components\TextInput::make('municipality'),
-                Forms\Components\TextInput::make('street'),
-                Forms\Components\TextInput::make('postal_code'),
+                Forms\Components\TextInput::make('nation')->required(),
+                Forms\Components\TextInput::make('region')->required(),
+                Forms\Components\TextInput::make('province')->required(),
+                Forms\Components\TextInput::make('municipality')->required(),
+                Forms\Components\TextInput::make('street')->required(),
+                Forms\Components\TextInput::make('postal_code')->required(),
             ]);
     }
 
