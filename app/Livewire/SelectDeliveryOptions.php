@@ -11,6 +11,7 @@ use App\Notifications\CustomerOrder;
 use Illuminate\Support\Facades\Auth;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Contracts\HasForms;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Session;
 use Filament\Forms\Components\TextInput;
 use Filament\Actions\Contracts\HasActions;
@@ -59,7 +60,10 @@ class SelectDeliveryOptions extends Component implements HasForms, HasActions
     {
         return $form
             ->schema([
-                Select::make('address_id')->relationship(name: 'addresses', titleAttribute: 'street')
+                Select::make('address_id')
+                ->label('Indirizzo')
+                ->relationship(name: 'addresses'/*, titleAttribute: 'street'*/)
+                ->getOptionLabelFromRecordUsing(fn (Model $record) =>$record->full_address)
             ])
             ->statePath('addressData')
             ->model($this->user);
@@ -70,10 +74,13 @@ class SelectDeliveryOptions extends Component implements HasForms, HasActions
         return $form
             ->schema([
                 DateTimePicker::make('delivery_date')
+                    ->label('Data di consegna desiderata')
                     ->native(false)
                     ->seconds(false)
+                    ->default(now())
                     ->hoursStep(1)
                     ->minutesStep(15)
+
 
             ])
             ->statePath('dateData');
