@@ -1,5 +1,6 @@
 <?php
 
+use App\Services\Cart\Facades\Cart;
 use Illuminate\Support\Facades\Facade;
 use Illuminate\Support\ServiceProvider;
 
@@ -169,6 +170,7 @@ return [
         App\Providers\EventServiceProvider::class,
         App\Providers\Filament\AdminPanelProvider::class,
         App\Providers\RouteServiceProvider::class,
+        App\Providers\CartServiceProvider::class,
     ])->toArray(),
 
     /*
@@ -184,6 +186,7 @@ return [
 
     'aliases' => Facade::defaultAliases()->merge([
         // 'Example' => App\Facades\Example::class,
+        "Cart"=> Cart::class
     ])->toArray(),
 
 ];
