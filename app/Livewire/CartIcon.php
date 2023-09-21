@@ -3,22 +3,25 @@
 namespace App\Livewire;
 
 use App\Models\Product;
-use Illuminate\Support\Facades\Session;
 use Livewire\Component;
+use Illuminate\Support\Str;
 
 use Filament\Actions\Action;
-use Filament\Actions\Concerns\InteractsWithActions;
+use App\Services\Cart\Facades\Cart;
+use Filament\Forms\Contracts\HasForms;
+use Illuminate\Support\Facades\Session;
 use Filament\Actions\Contracts\HasActions;
 use Filament\Forms\Concerns\InteractsWithForms;
-use Filament\Forms\Contracts\HasForms;
+use Filament\Actions\Concerns\InteractsWithActions;
 
 class CartIcon extends Component implements HasForms, HasActions
 {
     use InteractsWithActions;
     use InteractsWithForms;
 
-    public int $count = 0;
+    public string $count = '0.00';
     public Product $product;
+    public string $last_cart_item_row_id;
 
     protected $listeners = [
         'add-to-cart' => 'addToCart',
@@ -29,21 +32,33 @@ class CartIcon extends Component implements HasForms, HasActions
 
     public function addToCart(string $product_id, ?string $option = null)
     {
-        $product = Product::findOrFail($product_id);
+        //ATTENZIONE: Non uso l'associazione del modello nativa altrimenti mi sovrascrive gli articoli se cambio le varianti
+        //Preferisco così per ora
+        if ($option != null) {
+            $variant = Product::findOrFail($product_id);
 
-        Session::push('cart',   $product);
+            $price = 0;
 
-        $this->count = collect(Session::get('cart'))->count();
+            if ($option == '+') {
+                $price = $variant->price;
+            }
+
+            $variant = Cart::addSubItem(Cart::count() + 1,  $variant->name, 1, $price, ['operation' => $option, 'model_id' => $variant->id, 'model_type' => Product::class, 'featured_image_id' => $variant->featured_image_id], $this->last_cart_item_row_id);
+        } else {
+            $this->product = Product::findOrFail($product_id);
+
+            $cart_item = Cart::add(Cart::count() + 1, $this->product->name, 1, $this->product->price, ['model_id' => $this->product->id, 'model_type' => Product::class, 'featured_image_id' => $this->product->featured_image_id]);
+
+            $this->last_cart_item_row_id = $cart_item->getRowId();
+        }
+        $this->count =  '€ ' . number_format(Cart::total(), 2);
     }
 
     public function addFoodToCart(string $product_id, ?string $option = null)
     {
+        //in realtà si potrebbero aggiungere anche le note come opzioni sempre in quel modal
         if ($option == null) {
             $this->addToCart($product_id);
-
-            //se ci sono varianti apre il modal con la scelta
-            $this->product = Product::findOrFail($product_id);
-
 
             if (!$this->product->variations->isEmpty()) {
                 //è giusta questa sintassi anche se è sottolineata
@@ -61,25 +76,16 @@ class CartIcon extends Component implements HasForms, HasActions
 
     public function removeFromCart(string $product_id)
     {
+        Cart::remove($product_id);
 
-        $products = Session::get('cart');
-
-        foreach ($products as $key => $item) {
-            if ((int)$item->id === (int)$product_id) {
-                unset($products[$key]);
-                break;
-            }
-        }
-        Session::put('cart', $products);
-
-        $this->count = collect(Session::get('cart'))->count();
+        $this->count =  '€ ' . number_format(Cart::total(), 2);
 
         $this->dispatch('refresh-cart');
     }
 
     public function render()
     {
-        $this->count = collect(Session::get('cart'))->count();
+        $this->count = '€ ' . number_format(Cart::total(), 2);
         return view('livewire.cart-icon');
     }
 }

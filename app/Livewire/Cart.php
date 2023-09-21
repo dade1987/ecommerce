@@ -2,14 +2,8 @@
 
 namespace App\Livewire;
 
-use App\Models\User;
-use App\Models\Order;
 use Livewire\Component;
-use Illuminate\Support\Collection;
-use App\Notifications\CustomerOrder;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Session;
-use Illuminate\Support\Facades\Notification;
+use App\Services\Cart\Facades\Cart as CartFacade;
 
 class Cart extends Component
 {
@@ -23,7 +17,7 @@ class Cart extends Component
 
     public function mount(string $back_to_shop_link, string $next_link)
     {
-        //Session::forget('cart');
+        //CartFacade::destroy();
         $this->back_to_shop_link = $back_to_shop_link;
         $this->next_link = $next_link;
 
@@ -32,9 +26,9 @@ class Cart extends Component
 
     public function refreshCart()
     {
-        $this->items = Session::get('cart') ?? [];
+        $this->items = CartFacade::content()->toArray();
 
-        $this->total = number_format(array_reduce($this->items, fn ($carry, $item) => $carry += $item['price'], 0), 2);
+        $this->total = CartFacade::total();
     }
 
     public function render()

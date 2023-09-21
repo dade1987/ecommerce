@@ -1,0 +1,52 @@
+https://github.com/darthsoup/laravel-shoppingcart
+
+Examples:
+
+$hamburger=Cart::add(1, 'Hamburger', 1, 1.99, ['siegulas' => false]);
+
+$lastRowId = Cart::content()->last()->rowId;
+
+Cart::associate($hamburger->getRowId(), Product::class)->add('1', 'Hamburger', 1, 9.99, ['extra_sauce' => true]);
+
+Cart::addSubItem('99', 'Extra Bacon', 1, 0.99, [], $hamburger->getRowId());
+
+dd(Cart::content());
+
+
+Update one Item
+
+Cart::update('rowId', [
+    'options' => ['foo' => 'bar']
+]);
+
+
+Get One Cart Item
+
+Cart::get('rowId');
+
+
+Show Cart Content
+
+Show the content of the Cart by returning the CartCollection
+
+Cart::content();
+
+
+Empty the cart
+
+Cart::destroy();
+
+
+Remove one Item or Subitem
+
+Cart::remove('rowId');
+
+
+Total Price of all Items
+
+Cart::total();
+
+
+Item Count
+
+Cart::count();

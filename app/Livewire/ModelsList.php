@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Models\Product;
 use Livewire\Component;
 use App\Services\Cart\Facades\Cart;
 use Illuminate\Database\Eloquent\Collection;
@@ -15,6 +16,8 @@ class ModelsList extends Component
      */
     public function mount(Collection $rows, ?bool $second_button = false)
     {
+       
+
         $this->rows = $rows;
         $this->second_button = $second_button;
     }
