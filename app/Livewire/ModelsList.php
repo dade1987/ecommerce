@@ -15,8 +15,6 @@ class ModelsList extends Component
      */
     public function mount(Collection $rows, ?bool $second_button = false)
     {
-        dd(Cart::content());
-
         $this->rows = $rows;
         $this->second_button = $second_button;
     }
