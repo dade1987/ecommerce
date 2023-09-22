@@ -53,7 +53,8 @@ class OrderResource extends Resource
             ])
             ->emptyStateActions([
                 Tables\Actions\CreateAction::make(),
-            ]);
+            ])
+            ->defaultSort('delivery_date', 'desc');
     }
 
     public static function getRelations(): array

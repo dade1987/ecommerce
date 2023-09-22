@@ -8,6 +8,7 @@ use Filament\Forms\Form;
 use Filament\Actions\Action;
 use Illuminate\Contracts\View\View;
 use App\Notifications\CustomerOrder;
+use App\Services\Cart\Facades\Cart;
 use Illuminate\Support\Facades\Auth;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Contracts\HasForms;
@@ -61,9 +62,9 @@ class SelectDeliveryOptions extends Component implements HasForms, HasActions
         return $form
             ->schema([
                 Select::make('address_id')
-                ->label('Indirizzo')
-                ->relationship(name: 'addresses'/*, titleAttribute: 'street'*/)
-                ->getOptionLabelFromRecordUsing(fn (Model $record) =>$record->full_address)
+                    ->label('Indirizzo')
+                    ->relationship(name: 'addresses'/*, titleAttribute: 'street'*/)
+                    ->getOptionLabelFromRecordUsing(fn (Model $record) => $record->full_address)
             ])
             ->statePath('addressData')
             ->model($this->user);
@@ -97,18 +98,25 @@ class SelectDeliveryOptions extends Component implements HasForms, HasActions
 
     public function sendOrder()
     {
-        $this->items = Session::get('cart') ?? [];
-        $this->total = number_format(array_reduce($this->items, fn ($carry, $item) => $carry += $item['price'], 0), 2);
+        $this->items = Cart::content()->flatMap(function ($item) {
+            // Estrarre gli elementi subitems all'interno di un array
+            $subitems = $item->subItems->toArray();
 
+            // Unire gli item principali e i subitems in un unico array
+            return array_merge([$item], $subitems);
+        })->values()->toArray();
+
+        $this->total = number_format(Cart::total(), 2);
 
         $order = $this->user->orders()->create(['delivery_date' => $this->selectDateForm->getState()['delivery_date']]);
         foreach ($this->items as $item) {
-            $order->products()->attach($item);
+            //dd(app($item['options']['model_type'])->find($item['options']['model_id']));
+            $order->products()->attach(app($item['options']['model_type'])->find($item['options']['model_id']));
         }
         $order->addresses()->attach($this->selectAddressForm->getState()['address_id']);
         $order->save();
 
-        Session::remove('cart');
+        Cart::destroy();
 
         Notification::route('mail', [
             'davidecavallini1987@gmail.com' => 'Davide Cavallini',

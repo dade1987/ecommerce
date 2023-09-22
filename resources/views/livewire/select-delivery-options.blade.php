@@ -10,7 +10,7 @@
                 <br>
                 <button type="submit"
                     class="btn mx-auto text-white bg-green-500 border-0 py-2 mt-3 px-8 focus:outline-none hover:bg-green-600 rounded text-lg">
-                    <span class="sr-only sm:not-sr-only">Invia Ordine
+                    <span>Invia Ordine</span>
                 </button>
             </form>
         </div>
