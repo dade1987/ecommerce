@@ -12,27 +12,41 @@
             </svg>
         </a>
         <ul class="items-stretch hidden space-x-3 lg:flex">
-            <li class="flex">
-                <a rel="noopener noreferrer" href="{{$linkOne}}"
-                    class="flex items-center px-4 -mb-1 border-b-2 dark:border-transparent dark:text-violet-400 dark:border-violet-400">{{$textOne}}</a>
-            </li>
-            <li class="flex">
-                <a rel="noopener noreferrer" href="{{$linkTwo}}"
-                    class="flex items-center px-4 -mb-1 border-b-2 dark:border-transparent">{{$textTwo}}</a>
-            </li>
-            <li class="flex">
-                <a rel="noopener noreferrer" href="{{$linkThree}}"
-                    class="flex items-center px-4 -mb-1 border-b-2 dark:border-transparent">{{$textThree}}</a>
-            </li>
-            <li class="flex">
-                <a rel="noopener noreferrer" href="{{$linkFour}}"
-                    class="flex items-center px-4 -mb-1 border-b-2 dark:border-transparent">{{$textFour}}</a>
-            </li>
+            @if ($linkOne)
+                <li class="flex">
+                    <a rel="noopener noreferrer" href="{{ $linkOne }}"
+                        class="text-xl flex items-center px-4 -mb-1 border-b-2 dark:border-transparent dark:text-violet-400 dark:border-violet-400">{{ $textOne }}</a>
+                </li>
+            @endif
+            @if ($linkTwo)
+                <li class="flex">
+                    <a rel="noopener noreferrer" href="{{ $linkTwo }}"
+                        class="text-xl flex items-center px-4 -mb-1 border-b-2 dark:border-transparent">{{ $textTwo }}</a>
+                </li>
+            @endif
+            @if ($linkThree)
+                <li class="flex">
+                    <a rel="noopener noreferrer" href="{{ $linkThree }}"
+                        class="text-xl flex items-center px-4 -mb-1 border-b-2 dark:border-transparent">{{ $textThree }}</a>
+                </li>
+            @endif
+            @if ($linkFour)
+                <li class="flex">
+                    <a rel="noopener noreferrer" href="{{ $linkFour }}"
+                        class="text-xl flex items-center px-4 -mb-1 border-b-2 dark:border-transparent">{{ $textFour }}</a>
+                </li>
+            @endif
         </ul>
         <div class="items-center flex-shrink-0 hidden lg:flex">
-            <button class="self-center px-8 py-3 rounded">Sign in</button>
-            <button class="self-center px-8 py-3 font-semibold rounded dark:bg-violet-400 dark:text-gray-900">Sign
-                up</button>
+            @guest
+                <a href="{{ route('login') }}" class="self-center px-8 py-3 rounded">Sign in</a>
+                <a href="{{ route('register') }}"
+                    class="self-center px-8 py-3 font-semibold rounded dark:bg-violet-400 dark:text-gray-900">Sign
+                    up</a>
+            @endguest
+            @auth
+                @livewire('cart-icon')
+            @endauth
         </div>
         <button class="p-4 lg:hidden">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"

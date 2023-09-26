@@ -24,7 +24,8 @@ require __DIR__ . '/auth.php';
     return view('welcome');
 })->name('home');*/
 
-Route::redirect('/', '/categories')->name('home');
+Route::redirect('/', '/home')->name('home');
+
 
 Route::get('/dashboard', function () {
     return view('dashboard');
@@ -35,10 +36,12 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    Route::resource('{container0}/{item0?}/{container1?}/{item1?}/{container2?}/{item2?}', PageController::class);
 
     //Route::domain('{team}.example.com')->group(function () {
     /*Route::prefix('{team}')->group(function () {
         Route::resource('{container0}/{item0?}/{container1?}/{item2?}', PageController::class);
     });*/
 });
+
+Route::resource('{container0}/{item0?}/{container1?}/{item1?}/{container2?}/{item2?}', PageController::class);
+

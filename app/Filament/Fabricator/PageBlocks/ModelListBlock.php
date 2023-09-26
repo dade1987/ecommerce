@@ -23,8 +23,14 @@ class ModelListBlock extends PageBlock
             ]);
     }
 
-    public static function mutateData(array $data): array
+
+    public static function mutateData(array $data):array
     {
+        if (!Auth::check()) {
+            abort(403);
+            //return redirect()->route('login');
+        }
+
         $params = Route::current()->parameters();
 
         $user = Auth::user();
@@ -43,6 +49,8 @@ class ModelListBlock extends PageBlock
 
                 if ($parent != null) {
                     $class_name = class_basename(Str::lower($parent->$param()->getModel()::class));
+
+
 
                     if (!$user->can('view_any_' . Str::singular($class_name))) {
                         abort(403);
