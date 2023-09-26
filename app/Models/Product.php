@@ -8,6 +8,7 @@ use App\Models\Traits\HasTeams;
 use Awcodes\Curator\Models\Media;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Database\Eloquent\Model;
+use Spatie\EloquentSortable\SortableTrait;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
@@ -17,8 +18,14 @@ class Product extends Model
     use HasFactory;
 
     use HasTeams;
+    use SortableTrait;
 
-    protected $fillable = ['name', 'description', 'price', 'featured_image_id'];
+    protected $fillable = ['name', 'description', 'price', 'featured_image_id','order_column'];
+
+    public $sortable = [
+        'order_column_name' => 'order_column',
+        'sort_when_creating' => true,
+    ];
 
     //relations
     public function orders(): MorphToMany

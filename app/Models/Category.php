@@ -2,24 +2,28 @@
 
 namespace App\Models;
 
+use App\Models\Traits\HasTeams;
 use Awcodes\Curator\Models\Media;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Database\Eloquent\Model;
+use Spatie\EloquentSortable\SortableTrait;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
-use App\Models\Traits\HasTeams;
 
 class Category extends Model
 {
     use HasFactory;
 
-
+    use SortableTrait;
     use HasTeams;
-    protected $fillable = ['name'];
+    protected $fillable = ['name','order_column'];
 
-
+    public $sortable = [
+        'order_column_name' => 'order_column',
+        'sort_when_creating' => true,
+    ];
 
     public function featuredImage(): BelongsTo
     {
