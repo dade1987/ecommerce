@@ -2,6 +2,8 @@
 
 // config for Z3d0X/FilamentFabricator
 
+use App\Models\Page;
+use App\Filament\Resources\PageResource;
 use Filament\Http\Middleware\Authenticate;
 
 return [
@@ -38,9 +40,9 @@ return [
         Authenticate::class
     ],
 
-    'page-model' => App\Models\Page::class,
+    'page-model' => Page::class,
 
-    'page-resource' => \Z3d0X\FilamentFabricator\Resources\PageResource::class,
+    'page-resource' => PageResource::class,
 
     'enable-view-page' => true,
 
