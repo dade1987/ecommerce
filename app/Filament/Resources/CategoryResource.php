@@ -7,6 +7,7 @@ use Filament\Tables;
 use Filament\Forms\Set;
 use App\Models\Category;
 use Filament\Forms\Form;
+use Filament\Tables\Columns\BooleanColumn;
 use Filament\Tables\Table;
 use Illuminate\Support\Str;
 use App\Models\Traits\HasTeams;
@@ -19,6 +20,8 @@ use Awcodes\Curator\Components\Forms\CuratorPicker;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Awcodes\Curator\Components\Tables\CuratorColumn;
 use App\Filament\Resources\CategoryResource\RelationManagers;
+use Filament\Forms\Components\Checkbox;
+use Filament\Tables\Columns\IconColumn;
 
 class CategoryResource extends Resource
 {
@@ -34,6 +37,7 @@ class CategoryResource extends Resource
                     ->live()
                     ->afterStateUpdated(fn (Set $set, ?string $state) => $set('slug', Str::slug($state))),
                 TextInput::make('slug')->required(),
+                Checkbox::make('is_hidden'),
                 CuratorPicker::make('featured_image_id')
                     ->relationship('featuredImage', 'id')
                     ->imageResizeTargetWidth(10)
@@ -45,6 +49,7 @@ class CategoryResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('name'),
+                IconColumn::make('is_hidden')->boolean(),
                 CuratorColumn::make('featured_image')
                     ->size(40)
             ])

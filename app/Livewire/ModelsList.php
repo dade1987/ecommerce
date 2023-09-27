@@ -16,8 +16,6 @@ class ModelsList extends Component
      */
     public function mount(Collection $rows, ?bool $second_button = false)
     {
-       
-
         $this->rows = $rows;
         $this->second_button = $second_button;
     }

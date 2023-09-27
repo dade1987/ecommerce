@@ -27,7 +27,7 @@ class CategoryController extends Controller
             return Team::firstWhere('slug', $team)->categories;
         }*/
         //return Team::firstWhere('slug')->categories;
-        return Category::get();
+        return Category::where('is_hidden', false)->get();
     }
 
     /**

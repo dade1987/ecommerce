@@ -18,7 +18,9 @@ class Category extends Model
 
     use SortableTrait;
     use HasTeams;
-    protected $fillable = ['name','order_column'];
+    protected $fillable = ['name', 'order_column', 'is_hidden'];
+
+    protected $casts = ['is_hidden' => 'boolean'];
 
     public $sortable = [
         'order_column_name' => 'order_column',
