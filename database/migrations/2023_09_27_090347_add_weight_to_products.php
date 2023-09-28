@@ -12,7 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('products', function (Blueprint $table) {
-           $table->integer('order_column')->nullable();
+            //TO-DO: questo è di default ma si può cambiare dalla pivot
+            $table->decimal('weight')->default(0);
         });
     }
 

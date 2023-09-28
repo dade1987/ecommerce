@@ -22,7 +22,7 @@ class CartIcon extends Component implements HasForms, HasActions
 
     protected $listeners = [
         'add-to-cart' => 'addToCart',
-        'add-food-to-cart' => 'addFoodToCart',
+        'add-item-to-cart' => 'addItemToCart',
         'remove-from-cart' => 'removeFromCart',
     ];
 
@@ -36,7 +36,7 @@ class CartIcon extends Component implements HasForms, HasActions
         $this->count = collect(Session::get('cart'))->count();
     }
 
-    public function addFoodToCart(string $product_id, ?string $option = null)
+    public function addItemToCart(string $product_id, ?string $option = null)
     {
         if ($option == null) {
             $this->addToCart($product_id);

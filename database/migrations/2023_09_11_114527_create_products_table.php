@@ -16,6 +16,7 @@ return new class extends Migration
             $table->timestamps();
             $table->string('name');
             $table->text('description')->nullable();
+            //TO-DO: questo è di default ma si può cambiare dalla pivot
             $table->decimal('price')->nullable();
             $table->integer('user_id')->nullable()->index();
         });

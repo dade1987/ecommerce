@@ -20,7 +20,7 @@ class Product extends Model
     use HasTeams;
     use SortableTrait;
 
-    protected $fillable = ['name', 'description', 'price', 'featured_image_id','order_column'];
+    protected $fillable = ['name', 'description', 'price', 'featured_image_id', 'order_column', 'weight'];
 
     public $sortable = [
         'order_column_name' => 'order_column',
@@ -42,8 +42,7 @@ class Product extends Model
             ->withTimestamps();
     }
 
-
-    public function variations(): MorphToMany
+    public function subproducts(): MorphToMany
     {
         $pivot_class = ProductMorph::class;
         $pivot = app($pivot_class);
@@ -55,7 +54,22 @@ class Product extends Model
             ->using($pivot_class)
             ->withPivot($pivot_fields)
             ->withTimestamps();
+        // ->wherePivot('type', 'component');
     }
+
+    public function allergens(): MorphToMany
+    {
+        return $this->subproducts()->wherePivot('type', 'allergen');
+    }
+    public function ingredients(): MorphToMany
+    {
+        return $this->subproducts()->wherePivot('type', 'ingredient');
+    }
+    public function variations(): MorphToMany
+    {
+        return $this->subproducts()->wherePivot('type', 'variation');
+    }
+
 
 
     //inversa delle varianti
@@ -78,7 +92,7 @@ class Product extends Model
         return $this->belongsTo(Media::class, 'featured_image_id', 'id');
     }
 
-    //mutators
+    // ------------------------ mutators -------------------------------
 
     public function getActionTextAttribute()
     {
@@ -87,18 +101,18 @@ class Product extends Model
 
     public function getActionAttribute()
     {
-        return ' wire:click="$dispatch(\'add-food-to-cart\', { product_id: \'' . $this->id . '\' })"';
+        return ' wire:click="$dispatch(\'add-item-to-cart\', { product_id: \'' . $this->id . '\' })"';
     }
 
     public function getSecondActionTextAttribute()
     {
-        return 'Aggiunte';
+        return 'Vedi Ingredienti';
     }
 
     public function getSecondActionAttribute()
     {
 
         $item0 = Route::current()->parameter('item0');
-        return ' onClick=location.href=\'' . route('{item2?}.index', ['container0' => 'categories', 'item0' =>  $item0, 'container1' => 'products', 'item1' => $this, 'container2' => 'variations']) . '\' ';
+        return ' wire:click="$dispatch(\'ingredients-list\', { product_id: \'' . $this->id . '\' })"';
     }
 }

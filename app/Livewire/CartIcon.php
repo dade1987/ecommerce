@@ -25,10 +25,22 @@ class CartIcon extends Component implements HasForms, HasActions
 
     protected $listeners = [
         'add-to-cart' => 'addToCart',
-        'add-food-to-cart' => 'addFoodToCart',
+        'add-item-to-cart' => 'addItemToCart',
         'remove-from-cart' => 'removeFromCart',
+        'ingredients-list' => 'ingredientsList'
     ];
 
+    public function ingredientsList(string $product_id)
+    {
+        $this->product = Product::findOrFail($product_id);
+
+        $this->dispatch('open-modal', id: 'ingredients-list');
+    }
+
+    public function closeIngredientsModal()
+    {
+        $this->dispatch('close-modal', id: 'ingredients-list');
+    }
 
     public function addToCart(string $product_id, ?string $option = null)
     {
@@ -54,7 +66,7 @@ class CartIcon extends Component implements HasForms, HasActions
         $this->count =  '€ ' . number_format(Cart::total(), 2);
     }
 
-    public function addFoodToCart(string $product_id, ?string $option = null)
+    public function addItemToCart(string $product_id, ?string $option = null)
     {
         //in realtà si potrebbero aggiungere anche le note come opzioni sempre in quel modal
         if ($option == null) {
