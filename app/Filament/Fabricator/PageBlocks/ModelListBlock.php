@@ -24,7 +24,7 @@ class ModelListBlock extends PageBlock
     }
 
 
-    public static function mutateData(array $data):array
+    public static function mutateData(array $data): array
     {
         if (!Auth::check()) {
             abort(403);
@@ -35,6 +35,7 @@ class ModelListBlock extends PageBlock
 
         $user = Auth::user();
 
+        $container = null;
         $index = 0;
         $before_key = '';
         $parent = null;

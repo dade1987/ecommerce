@@ -20,7 +20,7 @@ class Product extends Model
     use HasTeams;
     use SortableTrait;
 
-    protected $fillable = ['name', 'description', 'price', 'featured_image_id','order_column'];
+    protected $fillable = ['name', 'description', 'price', 'featured_image_id', 'order_column', 'weight'];
 
     public $sortable = [
         'order_column_name' => 'order_column',
@@ -42,8 +42,7 @@ class Product extends Model
             ->withTimestamps();
     }
 
-
-    public function variations(): MorphToMany
+    public function subproducts(): MorphToMany
     {
         $pivot_class = ProductMorph::class;
         $pivot = app($pivot_class);
@@ -55,7 +54,30 @@ class Product extends Model
             ->using($pivot_class)
             ->withPivot($pivot_fields)
             ->withTimestamps();
+           // ->wherePivot('type', 'component');
     }
+
+    public function variations(): MorphToMany
+    {
+        return $this->subproducts()->wherePivot('type', 'variation');
+    }
+
+
+    /*public function variations(): MorphToMany
+    {
+
+        $pivot_class = ProductMorph::class;
+        $pivot = app($pivot_class);
+        $pivot_table = $pivot->getTable();
+        $pivot_fields = $pivot->getFillable();
+
+
+        return $this->morphToMany(Product::class, 'model', $pivot_table)
+            ->using($pivot_class)
+            ->withPivot($pivot_fields)
+            ->withTimestamps();
+            //->wherePivot('type', 'variation');
+    }*/
 
 
     //inversa delle varianti

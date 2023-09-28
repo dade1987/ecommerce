@@ -35,7 +35,9 @@ class SelectDeliveryOptions extends Component implements HasForms, HasActions
     public function mount(): void
     {
         $this->user = Auth::user();
+        /** @phpstan-ignore-next-line */
         $this->selectAddressForm->fill();
+        /** @phpstan-ignore-next-line */
         $this->selectDateForm->fill();
     }
 
@@ -108,11 +110,14 @@ class SelectDeliveryOptions extends Component implements HasForms, HasActions
 
         $this->total = number_format(Cart::total(), 2);
 
+        /** @phpstan-ignore-next-line */
         $order = $this->user->orders()->create(['delivery_date' => $this->selectDateForm->getState()['delivery_date']]);
         foreach ($this->items as $item) {
             //dd(app($item['options']['model_type'])->find($item['options']['model_id']));
             $order->products()->attach(app($item['options']['model_type'])->find($item['options']['model_id']));
         }
+
+        /** @phpstan-ignore-next-line */
         $order->addresses()->attach($this->selectAddressForm->getState()['address_id']);
         $order->save();
 

@@ -11,8 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('products', function (Blueprint $table) {
-           $table->integer('order_column')->nullable();
+        Schema::table('product_morph', function (Blueprint $table) {
+            $table->string('type')->nullable();
         });
     }
 
@@ -21,7 +21,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('products', function (Blueprint $table) {
+        Schema::table('product_morph', function (Blueprint $table) {
             //
         });
     }

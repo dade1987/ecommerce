@@ -10,14 +10,16 @@ use Filament\Forms\Form;
 use Filament\Tables\Table;
 use Illuminate\Support\Str;
 use Filament\Resources\Resource;
+use Filament\Forms\Components\TextInput;
 use Illuminate\Database\Eloquent\Builder;
 use App\Filament\Resources\ProductResource\Pages;
 use Awcodes\Curator\Components\Forms\CuratorPicker;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Awcodes\Curator\Components\Tables\CuratorColumn;
 use App\Filament\Resources\ProductResource\RelationManagers;
+use App\Filament\Resources\ProductResource\RelationManagers\ComponentsRelationManager;
 use App\Filament\Resources\ProductResource\RelationManagers\VariationsRelationManager;
-use Filament\Forms\Components\TextInput;
+use App\Filament\Resources\ProductResource\RelationManagers\SubproductsRelationManager;
 
 class ProductResource extends Resource
 {
@@ -36,6 +38,7 @@ class ProductResource extends Resource
                 Forms\Components\Textarea::make('description')
                     ->maxLength(65535)
                     ->columnSpanFull(),
+                Forms\Components\TextInput::make('weight')->default(0)->required(),
                 Forms\Components\TextInput::make('price')
                     ->numeric()
                     ->prefix('€'),
@@ -51,11 +54,13 @@ class ProductResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('name')
                     ->searchable(),
+                Tables\Columns\TextColumn::make('weight'),
                 Tables\Columns\TextColumn::make('price')
                     ->money()
                     ->sortable(),
                 CuratorColumn::make('featured_image')
-                    ->size(40)
+                    ->size(40),
+              
             ])
             ->filters([
                 //
@@ -78,7 +83,8 @@ class ProductResource extends Resource
     public static function getRelations(): array
     {
         return [
-            VariationsRelationManager::class
+            SubproductsRelationManager::class,
+            //VariationsRelationManager::class
         ];
     }
 
