@@ -25,7 +25,7 @@ class SubproductsRelationManager extends RelationManager
                     ->maxLength(255),
                 Forms\Components\Select::make('type')
                     ->required()
-                    ->options(['variation'=>'variation', 'ingredient'=>'ingredient'])
+                    ->options(['variation' => 'variation', 'ingredient' => 'ingredient', 'allergen' => 'allergen'])
                     ->default('variation'),
                 Forms\Components\Textarea::make('description')
                     ->maxLength(65535)
@@ -57,7 +57,7 @@ class SubproductsRelationManager extends RelationManager
                 //
             ])
             ->headerActions([
-                // Tables\Actions\CreateAction::make(),
+                Tables\Actions\CreateAction::make(),
                 Tables\Actions\AttachAction::make(),
             ])
             ->actions([

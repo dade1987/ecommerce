@@ -54,30 +54,22 @@ class Product extends Model
             ->using($pivot_class)
             ->withPivot($pivot_fields)
             ->withTimestamps();
-           // ->wherePivot('type', 'component');
+        // ->wherePivot('type', 'component');
     }
 
+    public function allergens(): MorphToMany
+    {
+        return $this->subproducts()->wherePivot('type', 'allergen');
+    }
+    public function ingredients(): MorphToMany
+    {
+        return $this->subproducts()->wherePivot('type', 'ingredient');
+    }
     public function variations(): MorphToMany
     {
         return $this->subproducts()->wherePivot('type', 'variation');
     }
 
-
-    /*public function variations(): MorphToMany
-    {
-
-        $pivot_class = ProductMorph::class;
-        $pivot = app($pivot_class);
-        $pivot_table = $pivot->getTable();
-        $pivot_fields = $pivot->getFillable();
-
-
-        return $this->morphToMany(Product::class, 'model', $pivot_table)
-            ->using($pivot_class)
-            ->withPivot($pivot_fields)
-            ->withTimestamps();
-            //->wherePivot('type', 'variation');
-    }*/
 
 
     //inversa delle varianti
@@ -100,7 +92,7 @@ class Product extends Model
         return $this->belongsTo(Media::class, 'featured_image_id', 'id');
     }
 
-    //mutators
+    // ------------------------ mutators -------------------------------
 
     public function getActionTextAttribute()
     {
@@ -109,18 +101,18 @@ class Product extends Model
 
     public function getActionAttribute()
     {
-        return ' wire:click="$dispatch(\'add-food-to-cart\', { product_id: \'' . $this->id . '\' })"';
+        return ' wire:click="$dispatch(\'add-item-to-cart\', { product_id: \'' . $this->id . '\' })"';
     }
 
     public function getSecondActionTextAttribute()
     {
-        return 'Aggiunte';
+        return 'Vedi Ingredienti';
     }
 
     public function getSecondActionAttribute()
     {
 
         $item0 = Route::current()->parameter('item0');
-        return ' onClick=location.href=\'' . route('{item2?}.index', ['container0' => 'categories', 'item0' =>  $item0, 'container1' => 'products', 'item1' => $this, 'container2' => 'variations']) . '\' ';
+        return ' wire:click="$dispatch(\'ingredients-list\', { product_id: \'' . $this->id . '\' })"';
     }
 }
