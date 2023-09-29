@@ -45,7 +45,14 @@
                     up</a>
             @endguest
             @auth
-                @livewire('cart-icon')
+                @if ($cartEnabled === true)
+                    @livewire('cart-icon')
+                @else
+                    <form method="POST" action="{{ route('logout') }}">
+                        @csrf
+                        <button type='submit'>Logout</button>
+                    </form>
+                @endif
             @endauth
         </div>
         <button class="p-4 lg:hidden">

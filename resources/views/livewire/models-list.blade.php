@@ -17,8 +17,12 @@
                 @endif
 
                 @if ($row->ingredients && !$row->ingredients->isEmpty())
-                    <div class="mt-5 mb-5">
-                        <strong>{{ $row->ingredients->pluck('name')->join(', ') }}</strong>
+                    <div class="flex justify-center items-center">
+                        <div class="md:w-4/6 sm:w-full bg-white border">
+                            <div class="mt-5 mb-5 ">
+                                <strong>{{ $row->ingredients->pluck('name')->join(', ') }}</strong>
+                            </div>
+                        </div>
                     </div>
                 @endif
 

@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Sep 26, 2023 at 12:38 PM
+-- Generation Time: Sep 29, 2023 at 10:03 AM
 -- Server version: 10.11.4-MariaDB-1
 -- PHP Version: 8.2.7
 
@@ -113,20 +113,21 @@ CREATE TABLE `categories` (
   `name` varchar(255) NOT NULL,
   `featured_image_id` int(11) DEFAULT NULL,
   `slug` varchar(255) NOT NULL,
-  `order_column` int(11) DEFAULT NULL
+  `order_column` int(11) DEFAULT NULL,
+  `is_hidden` tinyint(1) NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `categories`
 --
 
-INSERT INTO `categories` (`id`, `created_at`, `updated_at`, `name`, `featured_image_id`, `slug`, `order_column`) VALUES
-(1, '2023-09-09 13:23:53', '2023-09-22 06:43:51', 'Primi Piatti', 12, '', 2),
-(2, '2023-09-09 13:24:02', '2023-09-22 06:43:51', 'Secondi Piatti', 11, '', 3),
-(3, '2023-09-09 13:24:08', '2023-09-22 06:43:51', 'Contorni', 13, '', 4),
-(4, '2023-09-09 15:24:58', '2023-09-22 06:43:51', 'Antipasti', 10, '', 1),
-(5, '2023-09-14 10:02:02', '2023-09-22 06:43:51', 'Varianti', NULL, '', 5),
-(6, '2023-09-15 09:53:37', '2023-09-22 06:43:51', 'Test Admin', NULL, '', 6);
+INSERT INTO `categories` (`id`, `created_at`, `updated_at`, `name`, `featured_image_id`, `slug`, `order_column`, `is_hidden`) VALUES
+(1, '2023-09-09 13:23:53', '2023-09-22 06:43:51', 'Primi Piatti', 12, '', 2, 0),
+(2, '2023-09-09 13:24:02', '2023-09-22 06:43:51', 'Secondi Piatti', 11, '', 3, 0),
+(3, '2023-09-09 13:24:08', '2023-09-22 06:43:51', 'Contorni', 13, '', 4, 0),
+(4, '2023-09-09 15:24:58', '2023-09-22 06:43:51', 'Antipasti', 10, '', 1, 0),
+(5, '2023-09-14 10:02:02', '2023-09-27 06:54:55', 'Varianti', NULL, '', 5, 1),
+(6, '2023-09-15 09:53:37', '2023-09-28 08:03:23', 'Ingredienti', NULL, '', 6, 1);
 
 -- --------------------------------------------------------
 
@@ -257,8 +258,11 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES
 (28, '2023_09_20_153820_create_discount_coupons_table', 21),
 (29, '2023_09_20_153820_create_order_tables', 22),
 (30, '2023_09_14_093928_create_orders_table', 23),
-(31, '2023_09_22_083755_add_order_column_to_products', 24),
-(32, '2023_09_22_083759_add_order_column_to_categories', 24);
+(34, '2023_09_22_083755_add_order_column_to_products', 24),
+(35, '2023_09_22_083759_add_order_column_to_categories', 25),
+(36, '2023_09_27_083726_add_hidden_column_to_categories', 26),
+(37, '2023_09_27_090347_add_weight_to_products', 26),
+(38, '2023_09_27_093331_add_type_to_product_morph', 27);
 
 -- --------------------------------------------------------
 
@@ -383,13 +387,13 @@ CREATE TABLE `pages` (
 --
 
 INSERT INTO `pages` (`id`, `title`, `slug`, `layout`, `blocks`, `parent_id`, `created_at`, `updated_at`) VALUES
-(2, 'Scegli Categoria', 'categories', 'simple', '[{\"type\":\"header-one\",\"data\":{\"text_one\":\"HOME\",\"link_one\":\"#\",\"text_two\":null,\"link_two\":null,\"text_three\":null,\"link_three\":null,\"text_four\":null,\"link_four\":null}},{\"type\":\"breadcrumbs\",\"data\":[]},{\"type\":\"model-list\",\"data\":{\"second_button\":false}}]', NULL, '2023-09-09 12:48:27', '2023-09-26 10:09:37'),
-(3, 'Scegli Prodotto', 'products', 'simple', '[{\"type\":\"header-one\",\"data\":{\"text_one\":\"HOME\",\"link_one\":\"\\/home\",\"text_two\":null,\"link_two\":null,\"text_three\":null,\"link_three\":null,\"text_four\":null,\"link_four\":null}},{\"type\":\"breadcrumbs\",\"data\":[]},{\"type\":\"model-list\",\"data\":{\"enable_variants\":true,\"second_button\":false}}]', NULL, '2023-09-11 10:55:57', '2023-09-26 10:14:33'),
-(4, 'Carrello', 'cart', 'simple', '[{\"type\":\"header-one\",\"data\":{\"text_one\":\"HOME\",\"link_one\":\"\\/home\",\"text_two\":null,\"link_two\":null,\"text_three\":null,\"link_three\":null,\"text_four\":null,\"link_four\":null}},{\"type\":\"breadcrumbs\",\"data\":[]},{\"type\":\"cart\",\"data\":{\"back_to_shop_link\":\"\\/categories\",\"next_link\":\"\\/delivery-options\"}}]', NULL, '2023-09-12 15:04:24', '2023-09-26 10:16:51'),
-(5, 'Ordine Completato', 'order-completed', 'simple', '[{\"type\":\"header-one\",\"data\":{\"text_one\":\"HOME\",\"link_one\":\"\\/\",\"text_two\":null,\"link_two\":null,\"text_three\":null,\"link_three\":null,\"text_four\":null,\"link_four\":null}},{\"type\":\"breadcrumbs\",\"data\":[]},{\"type\":\"thank-you\",\"data\":{\"title\":\"Grazie Per Aver Ordinato\",\"subtitle\":\"Saremo felice di servirti nuovamente non appena possibile\",\"button_text\":\"Ordina Ancora\",\"button_link\":\"\\/categories\"}}]', NULL, '2023-09-13 07:23:26', '2023-09-26 10:15:12'),
-(6, 'Opzioni di Consegna', 'delivery-options', 'simple', '[{\"type\":\"header-one\",\"data\":{\"text_one\":\"HOME\",\"link_one\":\"\\/home\",\"text_two\":null,\"link_two\":null,\"text_three\":null,\"link_three\":null,\"text_four\":null,\"link_four\":null}},{\"type\":\"breadcrumbs\",\"data\":[]},{\"type\":\"select-delivery-options\",\"data\":[]}]', NULL, '2023-09-15 05:31:48', '2023-09-26 10:15:36'),
-(7, 'Scegli Aggiunte', 'variations', 'simple', '[{\"type\":\"header-one\",\"data\":{\"text_one\":\"HOME\",\"link_one\":\"\\/home\",\"text_two\":null,\"link_two\":null,\"text_three\":null,\"link_three\":null,\"text_four\":null,\"link_four\":null}},{\"type\":\"breadcrumbs\",\"data\":[]},{\"type\":\"model-list\",\"data\":{\"second_button\":false}}]', NULL, '2023-09-15 13:32:23', '2023-09-26 10:15:58'),
-(8, 'Home Page', 'home', 'simple', '[{\"type\":\"header-one\",\"data\":{\"text_one\":\"HOME\",\"link_one\":\"#\",\"text_two\":\"IL RISTORANTE\",\"link_two\":\"#\",\"text_three\":\"MENU\",\"link_three\":\"#\",\"text_four\":\"CONTATTI\",\"link_four\":\"#\"}},{\"type\":\"hero-background-image\",\"data\":{\"image_url\":\"http:\\/\\/127.0.0.1:8000\\/images\\/ristoranteuno.webp\",\"text_one\":\"Ristorante Paradiso\",\"text_two\":\"sapore, qualit\\u00e0, gusto supremo\",\"text_button\":\"VAI AL MENU\",\"link_button\":\"\\/categories\"}}]', NULL, '2023-09-26 10:08:31', '2023-09-26 10:08:31');
+(2, 'Scegli Categoria', 'categories', 'simple', '[{\"type\":\"header-one\",\"data\":{\"text_one\":\"HOME\",\"link_one\":\"#\",\"text_two\":null,\"link_two\":null,\"text_three\":null,\"link_three\":null,\"text_four\":null,\"link_four\":null,\"cart_enabled\":true}},{\"type\":\"breadcrumbs\",\"data\":[]},{\"type\":\"model-list\",\"data\":{\"second_button\":false}}]', NULL, '2023-09-09 12:48:27', '2023-09-29 08:01:10'),
+(3, 'Scegli Prodotto', 'products', 'simple', '[{\"type\":\"header-one\",\"data\":{\"text_one\":\"HOME\",\"link_one\":\"\\/home\",\"text_two\":null,\"link_two\":null,\"text_three\":null,\"link_three\":null,\"text_four\":null,\"link_four\":null,\"cart_enabled\":true}},{\"type\":\"breadcrumbs\",\"data\":[]},{\"type\":\"model-list\",\"data\":{\"enable_variants\":true,\"second_button\":false}}]', NULL, '2023-09-11 10:55:57', '2023-09-29 08:01:17'),
+(4, 'Carrello', 'cart', 'simple', '[{\"type\":\"header-one\",\"data\":{\"text_one\":\"HOME\",\"link_one\":\"\\/home\",\"text_two\":null,\"link_two\":null,\"text_three\":null,\"link_three\":null,\"text_four\":null,\"link_four\":null,\"cart_enabled\":true}},{\"type\":\"breadcrumbs\",\"data\":[]},{\"type\":\"cart\",\"data\":{\"back_to_shop_link\":\"\\/categories\",\"next_link\":\"\\/delivery-options\"}}]', NULL, '2023-09-12 15:04:24', '2023-09-29 08:01:24'),
+(5, 'Ordine Completato', 'order-completed', 'simple', '[{\"type\":\"header-one\",\"data\":{\"text_one\":\"HOME\",\"link_one\":\"\\/\",\"text_two\":null,\"link_two\":null,\"text_three\":null,\"link_three\":null,\"text_four\":null,\"link_four\":null,\"cart_enabled\":true}},{\"type\":\"breadcrumbs\",\"data\":[]},{\"type\":\"thank-you\",\"data\":{\"title\":\"Grazie Per Aver Ordinato\",\"subtitle\":\"Saremo felice di servirti nuovamente non appena possibile\",\"button_text\":\"Ordina Ancora\",\"button_link\":\"\\/categories\"}}]', NULL, '2023-09-13 07:23:26', '2023-09-29 08:01:41'),
+(6, 'Opzioni di Consegna', 'delivery-options', 'simple', '[{\"type\":\"header-one\",\"data\":{\"text_one\":\"HOME\",\"link_one\":\"\\/home\",\"text_two\":null,\"link_two\":null,\"text_three\":null,\"link_three\":null,\"text_four\":null,\"link_four\":null,\"cart_enabled\":true}},{\"type\":\"breadcrumbs\",\"data\":[]},{\"type\":\"select-delivery-options\",\"data\":[]}]', NULL, '2023-09-15 05:31:48', '2023-09-29 08:01:58'),
+(7, 'Scegli Aggiunte', 'variations', 'simple', '[{\"type\":\"header-one\",\"data\":{\"text_one\":\"HOME\",\"link_one\":\"\\/home\",\"text_two\":null,\"link_two\":null,\"text_three\":null,\"link_three\":null,\"text_four\":null,\"link_four\":null,\"cart_enabled\":true}},{\"type\":\"breadcrumbs\",\"data\":[]},{\"type\":\"model-list\",\"data\":{\"second_button\":false}}]', NULL, '2023-09-15 13:32:23', '2023-09-29 08:02:09'),
+(8, 'Home Page', 'home', 'simple', '[{\"type\":\"header-one\",\"data\":{\"text_one\":\"HOME\",\"link_one\":\"#\",\"text_two\":\"IL RISTORANTE\",\"link_two\":\"#\",\"text_three\":\"MENU\",\"link_three\":\"#\",\"text_four\":\"CONTATTI\",\"link_four\":\"#\",\"cart_enabled\":false}},{\"type\":\"hero-background-image\",\"data\":{\"image_url\":\"http:\\/\\/127.0.0.1:8000\\/images\\/ristoranteuno.webp\",\"text_one\":\"Ristorante Paradiso\",\"text_two\":\"sapore, qualit\\u00e0, gusto supremo\",\"text_button\":\"VAI AL MENU\",\"link_button\":\"\\/categories\"}},{\"type\":\"feature-one\",\"data\":{\"text_one\":\"RISTORANTE PARADISO\",\"text_two\":null,\"text_three\":\"Celebra il gusto con un esposione di sapori nel nostro incantevole rifugio culinario\",\"text_four\":\"TRE MOTIVI PER SCEGLIERCI:\",\"text_five\":\"Cibo eccezionale: I ristoranti di lusso panoramici si distinguono per la qualit\\u00e0 e la creativit\\u00e0 dei loro piatti. Gli chef esperti preparano piatti prelibati utilizzando ingredienti freschi e di alta qualit\\u00e0. Ogni boccone sar\\u00e0 un\'esplosione di sapori e sapr\\u00e0 soddisfare anche i palati pi\\u00f9 esigenti.\",\"text_six\":null,\"text_seven\":\"Vista mozzafiato: Un ristorante di lusso panoramico offre una vista spettacolare che ti lascer\\u00e0 senza fiato. Immagina di gustare un delizioso pasto mentre ammiri un panorama mozzafiato di montagne, citt\\u00e0 o mare. La vista panoramica aggiunger\\u00e0 sicuramente un tocco speciale alla tua esperienza culinaria.\",\"text_eight\":null,\"text_nine\":\"Atmosfera elegante: Un ristorante di lusso panoramico offre un\'atmosfera elegante e raffinata. L\'arredamento sofisticato, l\'illuminazione accogliente e il servizio impeccabile creano un\'atmosfera indimenticabile. Goditi una cena romantica o una serata speciale in un ambiente lussuoso che ti far\\u00e0 sentire come una persona importante.\",\"text_ten\":null,\"text_eleven\":\"I NOSTRI FIORI ALL\'OCCHIELLO\",\"text_twelve\":\"Dicono dei nostri piatti: \\\"ECCELLENTI, RAFFINATI, DELIZIOSI\\\"\",\"text_thirteen\":\"CARPACCIO ID PIOVRA IN VINEGRETTE E PETALI DI SOIA\",\"text_fourteen\":\"Il Grande Re del nostro Men\\u00f9, dall\'esperienza, fantasia e dedizione del nostro premiato Mastro Chef Bartolomeo Salvatore De Lafaiette Ortis, al vostro piatto per estasiarvi con un\'esperienza unica.\",\"text_fifteen\":\"ARAGOSTA IN VOLAVANT DI NUVOLE DI DRAGO\",\"text_sixteen\":\"Il nostro Chef vi porter\\u00e0 con questo piatto in un esperienza sublime che per la prima volta far\\u00e0 incontrare Occidete e Oriente in un\'esperienza assolutamente unica.\",\"text_seventeen\":\"IL NOSTRO PLURISTELLATO MASTRO CHEF \\\"BARTOLOMEO SALVATORE DE LAFAIETTE ORTIS\\\"\",\"text_eighteen\":\"E\' onorato ,ora, di attendervi al nostro men\\u00f9.\",\"link_one\":\"http:\\/\\/127.0.0.1:8000\\/images\\/ristorantesei.jpg\",\"link_two\":\"http:\\/\\/127.0.0.1:8000\\/images\\/ristoranteotto.webp\"}}]', NULL, '2023-09-26 10:08:31', '2023-09-29 08:00:57');
 
 -- --------------------------------------------------------
 
@@ -524,20 +528,41 @@ CREATE TABLE `products` (
   `user_id` int(11) DEFAULT NULL,
   `featured_image_id` int(11) DEFAULT NULL,
   `slug` varchar(255) NOT NULL,
-  `order_column` int(11) DEFAULT NULL
+  `order_column` int(11) DEFAULT NULL,
+  `weight` decimal(8,2) NOT NULL DEFAULT 0.00
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `products`
 --
 
-INSERT INTO `products` (`id`, `created_at`, `updated_at`, `name`, `description`, `price`, `user_id`, `featured_image_id`, `slug`, `order_column`) VALUES
-(1, '2023-09-11 10:15:40', '2023-09-14 09:58:37', 'Spaghetti alla Carbonara', 'Spaghetti, Guanciale, Uovo, Pecorino, Olio Extra Vergine d\'Oliva', 7.00, NULL, 6, '', NULL),
-(3, '2023-09-11 11:20:06', '2023-09-11 15:27:55', 'Tagliata di Roastbeef', NULL, 18.00, NULL, 9, '', NULL),
-(4, '2023-09-11 13:14:33', '2023-09-11 15:27:32', 'Tagliatelle al ragù', NULL, 5.00, NULL, 8, '', NULL),
-(5, '2023-09-14 10:02:15', '2023-09-21 07:14:15', 'Origano', NULL, 1.00, NULL, NULL, '', NULL),
-(6, '2023-09-14 10:02:21', '2023-09-22 08:12:12', 'Prezzemolo', NULL, 0.50, NULL, NULL, '', NULL),
-(7, '2023-09-14 10:26:12', '2023-09-14 10:26:12', 'Spaghetti alla Carbonara', 'Uova, Guanciale, Pecorino', 6.00, NULL, 6, '', NULL);
+INSERT INTO `products` (`id`, `created_at`, `updated_at`, `name`, `description`, `price`, `user_id`, `featured_image_id`, `slug`, `order_column`, `weight`) VALUES
+(3, '2023-09-11 11:20:06', '2023-09-11 15:27:55', 'Tagliata di Roastbeef', NULL, 18.00, NULL, 9, '', NULL, 0.00),
+(4, '2023-09-11 13:14:33', '2023-09-11 15:27:32', 'Tagliatelle al ragù', NULL, 5.00, NULL, 8, '', NULL, 0.00),
+(5, '2023-09-14 10:02:15', '2023-09-21 07:14:15', 'Origano', NULL, 1.00, NULL, NULL, '', NULL, 0.00),
+(6, '2023-09-14 10:02:21', '2023-09-22 08:12:12', 'Prezzemolo', NULL, 0.50, NULL, NULL, '', NULL, 0.00),
+(7, '2023-09-14 10:26:12', '2023-09-14 10:26:12', 'Spaghetti alla Carbonara', 'Uova, Guanciale, Pecorino', 6.00, NULL, 6, '', NULL, 0.00),
+(8, '2023-09-27 07:17:10', '2023-09-27 07:17:10', 'Vongole', NULL, NULL, NULL, NULL, '', NULL, 0.00),
+(9, '2023-09-27 07:17:25', '2023-09-27 07:17:25', 'Spaghetti di grano duro', NULL, NULL, NULL, NULL, '', NULL, 0.00),
+(10, '2023-09-27 07:17:33', '2023-09-27 07:17:33', 'Prezzemolo', NULL, NULL, NULL, NULL, '', NULL, 0.00),
+(11, '2023-09-27 07:17:38', '2023-09-27 07:17:38', 'Guanciale', NULL, NULL, NULL, NULL, '', NULL, 0.00),
+(12, '2023-09-27 07:17:43', '2023-09-27 07:17:43', 'Uova', NULL, NULL, NULL, NULL, '', NULL, 0.00),
+(13, '2023-09-27 07:18:32', '2023-09-27 07:18:32', 'Pecorino Romano', NULL, NULL, NULL, NULL, '', NULL, 0.00),
+(14, '2023-09-27 07:18:41', '2023-09-27 07:18:41', 'Pepe Nero', NULL, NULL, NULL, NULL, '', NULL, 0.00),
+(15, '2023-09-27 07:18:47', '2023-09-27 07:18:47', 'Sale', NULL, NULL, NULL, NULL, '', NULL, 0.00),
+(17, '2023-09-28 08:03:32', '2023-09-28 08:03:32', 'Tagliatelle all\'uovo', NULL, NULL, NULL, NULL, '', NULL, 0.00),
+(18, '2023-09-28 08:03:38', '2023-09-28 08:03:38', 'Pancetta Dolce', NULL, NULL, NULL, NULL, '', NULL, 0.00),
+(19, '2023-09-28 08:03:49', '2023-09-28 08:03:49', 'Tritato di manzo', NULL, NULL, NULL, NULL, '', NULL, 0.00),
+(20, '2023-09-28 08:03:57', '2023-09-28 08:03:57', 'Vino Rosso', NULL, NULL, NULL, NULL, '', NULL, 0.00),
+(21, '2023-09-28 08:04:06', '2023-09-28 08:04:06', 'Passata di Pomodoro', NULL, NULL, NULL, NULL, '', NULL, 0.00),
+(22, '2023-09-28 08:04:10', '2023-09-28 08:04:10', 'Latte', NULL, NULL, NULL, NULL, '', NULL, 0.00),
+(23, '2023-09-28 08:04:18', '2023-09-28 08:04:18', 'Coste di Sedano', NULL, NULL, NULL, NULL, '', NULL, 0.00),
+(24, '2023-09-28 08:04:24', '2023-09-28 08:04:24', 'Carote', NULL, NULL, NULL, NULL, '', NULL, 0.00),
+(25, '2023-09-28 08:04:28', '2023-09-28 08:04:28', 'Cipolle', NULL, NULL, NULL, NULL, '', NULL, 0.00),
+(26, '2023-09-28 08:04:43', '2023-09-28 08:04:43', 'Olio Extra Vergine d\'Oliva', NULL, NULL, NULL, NULL, '', NULL, 0.00),
+(27, '2023-09-28 08:04:50', '2023-09-28 08:04:50', 'Sale fino', NULL, NULL, NULL, NULL, '', NULL, 0.00),
+(28, '2023-09-28 08:04:54', '2023-09-28 08:04:54', 'Pepe', NULL, NULL, NULL, NULL, '', NULL, 0.00),
+(29, '2023-09-28 08:09:20', '2023-09-28 08:09:20', 'ragù d\'anatra', NULL, 3.00, NULL, NULL, '', NULL, 0.00);
 
 -- --------------------------------------------------------
 
@@ -553,74 +578,111 @@ CREATE TABLE `product_morph` (
   `model_id` bigint(20) UNSIGNED DEFAULT NULL,
   `product_id` int(11) NOT NULL,
   `user_id` int(11) DEFAULT NULL,
-  `option` varchar(255) DEFAULT NULL
+  `option` varchar(255) DEFAULT NULL,
+  `type` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `product_morph`
 --
 
-INSERT INTO `product_morph` (`id`, `created_at`, `updated_at`, `model_type`, `model_id`, `product_id`, `user_id`, `option`) VALUES
-(1, '2023-09-11 10:16:22', '2023-09-11 10:16:22', 'App\\Models\\Category', 1, 2, NULL, NULL),
-(2, '2023-09-11 11:20:06', '2023-09-11 11:20:06', 'App\\Models\\Category', 2, 3, NULL, NULL),
-(3, '2023-09-11 13:14:33', '2023-09-11 13:14:33', 'App\\Models\\Category', 1, 4, NULL, NULL),
-(4, '2023-09-14 08:03:52', '2023-09-14 08:03:52', 'App\\Models\\Order', 1, 1, NULL, NULL),
-(5, '2023-09-14 08:03:58', '2023-09-14 08:03:58', 'App\\Models\\Order', 1, 3, NULL, NULL),
-(6, '2023-09-14 10:02:15', '2023-09-14 10:02:15', 'App\\Models\\Category', 5, 5, NULL, NULL),
-(7, '2023-09-14 10:02:21', '2023-09-14 10:02:21', 'App\\Models\\Category', 5, 6, NULL, NULL),
-(8, '2023-09-14 10:02:33', '2023-09-14 10:02:33', 'App\\Models\\Product', 1, 5, NULL, NULL),
-(9, '2023-09-14 10:17:25', '2023-09-14 10:17:25', 'App\\Models\\Order', 3, 0, NULL, NULL),
-(10, '2023-09-14 10:17:25', '2023-09-14 10:17:25', 'App\\Models\\Order', 3, 0, NULL, NULL),
-(11, '2023-09-14 10:17:49', '2023-09-14 10:17:49', 'App\\Models\\Order', 4, 0, NULL, NULL),
-(12, '2023-09-14 10:17:49', '2023-09-14 10:17:49', 'App\\Models\\Order', 4, 0, NULL, NULL),
-(13, '2023-09-14 10:18:03', '2023-09-14 10:18:03', 'App\\Models\\Order', 5, 0, NULL, NULL),
-(14, '2023-09-14 10:18:03', '2023-09-14 10:18:03', 'App\\Models\\Order', 5, 0, NULL, NULL),
-(15, '2023-09-14 10:18:42', '2023-09-14 10:18:42', 'App\\Models\\Order', 6, 0, NULL, NULL),
-(16, '2023-09-14 10:18:42', '2023-09-14 10:18:42', 'App\\Models\\Order', 6, 0, NULL, NULL),
-(17, '2023-09-14 10:20:17', '2023-09-14 10:20:17', 'App\\Models\\Order', 7, 0, NULL, NULL),
-(18, '2023-09-14 10:20:17', '2023-09-14 10:20:17', 'App\\Models\\Order', 7, 0, NULL, NULL),
-(19, '2023-09-14 10:23:58', '2023-09-14 10:23:58', 'App\\Models\\Order', 8, 0, NULL, NULL),
-(20, '2023-09-14 10:24:31', '2023-09-14 10:24:31', 'App\\Models\\Order', 9, 0, NULL, NULL),
-(21, '2023-09-14 10:26:12', '2023-09-14 10:26:12', 'App\\Models\\Category', 1, 7, NULL, NULL),
-(22, '2023-09-14 10:26:31', '2023-09-14 10:26:31', 'App\\Models\\Order', 10, 4, NULL, NULL),
-(23, '2023-09-14 10:26:31', '2023-09-14 10:26:31', 'App\\Models\\Order', 10, 7, NULL, NULL),
-(24, '2023-09-15 07:20:58', '2023-09-15 07:20:58', 'App\\Models\\Order', 13, 4, NULL, NULL),
-(25, '2023-09-15 07:20:58', '2023-09-15 07:20:58', 'App\\Models\\Order', 13, 4, NULL, NULL),
-(26, '2023-09-15 07:20:58', '2023-09-15 07:20:58', 'App\\Models\\Order', 13, 7, NULL, NULL),
-(27, '2023-09-15 07:23:25', '2023-09-15 07:23:25', 'App\\Models\\Order', 15, 4, NULL, NULL),
-(28, '2023-09-15 07:28:43', '2023-09-15 07:28:43', 'App\\Models\\Order', 16, 3, NULL, NULL),
-(29, '2023-09-15 07:28:53', '2023-09-15 07:28:53', 'App\\Models\\Order', 17, 3, NULL, NULL),
-(30, '2023-09-15 07:29:04', '2023-09-15 07:29:04', 'App\\Models\\Order', 18, 3, NULL, NULL),
-(31, '2023-09-15 07:29:34', '2023-09-15 07:29:34', 'App\\Models\\Order', 19, 3, NULL, NULL),
-(32, '2023-09-15 07:29:48', '2023-09-15 07:29:48', 'App\\Models\\Order', 20, 3, NULL, NULL),
-(33, '2023-09-15 07:30:00', '2023-09-15 07:30:00', 'App\\Models\\Order', 21, 3, NULL, NULL),
-(34, '2023-09-15 07:34:05', '2023-09-15 07:34:05', 'App\\Models\\Order', 24, 4, NULL, NULL),
-(35, '2023-09-15 07:34:05', '2023-09-15 07:34:05', 'App\\Models\\Order', 24, 7, NULL, NULL),
-(36, '2023-09-15 07:36:05', '2023-09-15 07:36:05', 'App\\Models\\Order', 26, 4, NULL, NULL),
-(37, '2023-09-15 07:36:05', '2023-09-15 07:36:05', 'App\\Models\\Order', 26, 4, NULL, NULL),
-(38, '2023-09-15 07:36:05', '2023-09-15 07:36:05', 'App\\Models\\Order', 26, 4, NULL, NULL),
-(39, '2023-09-15 07:36:05', '2023-09-15 07:36:05', 'App\\Models\\Order', 26, 7, NULL, NULL),
-(40, '2023-09-15 07:37:11', '2023-09-15 07:37:11', 'App\\Models\\Order', 29, 4, NULL, NULL),
-(41, '2023-09-15 07:37:11', '2023-09-15 07:37:11', 'App\\Models\\Order', 29, 7, NULL, NULL),
-(42, '2023-09-15 07:38:27', '2023-09-15 07:38:27', 'App\\Models\\Order', 30, 4, NULL, NULL),
-(43, '2023-09-15 07:38:27', '2023-09-15 07:38:27', 'App\\Models\\Order', 30, 7, NULL, NULL),
-(44, '2023-09-15 07:38:27', '2023-09-15 07:38:27', 'App\\Models\\Order', 30, 3, NULL, NULL),
-(45, '2023-09-15 07:40:35', '2023-09-15 07:40:35', 'App\\Models\\Order', 31, 4, NULL, NULL),
-(46, '2023-09-15 07:40:35', '2023-09-15 07:40:35', 'App\\Models\\Order', 31, 7, NULL, NULL),
-(47, '2023-09-15 07:40:35', '2023-09-15 07:40:35', 'App\\Models\\Order', 31, 3, NULL, NULL),
-(48, '2023-09-15 13:53:47', '2023-09-15 13:53:47', 'App\\Models\\Product', 7, 5, NULL, NULL),
-(50, '2023-09-15 14:17:30', '2023-09-15 14:17:30', 'App\\Models\\Order', 32, 7, NULL, NULL),
-(51, '2023-09-15 14:17:30', '2023-09-15 14:17:30', 'App\\Models\\Order', 32, 5, NULL, NULL),
-(52, '2023-09-17 16:38:14', '2023-09-17 16:38:14', 'App\\Models\\Order', 33, 4, NULL, NULL),
-(53, '2023-09-19 06:48:20', '2023-09-19 06:48:20', 'App\\Models\\Product', 7, 6, NULL, NULL),
-(62, '2023-09-19 07:53:31', '2023-09-19 07:53:31', 'App\\Models\\Product', 4, 5, NULL, NULL),
-(63, '2023-09-20 13:30:22', '2023-09-20 13:30:22', 'App\\Models\\Order', 34, 4, NULL, NULL),
-(64, '2023-09-20 13:30:22', '2023-09-20 13:30:22', 'App\\Models\\Order', 34, 7, NULL, NULL),
-(65, '2023-09-20 13:30:22', '2023-09-20 13:30:22', 'App\\Models\\Order', 34, 5, NULL, NULL),
-(66, '2023-09-20 13:30:22', '2023-09-20 13:30:22', 'App\\Models\\Order', 34, 6, NULL, NULL),
-(67, '2023-09-22 05:43:33', '2023-09-22 05:43:33', 'App\\Models\\Order', 3, 4, NULL, NULL),
-(68, '2023-09-22 05:43:33', '2023-09-22 05:43:33', 'App\\Models\\Order', 3, 5, NULL, NULL),
-(69, '2023-09-22 05:43:33', '2023-09-22 05:43:33', 'App\\Models\\Order', 3, 3, NULL, NULL);
+INSERT INTO `product_morph` (`id`, `created_at`, `updated_at`, `model_type`, `model_id`, `product_id`, `user_id`, `option`, `type`) VALUES
+(1, '2023-09-11 10:16:22', '2023-09-11 10:16:22', 'App\\Models\\Category', 1, 2, NULL, NULL, NULL),
+(2, '2023-09-11 11:20:06', '2023-09-11 11:20:06', 'App\\Models\\Category', 2, 3, NULL, NULL, NULL),
+(3, '2023-09-11 13:14:33', '2023-09-11 13:14:33', 'App\\Models\\Category', 1, 4, NULL, NULL, NULL),
+(4, '2023-09-14 08:03:52', '2023-09-14 08:03:52', 'App\\Models\\Order', 1, 1, NULL, NULL, NULL),
+(5, '2023-09-14 08:03:58', '2023-09-14 08:03:58', 'App\\Models\\Order', 1, 3, NULL, NULL, NULL),
+(6, '2023-09-14 10:02:15', '2023-09-14 10:02:15', 'App\\Models\\Category', 5, 5, NULL, NULL, NULL),
+(7, '2023-09-14 10:02:21', '2023-09-14 10:02:21', 'App\\Models\\Category', 5, 6, NULL, NULL, NULL),
+(8, '2023-09-14 10:02:33', '2023-09-14 10:02:33', 'App\\Models\\Product', 1, 5, NULL, NULL, NULL),
+(9, '2023-09-14 10:17:25', '2023-09-14 10:17:25', 'App\\Models\\Order', 3, 0, NULL, NULL, NULL),
+(10, '2023-09-14 10:17:25', '2023-09-14 10:17:25', 'App\\Models\\Order', 3, 0, NULL, NULL, NULL),
+(11, '2023-09-14 10:17:49', '2023-09-14 10:17:49', 'App\\Models\\Order', 4, 0, NULL, NULL, NULL),
+(12, '2023-09-14 10:17:49', '2023-09-14 10:17:49', 'App\\Models\\Order', 4, 0, NULL, NULL, NULL),
+(13, '2023-09-14 10:18:03', '2023-09-14 10:18:03', 'App\\Models\\Order', 5, 0, NULL, NULL, NULL),
+(14, '2023-09-14 10:18:03', '2023-09-14 10:18:03', 'App\\Models\\Order', 5, 0, NULL, NULL, NULL),
+(15, '2023-09-14 10:18:42', '2023-09-14 10:18:42', 'App\\Models\\Order', 6, 0, NULL, NULL, NULL),
+(16, '2023-09-14 10:18:42', '2023-09-14 10:18:42', 'App\\Models\\Order', 6, 0, NULL, NULL, NULL),
+(17, '2023-09-14 10:20:17', '2023-09-14 10:20:17', 'App\\Models\\Order', 7, 0, NULL, NULL, NULL),
+(18, '2023-09-14 10:20:17', '2023-09-14 10:20:17', 'App\\Models\\Order', 7, 0, NULL, NULL, NULL),
+(19, '2023-09-14 10:23:58', '2023-09-14 10:23:58', 'App\\Models\\Order', 8, 0, NULL, NULL, NULL),
+(20, '2023-09-14 10:24:31', '2023-09-14 10:24:31', 'App\\Models\\Order', 9, 0, NULL, NULL, NULL),
+(21, '2023-09-14 10:26:12', '2023-09-14 10:26:12', 'App\\Models\\Category', 1, 7, NULL, NULL, NULL),
+(22, '2023-09-14 10:26:31', '2023-09-14 10:26:31', 'App\\Models\\Order', 10, 4, NULL, NULL, NULL),
+(23, '2023-09-14 10:26:31', '2023-09-14 10:26:31', 'App\\Models\\Order', 10, 7, NULL, NULL, NULL),
+(24, '2023-09-15 07:20:58', '2023-09-15 07:20:58', 'App\\Models\\Order', 13, 4, NULL, NULL, NULL),
+(25, '2023-09-15 07:20:58', '2023-09-15 07:20:58', 'App\\Models\\Order', 13, 4, NULL, NULL, NULL),
+(26, '2023-09-15 07:20:58', '2023-09-15 07:20:58', 'App\\Models\\Order', 13, 7, NULL, NULL, NULL),
+(27, '2023-09-15 07:23:25', '2023-09-15 07:23:25', 'App\\Models\\Order', 15, 4, NULL, NULL, NULL),
+(28, '2023-09-15 07:28:43', '2023-09-15 07:28:43', 'App\\Models\\Order', 16, 3, NULL, NULL, NULL),
+(29, '2023-09-15 07:28:53', '2023-09-15 07:28:53', 'App\\Models\\Order', 17, 3, NULL, NULL, NULL),
+(30, '2023-09-15 07:29:04', '2023-09-15 07:29:04', 'App\\Models\\Order', 18, 3, NULL, NULL, NULL),
+(31, '2023-09-15 07:29:34', '2023-09-15 07:29:34', 'App\\Models\\Order', 19, 3, NULL, NULL, NULL),
+(32, '2023-09-15 07:29:48', '2023-09-15 07:29:48', 'App\\Models\\Order', 20, 3, NULL, NULL, NULL),
+(33, '2023-09-15 07:30:00', '2023-09-15 07:30:00', 'App\\Models\\Order', 21, 3, NULL, NULL, NULL),
+(34, '2023-09-15 07:34:05', '2023-09-15 07:34:05', 'App\\Models\\Order', 24, 4, NULL, NULL, NULL),
+(35, '2023-09-15 07:34:05', '2023-09-15 07:34:05', 'App\\Models\\Order', 24, 7, NULL, NULL, NULL),
+(36, '2023-09-15 07:36:05', '2023-09-15 07:36:05', 'App\\Models\\Order', 26, 4, NULL, NULL, NULL),
+(37, '2023-09-15 07:36:05', '2023-09-15 07:36:05', 'App\\Models\\Order', 26, 4, NULL, NULL, NULL),
+(38, '2023-09-15 07:36:05', '2023-09-15 07:36:05', 'App\\Models\\Order', 26, 4, NULL, NULL, NULL),
+(39, '2023-09-15 07:36:05', '2023-09-15 07:36:05', 'App\\Models\\Order', 26, 7, NULL, NULL, NULL),
+(40, '2023-09-15 07:37:11', '2023-09-15 07:37:11', 'App\\Models\\Order', 29, 4, NULL, NULL, NULL),
+(41, '2023-09-15 07:37:11', '2023-09-15 07:37:11', 'App\\Models\\Order', 29, 7, NULL, NULL, NULL),
+(42, '2023-09-15 07:38:27', '2023-09-15 07:38:27', 'App\\Models\\Order', 30, 4, NULL, NULL, NULL),
+(43, '2023-09-15 07:38:27', '2023-09-15 07:38:27', 'App\\Models\\Order', 30, 7, NULL, NULL, NULL),
+(44, '2023-09-15 07:38:27', '2023-09-15 07:38:27', 'App\\Models\\Order', 30, 3, NULL, NULL, NULL),
+(45, '2023-09-15 07:40:35', '2023-09-15 07:40:35', 'App\\Models\\Order', 31, 4, NULL, NULL, NULL),
+(46, '2023-09-15 07:40:35', '2023-09-15 07:40:35', 'App\\Models\\Order', 31, 7, NULL, NULL, NULL),
+(47, '2023-09-15 07:40:35', '2023-09-15 07:40:35', 'App\\Models\\Order', 31, 3, NULL, NULL, NULL),
+(48, '2023-09-15 13:53:47', '2023-09-28 07:09:36', 'App\\Models\\Product', 7, 5, NULL, NULL, 'variation'),
+(50, '2023-09-15 14:17:30', '2023-09-15 14:17:30', 'App\\Models\\Order', 32, 7, NULL, NULL, NULL),
+(51, '2023-09-15 14:17:30', '2023-09-15 14:17:30', 'App\\Models\\Order', 32, 5, NULL, NULL, NULL),
+(52, '2023-09-17 16:38:14', '2023-09-17 16:38:14', 'App\\Models\\Order', 33, 4, NULL, NULL, NULL),
+(53, '2023-09-19 06:48:20', '2023-09-28 07:09:41', 'App\\Models\\Product', 7, 6, NULL, NULL, 'variation'),
+(63, '2023-09-20 13:30:22', '2023-09-20 13:30:22', 'App\\Models\\Order', 34, 4, NULL, NULL, NULL),
+(64, '2023-09-20 13:30:22', '2023-09-20 13:30:22', 'App\\Models\\Order', 34, 7, NULL, NULL, NULL),
+(65, '2023-09-20 13:30:22', '2023-09-20 13:30:22', 'App\\Models\\Order', 34, 5, NULL, NULL, NULL),
+(66, '2023-09-20 13:30:22', '2023-09-20 13:30:22', 'App\\Models\\Order', 34, 6, NULL, NULL, NULL),
+(67, '2023-09-22 05:43:33', '2023-09-22 05:43:33', 'App\\Models\\Order', 3, 4, NULL, NULL, NULL),
+(68, '2023-09-22 05:43:33', '2023-09-22 05:43:33', 'App\\Models\\Order', 3, 5, NULL, NULL, NULL),
+(69, '2023-09-22 05:43:33', '2023-09-22 05:43:33', 'App\\Models\\Order', 3, 3, NULL, NULL, NULL),
+(70, '2023-09-27 07:17:10', '2023-09-27 07:17:10', 'App\\Models\\Category', 6, 8, NULL, NULL, NULL),
+(71, '2023-09-27 07:17:25', '2023-09-27 07:17:25', 'App\\Models\\Category', 6, 9, NULL, NULL, NULL),
+(72, '2023-09-27 07:17:33', '2023-09-27 07:17:33', 'App\\Models\\Category', 6, 10, NULL, NULL, NULL),
+(73, '2023-09-27 07:17:38', '2023-09-27 07:17:38', 'App\\Models\\Category', 6, 11, NULL, NULL, NULL),
+(74, '2023-09-27 07:17:43', '2023-09-27 07:17:43', 'App\\Models\\Category', 6, 12, NULL, NULL, NULL),
+(75, '2023-09-27 07:18:32', '2023-09-27 07:18:32', 'App\\Models\\Category', 6, 13, NULL, NULL, NULL),
+(76, '2023-09-27 07:18:41', '2023-09-27 07:18:41', 'App\\Models\\Category', 6, 14, NULL, NULL, NULL),
+(77, '2023-09-27 07:18:47', '2023-09-27 07:18:47', 'App\\Models\\Category', 6, 15, NULL, NULL, NULL),
+(78, '2023-09-28 07:12:45', '2023-09-28 07:14:11', 'App\\Models\\Product', 7, 9, NULL, NULL, 'ingredient'),
+(79, '2023-09-28 07:12:50', '2023-09-28 07:14:26', 'App\\Models\\Product', 7, 12, NULL, NULL, 'ingredient'),
+(80, '2023-09-28 07:12:56', '2023-09-28 07:14:16', 'App\\Models\\Product', 7, 11, NULL, NULL, 'ingredient'),
+(81, '2023-09-28 07:13:03', '2023-09-28 07:14:21', 'App\\Models\\Product', 7, 14, NULL, NULL, 'ingredient'),
+(82, '2023-09-28 08:03:32', '2023-09-28 08:03:32', 'App\\Models\\Category', 6, 17, NULL, NULL, NULL),
+(83, '2023-09-28 08:03:38', '2023-09-28 08:03:38', 'App\\Models\\Category', 6, 18, NULL, NULL, NULL),
+(84, '2023-09-28 08:03:49', '2023-09-28 08:03:49', 'App\\Models\\Category', 6, 19, NULL, NULL, NULL),
+(85, '2023-09-28 08:03:57', '2023-09-28 08:03:57', 'App\\Models\\Category', 6, 20, NULL, NULL, NULL),
+(86, '2023-09-28 08:04:06', '2023-09-28 08:04:06', 'App\\Models\\Category', 6, 21, NULL, NULL, NULL),
+(87, '2023-09-28 08:04:10', '2023-09-28 08:04:10', 'App\\Models\\Category', 6, 22, NULL, NULL, NULL),
+(88, '2023-09-28 08:04:18', '2023-09-28 08:04:18', 'App\\Models\\Category', 6, 23, NULL, NULL, NULL),
+(89, '2023-09-28 08:04:24', '2023-09-28 08:04:24', 'App\\Models\\Category', 6, 24, NULL, NULL, NULL),
+(90, '2023-09-28 08:04:28', '2023-09-28 08:04:28', 'App\\Models\\Category', 6, 25, NULL, NULL, NULL),
+(91, '2023-09-28 08:04:43', '2023-09-28 08:04:43', 'App\\Models\\Category', 6, 26, NULL, NULL, NULL),
+(92, '2023-09-28 08:04:50', '2023-09-28 08:04:50', 'App\\Models\\Category', 6, 27, NULL, NULL, NULL),
+(93, '2023-09-28 08:04:54', '2023-09-28 08:04:54', 'App\\Models\\Category', 6, 28, NULL, NULL, NULL),
+(94, '2023-09-28 08:05:32', '2023-09-28 08:08:04', 'App\\Models\\Product', 4, 17, NULL, NULL, 'ingredient'),
+(95, '2023-09-28 08:05:40', '2023-09-28 08:08:09', 'App\\Models\\Product', 4, 18, NULL, NULL, 'ingredient'),
+(96, '2023-09-28 08:05:44', '2023-09-28 08:08:15', 'App\\Models\\Product', 4, 19, NULL, NULL, 'ingredient'),
+(97, '2023-09-28 08:05:53', '2023-09-28 08:08:20', 'App\\Models\\Product', 4, 20, NULL, NULL, 'ingredient'),
+(98, '2023-09-28 08:05:58', '2023-09-28 08:08:31', 'App\\Models\\Product', 4, 21, NULL, NULL, 'ingredient'),
+(99, '2023-09-28 08:06:07', '2023-09-28 08:08:25', 'App\\Models\\Product', 4, 22, NULL, NULL, 'ingredient'),
+(100, '2023-09-28 08:06:11', '2023-09-28 08:08:36', 'App\\Models\\Product', 4, 23, NULL, NULL, 'ingredient'),
+(101, '2023-09-28 08:06:23', '2023-09-28 08:08:41', 'App\\Models\\Product', 4, 24, NULL, NULL, 'ingredient'),
+(102, '2023-09-28 08:06:27', '2023-09-28 08:08:47', 'App\\Models\\Product', 4, 25, NULL, NULL, 'ingredient'),
+(103, '2023-09-28 08:06:31', '2023-09-28 08:08:55', 'App\\Models\\Product', 4, 26, NULL, NULL, 'ingredient'),
+(104, '2023-09-28 08:06:42', '2023-09-28 08:09:30', 'App\\Models\\Product', 4, 27, NULL, NULL, 'ingredient'),
+(105, '2023-09-28 08:06:47', '2023-09-28 08:09:35', 'App\\Models\\Product', 4, 28, NULL, NULL, 'ingredient'),
+(106, '2023-09-28 08:09:20', '2023-09-28 08:09:20', 'App\\Models\\Product', 4, 29, NULL, NULL, 'variation');
 
 -- --------------------------------------------------------
 
@@ -1099,7 +1161,7 @@ ALTER TABLE `media`
 -- AUTO_INCREMENT for table `migrations`
 --
 ALTER TABLE `migrations`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=33;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=39;
 
 --
 -- AUTO_INCREMENT for table `orders`
@@ -1135,13 +1197,13 @@ ALTER TABLE `personal_access_tokens`
 -- AUTO_INCREMENT for table `products`
 --
 ALTER TABLE `products`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=30;
 
 --
 -- AUTO_INCREMENT for table `product_morph`
 --
 ALTER TABLE `product_morph`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=70;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=107;
 
 --
 -- AUTO_INCREMENT for table `roles`

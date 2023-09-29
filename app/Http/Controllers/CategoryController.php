@@ -22,6 +22,7 @@ class CategoryController extends Controller
      */
     public function index(/*?string $team = null*/)
     {
+        
         if (Gate::denies('view_any_category')) {
             abort(403);
         }

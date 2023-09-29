@@ -3,7 +3,9 @@
 namespace App\Filament\Fabricator\PageBlocks;
 
 use Filament\Forms\Components\Builder\Block;
+use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\TextInput;
+use phpDocumentor\Reflection\Types\Boolean;
 use Z3d0X\FilamentFabricator\PageBlocks\PageBlock;
 
 class HeaderOne extends PageBlock
@@ -20,7 +22,8 @@ class HeaderOne extends PageBlock
                 TextInput::make('link_three'),
                 TextInput::make('text_four'),
                 TextInput::make('link_four'),
-                
+                Checkbox::make('cart_enabled')->default(false),
+
             ]);
     }
 
