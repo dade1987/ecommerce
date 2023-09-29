@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Product;
 use App\Models\Category;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Diglactic\Breadcrumbs\Breadcrumbs;
 use App\Http\Requests\StoreProductRequest;
@@ -14,9 +15,15 @@ class ProductController extends Controller
 {
     /**
      * Display a listing of the resource.
+     * 
+     * @return  \Illuminate\Http\RedirectResponse|\Illuminate\Database\Eloquent\Collection
      */
     public function index(?int $category_id)
     {
+        if (Gate::denies('view_any_product')) {
+            abort(403);
+        }
+
         return Product::get();
     }
 

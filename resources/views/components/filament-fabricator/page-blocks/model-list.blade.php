@@ -1,3 +1,3 @@
-@aware(['categories'])
+@aware(['categories', 'rows'])
 
-@livewire('models-list', ['rows'=>$rows,'second_button'=>$secondButton])
+@livewire('models-list', ['rows' => $rows, 'second_button' => $secondButton])

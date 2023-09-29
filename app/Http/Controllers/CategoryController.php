@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\Category;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Diglactic\Breadcrumbs\Breadcrumbs;
 use App\Http\Requests\StoreCategoryRequest;
@@ -16,17 +17,15 @@ use Z3d0X\FilamentFabricator\Http\Controllers\PageController;
 
 class CategoryController extends Controller
 {
-
     /**
      * Display a listing of the resource.
      */
     public function index(/*?string $team = null*/)
     {
+        if (Gate::denies('view_any_category')) {
+            abort(403);
+        }
 
-        /*if ($team != null) {
-            return Team::firstWhere('slug', $team)->categories;
-        }*/
-        //return Team::firstWhere('slug')->categories;
         return Category::where('is_hidden', false)->get();
     }
 

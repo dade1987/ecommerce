@@ -8,10 +8,12 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Diglactic\Breadcrumbs\Breadcrumbs;
+use Filament\Forms\Components\Checkbox;
+use Illuminate\Database\Eloquent\Model;
 use Filament\Forms\Components\Builder\Block;
+use Illuminate\Database\Eloquent\Collection;
 use Z3d0X\FilamentFabricator\PageBlocks\PageBlock;
 use Awcodes\Curator\Components\Forms\CuratorPicker;
-use Filament\Forms\Components\Checkbox;
 
 class ModelListBlock extends PageBlock
 {
@@ -26,10 +28,10 @@ class ModelListBlock extends PageBlock
 
     public static function mutateData(array $data): array
     {
-        if (!Auth::check()) {
+        /*if (!Auth::check()) {
             abort(403);
             //return redirect()->route('login');
-        }
+        }*/
 
         $params = Route::current()->parameters();
 
@@ -53,32 +55,35 @@ class ModelListBlock extends PageBlock
 
 
 
-                    if (!$user->can('view_any_' . Str::singular($class_name))) {
+                    /*if (!$user->can('view_any_' . Str::singular($class_name))) {
                         abort(403);
-                    }
+                    }*/
 
                     $container = $parent->$param;
                 } else {
 
-                    if (!$user->can('view_any_' . Str::singular($param))) {
-                        abort(403);
-                    }
-                    /*$row_class = 'App\\Models\\' . Str::singular(Str::title($param));
-                    $container = $row_class::get();*/
 
                     //forse è meglio usare il controller perchè è il controller che dovrebbe fare da interfaccia tra modello e applicativo
 
-                    $controller_class = 'App\\Http\\Controllers\\' . Str::singular(Str::title($param)) . 'Controller';
+                    $model = Str::singular(Str::title($param));
+                    $model_with_ns = 'App\\Models\\' . $model;
+
+                    $controller_class = 'App\\Http\\Controllers\\' . $model . 'Controller';
                     $container = app($controller_class)->index();
+
+                    if (!$container instanceof Collection) {
+                        $container = collect(new $model_with_ns);
+                    }
                 }
             }
 
             $before_key = $key;
             $index++;
         }
-        // dd($container);
-        return [
 
+
+
+        return [
             'rows' => $container,
             'second_button' => $data['second_button'] ?? false
         ];
