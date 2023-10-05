@@ -23,7 +23,28 @@ class AgendaResource extends Resource
     {
         return $form
             ->schema([
-                //
+                Forms\Components\TextInput::make('name')
+                    ->required()
+                    ->maxLength(255),
+                Forms\Components\Textarea::make('description')
+                    ->maxLength(65535)
+                    ->columnSpanFull(),
+                Forms\Components\DateTimePicker::make('start_date')
+                    ->required(),
+                Forms\Components\DateTimePicker::make('end_date')
+                    ->required(),
+                Forms\Components\TextInput::make('email')
+                    ->email()
+                    ->required()
+                    ->maxLength(255),
+                Forms\Components\Textarea::make('note')
+                    ->maxLength(65535)
+                    ->columnSpanFull(),
+                Forms\Components\TextInput::make('link')
+                    ->required()
+                    ->maxLength(255),
+                Forms\Components\TextInput::make('user_id')
+                    ->numeric(),
             ]);
     }
 
@@ -31,7 +52,29 @@ class AgendaResource extends Resource
     {
         return $table
             ->columns([
-                //
+                Tables\Columns\TextColumn::make('created_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('updated_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('name')
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('start_date')
+                    ->dateTime()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('end_date')
+                    ->dateTime()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('email')
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('link')
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('user_id')
+                    ->numeric()
+                    ->sortable(),
             ])
             ->filters([
                 //
