@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\ReservationResource\Pages;
 use App\Filament\Resources\ReservationResource\RelationManagers;
+use App\Filament\Resources\ReservationResource\Widgets\CalendarWidget;
 use App\Models\Reservation;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -86,14 +87,14 @@ class ReservationResource extends Resource
                 Tables\Actions\CreateAction::make(),
             ]);
     }
-    
+
     public static function getRelations(): array
     {
         return [
             //
         ];
     }
-    
+
     public static function getPages(): array
     {
         return [
@@ -101,5 +102,12 @@ class ReservationResource extends Resource
             'create' => Pages\CreateReservation::route('/create'),
             'edit' => Pages\EditReservation::route('/{record}/edit'),
         ];
-    }    
+    }
+    public static function getWidgets(): array
+    {
+        return [
+            CalendarWidget::class
+        ];
+    }
+    
 }

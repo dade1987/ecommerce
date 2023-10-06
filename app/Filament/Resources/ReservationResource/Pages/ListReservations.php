@@ -2,9 +2,10 @@
 
 namespace App\Filament\Resources\ReservationResource\Pages;
 
-use App\Filament\Resources\ReservationResource;
 use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
+use App\Filament\Resources\ReservationResource;
+use App\Filament\Resources\ReservationResource\Widgets\CalendarWidget;
 
 class ListReservations extends ListRecords
 {
@@ -14,6 +15,12 @@ class ListReservations extends ListRecords
     {
         return [
             Actions\CreateAction::make(),
+        ];
+    }
+    protected function getFooterWidgets(): array
+    {
+        return [
+            CalendarWidget::class
         ];
     }
 }

@@ -20,6 +20,7 @@ use Z3d0X\FilamentFabricator\FilamentFabricatorPlugin;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
+use Saade\FilamentFullCalendar\FilamentFullCalendarPlugin;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 
 class AdminPanelProvider extends PanelProvider
@@ -61,7 +62,18 @@ class AdminPanelProvider extends PanelProvider
             ])->plugins([
                 FilamentFabricatorPlugin::make(),
                 FilamentShieldPlugin::make(),
-                CuratorPlugin::make()
+                CuratorPlugin::make(),
+
+                FilamentFullCalendarPlugin::make()
+                    //->schedulerLicenseKey()
+                    ->selectable()
+                    ->editable()
+                    //->timezone()
+                    //->locale()
+                    //->plugins()
+                    //->config()
+
+
             ]);
         //->tenant(Team::class, 'slug');
     }
