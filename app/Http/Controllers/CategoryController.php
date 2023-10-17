@@ -27,7 +27,7 @@ class CategoryController extends Controller
             abort(403);
         }
 
-        return Category::where('is_hidden', false)->get();
+        return Category::where('is_hidden', false)->orderBy('order_column')->get();
     }
 
     /**

@@ -24,7 +24,7 @@ class ProductController extends Controller
             abort(403);
         }
 
-        return Product::get();
+        return Product::orderBy('order_column')->get();
     }
 
     /**
