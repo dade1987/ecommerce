@@ -33,9 +33,9 @@ class CategoryResource extends Resource
     {
         return $form
             ->schema([
-                TextInput::make('name')
-                    ->live()
-                    ->afterStateUpdated(fn (Set $set, ?string $state) => $set('slug', Str::slug($state))),
+                TextInput::make('name'),
+                    //->live()
+                    //->afterStateUpdated(fn (Set $set, ?string $state) => $set('slug', Str::slug($state))),
                 TextInput::make('slug')->required(),
                 Checkbox::make('is_hidden'),
                 CuratorPicker::make('featured_image_id')
