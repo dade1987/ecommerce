@@ -29,7 +29,7 @@ class ProductsRelationManager extends RelationManager
                 Forms\Components\TextInput::make('weight')->default(0)->required(),
                 Forms\Components\TextInput::make('price')
                     ->numeric()
-                    ->prefix('$'),
+                    ->prefix('€'),
                 CuratorPicker::make('featured_image_id')
                     ->relationship('featuredImage', 'id')
                     ->imageResizeTargetWidth(10)
