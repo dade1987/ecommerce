@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Route;
 use Diglactic\Breadcrumbs\Breadcrumbs;
 use App\Http\Requests\StoreProductRequest;
 use App\Http\Requests\UpdateProductRequest;
+use Illuminate\Validation\ValidationException;
+use Illuminate\Auth\Access\AuthorizationException;
 
 class ProductController extends Controller
 {
@@ -21,8 +23,13 @@ class ProductController extends Controller
     public function index(?int $category_id)
     {
         if (Gate::denies('view_any_product')) {
-            abort(403);
+            if (request()->wantsJson()) {
+                throw new AuthorizationException;
+            } else {
+                abort(403);
+            }
         }
+
 
         return Product::orderBy('order_column')->get();
     }

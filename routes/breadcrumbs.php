@@ -19,6 +19,7 @@ Breadcrumbs::for('{item2?}.index', function (BreadcrumbTrail $trail, array $para
     $index = 0;
     $before_key = '';
     foreach ($params as $key => $param) {
+        
         $parameters = array_slice($params, 0, $index + 1);
 
         if (Str::startsWith($key, 'item')) {

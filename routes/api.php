@@ -15,9 +15,9 @@ use App\Http\Controllers\Api\ApiController;
 |
 */
 
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
+Route::middleware('auth:sanctum')->get('/user', function (Request $request) {    return $request->user();
 });
 
-//Route::resource('{container0}/{item0?}/{container1?}/{item1?}/{container2?}/{item2?}/', ApiController::class);
+//TO-DO: finire per separare frontend da backend
+Route::resource('{container0}/{item0?}/{container1?}/{item1?}/{container2?}/{item2?}/', ApiController::class);
 

@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\Route;
 use Diglactic\Breadcrumbs\Breadcrumbs;
 use App\Http\Requests\StoreCategoryRequest;
 use App\Http\Requests\UpdateCategoryRequest;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Validation\ValidationException;
 use Z3d0X\FilamentFabricator\Facades\FilamentFabricator;
 use Z3d0X\FilamentFabricator\Http\Controllers\PageController;
 
@@ -22,11 +24,13 @@ class CategoryController extends Controller
      */
     public function index(/*?string $team = null*/)
     {
-        
         if (Gate::denies('view_any_category')) {
-            abort(403);
+            if (request()->wantsJson()) {
+                throw new AuthorizationException;
+            } else {
+                abort(403);
+            }
         }
-
         return Category::where('is_hidden', false)->orderBy('order_column')->get();
     }
 
