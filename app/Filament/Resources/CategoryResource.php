@@ -22,6 +22,15 @@ use Awcodes\Curator\Components\Tables\CuratorColumn;
 use App\Filament\Resources\CategoryResource\RelationManagers;
 use Filament\Forms\Components\Checkbox;
 use Filament\Tables\Columns\IconColumn;
+use App\Filament\Resources\ProductResource\Pages\CreateProduct;
+use App\Filament\Resources\ProductResource\Pages\EditProduct;
+use App\Filament\Resources\ProductResource\Pages\ListProducts;
+use App\Models\Product;
+use Filament\Facades\Filament;
+use Filament\Tables\Actions\Action;
+use Illuminate\Contracts\Support\Htmlable;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Route;
 
 class CategoryResource extends Resource
 {
@@ -34,8 +43,8 @@ class CategoryResource extends Resource
         return $form
             ->schema([
                 TextInput::make('name'),
-                    //->live()
-                    //->afterStateUpdated(fn (Set $set, ?string $state) => $set('slug', Str::slug($state))),
+                //->live()
+                //->afterStateUpdated(fn (Set $set, ?string $state) => $set('slug', Str::slug($state))),
                 TextInput::make('slug')->required(),
                 Checkbox::make('is_hidden'),
                 CuratorPicker::make('featured_image_id')
@@ -57,6 +66,14 @@ class CategoryResource extends Resource
                 //
             ])
             ->actions([
+                Action::make('Manage products')
+                    ->color('success')
+                    ->icon('heroicon-m-academic-cap')
+                    ->url(
+                        fn (Category $record): string => static::getUrl('products.index', [
+                            'parent' => $record->id,
+                        ])
+                    ),
                 Tables\Actions\EditAction::make(),
             ])
             ->bulkActions([
@@ -69,6 +86,11 @@ class CategoryResource extends Resource
             ])
             ->reorderable('order_column')
             ->defaultSort('order_column');
+    }
+
+    public static function getRecordTitle(?Model $record): string|null|Htmlable
+    {
+        return $record->name;
     }
 
     public static function getRelations(): array
@@ -84,6 +106,11 @@ class CategoryResource extends Resource
             'index' => Pages\ListCategories::route('/'),
             'create' => Pages\CreateCategory::route('/create'),
             'edit' => Pages\EditCategory::route('/{record}/edit'),
+
+            // Products 
+            'products.index' => ListProducts::route('/{parent}/products'),
+            'products.create' => CreateProduct::route('/{parent}/products/create'),
+            'products.edit' => EditProduct::route('/{parent}/products/{record}/edit'),
         ];
     }
 }
