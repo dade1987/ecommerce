@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\GuttenbergController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\ProductController;
@@ -42,6 +43,13 @@ Route::middleware('auth')->group(function () {
         Route::resource('{container0}/{item0?}/{container1?}/{item2?}', PageController::class);
     });*/
 });
+
+Route::get('/guttenberg', function () {
+    return view('guttenberg');
+});
+
+
+Route::get('/guttenberg-example/{id}', GuttenbergController::class);
 
 Route::resource('{container0}/{item0?}/{container1?}/{item1?}/{container2?}/{item2?}', PageController::class);
 

@@ -19,6 +19,7 @@
         "laravel/tinker": "^2.8",
         "saade/filament-fullcalendar": "^3.0",
         "spatie/eloquent-sortable": "^4.0",
+        "van-ons/laraberg": "^2.0",
         "z3d0x/filament-fabricator": "^2.0"
     },
     "require-dev": {
