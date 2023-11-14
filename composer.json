@@ -17,7 +17,9 @@
         "laravel/framework": "^10.10",
         "laravel/sanctum": "^3.2",
         "laravel/tinker": "^2.8",
+        "rupadana/filament-api-service": "^1.0",
         "saade/filament-fullcalendar": "^3.0",
+        "sevendays-digital/filament-nested-resources": "*",
         "spatie/eloquent-sortable": "^4.0",
         "van-ons/laraberg": "^2.0",
         "z3d0x/filament-fabricator": "^2.0"
@@ -79,6 +81,12 @@
             "php-http/discovery": true
         }
     },
-    "minimum-stability": "stable",
+    "repositories": [
+        {
+            "type": "path",
+            "url": "./packages/sevendays-digital/filament-nested-resources"
+        }
+    ],
+    "minimum-stability": "dev",
     "prefer-stable": true
 }

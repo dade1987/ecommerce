@@ -19,5 +19,6 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {   
 });
 
 //TO-DO: finire per separare frontend da backend
-Route::resource('{container0}/{item0?}/{container1?}/{item1?}/{container2?}/{item2?}/', ApiController::class);
+//Route::apiResource('{container0}/{item0?}/{container1?}/{item1?}/{container2?}/{item2?}/', ApiController::class);
 
+//usare https://filamentphp.com/plugins/rupadana-api-service

@@ -4,25 +4,18 @@ namespace App\Filament\Resources\ProductResource\Pages;
 
 use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
-use App\Filament\Traits\HasParentResource;
 use App\Filament\Resources\ProductResource;
+use SevendaysDigital\FilamentNestedResources\ResourcePages\NestedPage;
 
 class ListProducts extends ListRecords
 {
-
-    use HasParentResource;
+    //use NestedPage;
     protected static string $resource = ProductResource::class;
 
     protected function getHeaderActions(): array
     {
         return [
-            //Actions\CreateAction::make(),
-            Actions\CreateAction::make()
-            ->url(
-                fn (): string => static::getParentResource()::getUrl('products.create', [
-                    'parent' => $this->parent,
-                ])
-            ),
+            Actions\CreateAction::make(),
         ];
     }
 }

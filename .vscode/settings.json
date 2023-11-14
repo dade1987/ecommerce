@@ -27,7 +27,7 @@
 	"git.autofetch": "all",
 	"editor.wordWrapColumn": 120,
 	"[json]": {
-		"editor.defaultFormatter": "lonefy.vscode-JS-CSS-HTML-formatter"
+		"editor.defaultFormatter": "vscode.json-language-features"
 	},
 	"[scss]": {
 		"editor.defaultFormatter": "vscode.css-language-features"

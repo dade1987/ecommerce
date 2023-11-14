@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Order;
+use App\Models\Category;
 use App\Models\ProductMorph;
 use App\Models\Traits\HasTeams;
 use Awcodes\Curator\Models\Media;
@@ -27,6 +28,11 @@ class Product extends Model
         'sort_when_creating' => true,
     ];
 
+    // come identifico il padre da cui ho chiamato il figlio in una relazione morphTo, usando la relazione?
+    public function category()
+    {
+        return $this->belongsTo(Category::class);
+    }
     //relations
     public function orders(): MorphToMany
     {
