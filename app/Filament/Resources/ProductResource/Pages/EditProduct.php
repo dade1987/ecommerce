@@ -9,7 +9,7 @@ use SevendaysDigital\FilamentNestedResources\ResourcePages\NestedPage;
 
 class EditProduct extends EditRecord
 {
-    //use NestedPage;
+    use NestedPage;
     
     protected static string $resource = ProductResource::class;
 

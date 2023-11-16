@@ -9,6 +9,6 @@ use SevendaysDigital\FilamentNestedResources\ResourcePages\NestedPage;
 
 class CreateProduct extends CreateRecord
 {
-    //use NestedPage;
+    use NestedPage;
     protected static string $resource = ProductResource::class;
 }

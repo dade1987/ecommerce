@@ -29,10 +29,6 @@ class Product extends Model
     ];
 
     // come identifico il padre da cui ho chiamato il figlio in una relazione morphTo, usando la relazione?
-    public function category()
-    {
-        return $this->belongsTo(Category::class);
-    }
     //relations
     public function orders(): MorphToMany
     {
@@ -76,6 +72,9 @@ class Product extends Model
         return $this->subproducts()->wherePivot('type', 'variation');
     }
 
+    public function productMorph(){
+        return $this->hasMany(ProductMorph::class,'product_id','id')->where('model_type', Category::class);
+    }
 
 
     //inversa delle varianti

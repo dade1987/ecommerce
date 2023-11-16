@@ -17,6 +17,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Forms\Components\TextInput;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Tables\Columns\BooleanColumn;
+use App\Filament\Resources\ProductMorphResource;
 use App\Filament\Resources\CategoryResource\Pages;
 use Awcodes\Curator\Components\Forms\CuratorPicker;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
@@ -35,8 +36,8 @@ class CategoryResource extends Resource
         return $form
             ->schema([
                 TextInput::make('name'),
-                    //->live()
-                    //->afterStateUpdated(fn (Set $set, ?string $state) => $set('slug', Str::slug($state))),
+                //->live()
+                //->afterStateUpdated(fn (Set $set, ?string $state) => $set('slug', Str::slug($state))),
                 TextInput::make('slug')->required(),
                 Checkbox::make('is_hidden'),
                 CuratorPicker::make('featured_image_id')
@@ -49,11 +50,12 @@ class CategoryResource extends Resource
     {
         return $table
             ->columns([
-                //ChildResourceLink::make(ProductResource::class),
+
                 TextColumn::make('name'),
                 IconColumn::make('is_hidden')->boolean(),
                 CuratorColumn::make('featured_image')
-                    ->size(40)
+                    ->size(40),
+                ChildResourceLink::make(ProductMorphResource::class),
             ])
             ->filters([
                 //

@@ -12,26 +12,27 @@ use Illuminate\Support\Str;
 use Filament\Resources\Resource;
 use Filament\Forms\Components\TextInput;
 use Illuminate\Database\Eloquent\Builder;
+use App\Filament\Resources\ProductMorphResource;
 use App\Filament\Resources\ProductResource\Pages;
 use Awcodes\Curator\Components\Forms\CuratorPicker;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Awcodes\Curator\Components\Tables\CuratorColumn;
 use App\Filament\Resources\ProductResource\RelationManagers;
+use SevendaysDigital\FilamentNestedResources\NestedResource;
 use App\Filament\Resources\ProductResource\RelationManagers\ComponentsRelationManager;
 use App\Filament\Resources\ProductResource\RelationManagers\VariationsRelationManager;
 use App\Filament\Resources\ProductResource\RelationManagers\SubproductsRelationManager;
-use SevendaysDigital\FilamentNestedResources\NestedResource;
 
-class ProductResource extends /*NestedResource*/ Resource
+class ProductResource extends NestedResource
 {
     protected static ?string $model = Product::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
-    /*public static function getParent(): string
+    public static function getParent(): string
     {
-        return CategoryResource::class;
-    }*/
+        return ProductMorphResource::class;
+    }
 
     public static function form(Form $form): Form
     {

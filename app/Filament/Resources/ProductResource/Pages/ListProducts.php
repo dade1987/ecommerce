@@ -9,7 +9,7 @@ use SevendaysDigital\FilamentNestedResources\ResourcePages\NestedPage;
 
 class ListProducts extends ListRecords
 {
-    //use NestedPage;
+    use NestedPage;
     protected static string $resource = ProductResource::class;
 
     protected function getHeaderActions(): array
