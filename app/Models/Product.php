@@ -77,6 +77,10 @@ class Product extends Model
     }
 
 
+    public function categories():MorphToMany{
+        return $this->morphedByMany(Category::class,'model');
+    }
+
     //inversa delle varianti
     public function products(): MorphToMany
     {

@@ -31,7 +31,7 @@ class ProductResource extends NestedResource
 
     public static function getParent(): string
     {
-        return ProductMorphResource::class;
+        return CategoryResource::class;
     }
 
     public static function form(Form $form): Form
