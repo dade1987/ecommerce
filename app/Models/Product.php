@@ -72,13 +72,30 @@ class Product extends Model
         return $this->subproducts()->wherePivot('type', 'variation');
     }
 
-    public function productMorph(){
-        return $this->hasMany(ProductMorph::class,'product_id','id')->where('model_type', Category::class);
+    public function productMorph()
+    {
+        return $this->hasMany(ProductMorph::class, 'product_id', 'id')->where('model_type', Category::class);
     }
 
+    public function categories(): MorphToMany
+    {
+        $pivot_class = ProductMorph::class;
+        $pivot = app($pivot_class);
+        $pivot_table = $pivot->getTable();
+        $pivot_fields = $pivot->getFillable();
 
-    public function categories():MorphToMany{
-        return $this->morphedByMany(Category::class,'model');
+
+        return $this->morphedByMany(Category::class, 'model', $pivot_table)
+            ->using($pivot_class)
+            ->withPivot($pivot_fields)
+            ->withTimestamps();
+    }
+
+    public function scopeOfCategory($query,$parent)
+    {
+        return $query->whereHas('categories', function ($query) use($parent) {
+            $query->where('categories.id', $parent);
+        });
     }
 
     //inversa delle varianti

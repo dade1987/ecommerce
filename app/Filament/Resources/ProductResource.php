@@ -10,6 +10,7 @@ use Filament\Forms\Form;
 use Filament\Tables\Table;
 use Illuminate\Support\Str;
 use Filament\Resources\Resource;
+use Illuminate\Support\Facades\Route;
 use Filament\Forms\Components\TextInput;
 use Illuminate\Database\Eloquent\Builder;
 use App\Filament\Resources\ProductMorphResource;
@@ -30,7 +31,7 @@ class ProductResource extends NestedResource
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
     public static function getParent(): string
-    {
+    {    
         return CategoryResource::class;
     }
 
