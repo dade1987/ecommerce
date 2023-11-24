@@ -22,6 +22,7 @@ class HeroBackgroundImage extends PageBlock
 
     public static function mutateData(array $data): array
     {
+        $data['image_url'] = url('images/'.$data['image_url']);
         return $data;
     }
 }
