@@ -5,23 +5,13 @@ namespace App\Filament\Resources;
 use Filament\Forms;
 use Filament\Tables;
 use App\Models\Product;
-use Filament\Forms\Set;
 use Filament\Forms\Form;
 use Filament\Tables\Table;
-use Illuminate\Support\Str;
-use Filament\Resources\Resource;
-use Illuminate\Support\Facades\Route;
 use Filament\Forms\Components\TextInput;
-use Illuminate\Database\Eloquent\Builder;
-use App\Filament\Resources\ProductMorphResource;
 use App\Filament\Resources\ProductResource\Pages;
 use Awcodes\Curator\Components\Forms\CuratorPicker;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Awcodes\Curator\Components\Tables\CuratorColumn;
-use App\Filament\Resources\ProductResource\RelationManagers;
 use SevendaysDigital\FilamentNestedResources\NestedResource;
-use App\Filament\Resources\ProductResource\RelationManagers\ComponentsRelationManager;
-use App\Filament\Resources\ProductResource\RelationManagers\VariationsRelationManager;
 use App\Filament\Resources\ProductResource\RelationManagers\SubproductsRelationManager;
 
 class ProductResource extends NestedResource
@@ -34,6 +24,8 @@ class ProductResource extends NestedResource
     {    
         return CategoryResource::class;
     }
+
+    
 
     public static function form(Form $form): Form
     {
@@ -68,6 +60,7 @@ class ProductResource extends NestedResource
                     ->sortable(),
                 CuratorColumn::make('featured_image')
                     ->size(40),
+                //ChildResourceLink::make(ProductResource::class),
               
             ])
             ->filters([
