@@ -1,11 +1,13 @@
 <?php
 
-use App\Http\Controllers\CategoryController;
-use App\Http\Controllers\GuttenbergController;
+use App\Filament\Pages\Welcome;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\GuttenbergController;
+use Z3d0X\FilamentFabricator\Resources\PageResource;
 use Z3d0X\FilamentFabricator\Facades\FilamentFabricator;
 
 /*
@@ -44,12 +46,10 @@ Route::middleware('auth')->group(function () {
     });*/
 });
 
-Route::get('/guttenberg', function () {
+/*Route::get('/guttenberg', function () {
     return view('guttenberg');
 });
 
-
-Route::get('/guttenberg-example/{id}', GuttenbergController::class);
+Route::get('/guttenberg-example/{id}', GuttenbergController::class);*/
 
 Route::resource('{container0}/{item0?}/{container1?}/{item1?}/{container2?}/{item2?}', PageController::class);
-

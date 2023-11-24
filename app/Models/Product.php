@@ -21,7 +21,7 @@ class Product extends Model
     use HasTeams;
     use SortableTrait;
 
-    protected $fillable = ['name', 'description', 'price', 'featured_image_id', 'order_column', 'weight'];
+    protected $fillable = ['name', 'description', 'price', 'featured_image_id', 'order_column', 'weight','slug'];
 
     public $sortable = [
         'order_column_name' => 'order_column',
@@ -111,6 +111,13 @@ class Product extends Model
             ->using($pivot_class)
             ->withPivot($pivot_fields)
             ->withTimestamps();
+    }
+
+    public function scopeOfProduct($query,$parent)
+    {
+        return $query->whereHas('products', function ($query) use($parent) {
+            $query->where('product.id', $parent);
+        });
     }
 
     public function featuredImage(): BelongsTo

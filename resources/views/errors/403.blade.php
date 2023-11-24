@@ -24,6 +24,6 @@
 @endauth
 @guest
     <script type="text/javascript">
-        window.location = "{{ route('login') }}";
+        window.location = "{{ route('login',['referrer'=>url()->current()]) }}";
     </script>
 @endguest
