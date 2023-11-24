@@ -1,4 +1,5 @@
 <section class="dark:bg-gray-800 dark:text-gray-100">
+    <a name="{{$anchor}}"></a>
     <div class="container max-w-xl p-6 py-12 mx-auto space-y-24 lg:px-8 lg:max-w-7xl">
         <div>
             <h2 class="text-3xl font-bold tracki text-center sm:text-5xl dark:text-gray-50">{{ $textOne }}</h2>

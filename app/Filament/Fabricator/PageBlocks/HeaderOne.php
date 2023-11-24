@@ -14,6 +14,7 @@ class HeaderOne extends PageBlock
     {
         return Block::make('header-one')
             ->schema([
+                TextInput::make('logo_url'),
                 TextInput::make('text_one'),
                 TextInput::make('link_one'),
                 TextInput::make('text_two'),
@@ -29,6 +30,7 @@ class HeaderOne extends PageBlock
 
     public static function mutateData(array $data): array
     {
+        $data['logo_url'] = url('images/'.$data['logo_url']);
         return $data;
     }
 }

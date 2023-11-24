@@ -12,7 +12,7 @@ class FeatureOne extends PageBlock
     {
         return Block::make('feature-one')
             ->schema([
-
+                TextInput::make('anchor'),
                 TextInput::make('text_one'),
                 TextInput::make('text_two'),
                 TextInput::make('text_three'),
