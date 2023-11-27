@@ -98,6 +98,14 @@ class Product extends Model
         });
     }
 
+    public function category($query,$parent)
+    {
+        return $query->whereHas('categories', function ($query) use($parent) {
+            $query->where('categories.id', $parent);
+        });
+    }
+
+
     //inversa delle varianti
     public function products(): MorphToMany
     {

@@ -1,7 +1,7 @@
 <section>
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
         <div class="flex justify-between h-16">
-            <form wire:submit="sendOrder" class="w-full">
+            <form wire:submit="sendOrder()" class="w-full">
                 {{ $this->selectDateForm }}
                 {{ $this->selectAddressForm }}
                 <br>
