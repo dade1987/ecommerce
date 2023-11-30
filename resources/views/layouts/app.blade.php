@@ -20,7 +20,7 @@
         @filamentStyles
     </head>
     <body class="font-sans antialiased">
-        <div class="h-screen bg-gray-100">
+        <div class="h-full bg-gray-100">
            {{-- @include('layouts.navigation')--}}
 
             <!-- Page Heading -->
