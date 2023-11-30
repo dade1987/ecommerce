@@ -29,7 +29,7 @@
                 <div class="mt-5 mb-5">
 
                     <button {!! $row->action !!}
-                        class="btn mx-auto text-white bg-green-500 border-0 py-2 px-8 focus:outline-none hover:bg-green-600 rounded text-lg">{{ $row->action_text }}</button>
+                        class="btn mx-auto text-white bg-blue-500 border-0 py-2 px-8 focus:outline-none hover:bg-blue-600 rounded text-lg">{{ $row->action_text }}</button>
 
                     @if ($second_button === true)
                         <button {!! $row->second_action !!}

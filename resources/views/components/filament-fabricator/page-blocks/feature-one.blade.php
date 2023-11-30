@@ -1,6 +1,7 @@
 <section class="dark:bg-gray-800 dark:text-gray-100">
-    <a name="{{$anchor}}"></a>
+
     <div class="container max-w-xl p-6 py-12 mx-auto space-y-24 lg:px-8 lg:max-w-7xl">
+        <a name="{{$anchor}}"></a>
         <div>
             <h2 class="text-3xl font-bold tracki text-center sm:text-5xl dark:text-gray-50">{{ $textOne }}</h2>
             <p class="max-w-3xl mx-auto mt-4 text-xl text-center dark:text-gray-400">{{ $textTwo }}</p>
@@ -64,6 +65,8 @@
                 <img src="{{ $linkOne }}" alt="" class="mx-auto rounded-lg shadow-lg dark:bg-gray-500">
             </div>
         </div>
+
+        <a name="{{$anchorTwo}}"></a>
         <div>
             <div class="grid lg:gap-8 lg:grid-cols-2 lg:items-center">
                 <div class="lg:col-start-2">

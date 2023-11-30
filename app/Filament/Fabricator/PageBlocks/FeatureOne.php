@@ -23,6 +23,8 @@ class FeatureOne extends PageBlock
                 TextInput::make('text_eight'),
                 TextInput::make('text_nine'),
                 TextInput::make('text_ten'),
+
+                TextInput::make('anchor_two'),
                 TextInput::make('text_eleven'),
                 TextInput::make('text_twelve'),
                 TextInput::make('text_thirteen'),
