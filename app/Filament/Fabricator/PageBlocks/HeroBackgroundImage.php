@@ -17,6 +17,8 @@ class HeroBackgroundImage extends PageBlock
                 TextInput::make('text_two'),
                 TextInput::make('text_button'),
                 TextInput::make('link_button'),
+                TextInput::make('text_second_button'),
+                TextInput::make('link_second_button'),
             ]);
     }
 
