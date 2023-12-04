@@ -41,6 +41,10 @@ class FeatureOne extends PageBlock
 
     public static function mutateData(array $data): array
     {
+        $data['link_one'] = url('images/'.$data['link_one']);
+
+        $data['link_two'] = url('images/'.$data['link_two']);
+
         return $data;
     }
 }
