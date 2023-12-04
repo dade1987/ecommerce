@@ -13,7 +13,7 @@ class PageController extends Controller
      */
     public function index($container0, ?string $item0 = null, ?string $container1 = null, ?string $item1 = null, ?string $container2 = null, ?string $item2 = null)
     {
-
+        
         $value = $container0;
 
         if (isset($container1)) {
@@ -36,11 +36,10 @@ class PageController extends Controller
         //dd(['pageUrls'=>$pageUrls,'value'=>$value, 'pageId'=>$pageId,'pageModel'=>$pageModel]);
 
         //qui potrei usare le policy tipo 
-
         $page = $pageModel::query()
             ->where('id', $pageId)
             ->firstOrFail();
-
+       
         $view = app(FabricatorPageController::class)($page);
 
         return $view;

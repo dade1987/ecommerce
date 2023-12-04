@@ -61,8 +61,8 @@
                     </div>
                 </div>
             </div>
-            <div aria-hidden="true" class="mt-10 lg:mt-0">
-                <img src="{{ $linkOne }}" alt="" class="mx-auto rounded-lg shadow-lg dark:bg-gray-500">
+            <div aria-hidden="true" class="h-5/6 mt-10 lg:mt-0">
+                <img src="{{ $linkOne }}" alt="" class="h-full mx-auto rounded-lg shadow-lg dark:bg-gray-500">
             </div>
         </div>
 
@@ -123,8 +123,8 @@
                         </div>
                     </div>
                 </div>
-                <div class="mt-10 lg:mt-0 lg:col-start-1 lg:row-start-1">
-                    <img src="{{ $linkTwo }}" alt="" class="mx-auto rounded-lg shadow-lg dark:bg-gray-500">
+                <div class="h-5/6 mt-10 lg:mt-0 lg:col-start-1 lg:row-start-1">
+                    <img src="{{ $linkTwo }}" alt="" class="h-full mx-auto rounded-lg shadow-lg dark:bg-gray-500">
                 </div>
             </div>
         </div>

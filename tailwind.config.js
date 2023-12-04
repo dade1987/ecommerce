@@ -17,6 +17,21 @@ export default {
 
     theme: {
         extend: {
+
+            //per fare le animazioni
+            animation: {
+                fade: 'fadeOut 5s ease-in-out',
+              },
+        
+              // that is actual animation
+              keyframes: theme => ({
+                fadeOut: {
+                      '0%': { opacity: '1' },
+                      '20%': { opacity:'1' },
+                      '100%': { opacity: '0' }
+                },
+            }),
+              
             fontFamily: {
                 sans: ['Figtree', ...defaultTheme.fontFamily.sans],
             },

@@ -3,8 +3,8 @@
     <div class="mb-4 space-x-2  lg:flex lg:flex-nowrap lg:space-x-4 lg:mt-0  justify-center">
         @foreach ($rows as $row)
             <div class="p-4 bg-white rounded-lg">
-                <img src="https://images.unsplash.com/photo-1601760562234-9814eea6663a?ixid=MnwxMjA3fDB8MHxzZWFyY2h8M3x8cmVhbGVzdGF0ZXxlbnwwfHwwfHw%3D&amp;ixlib=rb-1.2.1&amp;auto=format&amp;fit=crop&amp;w=500&amp;q=60"
-                    alt="property" class="">
+                
+                    <x-curator-glider class="w-auto h-64 rounded-lg" :media="$row->featuredImage" />
 
                 <div class="p-6">
                     <div class="flex justify-center items-center">

@@ -7,7 +7,7 @@
         style="
         background-position: 50%;
         background-image: url('{{ $imageUrl }}');
-        height: 90vh;
+        height: 80vh;
       ">
         <div
             class="absolute top-0 right-0 bottom-0 left-0 h-full w-full overflow-hidden bg-[hsla(0,0%,0%,0.5)] bg-fixed">
