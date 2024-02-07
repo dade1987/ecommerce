@@ -65,16 +65,11 @@ class AdminPanelProvider extends PanelProvider
                 CuratorPlugin::make(),
 
                 FilamentFullCalendarPlugin::make()
-                    //->schedulerLicenseKey()
                     ->selectable()
                     ->editable()
-                    //->timezone()
-                    //->locale()
-                    //->plugins()
-                    //->config()
+
 
 
             ]);
-        //->tenant(Team::class, 'slug');
     }
 }

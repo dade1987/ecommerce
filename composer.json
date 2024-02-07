@@ -18,7 +18,7 @@
         "laravel/sanctum": "^3.2",
         "laravel/tinker": "^2.8",
         "rupadana/filament-api-service": "^1.0",
-        "saade/filament-fullcalendar": "^3.0",
+        "saade/filament-fullcalendar": "3.0",
         "sevendays-digital/filament-nested-resources": "*",
         "spatie/eloquent-sortable": "^4.0",
         "van-ons/laraberg": "^2.0",
