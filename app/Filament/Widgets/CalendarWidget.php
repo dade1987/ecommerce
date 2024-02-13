@@ -26,6 +26,7 @@ class CalendarWidget extends FullCalendarWidget
                     ->title($event->name)
                     ->start($event->starts_at)
                     ->end($event->ends_at)
+               
                     /*->url(
                         url: EventResource::getUrl(name: 'view', parameters: ['record' => $event]),
                         shouldOpenUrlInNewTab: true

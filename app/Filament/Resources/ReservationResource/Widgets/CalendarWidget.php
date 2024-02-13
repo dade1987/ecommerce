@@ -28,6 +28,7 @@ class CalendarWidget extends FullCalendarWidget
             ->get()
             ->map(
                 fn (Reservation $event) => [
+                    'id' => $event->id,
                     'title' => $event->name,
                     'start' => $event->date_time,
                     // 'end' => $event->ends_at,
