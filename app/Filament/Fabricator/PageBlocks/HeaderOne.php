@@ -23,6 +23,17 @@ class HeaderOne extends PageBlock
                 TextInput::make('link_three'),
                 TextInput::make('text_four'),
                 TextInput::make('link_four'),
+                TextInput::make('text_five'),
+                TextInput::make('link_five'),
+                TextInput::make('text_six'),
+                TextInput::make('link_six'),
+                TextInput::make('text_seven'),
+                TextInput::make('link_seven'),
+                TextInput::make('text_eight'),
+                TextInput::make('link_eight'),
+                TextInput::make('text_nine'),
+                TextInput::make('link_nine'),
+
                 Checkbox::make('cart_enabled')->default(false),
 
             ]);
@@ -30,7 +41,7 @@ class HeaderOne extends PageBlock
 
     public static function mutateData(array $data): array
     {
-        $data['logo_url'] = url('images/'.$data['logo_url']);
+        $data['logo_url'] = url('images/' . $data['logo_url']);
         return $data;
     }
 }

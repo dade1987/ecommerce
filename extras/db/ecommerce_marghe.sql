@@ -86,6 +86,37 @@ INSERT INTO `categories` (`id`, `created_at`, `updated_at`, `name`, `featured_im
 	(4, '2023-11-27 09:07:59', '2023-11-30 13:49:22', 'GARAGE/ BOX - POSTO AUTO', 13, 'garage', NULL, 0),
 	(5, '2023-11-27 09:09:02', '2023-11-30 13:53:33', 'ATTIVITA\' COMMERCIALI', 15, 'attività commerciali', NULL, 0);
 
+-- Dump della struttura di tabella ecommerce.customers
+CREATE TABLE IF NOT EXISTS `customers` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `email` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `phone` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `address` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Dump dei dati della tabella ecommerce.customers: ~0 rows (circa)
+
+-- Dump della struttura di tabella ecommerce.events
+CREATE TABLE IF NOT EXISTS `events` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  `starts_at` date NOT NULL,
+  `ends_at` date NOT NULL,
+  `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Dump dei dati della tabella ecommerce.events: ~3 rows (circa)
+INSERT INTO `events` (`id`, `created_at`, `updated_at`, `starts_at`, `ends_at`, `name`) VALUES
+	(1, '2024-02-13 12:51:02', '2024-02-13 12:51:02', '2024-02-15', '2024-02-15', ''),
+	(2, '2024-02-13 13:03:31', '2024-02-13 13:03:31', '2024-02-15', '2024-02-15', 'chiamare luisa'),
+	(3, '2024-02-13 13:05:43', '2024-02-13 13:05:43', '2024-02-13', '2024-02-13', 'chiamare luisa');
+
 -- Dump della struttura di tabella ecommerce.failed_jobs
 CREATE TABLE IF NOT EXISTS `failed_jobs` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
@@ -100,6 +131,17 @@ CREATE TABLE IF NOT EXISTS `failed_jobs` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Dump dei dati della tabella ecommerce.failed_jobs: ~0 rows (circa)
+
+-- Dump della struttura di tabella ecommerce.guttenberg_pages
+CREATE TABLE IF NOT EXISTS `guttenberg_pages` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  `content` longtext COLLATE utf8mb4_unicode_ci NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Dump dei dati della tabella ecommerce.guttenberg_pages: ~0 rows (circa)
 
 -- Dump della struttura di tabella ecommerce.media
 CREATE TABLE IF NOT EXISTS `media` (
@@ -125,7 +167,7 @@ CREATE TABLE IF NOT EXISTS `media` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=17 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Dump dei dati della tabella ecommerce.media: ~16 rows (circa)
+-- Dump dei dati della tabella ecommerce.media: ~15 rows (circa)
 INSERT INTO `media` (`id`, `disk`, `directory`, `visibility`, `name`, `path`, `width`, `height`, `size`, `type`, `ext`, `alt`, `title`, `description`, `caption`, `exif`, `curations`, `created_at`, `updated_at`) VALUES
 	(1, 'public', 'media', 'public', '04007a10-25cb-4ee1-8290-2bb7d2065532-1694353717', 'media/04007a10-25cb-4ee1-8290-2bb7d2065532-1694353717.jpg', 1200, 1800, 286992, 'image/jpeg', 'jpg', NULL, 'TMD-Antipasti-WEB-13', NULL, NULL, '{"FileName":"DxGPdiNJW2tA0T0K5S1qDMIg8Q47fr-metaVE1ELUFudGlwYXN0aS1XRUItMTMuanBn-.jpg","FileDateTime":1694353712,"FileSize":286992,"FileType":2,"MimeType":"image\\/jpeg","SectionsFound":"","COMPUTED":{"html":"width=\\"1200\\" height=\\"1800\\"","Height":1800,"Width":1200,"IsColor":1}}', NULL, '2023-09-10 11:48:37', '2023-09-10 11:48:37'),
 	(2, 'public', 'media', 'public', '16448a3e-897b-4912-a539-30359c7668a6-1694535431', 'media/16448a3e-897b-4912-a539-30359c7668a6-1694535431.jpg', 1200, 1800, 580056, 'image/jpeg', 'jpg', NULL, 'Tagliere-22', NULL, NULL, '{"FileName":"xieC7tDtWxW70STq2HjZUulqiDwQ40-metaVGFnbGllcmUtMjIuanBn-.jpg","FileDateTime":1694535424,"FileSize":580056,"FileType":2,"MimeType":"image\\/jpeg","SectionsFound":"","COMPUTED":{"html":"width=\\"1200\\" height=\\"1800\\"","Height":1800,"Width":1200,"IsColor":1}}', NULL, '2023-09-12 14:17:11', '2023-09-12 14:17:11'),
@@ -150,7 +192,7 @@ CREATE TABLE IF NOT EXISTS `migrations` (
   `migration` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
   `batch` int NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=32 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=38 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Dump dei dati della tabella ecommerce.migrations: ~26 rows (circa)
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES
@@ -183,7 +225,13 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES
 	(28, '2023_09_27_093331_add_type_to_product_morph', 7),
 	(29, '2023_09_29_090952_create_tables_table', 7),
 	(30, '2023_10_05_170736_create_reservations_table', 8),
-	(31, '2023_10_05_174215_create_agendas_table', 9);
+	(31, '2023_10_05_174215_create_agendas_table', 9),
+	(32, '2019_02_08_105647_create_blocks_contents_tables', 10),
+	(33, '2021_11_12_153947_remove_blocks_contents_tables', 10),
+	(34, '2023_10_31_141651_create_customers', 10),
+	(35, '2023_11_02_084726_create_guttenberg_pages_table', 10),
+	(36, '2024_02_07_145128_create_events_table', 10),
+	(37, '2024_02_13_135426_add_name_to_events', 11);
 
 -- Dump della struttura di tabella ecommerce.model_has_permissions
 CREATE TABLE IF NOT EXISTS `model_has_permissions` (
@@ -266,7 +314,7 @@ INSERT INTO `pages` (`id`, `title`, `slug`, `layout`, `blocks`, `parent_id`, `cr
 	(4, 'ARRIVEDERCI', 'order-completed', 'simple', '[{"data": [], "type": "breadcrumbs"}, {"data": {"title": "Grazie per averci scelto", "subtitle": "Saremo felici di servirti nuovamente. A presto!", "button_link": "/categories", "button_text": "Ritorna al menù"}, "type": "thank-you"}]', NULL, '2023-09-13 15:43:09', '2023-09-19 14:48:13'),
 	(5, 'OPZIONI CONSEGNA', 'delivery-options', 'simple', '[{"data": [], "type": "breadcrumbs"}, {"data": [], "type": "select-delivery-options"}]', NULL, '2023-09-19 14:52:07', '2023-09-19 14:52:07'),
 	(6, 'AGGIUNTE', 'variations', 'default', '[{"data": [], "type": "breadcrumbs"}, {"data": {"second_button": false}, "type": "model-list"}]', NULL, '2023-09-19 14:54:24', '2023-09-19 14:54:24'),
-	(7, 'HOME', 'home', 'simple', '[{"data": {"link_one": "#", "link_two": "#chi-siamo", "logo_url": "logo.png", "text_one": "HOME", "text_two": "CHI SIAMO", "link_four": "#contact-form", "text_four": "CONTATTI", "link_three": "#servizi", "text_three": "SERVIZI", "cart_enabled": false}, "type": "header-one"}, {"data": {"text_one": "IMMOBILIARE CA\' ROSSA", "text_two": "L\'Arte di Abitare", "image_url": "piazza-ferretto-a-mestre.jpg", "link_button": "/categories", "text_button": "RICERCA LA TUA CASA", "link_second_button": "#contact-form", "text_second_button": "VENDI LA TUA CASA"}, "type": "hero-background-image"}, {"data": {"anchor": "chi-siamo", "link_one": "http://127.0.0.1:8000/images/carossa_orz.jpg", "link_two": "http://127.0.0.1:8000/images/carossa_vert.jpg", "text_one": "CHI SIAMO", "text_six": null, "text_ten": null, "text_two": null, "text_five": "CA\' ROSSA IMMOBILIARE grazie alla pluriennale esperienza del suo team, attento e preparato, crea vero valore aggiunto per i propri clienti nel servizio di intermediazione immobiliare, sempre nel rispetto dei valori di onestà, correttezza, puntualità e professionalità.", "text_four": " E nei tuoi Sogni c’è la tua Casa.", "text_nine": "Il nostro mix di esperienza e innovazione è il nuovo modo di concepire l’intermediazione immobiliare: un servizio dinamico in funzione degli obiettivi del cliente, per dare soluzioni anche alle problematiche più complesse.", "anchor_two": "servizi", "text_eight": null, "text_seven": "La vostra trattativa, quindi, sarà condotta dall’Agenzia come se foste voi stessi a farlo, con la stessa cura, la stessa dedizione e lo stesso senso di responsabilità.", "text_three": "“La casa è il vostro corpo più grande. Vive nel Sole e si addormenta nella quiete della notte ed è piena di sogni” (Kahlil Gibran)  ", "text_eleven": "SERVIZI", "text_twelve": "CA\' ROSSA IMMOBILIARE mette a disposizione del cliente un servizio completo per garantire una vendita o un acquisto senza problemi, fornendo assistenza sia al venditore sia all’acquirente a partire dalla determinazione delle esigenze fino al rogito notarile, con beneficio e soddisfazione di entrambi. CA\' ROSSA IMMOBILIARE si occupa anche di servizi d’affitto/locazione.", "text_fifteen": "SCOPRI I SERVIZI PER VENDERE", "text_sixteen": "Stima del vostro immobile: viene redatta la stima gratuitamente e senza impegno, a valori di mercato. Fotografie Professionali dell’immobile Assistenza nelle visite all’immobile Assistenza catastale (Planimetrie, volture, visure) Acquisizione attestato di prestazione energetica (APE) Consulenza ed assistenza notarile fino al rogito Pubblicità: pubblicità dell’immobile con cartelli esposti nelle vetrine delle nostre sedi, cartelli portone su proprietà, con supporti cartacei (riviste specializzate, inserimento nei pieghevoli collocati negli espositori presso le nostre sedi o distribuiti in diverse zone della città). Ricerca dell’acquirente nella nostra ampia banca dati aggiornata in tempo reale, collaborazione con agenzie collegate al fine di ampliare la possibilità di vendita.", "text_eighteen": "CA\' ROSSA IMMOBILIARE è in grado di affittare al meglio il vostro immobile, garantendovi tranquillità sui futuri inquilini, ed indirizzandovi verso la tipologia di contratto più idonea alle vostre esigenze. Servizio di compilazione, registrazione, pagamento annualità successive, rinnovi e risoluzioni per via telematica, quindi direttamente nei nostri uffici senza bisogno di andare all’Ufficio delle Entrate o in banca per i versamenti.", "text_fourteen": "Acquisto sicuro: per chi vuole acquistare un immobile CA\' ROSSA IMMOBILIARE presenta tutta la documentazione che ne attesti la regolarità (atto di provenienza, documenti catastali, visure ipotecarie, eventuali concessioni edilizie, ecc.). Una volta comprovata la validità dei documenti, si procede alla sottoscrizione del contratto preliminare. Inserimento del nominativo di chi intende ricercare un immobile, nella nostra banca dati. Mutui: CA\' ROSSA IMMOBILIARE offre la propria esperienza per trovare, sulla base delle esigenze del cliente, il mutuo più conveniente in base alle convenzioni stipulate con i principali istituti bancari, ed anche avvalendosi della consulenza di professionisti del settore. Assistenza post-preliminare: consulenza, assistenza e presenza dei nostri funzionari sino a rogito.", "text_thirteen": "SCOPRI I SERVIZI PER ACQUISTARE", "text_seventeen": "SCOPRI I NOSTRI SERVIZI PER LOCARE"}, "type": "feature-one"}, {"data": [], "type": "contact-form"}]', NULL, '2023-09-26 07:35:31', '2023-11-30 14:56:57');
+	(7, 'HOME', 'home', 'simple', '[{"data": {"link_one": "#", "link_two": "#chi-siamo", "logo_url": "logo.png", "text_one": "HOME", "text_two": "CHI SIAMO", "link_four": "#contact-form", "text_four": "CONTATTI", "link_three": "#servizi", "text_three": "SERVIZI", "cart_enabled": false}, "type": "header-one"}, {"data": {"text_one": "IMMOBILIARE CA\' ROSSA", "text_two": "L\'Arte di Abitare", "image_url": "piazza-ferretto-a-mestre.jpg", "link_button": "/categories", "text_button": "RICERCA LA TUA CASA", "link_second_button": "#contact-form", "text_second_button": "VENDI LA TUA CASA"}, "type": "hero-background-image"}, {"data": {"anchor": "chi-siamo", "link_one": "http://127.0.0.1:8000/images/carossa_orz.jpg", "link_two": "http://127.0.0.1:8000/images/carossa_vert.jpg", "text_one": "CHI SIAMO", "text_six": null, "text_ten": null, "text_two": null, "text_five": "CA\' ROSSA IMMOBILIARE grazie alla pluriennale esperienza del suo team, attento e preparato, crea vero valore aggiunto per i propri clienti nel servizio di intermediazione immobiliare, sempre nel rispetto dei valori di onestà, correttezza, puntualità e professionalità.", "text_four": " E nei tuoi Sogni c’è la tua Casa.", "text_nine": "Il nostro mix di esperienza e innovazione è il nuovo modo di concepire l’intermediazione immobiliare: un servizio dinamico in funzione degli obiettivi del cliente, per dare soluzioni anche alle problematiche più complesse.", "anchor_two": "servizi", "text_eight": null, "text_seven": "La vostra trattativa, quindi, sarà condotta dall’Agenzia come se foste voi stessi a farlo, con la stessa cura, la stessa dedizione e lo stesso senso di responsabilità.", "text_three": "“La casa è il vostro corpo più grande. Vive nel Sole e si addormenta nella quiete della notte ed è piena di sogni” (Kahlil Gibran)  ", "text_eleven": "SERVIZI", "text_twelve": "CA\' ROSSA IMMOBILIARE mette a disposizione del cliente un servizio completo per garantire una vendita o un acquisto senza problemi, fornendo assistenza sia al venditore sia all’acquirente a partire dalla determinazione delle esigenze fino al rogito notarile, con beneficio e soddisfazione di entrambi. CA\' ROSSA IMMOBILIARE si occupa anche di servizi d’affitto/locazione.", "text_fifteen": "SCOPRI I SERVIZI PER VENDERE", "text_sixteen": "Stima del vostro immobile: viene redatta la stima gratuitamente e senza impegno, a valori di mercato. Fotografie Professionali dell’immobile Assistenza nelle visite all’immobile Assistenza catastale (Planimetrie, volture, visure) Acquisizione attestato di prestazione energetica (APE) Consulenza ed assistenza notarile fino al rogito Pubblicità: pubblicità dell’immobile con cartelli esposti nelle vetrine delle nostre sedi, cartelli portone su proprietà, con supporti cartacei (riviste specializzate, inserimento nei pieghevoli collocati negli espositori presso le nostre sedi o distribuiti in diverse zone della città). Ricerca dell’acquirente nella nostra ampia banca dati aggiornata in tempo reale, collaborazione con agenzie collegate al fine di ampliare la possibilità di vendita.", "text_eighteen": "CA\' ROSSA IMMOBILIARE è in grado di affittare al meglio il vostro immobile, garantendovi tranquillità sui futuri inquilini, ed indirizzandovi verso la tipologia di contratto più idonea alle vostre esigenze. Servizio di compilazione, registrazione, pagamento annualità successive, rinnovi e risoluzioni per via telematica, quindi direttamente nei nostri uffici senza bisogno di andare all’Ufficio delle Entrate o in banca per i versamenti.", "text_fourteen": "Acquisto sicuro: per chi vuole acquistare un immobile CA\' ROSSA IMMOBILIARE presenta tutta la documentazione che ne attesti la regolarità (atto di provenienza, documenti catastali, visure ipotecarie, eventuali concessioni edilizie, ecc.). Una volta comprovata la validità dei documenti, si procede alla sottoscrizione del contratto preliminare. Inserimento del nominativo di chi intende ricercare un immobile, nella nostra banca dati. Mutui: CA\' ROSSA IMMOBILIARE offre la propria esperienza per trovare, sulla base delle esigenze del cliente, il mutuo più conveniente in base alle convenzioni stipulate con i principali istituti bancari, ed anche avvalendosi della consulenza di professionisti del settore. Assistenza post-preliminare: consulenza, assistenza e presenza dei nostri funzionari sino a rogito.", "text_thirteen": "SCOPRI I SERVIZI PER ACQUISTARE", "text_seventeen": "SCOPRI I NOSTRI SERVIZI PER LOCARE"}, "type": "feature-one"}, {"data": [], "type": "contact-form"}, {"data": [], "type": "calendar"}]', NULL, '2023-09-26 07:35:31', '2024-02-07 14:47:51');
 
 -- Dump della struttura di tabella ecommerce.password_reset_tokens
 CREATE TABLE IF NOT EXISTS `password_reset_tokens` (
@@ -394,7 +442,7 @@ CREATE TABLE IF NOT EXISTS `products` (
   KEY `products_user_id_index` (`user_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Dump dei dati della tabella ecommerce.products: ~4 rows (circa)
+-- Dump dei dati della tabella ecommerce.products: ~3 rows (circa)
 INSERT INTO `products` (`id`, `created_at`, `updated_at`, `name`, `description`, `price`, `user_id`, `featured_image_id`, `slug`, `order_column`, `weight`) VALUES
 	(2, '2023-11-27 09:31:41', '2023-11-30 08:27:35', 'Appartamento corso del Popolo', 'MESTRE VICINANZE PIAZZA BARCHE\n\nMestre, pezzo unico, stupendo, quinto e ultimo piano panoramico a 270°, vicinanze piazza barche, (7 minuti a piedi) signorile appartamento su recente costruzione, qualita\' di finiture interne da intenditori, composto da salone diviso dal salotto, (mq. 70) cucina abitabile, tre camere, due bagni padronali, tre terrazze capienti per poter ospitare tavoli per pranzi e cene in compagnia, garage e posto auto esclusivo. Da vedere! rif. E 19 per info giovanni.', 599.00, NULL, 5, 'appartamento-corso-popolo', NULL, 0.00),
 	(3, '2023-11-30 14:04:41', '2023-11-30 14:08:46', 'Appartamento Piazza Ferreto', NULL, 200.00, NULL, NULL, '', NULL, 0.00),
@@ -418,7 +466,7 @@ CREATE TABLE IF NOT EXISTS `product_morph` (
   KEY `product_morph_user_id_index` (`user_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Dump dei dati della tabella ecommerce.product_morph: ~5 rows (circa)
+-- Dump dei dati della tabella ecommerce.product_morph: ~4 rows (circa)
 INSERT INTO `product_morph` (`id`, `created_at`, `updated_at`, `model_type`, `model_id`, `product_id`, `user_id`, `option`, `type`) VALUES
 	(1, '2023-09-12 14:17:34', '2023-09-12 14:17:34', 'App\\Models\\Category', 1, 1, NULL, NULL, NULL),
 	(2, '2023-11-27 09:31:41', '2023-11-27 09:31:41', 'App\\Models\\Category', 1, 2, NULL, NULL, NULL),
