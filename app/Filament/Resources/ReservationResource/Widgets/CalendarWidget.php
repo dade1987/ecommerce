@@ -24,11 +24,9 @@ class CalendarWidget extends FullCalendarWidget
                     function (Form $form, array $arguments) {
 
                         $form->fill([
-                            'date_time' => $arguments['start'] ?? null,
-                            //'ends_at' => $arguments['end'] ?? null
+                            'starts_at' => $arguments['start'] ?? null,
+                            'ends_at' => $arguments['end'] ?? null
                         ]);
-
-                        //dd($form);
                     }
                 )
         ];
@@ -39,24 +37,20 @@ class CalendarWidget extends FullCalendarWidget
      */
     public function fetchEvents(array $fetchInfo): array
     {
-        /*dd([$fetchInfo,Reservation::query()
-            ->where('date_time', '>=', $fetchInfo['start'])
-            ->where('date_time', '<=', $fetchInfo['end'])->toSql()]);*/
-
         // You can use $fetchInfo to filter events by date.
         // This method should return an array of event-like objects. See: https://github.com/saade/filament-fullcalendar/blob/3.x/#returning-events
         // You can also return an array of EventData objects. See: https://github.com/saade/filament-fullcalendar/blob/3.x/#the-eventdata-class
         return Reservation::query()
-            ->where('date_time', '>=', $fetchInfo['start'])
-            ->where('date_time', '<=', $fetchInfo['end'])
+            ->where('starts_at', '>=', $fetchInfo['start'])
+            ->where('ends_at', '<=', $fetchInfo['end'])
 
             ->get()
             ->map(
                 fn (Reservation $event) => [
                     'id' => $event->id,
                     'title' => $event->name,
-                    'start' => $event->date_time,
-                    'end' => Carbon::parse($event->date_time)->addMinutes(30)->toDateTimeString(),
+                    'start' => $event->starts_at,
+                    'end' => $event->ends_at,
                     'backgroundColor' => 'red',
                     'borderColor' => 'red',
                     'allDay' => false
@@ -71,7 +65,8 @@ class CalendarWidget extends FullCalendarWidget
 
             // Forms\Components\Grid::make()
             //->schema([
-            DateTimePicker::make('date_time')->readOnly(),
+            DateTimePicker::make('starts_at')->readOnly(),
+            DateTimePicker::make('ends_at')->readOnly(),
 
             // Forms\Components\DateTimePicker::make('ends_at'),
             // ]),

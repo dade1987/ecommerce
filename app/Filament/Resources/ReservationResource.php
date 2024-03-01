@@ -31,7 +31,9 @@ class ReservationResource extends Resource
                     ->required()
                     ->numeric()
                     ->default(1),
-                Forms\Components\DateTimePicker::make('date_time')
+                Forms\Components\DateTimePicker::make('starts_at')
+                    ->required(),
+                Forms\Components\DateTimePicker::make('ends_at')
                     ->required(),
                 Forms\Components\TextInput::make('telephone_number')
                     ->tel()
@@ -61,9 +63,11 @@ class ReservationResource extends Resource
                 Tables\Columns\TextColumn::make('people_number')
                     ->numeric()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('date_time')
+                Tables\Columns\TextColumn::make('starts_at')
                     ->dateTime()
                     ->sortable(),
+                Tables\Columns\TextColumn::make('ends_at')
+                    ->dateTime(),
                 Tables\Columns\TextColumn::make('telephone_number')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('allergens')
@@ -109,5 +113,4 @@ class ReservationResource extends Resource
             CalendarWidget::class
         ];
     }
-    
 }

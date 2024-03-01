@@ -85,7 +85,12 @@ class AdminPanelProvider extends PanelProvider
                                 'minute' => '2-digit',
                                 'omitZeroMinute' => false,
                                 'meridiem' => 'short'
-                            ]
+                            ],
+                            // nascondo Sabato e Domenica
+                            'hiddenDays' => [0, 6],
+                            // rimuovi la prenotazione del giorno intero
+                            'allDaySlot' => false
+
                         ])
 
                 ]);
