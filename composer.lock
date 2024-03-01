@@ -5534,11 +5534,11 @@
         },
         {
             "name": "sevendays-digital/filament-nested-resources",
-            "version": "dev-9eefe04cd069dded3f5080d2b110b626891670b8",
+            "version": "dev-master",
             "dist": {
                 "type": "path",
                 "url": "./packages/sevendays-digital/filament-nested-resources",
-                "reference": "aa9db65393a3c66c49407e2ef4b37c1edc67c4b6"
+                "reference": "9332b884aa6cfb83ee0c338ae66a9e63f4e7dafa"
             },
             "require": {
                 "filament/filament": "^3.0",

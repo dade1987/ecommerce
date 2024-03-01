@@ -8,6 +8,7 @@ use App\Models\Reservation;
 use Illuminate\Database\Eloquent\Model;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\DateTimePicker;
+use Saade\FilamentFullCalendar\Data\EventData;
 use Saade\FilamentFullCalendar\Actions\CreateAction;
 use Saade\FilamentFullCalendar\Widgets\FullCalendarWidget;
 
@@ -46,23 +47,29 @@ class CalendarWidget extends FullCalendarWidget
         // You can use $fetchInfo to filter events by date.
         // This method should return an array of event-like objects. See: https://github.com/saade/filament-fullcalendar/blob/3.x/#returning-events
         // You can also return an array of EventData objects. See: https://github.com/saade/filament-fullcalendar/blob/3.x/#the-eventdata-class
-        return Reservation::query()
+        $response = Reservation::query()
             ->where('date_time', '>=', $fetchInfo['start'])
             ->where('date_time', '<=', $fetchInfo['end'])
 
             ->get()
             ->map(
-                fn (Reservation $event) => [
-                    'id' => $event->id,
-                    'title' => $event->name,
-                    'start' => $event->date_time,
-                    'end' => Carbon::parse($event->date_time)->addMinutes(30)->toDateTimeString(),
-                    'backgroundColor' => 'red',
-                    'borderColor' => 'red',
-                    'allDay' => false
-                ]
+                fn(Reservation $event) =>
+
+                EventData::make()
+                    ->id($event->id)
+                    ->title($event->name)
+                    ->start($event->date_time)
+                    //la data è in Carbon
+                    ->end(Carbon::parse($event->date_time)->addMinutes(30)->toDateTimeString())
+                    //->url('#', true)
+                    ->backgroundColor('red')
+                    
             )
             ->all();
+
+        dd($response);
+
+        return $response;
     }
     public function getFormSchema(): array
     {

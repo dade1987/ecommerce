@@ -60,16 +60,34 @@ class AdminPanelProvider extends PanelProvider
             ->authMiddleware([
                 Authenticate::class,
             ])->plugins([
-                FilamentFabricatorPlugin::make(),
-                FilamentShieldPlugin::make(),
-                CuratorPlugin::make(),
+                    FilamentFabricatorPlugin::make(),
+                    FilamentShieldPlugin::make(),
+                    CuratorPlugin::make(),
 
-                FilamentFullCalendarPlugin::make()
-                    ->selectable()
-                    ->editable()
+                    FilamentFullCalendarPlugin::make()
+                        ->selectable(true)
+                        ->editable(true)
+                        ->config([
+                            'initialView' => 'dayGridMonth',
+                            'headerToolbar' => [
+                                'left' => 'prev,next',
+                                'center' => 'title',
+                                'right' => 'dayGridMonth,timeGridWeek,timeGridDay',
+                            ],
+                            'selectHelper' => true,
+                            'slotDuration' => '00:30:00',
+                            'snapDuration' => '00:30:00',
+                            'slotMinTime' => '08:00:00',
+                            'slotMaxTime' => '20:00:00',
+                            'slotLabelInterval' => '00:30:00',
+                            'slotLabelFormat' => [
+                                'hour' => '2-digit',
+                                'minute' => '2-digit',
+                                'omitZeroMinute' => false,
+                                'meridiem' => 'short'
+                            ]
+                        ])
 
-
-
-            ]);
+                ]);
     }
 }
