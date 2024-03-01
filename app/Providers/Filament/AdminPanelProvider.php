@@ -7,6 +7,7 @@ use Filament\Panel;
 use App\Models\Team;
 use Filament\Widgets;
 use Filament\PanelProvider;
+use Filament\Facades\Filament;
 use Awcodes\Curator\CuratorPlugin;
 use Filament\Support\Colors\Color;
 use Filament\Http\Middleware\Authenticate;
@@ -27,7 +28,6 @@ class AdminPanelProvider extends PanelProvider
 {
     public function panel(Panel $panel): Panel
     {
-
         return $panel
             ->default()
             ->id('admin')
@@ -59,7 +59,9 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
-            ])->plugins([
+            ])->plugins(
+
+                [
                     FilamentFabricatorPlugin::make(),
                     FilamentShieldPlugin::make(),
                     CuratorPlugin::make(),
@@ -93,6 +95,8 @@ class AdminPanelProvider extends PanelProvider
 
                         ])
 
-                ]);
+                ]
+
+            );
     }
 }
