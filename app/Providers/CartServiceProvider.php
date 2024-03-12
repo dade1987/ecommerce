@@ -33,6 +33,7 @@ class CartServiceProvider extends ServiceProvider
             $hash = $app['config']->get('cart')['hasher'];
             return (new HashFactory())->make($hash);
         });
+        
         $this->app->alias('cart.hashfactory', HashFactory::class);
 
         $this->app->singleton('cart', function ($app) {
