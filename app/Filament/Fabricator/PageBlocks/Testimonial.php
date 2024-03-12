@@ -4,6 +4,7 @@ namespace App\Filament\Fabricator\PageBlocks;
 
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Builder\Block;
+use Filament\Forms\Components\Repeater;
 use Z3d0X\FilamentFabricator\PageBlocks\PageBlock;
 
 class Testimonial extends PageBlock
@@ -12,10 +13,15 @@ class Testimonial extends PageBlock
     {
         return Block::make('testimonial')
             ->schema([
-                TextInput::make('logo'),
-                TextInput::make('title'),
-                TextInput::make('subtitle'),
-                TextInput::make('text'),
+                Repeater::make('testimonials')
+                    ->schema([
+                        TextInput::make('logo'),
+                        TextInput::make('title'),
+                        TextInput::make('subtitle'),
+                        TextInput::make('text'),
+                    ])
+
+
             ]);
     }
 
