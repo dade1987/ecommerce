@@ -18,7 +18,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('nome_tabella', function (Blueprint $table) {
+        Schema::table('products', function (Blueprint $table) {
             $table->dropColumn('emission_factor');
         });
     }
