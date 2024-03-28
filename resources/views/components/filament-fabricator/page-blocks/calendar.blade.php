@@ -7,7 +7,9 @@
             <div>
                 <h2 class="text-3xl font-extrabold">Effettua una Prenotazione</h2>
                 <p class="text-sm text-gray-400 mt-3">Clicchi sopra ad un orario per effettuare una prenotazione</p>
+                
                 @livewire(App\Filament\Resources\ReservationResource\Widgets\CalendarWidget::class)
+          
             </div>
             
            
