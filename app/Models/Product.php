@@ -21,7 +21,7 @@ class Product extends Model
     use HasTeams;
     use SortableTrait;
 
-    protected $fillable = ['name', 'description', 'price', 'featured_image_id', 'order_column', 'weight','slug'];
+    protected $fillable = ['name', 'description', 'price', 'featured_image_id', 'order_column', 'weight','slug','emission_factor'];
 
     public $sortable = [
         'order_column_name' => 'order_column',
