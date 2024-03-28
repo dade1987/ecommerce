@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Models\Address;
 use App\Models\User;
 use Livewire\Component;
 use Filament\Forms\Form;
@@ -65,7 +66,7 @@ class SelectDeliveryOptions extends Component implements HasForms, HasActions
                 Select::make('address_id')
                     ->label('Indirizzo')
                     ->relationship(name: 'addresses'/*, titleAttribute: 'street'*/)
-                    ->getOptionLabelFromRecordUsing(fn (Model $record) => $record->full_address)
+                    ->getOptionLabelFromRecordUsing(fn (Address $record) => $record->full_address)
             ])
             ->statePath('addressData')
             ->model($this->user);
