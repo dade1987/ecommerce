@@ -1,0 +1,47 @@
+includes:
+    - ./phpstan-baseline.neon
+    - ./vendor/larastan/larastan/extension.neon
+    - ./vendor/thecodingmachine/phpstan-safe-rule/phpstan-safe-rule.neon
+
+parameters:
+
+    level: 1
+
+    parallel:
+        maximumNumberOfProcesses: 32
+        jobSize: 20
+        minimumNumberOfJobsPerProcess: 2
+
+    paths:
+        - ./app
+
+    ignoreErrors:
+        - '#Unsafe usage of new static#'
+        - '#PHPDoc tag @mixin contains unknown class #'
+        - '#Static call to instance method Nwidart#'
+        - '#Unable to resolve the template type TSubject in call to method static method#'
+
+    excludePaths:
+        - ./*/vendor/*
+        - ./*/Tests/*
+        - ./*/build/*
+        - ./*/docs/*
+        - ./*/docs_old/*
+        - ./*/Main_files/*
+
+    bootstrapFiles:
+        - ./phpstan_constants.php
+
+    scanFiles:
+
+    editorUrl: 'vscode://file/%%file%%:%%line%%'
+
+    tmpDir: ./build/phpstan
+
+    checkUnusedViews: false
+    checkModelProperties: false
+    checkMissingIterableValueType: false
+    checkGenericClassInNonGenericObjectType: false
+    treatPhpDocTypesAsCertain: false
+    reportUnmatchedIgnoredErrors: false
+    checkOctaneCompatibility: false

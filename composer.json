@@ -21,6 +21,7 @@
         "saade/filament-fullcalendar": "3.0",
         "sevendays-digital/filament-nested-resources": "*",
         "spatie/eloquent-sortable": "^4.0",
+        "thecodingmachine/safe": "^2.5",
         "van-ons/laraberg": "^2.0",
         "z3d0x/filament-fabricator": "^2.0"
     },
@@ -29,17 +30,19 @@
         "doctrine/dbal": "^3.6",
         "fakerphp/faker": "^1.9.1",
         "friendsofphp/php-cs-fixer": "^3.52",
+        "larastan/larastan": "^2.9",
         "laravel/breeze": "^1.23",
         "laravel/pint": "^1.0",
         "laravel/sail": "^1.18",
         "mockery/mockery": "^1.4.4",
         "nunomaduro/collision": "^7.0",
-        "nunomaduro/larastan": "^2.0",
         "pestphp/pest": "^2.0",
         "pestphp/pest-plugin-laravel": "^2.0",
+        "php-parallel-lint/php-code-style": "^2.0",
         "phpro/grumphp": "^1.16",
-        "phpstan/phpstan": "^1.10",
+        "psalm/plugin-laravel": "^2.11",
         "spatie/laravel-ignition": "^2.0",
+        "thecodingmachine/phpstan-safe-rule": "^1.2",
         "vimeo/psalm": "^5.23"
     },
     "autoload": {
@@ -82,7 +85,8 @@
         "allow-plugins": {
             "pestphp/pest-plugin": true,
             "php-http/discovery": true,
-            "phpro/grumphp": true
+            "phpro/grumphp": true,
+            "dealerdirect/phpcodesniffer-composer-installer": true
         }
     },
     "repositories": [

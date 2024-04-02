@@ -1,11 +1,22 @@
 grumphp:
+    stop_on_failure: true
     tasks:
+        phplint:
+            exclude: []
+            jobs: ~
+            short_open_tag: false
+            ignore_patterns: []
+            triggered_by: ['php', 'phtml', 'php3', 'php4', 'php5']
+        composer:
+            file: ./composer.json
         phpstan:
             autoload_file: ~
-            configuration: ~
+            configuration: ./phpstan.neon.dist
             level: 1
             force_patterns: []
             ignore_patterns: []
             triggered_by: ['php']
             memory_limit: "-1"
-            use_grumphp_paths: true
+            use_grumphp_paths: false
+        phpcsfixer:
+            config: .php-cs-fixer.php
