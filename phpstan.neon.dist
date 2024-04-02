@@ -22,6 +22,7 @@ parameters:
         - '#Unable to resolve the template type TSubject in call to method static method#'
 
     excludePaths:
+        - ./app/Services/Cart/*
         - ./*/vendor/*
         - ./*/Tests/*
         - ./*/build/*

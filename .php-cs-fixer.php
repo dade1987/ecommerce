@@ -146,12 +146,12 @@ $rules = [
 
 $finder = Finder::create()
     ->in([
-        _DIR_ . '/app',
-        _DIR_ . '/config',
-        _DIR_ . '/database',
-        _DIR_ . '/resources',
-        _DIR_ . '/routes',
-        _DIR_ . '/tests',
+        __DIR__ . '/app',
+        __DIR__ . '/config',
+        __DIR__ . '/database',
+        __DIR__ . '/resources',
+        __DIR__ . '/routes',
+        __DIR__ . '/tests',
     ])
     ->name('*.php')
     ->notName('*.blade.php')

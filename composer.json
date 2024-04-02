@@ -39,6 +39,7 @@
         "pestphp/pest": "^2.0",
         "pestphp/pest-plugin-laravel": "^2.0",
         "php-parallel-lint/php-code-style": "^2.0",
+        "php-parallel-lint/php-parallel-lint": "^1.4",
         "phpro/grumphp": "^1.16",
         "psalm/plugin-laravel": "^2.11",
         "spatie/laravel-ignition": "^2.0",
