@@ -10,4 +10,3 @@ class Allergen extends Model
     use HasFactory;
     protected $fillable = ['name'];
 }
-
