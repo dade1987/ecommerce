@@ -2,8 +2,8 @@
 
 namespace Database\Factories;
 
-use App\Models\User;
 use App\Models\Restaurant;
+use App\Models\User;
 use Digikraaft\ReviewRating\Models\Review;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -27,7 +27,7 @@ class ReviewFactory extends Factory
             'author_id' => User::factory()->create()->id,
             'model_type' => Restaurant::class,
             'model_id' => Restaurant::factory()->create()->id,
-            
+
         ];
     }
 }
