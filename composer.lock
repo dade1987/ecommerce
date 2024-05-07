@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "f04ce8d198ecda51452a7205db0c4303",
+    "content-hash": "a9a76c114777ee44dbfbdd7cfe765fd6",
     "packages": [
         {
             "name": "anourvalar/eloquent-serialize",
@@ -11591,6 +11591,68 @@
                 "source": "https://github.com/laravel/sail"
             },
             "time": "2024-03-20T20:09:31+00:00"
+        },
+        {
+            "name": "laraxot/laravel-auto-dev",
+            "version": "dev-master",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/laraxot/laravel-auto-dev.git",
+                "reference": "dafca670df04d9705373a4cdf5da2664cdc67c87"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/laraxot/laravel-auto-dev/zipball/dafca670df04d9705373a4cdf5da2664cdc67c87",
+                "reference": "dafca670df04d9705373a4cdf5da2664cdc67c87",
+                "shasum": ""
+            },
+            "require": {
+                "guzzlehttp/guzzle": "^7.0",
+                "php": "^8.0"
+            },
+            "require-dev": {
+                "orchestra/testbench": "^6.23|^7.0|^8.0|^9.0",
+                "phpunit/phpunit": "^9.4|^10.1"
+            },
+            "default-branch": true,
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Laraxot\\LaravelAutoDev\\LaravelAutoDevServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Laraxot\\LaravelAutoDev\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "GPL-3.0-or-later"
+            ],
+            "authors": [
+                {
+                    "name": "Davide Cavallini",
+                    "email": "davidecavallini1987@gmail.com",
+                    "homepage": "https://www.linkedin.com/in/davidecavallini/",
+                    "role": "Developer"
+                }
+            ],
+            "description": "Automate Laravel development with AI-driven code generation and PHPDoc support",
+            "keywords": [
+                "automation-tools",
+                "code-generation",
+                "developer-tools",
+                "laravel",
+                "rivet"
+            ],
+            "support": {
+                "issues": "https://github.com/laraxot/laravel-auto-dev/issues",
+                "source": "https://github.com/laraxot/laravel-auto-dev/tree/master"
+            },
+            "time": "2024-05-07T13:53:54+00:00"
         },
         {
             "name": "maximebf/debugbar",
