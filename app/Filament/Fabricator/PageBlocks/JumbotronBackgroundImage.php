@@ -6,21 +6,23 @@ use Filament\Forms\Components\Builder\Block;
 use Filament\Forms\Components\TextInput;
 use Z3d0X\FilamentFabricator\PageBlocks\PageBlock;
 
-class HeroVisualImageWithHeading extends PageBlock
+class JumbotronBackgroundImage extends PageBlock
 {
     public static function getBlockSchema(): Block
     {
-        return Block::make('hero-visual-image-with-heading')
+        return Block::make('jumbotron-background-image')
             ->schema([
+                TextInput::make('background_image_url'),
+                TextInput::make('title'),
                 TextInput::make('text'),
-                TextInput::make('button'),
-                TextInput::make('link'),
+                TextInput::make('buttonText'),
+                TextInput::make('buttonLink'),
             ]);
     }
 
     public static function mutateData(array $data): array
     {
-        $data['link'] = url($data['link']);
+        $data['background_image_url'] = url('images/'.$data['background_image_url']);
 
         return $data;
     }

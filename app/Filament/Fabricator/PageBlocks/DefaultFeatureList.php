@@ -6,22 +6,26 @@ use Filament\Forms\Components\Builder\Block;
 use Filament\Forms\Components\TextInput;
 use Z3d0X\FilamentFabricator\PageBlocks\PageBlock;
 
-class HeroVisualImageWithHeading extends PageBlock
+class DefaultFeatureList extends PageBlock
 {
     public static function getBlockSchema(): Block
     {
-        return Block::make('hero-visual-image-with-heading')
+        return Block::make('default-feature-list')
             ->schema([
+                TextInput::make('title'),
                 TextInput::make('text'),
-                TextInput::make('button'),
-                TextInput::make('link'),
+
+                TextInput::make('titleOne'),
+                TextInput::make('textOne'),
+                TextInput::make('titleTwo'),
+                TextInput::make('textTwo'),
+                TextInput::make('titleThree'),
+                TextInput::make('textThree'),
             ]);
     }
 
     public static function mutateData(array $data): array
     {
-        $data['link'] = url($data['link']);
-
         return $data;
     }
 }
