@@ -1,4 +1,4 @@
-<header class="p-4 dark:bg-gray-800 dark:text-gray-100">
+<header class="p-4 bg-blue-400 dark:bg-gray-800 dark:text-gray-100">
     <div class="container flex justify-between h-16 mx-auto">
         <a rel="noopener noreferrer" href="#" aria-label="Back to homepage" class="flex items-center p-2">
             {{-- <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 32 32"
