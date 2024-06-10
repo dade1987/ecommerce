@@ -3,16 +3,15 @@
 namespace App\Filament\Fabricator\PageBlocks;
 
 use Filament\Forms\Components\Builder\Block;
-use Filament\Forms\Components\TextInput;
 use Z3d0X\FilamentFabricator\PageBlocks\PageBlock;
 
-class Calendar extends PageBlock
+class Quoter extends PageBlock
 {
     public static function getBlockSchema(): Block
     {
-        return Block::make('calendar')
+        return Block::make('quoter')
             ->schema([
-                TextInput::make('title'),
+                //
             ]);
     }
 
