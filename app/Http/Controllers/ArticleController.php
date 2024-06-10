@@ -11,7 +11,7 @@ class ArticleController extends Controller
 {
     public function index()
     {
-        $articles = Article::with('category', 'translations')->get();
+        $articles = Article::with('tags', 'translations')->get();
 
         return view('articles.index', compact('articles'));
     }
@@ -36,7 +36,7 @@ class ArticleController extends Controller
 
     public function show($id)
     {
-        $article = Article::with('category', 'translations')->find($id);
+        $article = Article::with('tags', 'translations')->find($id);
 
         return view('articles.show', compact('article'));
     }
