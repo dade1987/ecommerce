@@ -8,7 +8,7 @@
         </div>
         <div class="flex flex-wrap gap-8 mb-6 lg:mb-16 justify-center">
             @foreach ($persons as $person)
-                <div class="w-full md:w-1/4 flex items-center bg-gray-50 rounded-lg shadow sm:flex dark:bg-gray-800 dark:border-gray-700">
+                <div class="w-full md:w-1/3 flex items-center bg-gray-50 rounded-lg shadow sm:flex dark:bg-gray-800 dark:border-gray-700">
                     <a href="#">
                         <img class="w-full rounded-lg sm:rounded-none sm:rounded-l-lg" src="{{ $person['image'] }}" alt="{{ $person['name'] }}">
                     </a>
