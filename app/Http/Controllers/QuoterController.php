@@ -14,7 +14,7 @@ class QuoterController extends Controller
 
     public function __construct()
     {
-        $apiKey = env('OPENAI_API_KEY_GIULIANO');
+        $apiKey = config('openapi.key');
         $this->client = OpenAI::client($apiKey);
     }
 
