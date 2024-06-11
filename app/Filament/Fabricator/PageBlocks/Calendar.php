@@ -3,6 +3,7 @@
 namespace App\Filament\Fabricator\PageBlocks;
 
 use Filament\Forms\Components\Builder\Block;
+use Filament\Forms\Components\TextInput;
 use Z3d0X\FilamentFabricator\PageBlocks\PageBlock;
 
 class Calendar extends PageBlock
@@ -11,7 +12,7 @@ class Calendar extends PageBlock
     {
         return Block::make('calendar')
             ->schema([
-                //
+                TextInput::make('title'),
             ]);
     }
 

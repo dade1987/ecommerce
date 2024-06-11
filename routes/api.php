@@ -1,8 +1,8 @@
 <?php
 
+use App\Http\Controllers\QuoterController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\ApiController;
 
 /*
 |--------------------------------------------------------------------------
@@ -15,10 +15,14 @@ use App\Http\Controllers\Api\ApiController;
 |
 */
 
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {    return $request->user();
+Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
+    return $request->user();
 });
 
 //TO-DO: finire per separare frontend da backend
 //Route::apiResource('{container0}/{item0?}/{container1?}/{item1?}/{container2?}/{item2?}/', ApiController::class);
 
 //usare https://filamentphp.com/plugins/rupadana-api-service
+
+Route::post('/send-message', [QuoterController::class, 'sendMessage']);
+Route::post('/create-thread', [QuoterController::class, 'createThread']);

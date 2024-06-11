@@ -2,27 +2,27 @@
 
 namespace App\Providers\Filament;
 
-use Filament\Pages;
-use Filament\Panel;
 use App\Models\Team;
-use Filament\Widgets;
-use Filament\PanelProvider;
-use Filament\Facades\Filament;
 use Awcodes\Curator\CuratorPlugin;
-use Filament\Support\Colors\Color;
-use Filament\Http\Middleware\Authenticate;
-use Illuminate\Session\Middleware\StartSession;
-use Illuminate\Cookie\Middleware\EncryptCookies;
 use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
-use Illuminate\Routing\Middleware\SubstituteBindings;
-use Illuminate\Session\Middleware\AuthenticateSession;
-use Illuminate\View\Middleware\ShareErrorsFromSession;
-use Z3d0X\FilamentFabricator\FilamentFabricatorPlugin;
+use Filament\Facades\Filament;
+use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
-use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
-use Saade\FilamentFullCalendar\FilamentFullCalendarPlugin;
+use Filament\Pages;
+use Filament\Panel;
+use Filament\PanelProvider;
+use Filament\Support\Colors\Color;
+use Filament\Widgets;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
+use Illuminate\Cookie\Middleware\EncryptCookies;
+use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
+use Illuminate\Routing\Middleware\SubstituteBindings;
+use Illuminate\Session\Middleware\AuthenticateSession;
+use Illuminate\Session\Middleware\StartSession;
+use Illuminate\View\Middleware\ShareErrorsFromSession;
+use Saade\FilamentFullCalendar\FilamentFullCalendarPlugin;
+use Z3d0X\FilamentFabricator\FilamentFabricatorPlugin;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -70,30 +70,39 @@ class AdminPanelProvider extends PanelProvider
                         ->selectable(true)
                         ->editable(true)
                         ->config([
-                            'initialView' => 'dayGridMonth',
+                            'initialView' => 'timeGridWeek',
                             'headerToolbar' => [
                                 'left' => 'prev,next',
                                 'center' => 'title',
-                                'right' => 'dayGridMonth,timeGridWeek,timeGridDay',
+                                //'right' => 'dayGridMonth,timeGridWeek,timeGridDay',
+                                'right' => 'timeGridWeek,timeGridDay',
                             ],
                             'selectHelper' => true,
-                            'slotDuration' => '00:30:00',
+                            /*'slotDuration' => '00:30:00',
                             'snapDuration' => '00:30:00',
-                            'slotMinTime' => '08:00:00',
-                            'slotMaxTime' => '20:00:00',
-                            'slotLabelInterval' => '00:30:00',
+                            'slotLabelInterval' => '00:30:00',*/
+                            'slotDuration' => '01:00:00',
+                            'snapDuration' => '01:00:00',
+                            'slotLabelInterval' => '01:00:00',
+
+                            //'slotMinTime' => '08:00:00',
+                            'slotMinTime' => '09:00:00',
+
+                            //'slotMaxTime' => '20:00:00',
+                            'slotMaxTime' => '18:00:00',
+
                             'slotLabelFormat' => [
                                 'hour' => '2-digit',
                                 'minute' => '2-digit',
                                 'omitZeroMinute' => false,
-                                'meridiem' => 'short'
+                                'meridiem' => 'short',
                             ],
                             // nascondo Sabato e Domenica
                             'hiddenDays' => [0, 6],
                             // rimuovi la prenotazione del giorno intero
-                            'allDaySlot' => false
+                            'allDaySlot' => false,
 
-                        ])
+                        ]),
 
                 ]
 

@@ -1,14 +1,10 @@
 <?php
 
-use App\Filament\Pages\Welcome;
-use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\ArticleController;
 use App\Http\Controllers\PageController;
-use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\CategoryController;
-use App\Http\Controllers\GuttenbergController;
-use Z3d0X\FilamentFabricator\Resources\PageResource;
-use Z3d0X\FilamentFabricator\Facades\FilamentFabricator;
+use App\Http\Controllers\TagController;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -21,14 +17,13 @@ use Z3d0X\FilamentFabricator\Facades\FilamentFabricator;
 |
 */
 
-require __DIR__ . '/auth.php';
+require __DIR__.'/auth.php';
 
 /*Route::get('/', function () {
     return view('welcome');
 })->name('home');*/
 
 Route::redirect('/', '/home')->name('home');
-
 
 Route::get('/dashboard', function () {
     return view('dashboard');
@@ -39,17 +34,9 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-
-    //Route::domain('{team}.example.com')->group(function () {
-    /*Route::prefix('{team}')->group(function () {
-        Route::resource('{container0}/{item0?}/{container1?}/{item2?}', PageController::class);
-    });*/
 });
-
-/*Route::get('/guttenberg', function () {
-    return view('guttenberg');
-});
-
-Route::get('/guttenberg-example/{id}', GuttenbergController::class);*/
 
 Route::resource('{container0}/{item0?}/{container1?}/{item1?}/{container2?}/{item2?}', PageController::class);
+
+Route::resource('articles', ArticleController::class);
+Route::resource('tags', TagController::class);
