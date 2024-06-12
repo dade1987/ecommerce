@@ -85,7 +85,7 @@
             </svg>
         </button>
     </div>
-    <div id="mobile-menu" class="lg:hidden">
+    <div id="mobile-menu" class="lg:hidden hidden">
         <ul class="flex flex-col items-start space-y-2">
             @if ($linkOne)
                 <li>
