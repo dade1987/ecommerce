@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\MorphPivot;
 
 class ArticleMorph extends MorphPivot
 {
-    protected $fillable = ['type'];
+    protected $fillable = [];
 
     public function tag()
     {
