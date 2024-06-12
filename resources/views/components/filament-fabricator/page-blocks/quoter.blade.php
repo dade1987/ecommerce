@@ -1,11 +1,9 @@
 <div class="fixed bottom-4 right-4 w-80 bg-white shadow-lg rounded-lg border border-gray-300">
     <div class="flex flex-col h-full max-h-[50vh]">
-
         <div class="flex justify-between items-center p-2 bg-gray-200 rounded-t-lg">
             <div>
                 Cavallini Service
             </div>
-        
             <div>
                 <button id="minimize-chatbox" class="p-2 rounded">
                     <svg class="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"
@@ -16,15 +14,13 @@
             </div>
         </div>
         
-        <div id="chatbox-window">
+        <div id="chatbox-window" class="flex flex-col flex-1 overflow-hidden p-2">
             <div id="chatbox" class="flex-1 overflow-y-auto p-4 bg-gray-100"></div>
-            <div class="p-2 flex">
-                <input type="text" id="user-input" class="flex-grow border rounded-l-lg p-2"
-                    placeholder="Scrivi un messaggio...">
+            <div class="pb-2 flex items-center">
+                <input type="text" id="user-input" class="flex-grow border rounded-l-lg" placeholder="Scrivi un messaggio...">
                 <button id="send-button" class="bg-blue-500 text-white p-2 rounded-r-lg">Invia</button>
             </div>
-            <button id="generate-quote-button" class="bg-green-500 text-white p-2 m-2 rounded-lg">Genera
-                Preventivo</button>
+            <button id="generate-quote-button" class="bg-green-500 text-white rounded-lg w-full p-2">Genera Preventivo</button>
         </div>
     </div>
 
@@ -39,8 +35,7 @@
                 <div id="quoteContent"></div>
             </div>
             <div class="p-4 border-t flex justify-end">
-                <button type="button" class="bg-gray-500 text-white p-2 rounded mr-2"
-                    id="closeModalButton">Chiudi</button>
+                <button type="button" class="bg-gray-500 text-white p-2 rounded mr-2" id="closeModalButton">Chiudi</button>
                 <button type="button" class="bg-blue-500 text-white p-2 rounded" id="downloadPdf">Scarica PDF</button>
             </div>
         </div>
