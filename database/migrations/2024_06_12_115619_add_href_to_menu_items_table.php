@@ -10,12 +10,8 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        Schema::create('article_morph', function (Blueprint $table) {
-            $table->id();
-            $table->timestamps();
-            $table->nullableMorphs('model');
-            $table->integer('article_id')->index();
-            $table->integer('user_id')->nullable()->index();
+        Schema::table('menu_items', function (Blueprint $table) {
+            $table->string('href');
         });
     }
 
@@ -24,6 +20,8 @@ return new class extends Migration {
      */
     public function down(): void
     {
-        Schema::dropIfExists('article_morph');
+        Schema::table('menu_items', function (Blueprint $table) {
+            //
+        });
     }
 };
