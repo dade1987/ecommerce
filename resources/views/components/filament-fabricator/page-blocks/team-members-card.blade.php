@@ -1,4 +1,3 @@
-@aware(['page', 'title', 'text', 'persons'])
 <a name="about-us"></a>
 <section class="bg-white dark:bg-gray-900">
     <div class="py-8 px-4 mx-auto max-w-screen-xl lg:py-16 lg:px-6">
@@ -8,11 +7,11 @@
         </div>
         <div class="flex flex-wrap gap-8 mb-6 lg:mb-16 justify-center">
             @foreach ($persons as $person)
-                <div class="w-full md:w-1/3 flex items-center bg-gray-50 rounded-lg shadow sm:flex dark:bg-gray-800 dark:border-gray-700">
+                <div class="w-full md:w-1/3 flex items-center bg-gray-50 rounded-lg shadow sm:flex dark:bg-gray-800 dark:border-gray-700 person-card">
                     <a href="#">
                         <img class="w-full rounded-lg sm:rounded-none sm:rounded-l-lg" src="{{ $person['image'] }}" alt="{{ $person['name'] }}">
                     </a>
-                    <div class="p-5">
+                    <div class="p-5 person-info">
                         <h3 class="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
                             <a href="#">{{ $person['name'] }}</a>
                         </h3>
