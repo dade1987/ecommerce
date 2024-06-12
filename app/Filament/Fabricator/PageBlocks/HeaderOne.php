@@ -14,6 +14,7 @@ class HeaderOne extends PageBlock
     {
         return Block::make('header-one')
             ->schema([
+                Checkbox::make('logo_border')->default(false),
                 TextInput::make('logo_url'),
                 TextInput::make('text_one'),
                 TextInput::make('link_one'),
