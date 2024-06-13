@@ -1,16 +1,31 @@
 @aware(['page'])
 
 <!-- Sezione con immagine -->
-<section class="relative block h-500-px">
-    <div class="absolute top-0 w-full h-full bg-center bg-cover" style="background-image: url('path/to/your/image.jpg');">
-        <span id="blackOverlay" class="w-full h-full absolute opacity-50 bg-black"></span>
-    </div>
-    <div class="top-auto bottom-0 left-0 right-0 w-full absolute pointer-events-none overflow-hidden h-70-px" style="transform: translateZ(0px)">
-        <svg class="absolute bottom-0 overflow-hidden" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" version="1.1" viewBox="0 0 2560 100" x="0" y="0">
-            <polygon class="text-blueGrey-200 fill-current" points="2560 0 2560 100 0 100"></polygon>
-        </svg>
-    </div>
-</section>
+<!-- component -->
+<link rel="stylesheet" href="https://demos.creative-tim.com/notus-js/assets/styles/tailwind.css">
+<link rel="stylesheet"
+    href="https://demos.creative-tim.com/notus-js/assets/vendor/@fortawesome/fontawesome-free/css/all.min.css">
+
+<main class="profile-page">
+    <section class="relative block h-500-px ">
+        <div class="absolute top-0 w-full h-full bg-center bg-cover"
+            style="
+            background-image:url('{{ url('images/appartamenti_1.jpg') }}');
+          ">
+            <span id="blackOverlay"></span>
+        </div>
+        <div class="top-auto bottom-0 left-0 right-0 w-full absolute pointer-events-none overflow-hidden h-70-px"
+            style="transform: translateZ(0px)">
+            <svg class="absolute bottom-0 overflow-hidden" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none"
+                version="1.1" viewBox="0 0 2560 100" x="0" y="0">
+                <polygon class="text-blueGrey-200 fill-current" points="2560 0 2560 100 0 100"></polygon>
+            </svg>
+        </div>
+    </section>
+    
+</main>
+
+
 
 <!-- Timeline -->
 <section>
@@ -37,7 +52,8 @@
             </div>
             <div class="order-1 bg-red-400 rounded-lg shadow-xl w-5/12 px-6 py-4">
                 <h3 class="mb-3 font-bold text-white text-xl">{{ $textThree }}</h3>
-                <p class="text-sm font-medium leading-snug tracking-wide text-white text-opacity-100">{{ $textFour }}</p>
+                <p class="text-sm font-medium leading-snug tracking-wide text-white text-opacity-100">
+                    {{ $textFour }}</p>
             </div>
         </div>
 
@@ -61,7 +77,8 @@
             </div>
             <div class="order-1 bg-red-400 rounded-lg shadow-xl w-5/12 px-6 py-4">
                 <h3 class="mb-3 font-bold text-white text-xl">{{ $textSeven }}</h3>
-                <p class="text-sm font-medium leading-snug tracking-wide text-white text-opacity-100">{{ $textEight }}</p>
+                <p class="text-sm font-medium leading-snug tracking-wide text-white text-opacity-100">
+                    {{ $textEight }}</p>
             </div>
         </div>
     </div>
