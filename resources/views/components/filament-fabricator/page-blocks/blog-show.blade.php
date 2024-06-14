@@ -14,7 +14,7 @@
         </h2>
         <p
             class="block antialiased font-sans text-base font-light leading-relaxed text-inherit font-normal !text-gray-500">
-            {{ $row->content }}
+            {!! $row->content !!}
         </p>
     </div>
 </section>

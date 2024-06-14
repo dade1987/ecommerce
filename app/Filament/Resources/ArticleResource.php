@@ -2,16 +2,16 @@
 
 namespace App\Filament\Resources;
 
-use Filament\Forms;
-use Filament\Tables;
-use App\Models\Article;
-use Filament\Forms\Form;
-use Filament\Tables\Table;
-use Filament\Resources\Resource;
-use Filament\Forms\Components\Select;
 use App\Filament\Resources\ArticleResource\Pages;
+use App\Models\Article;
 use App\Models\Tag;
 use Awcodes\Curator\Components\Forms\CuratorPicker;
+use Filament\Forms;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Form;
+use Filament\Resources\Resource;
+use Filament\Tables;
+use Filament\Tables\Table;
 
 class ArticleResource extends Resource
 {
@@ -32,7 +32,7 @@ class ArticleResource extends Resource
                 Forms\Components\TextInput::make('title')
                     ->required()
                     ->maxLength(255),
-                Forms\Components\Textarea::make('content')
+                Forms\Components\RichEditor::make('content')
                     ->required()
                     ->columnSpanFull(),
                 CuratorPicker::make('featured_image_id')

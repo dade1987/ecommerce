@@ -13,7 +13,7 @@
                         <span
                             class="text-indigo-600 font-medium mb-3 block">{{ date('M d, Y', strtotime($row->created_at)) }}</span>
                         <h4 class="text-xl text-gray-900 font-medium leading-8 mb-5">{{ $row->title }}</h4>
-                        <p class="text-gray-500 leading-6 mb-10">{{ Str::limit($row->content, 200) }}...</p>
+                        <p class="text-gray-500 leading-6 mb-10">{!! Str::limit($row->content, 200) !!}...</p>
                         <a href="/blog/{{$row->id}}" class="cursor-pointer text-lg text-indigo-600 font-semibold">Read
                             more..</a>
                     </div>

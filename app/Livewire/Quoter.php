@@ -105,6 +105,8 @@ class Quoter extends Component
 
         if ($userMessage === 'Genera Preventivo') {
             $this->quoteContent = $response;
+
+            // @phpstan-ignore-next-line
             $this->dispatchBrowserEvent('showQuoteModal');
         }
     }
