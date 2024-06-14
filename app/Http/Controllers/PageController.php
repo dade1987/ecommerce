@@ -13,7 +13,7 @@ class PageController extends Controller
      */
     public function index($container0, ?string $item0 = null, ?string $container1 = null, ?string $item1 = null, ?string $container2 = null, ?string $item2 = null)
     {
-        
+
         $value = $container0;
 
         if (isset($container1)) {
@@ -30,16 +30,23 @@ class PageController extends Controller
 
         $value = Str::start($value, '/');
 
+        $last_param = array_key_last(request()->route()->parameters());
+
+        $is_item = Str::startsWith($last_param, 'item');
+
+        if ($is_item == true) {
+            $value = $value.'-show';
+        }
 
         $pageId = array_search($value, $pageUrls);
 
         //dd(['pageUrls'=>$pageUrls,'value'=>$value, 'pageId'=>$pageId,'pageModel'=>$pageModel]);
 
-        //qui potrei usare le policy tipo 
+        //qui potrei usare le policy tipo
         $page = $pageModel::query()
             ->where('id', $pageId)
             ->firstOrFail();
-       
+
         $view = app(FabricatorPageController::class)($page);
 
         return $view;
