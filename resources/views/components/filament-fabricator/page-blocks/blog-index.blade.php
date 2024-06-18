@@ -1,7 +1,7 @@
 @aware(['page'])
 <section class="py-24">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <h2 class="font-manrope text-4xl font-bold text-gray-900 text-center mb-16">Cavallini Service Blog</h2>
+        <h2 class="font-manrope text-4xl font-bold text-gray-900 text-center mb-16">{{$title}}</h2>
         <div class="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
             @foreach ($rows as $row)
                 <div class="group w-full border border-gray-300 rounded-2xl">
