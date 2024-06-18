@@ -2,15 +2,17 @@
 
 namespace App\Filament\Resources;
 
+use App\Models\Tag;
 use Filament\Forms;
 use Filament\Tables;
 use App\Models\Article;
+use Filament\Forms\Set;
 use Filament\Forms\Form;
 use Filament\Tables\Table;
 use Filament\Resources\Resource;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Actions\Action;
 use App\Filament\Resources\ArticleResource\Pages;
-use App\Models\Tag;
 use Awcodes\Curator\Components\Forms\CuratorPicker;
 
 class ArticleResource extends Resource
@@ -32,9 +34,17 @@ class ArticleResource extends Resource
                 Forms\Components\TextInput::make('title')
                     ->required()
                     ->maxLength(255),
-                Forms\Components\Textarea::make('content')
+                Forms\Components\RichEditor::make('content')
                     ->required()
-                    ->columnSpanFull(),
+                    ->columnSpanFull()
+                    ->hintAction(
+                        Action::make('generateWithAi')
+                            ->icon('heroicon-m-clipboard')
+                            ->requiresConfirmation()
+                            ->action(function (Set $set, $state) {
+                                $set('content', $state);
+                            })
+                        ),
                 CuratorPicker::make('featured_image_id')
                     ->relationship('featuredImage', 'id')
                     ->imageResizeTargetWidth(10),

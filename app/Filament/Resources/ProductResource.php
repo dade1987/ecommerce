@@ -2,17 +2,17 @@
 
 namespace App\Filament\Resources;
 
-use Filament\Forms;
-use Filament\Tables;
-use App\Models\Product;
-use Filament\Forms\Form;
-use Filament\Tables\Table;
-use Filament\Forms\Components\TextInput;
 use App\Filament\Resources\ProductResource\Pages;
+use App\Filament\Resources\ProductResource\RelationManagers\SubproductsRelationManager;
+use App\Models\Product;
 use Awcodes\Curator\Components\Forms\CuratorPicker;
 use Awcodes\Curator\Components\Tables\CuratorColumn;
+use Filament\Forms;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Form;
+use Filament\Tables;
+use Filament\Tables\Table;
 use SevendaysDigital\FilamentNestedResources\NestedResource;
-use App\Filament\Resources\ProductResource\RelationManagers\SubproductsRelationManager;
 
 class ProductResource extends NestedResource
 {
@@ -21,30 +21,28 @@ class ProductResource extends NestedResource
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
     public static function getParent(): string
-    {    
+    {
         return CategoryResource::class;
     }
-
-    
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
                 TextInput::make('name'),
-                    //->live()
-                   // ->afterStateUpdated(fn (Set $set, ?string $state) => $set('slug', Str::slug($state))),
+                //->live()
+                // ->afterStateUpdated(fn (Set $set, ?string $state) => $set('slug', Str::slug($state))),
                 TextInput::make('slug')->required(),
                 Forms\Components\Textarea::make('description')
                     ->maxLength(65535)
                     ->columnSpanFull(),
-                Forms\Components\TextInput::make('weight')->default(0)->required(),
-                Forms\Components\TextInput::make('price')
+                TextInput::make('weight')->default(0)->required(),
+                TextInput::make('price')
                     ->numeric()
                     ->prefix('€'),
                 CuratorPicker::make('featured_image_id')
                     ->relationship('featuredImage', 'id')
-                    ->imageResizeTargetWidth(10)
+                    ->imageResizeTargetWidth(10),
             ]);
     }
 
@@ -61,7 +59,7 @@ class ProductResource extends NestedResource
                 CuratorColumn::make('featured_image')
                     ->size(40),
                 //ChildResourceLink::make(ProductResource::class),
-              
+
             ])
             ->filters([
                 //
