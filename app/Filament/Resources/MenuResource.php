@@ -7,6 +7,9 @@ use App\Filament\Resources\MenuResource\Pages;
 use App\Filament\Resources\MenuResource\RelationManagers;
 use App\Models\Menu;
 use Filament\Forms;
+use Filament\Forms\Components\Checkbox;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -24,11 +27,11 @@ class MenuResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('name')
-                    ->required()
-                    ->maxLength(255),
-                Forms\Components\Textarea::make('description')
-                    ->columnSpanFull(),
+                TextInput::make('name')->required()->maxLength(255),
+                Textarea::make('description')->columnSpanFull(),
+                Checkbox::make('logo_border')->default(false),
+                TextInput::make('logo_url'),
+                Checkbox::make('cart_enabled')->default(false),
             ]);
     }
 

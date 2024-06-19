@@ -14,9 +14,9 @@ class Navbar extends PageBlock
     {
         return Block::make('navbar')
             ->schema([
+                TextInput::make('name'),
                 Checkbox::make('logo_border')->default(false),
                 TextInput::make('logo_url'),
-                TextInput::make('name'),
                 Checkbox::make('cart_enabled')->default(false),
             ]);
     }
