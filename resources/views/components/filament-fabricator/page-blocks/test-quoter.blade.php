@@ -1,6 +1,8 @@
 @aware(['page'])
 
-<div class="relative flex flex-col w-full bg-white" style="height: 85vh;">
+<h2 class="text-2xl font-bold text-gray-800 text-center mb-6">Servizio di Consulente Digitale per l’Energia</h2>
+
+<div class="flex bg-white h-[80vh]">
 
     <div id="chatbox-window" class="flex flex-col flex-1 overflow-hidden">
         <div id="drop-area" class="border-dashed border-2 border-gray-400 p-4 rounded-lg mb-2 text-center">
@@ -12,7 +14,7 @@
             <input type="text" id="user-input" class="flex-grow border rounded-l-lg p-2" placeholder="Scrivi un messaggio...">
             <button id="send-button" class="bg-blue-500 text-white p-2 rounded-r-lg">Invia</button>
         </div>
-        <button id="generate-quote-button" class="bg-green-500 text-white rounded-lg w-full p-4">Genera Preventivo</button>
+        <button id="generate-quote-button" class="bg-blue-500 text-white rounded-lg w-full p-4">Genera Preventivo</button>
     </div>
 </div>
 
@@ -21,11 +23,11 @@
 <div class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center hidden" id="quoteModal">
     <div class="bg-white rounded-lg overflow-hidden w-11/12 md:w-1/2 lg:w-1/3">
         <div class="p-4 flex justify-between items-center border-b">
-            <h5 class="text-xl font-bold" id="quoteModalLabel">Preventivo</h5>
+            <h5 class="text-xl font-bold" id="quoteModalLabel">AI-799</h5>
             <button type="button" class="text-gray-400" id="closeModal">&times;</button>
         </div>
         <div class="p-4">
-            <div id="quoteContent"></div>
+            <div id="quoteContent" class="p-4"></div>
         </div>
         <div class="p-4 border-t flex justify-end">
             <button type="button" class="bg-gray-500 text-white p-2 rounded mr-2" id="closeModalButton">Chiudi</button>
@@ -39,7 +41,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" integrity="sha512-BNaRQnYJYiPSqHHDb58B0yaPfCu+Wgds8Gp/gU33kqBtgNS4tSPHuGibyoeqMV/TJlSKda6FXzoEyYGjTe+vXA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script>
     let quoteContent = '';
-    let chatbotName = 'Ai-799';
+    let chatbotName = 'AI-799';
 
     const dropArea = document.getElementById('drop-area');
     const fileInput = document.getElementById('fileElem');
@@ -217,10 +219,7 @@
                 if (jsonParsed.company_info !== undefined) {
                     quoteContent = `
                     <div>
-                        <h3 class="text-lg font-semibold">Informazioni sull'Azienda</h3>
-                        <p><strong>Nome:</strong> ${jsonParsed.company_info.name}</p>
-                        <p><strong>Indirizzo:</strong> ${jsonParsed.company_info.address}</p>
-                        <p><strong>Partita IVA:</strong> ${jsonParsed.company_info.vat_number}</p>
+                        <h3 class="text-lg font-semibold">AI-799</h3>
                     </div>
                     <div>
                         <h3 class="text-lg font-semibold">Informazioni Personali</h3>
