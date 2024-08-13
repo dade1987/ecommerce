@@ -39,6 +39,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" integrity="sha512-BNaRQnYJYiPSqHHDb58B0yaPfCu+Wgds8Gp/gU33kqBtgNS4tSPHuGibyoeqMV/TJlSKda6FXzoEyYGjTe+vXA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script>
     let quoteContent = '';
+    let chatbotName = 'Ai799';
 
     const dropArea = document.getElementById('drop-area');
     const fileInput = document.getElementById('fileElem');
@@ -75,6 +76,7 @@
     }
 
     function uploadFile(file) {
+        addLoadingIndicator();
         const formData = new FormData();
         formData.append('file', file);
 
@@ -84,7 +86,8 @@
         })
         .then(response => response.json())
         .then(data => {
-            addMessageToChatbox('Cavallini Service', data.response, 'border border-gray-200 text-black');
+            removeLoadingIndicator();
+            addMessageToChatbox(chatbotName, data.response, 'border border-gray-200 text-black');
 
         })
         .catch(error => {
@@ -154,7 +157,7 @@
         const loadingElement = document.createElement('div');
         loadingElement.id = 'loading-indicator';
         loadingElement.classList.add('p-4', 'rounded-lg', 'bg-gray-200', 'text-black', 'mt-2');
-        loadingElement.innerHTML = '<h5>Cavallini Service</h5><span class="loading-dots">Sto rispondendo</span>';
+        loadingElement.innerHTML = '<h5>'+chatbotName+'</h5><span class="loading-dots">Sto rispondendo</span>';
         chatbox.appendChild(loadingElement);
         chatbox.scrollTop = chatbox.scrollHeight;
     }
@@ -259,10 +262,10 @@
                     document.getElementById('quoteContent').innerHTML = quoteContent;
                     document.getElementById('quoteModal').classList.remove('hidden');
                 } else {
-                    addMessageToChatbox('Cavallini Service', data.response, 'border border-gray-200 text-black');
+                    addMessageToChatbox(chatbotName, data.response, 'border border-gray-200 text-black');
                 }
             } else {
-                addMessageToChatbox('Cavallini Service', data.response, 'border border-gray-200 text-black');
+                addMessageToChatbox(chatbotName, data.response, 'border border-gray-200 text-black');
             }
         } catch (error) {
             addMessageToChatbox('Errore', error.message, 'border border-red-500 text-black');
@@ -279,8 +282,8 @@
             }
         });
 
-        addMessageToChatbox('Cavallini Service',
-            'Buongiorno. Benvenuto in Cavallini Service. Attendi un attimo in linea...',
+        addMessageToChatbox(chatbotName,
+            'Buongiorno. Benvenuto in '+chatbotName+'. Attendi un attimo in linea...',
             'border border-gray-200 text-black');
 
         sendMessageToServer('Intro');
