@@ -282,7 +282,7 @@
         });
 
         addMessageToChatbox(chatbotName,
-            'Buongiorno. Benvenuto in '+chatbotName+'. Attendi un attimo in linea...',
+            'Ciao. Benvenuto in '+chatbotName+'. Attendi alcuni secondi...',
             'border border-gray-200 text-black');
 
         sendMessageToServer('Intro');

@@ -1,0 +1,87 @@
+<?php
+
+namespace App\Livewire;
+
+use App\Actions\RequestTimeSlotsAction;
+use App\Models\Post;
+use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\MarkdownEditor;
+use Filament\Forms\Components\Radio;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Wizard;
+use Filament\Forms\Components\Wizard\Step;
+use Filament\Forms\Concerns\InteractsWithForms;
+use Filament\Forms\Contracts\HasForms;
+use Filament\Forms\Form;
+use Illuminate\Contracts\View\View;
+use Illuminate\Support\HtmlString;
+use Livewire\Component;
+
+class QuoterWizard extends Component implements HasForms
+{
+    use InteractsWithForms;
+
+    public ?array $data = [];
+
+    public function mount(): void
+    {
+        $this->form->fill();
+    }
+
+    public function form(Form $form): Form
+    {
+        return $form
+            ->schema([
+                Wizard::make([
+                    Step::make('Area Solare')
+                        ->description('In quale zona vivi?')
+                        ->schema([
+                            Radio::make('zona')
+                                ->options([
+                                    '1100' => 'Nord',
+                                    '1300' => 'Centro',
+                                    '1500' => 'Sud',
+                                ])
+                                ->required(),
+                        ]),
+                    Step::make('Tipologia Tetto')
+                        ->description('Quanto è inclinato il tetto?')
+                        ->schema([
+                            Radio::make('inclinazione')
+                                ->options([
+                                    'piano' => 'Piano',
+                                    'poco' => 'Poco',
+                                    'molto' => 'Molto',
+                                ])->required(),
+                        ]),
+                    Step::make('Caricamento Bolletta')
+                        ->description('Carica la tua bolletta')
+                        ->schema([
+                            FileUpload::make('bolletta')->directory('bollette')->required(),
+                        ])->afterValidation(function () {
+                            //app(RequestTimeSlotsAction::class)->execute('abc');
+                        }),
+                    Step::make('Fasce Orarie')
+                    ->description('Indica le fasce F1, F2, F3')
+                    ->schema([
+                        TextInput::make('F1')->numeric()->required(),
+                        TextInput::make('F2')->numeric()->required(),
+                        TextInput::make('F3')->numeric()->required(),
+                    ]),
+
+                ])->submitAction(new HtmlString('<button type="submit">Submit</button>')),
+            ])
+            ->statePath('data');
+    }
+
+    public function create(): void
+    {
+        dd([$this->data, $this->form->getState()]);
+
+    }
+
+    public function render()
+    {
+        return view('livewire.quoter-wizard');
+    }
+}

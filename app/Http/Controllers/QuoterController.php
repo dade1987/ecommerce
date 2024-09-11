@@ -130,18 +130,25 @@ class QuoterController extends Controller
     {
         //Chiedimi il mio nome, cognome, indirizzo email, numero di telefono, poi fare il preventivo dei servizi richiesti. Scrivi la domanda in modo conciso
         if ($userMessage === 'Intro') {
-            return 'Chiedimi di caricare la bolletta. Queste sono le domande che dovrai farmi dopo, una alla volta:          
+            return '
+            Parti con il chiedermi di caricare la bolletta o la fattura elettrica.
             
-            1. il tetto è piano o a falda inclinata? di quanti gradi?
-            2. dimensione superficie in  Metri2
-            3. Come è Orientato il Tetto?
-            4. Hai un contatore piccolo o Grande?
-            5. interessa anche l\'accumolo di energia?
-            6 Interessa anche il backup (cioè in caso di mancanza di energia dalla rete o dal sole avere un\'autonomia di tot ...ore?
-            7. interesse a valutare l\'appartenenza ad una comunità energetica?
-            8. Conferma che l\'indirizzo e intestatario Bolletta sono i medesimi o indica intestatario diverso ...?
+            Quando avrò risposto, ponimi le seguenti domande una alla volta:
+            
+            2. Ti trovi a nord, centro o sud?
+            3. Il tetto è piano, poco inclinato o molto inclinato?
+            4. Il tetto è orientato a nord, est, sud o ovest?
+            5. Conosci le comunità energetiche della tua città, oppure desideri conoscerle?
+            6. Desideri generare energia per un abitazione privata di tua proprietà o per un azienda?
+            7. Che cosa ne pensi delle auto elettriche? Ritieni che sia utile utilizzarle?
+            8. Desideri scaricare un PDF dei dati generati da AI-799?
+            9. Indica la tua email o numero di telefono
+            10. Vuoi conoscere le aziende vicino a te che hanno le migliori recensioni in materia di energia solare?
+            11. Vuoi essere contattato da un tecnico per un sopralluogo?
                         
-            Alla fine crea un breve riassunto dei dati inseriti. Scrivi che per generare il preventivo finale devo cliccare su "Genera Preventivo". PS Tieniti in memoria che per fare 5kw (consumo domestico) servono 30mq di pannelli.';
+            Alla fine crea un breve riassunto dei dati inseriti. Scrivi \'Per generare la Proposta finale in PDF, clicca su "Genera Preventivo"\'. 
+            
+            NB Ricorda che per fare 5kw (consumo domestico) servono 30mq di pannelli, e che i metri quadri devono essere sempre multipli di 3.';
         } elseif ($userMessage === 'Genera Preventivo') {
             return 'Genera un preventivo per l\'azienda Cavallini Service con sede a Noale in via del Musonetto, 4, partita IVA numero CVLDVD87M23L736P. Il preventivo deve essere in formato JSON Object, con la seguente struttura:\\n\\n- La prima sezione deve essere \'company_info\' con le colonne \'name\' (nome dell\'azienda), \'address\' (indirizzo dell\'azienda) e \'vat_number\' (partita IVA dell\'azienda).\\n- La seconda sezione deve essere \'personal_info\' con le colonne \'first_name\' (nome), \'last_name\' (cognome), \'phone_number\' (numero di telefono), \'email\' (indirizzo email).\\n- La terza sezione deve essere \'products\' che contiene una lista di prodotti e servizi (inclusa la manodopera se c\'è scritto il prezzo nel file), ognuno con le colonne \'name\' (nome del prodotto o servizio), \'quantity\' (quantità del prodotto o servizio) e \'price\' (prezzo del singolo prodotto o servizio).\\n- L\'ultima sezione deve essere \'price_info\' con le colonne \'net_price\' (prezzo netto), \'vat\' (IVA al 22%) e \'total\' (prezzo totale).\\n\\nEsempio di JSON da generare:\\n\\n{\\n  "company_info": {\\n    "name": "Cavallini Service",\\n    "address": "via Tal dei Tali, 15, Milano",\\n    "vat_number": "01234567899"\\n  },\\n  "personal_info": {\\n    "first_name": "Mario",\\n    "last_name": "Rossi",\\n    "phone_number": "1234567890",\\n    "email": "mario.rossi@example.com",\\n    "site_address": "via Esempio, 20",\\n    "city": "Milano",\\n    "province": "MI",\\n    "country": "Italia"\\n  },\\n  "products": [\\n    {\\n      "name": "Finestra in PVC",\\n      "quantity": 10,\\n      "price": 200\\n    },\\n    {\\n      "name": "Porta in legno",\\n      "quantity": 5,\\n      "price": 300\\n    },\\n    {\\n      "name": "Manodopera montaggio finestra",\\n      "quantity": 10,\\n      "price": 150\\n    },\\n    {\\n      "name": "Manodopera montaggio porta",\\n      "quantity": 5,\\n      "price": 150\\n    }\\n  ],\\n  "price_info": {\\n    "net_price": 5500,\\n    "vat": 1210,\\n    "total": 6710\\n  }\\n}. Non rispondere con nessun altra informazioni oltre il JSON. Il JSON non deve contenere commenti e dev\'essere ben formattato.';
         } else {
