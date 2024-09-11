@@ -131,13 +131,12 @@ class QuoterController extends Controller
         //Chiedimi il mio nome, cognome, indirizzo email, numero di telefono, poi fare il preventivo dei servizi richiesti. Scrivi la domanda in modo conciso
         if ($userMessage === 'Intro') {
             return '
-            Parti con il chiedermi di caricare la bolletta o la fattura elettrica.
+            Ponimi le seguenti domande una alla volta:
             
-            Quando avrò risposto, ponimi le seguenti domande una alla volta:
-            
-            2. Ti trovi a nord, centro o sud?
-            3. Il tetto è piano, poco inclinato o molto inclinato?
-            4. Il tetto è orientato a nord, est, sud o ovest?
+            1. Ti trovi a nord, centro o sud?
+            2. Il tetto è piano, poco inclinato o molto inclinato?
+            3. Il tetto è orientato a nord, est, sud o ovest?
+            4. Inserisci i valori annuali di F1, F2 e f3 che trovi nella tua fattura. Se non li trovi puoi caricare la bolletta e sarà l\'AI a determinarli
             5. Conosci le comunità energetiche della tua città, oppure desideri conoscerle?
             6. Desideri generare energia per un abitazione privata di tua proprietà o per un azienda?
             7. Che cosa ne pensi delle auto elettriche? Ritieni che sia utile utilizzarle?
