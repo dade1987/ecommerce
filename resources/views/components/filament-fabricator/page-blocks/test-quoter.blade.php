@@ -171,10 +171,10 @@
         }
     }
 
-    document.getElementById('generate-quote-button').addEventListener('click', () => {
+    {{-- document.getElementById('generate-quote-button').addEventListener('click', () => {
         addMessageToChatbox('Tu', 'Genera Preventivo', 'border border-blue-500 text-black');
         sendMessageToServer('Genera Preventivo');
-    });
+    }); --}}
 
     function addMessageToChatbox(sender, message, messageType) {
         message = message.replaceAll('\n', '<br>');
