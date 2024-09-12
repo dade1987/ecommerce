@@ -1,8 +1,8 @@
 @aware(['page'])
 
-<h2 class="text-2xl font-bold text-gray-800 text-center mb-6">Servizio di Consulente Digitale per l’Energia</h2>
+<h2 class="text-2xl font-bold text-gray-800 text-center mb-6">Intelligenza Artificiale per l'Energia Solare</h2>
 
-<div class="flex bg-white h-[80vh]">
+<div class="flex bg-white h-[70vh]">
 
     <div id="chatbox-window" class="flex flex-col flex-1 overflow-hidden">
         <div id="drop-area" class="border-dashed border-2 border-gray-400 p-4 rounded-lg mb-2 text-center">
@@ -14,7 +14,7 @@
             <input type="text" id="user-input" class="flex-grow border rounded-l-lg p-2" placeholder="Scrivi un messaggio...">
             <button id="send-button" class="bg-blue-500 text-white p-2 rounded-r-lg">Invia</button>
         </div>
-        <button id="generate-quote-button" class="bg-blue-500 text-white rounded-lg w-full p-4">Genera Preventivo</button>
+        {{--<button id="generate-quote-button" class="bg-blue-500 text-white rounded-lg w-full p-4">Genera Preventivo</button>--}}
     </div>
 </div>
 

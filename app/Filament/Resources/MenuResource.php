@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\CategoryResource\RelationManagers\MenuItemsRelationManager;
+use App\Filament\Resources\MenuResource\RelationManagers\MenuItemsRelationManager;
 use App\Filament\Resources\MenuResource\Pages;
 use App\Filament\Resources\MenuResource\RelationManagers;
 use App\Models\Menu;

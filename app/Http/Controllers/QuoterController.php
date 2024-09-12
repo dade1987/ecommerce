@@ -109,7 +109,7 @@ class QuoterController extends Controller
                         'type' => 'file_search',
                     ],
                 ],
-                'model' => 'gpt-4-turbo',
+                'model' => 'gpt-4o',
             ]
         );
 
@@ -131,23 +131,28 @@ class QuoterController extends Controller
         //Chiedimi il mio nome, cognome, indirizzo email, numero di telefono, poi fare il preventivo dei servizi richiesti. Scrivi la domanda in modo conciso
         if ($userMessage === 'Intro') {
             return '
-            Ponimi le seguenti domande una alla volta:
-            
-            1. Ti trovi a nord, centro o sud?
+            Esegui i seguenti punti uno alla volta:
+
+            1. SCRIVI QUALI SONO LE ORE DI PIENO SOLE PER ZONA IN ITALIA ANNUALI. CHIEDI SE Ti trovi a nord, centro o sud?
             2. Il tetto è piano, poco inclinato o molto inclinato?
-            3. Il tetto è orientato a nord, est, sud o ovest?
-            4. Inserisci i valori annuali di F1, F2 e f3 che trovi nella tua fattura. Se non li trovi puoi caricare la bolletta e sarà l\'AI a determinarli
+            3. Lo sai che anche i tetti rivolti a nord oggi sono in grado di produrre energia solare? Da che parte è rivolto il tuo?
+            4. Quanta energia ti serve? Inserisci i valori annuali di F1, F2 e F3 che trovi nella tua fattura. Se non li trovi puoi caricare la bolletta e sarà l\'AI a determinarli
             5. Conosci le comunità energetiche della tua città, oppure desideri conoscerle?
-            6. Desideri generare energia per un abitazione privata di tua proprietà o per un azienda?
-            7. Che cosa ne pensi delle auto elettriche? Ritieni che sia utile utilizzarle?
+            6. Che cosa ne pensi delle auto elettriche? Ritieni che sia utile utilizzarle?
+            7. Desideri generare energia per un abitazione privata di tua proprietà o per un azienda?
             8. Desideri scaricare un PDF dei dati generati da AI-799?
             9. Indica la tua email o numero di telefono
-            10. Vuoi conoscere le aziende vicino a te che hanno le migliori recensioni in materia di energia solare?
-            11. Vuoi essere contattato da un tecnico per un sopralluogo?
+            10. Vuoi conoscere le aziende vicino a te che hanno le migliori recensioni in materia di realizzazione di impianti di energia solare?
+            11. Io sono un intelligenza artificiale. Vuoi parlare con un esperto ai fini di prenotare un sopralluogo senza impegno?
+            11a (solo se ha risposto di si alla domanda precedente). In che orari vuoi essere contattato?
                         
-            Alla fine crea un breve riassunto dei dati inseriti. Scrivi \'Per generare la Proposta finale in PDF, clicca su "Genera Preventivo"\'. 
+            Alla fine crea un breve riassunto dei dati inseriti. 
             
-            NB Ricorda che per fare 5kw (consumo domestico) servono 30mq di pannelli, e che i metri quadri devono essere sempre multipli di 3.';
+            NB per fare una stima dei costi, l\'impianto consigliato parte da 6kw. 
+            ogni pannello da 5mq genera 1kw, quindi per fare 6kw servono 30mq. 
+            la dimensione dell\'impianto si calcola con la formula (CONSUMO ANNUO + 10% / 1200)';
+
+            //crea un pdf con i dati di riepilogo
         } elseif ($userMessage === 'Genera Preventivo') {
             return 'Genera un preventivo per l\'azienda Cavallini Service con sede a Noale in via del Musonetto, 4, partita IVA numero CVLDVD87M23L736P. Il preventivo deve essere in formato JSON Object, con la seguente struttura:\\n\\n- La prima sezione deve essere \'company_info\' con le colonne \'name\' (nome dell\'azienda), \'address\' (indirizzo dell\'azienda) e \'vat_number\' (partita IVA dell\'azienda).\\n- La seconda sezione deve essere \'personal_info\' con le colonne \'first_name\' (nome), \'last_name\' (cognome), \'phone_number\' (numero di telefono), \'email\' (indirizzo email).\\n- La terza sezione deve essere \'products\' che contiene una lista di prodotti e servizi (inclusa la manodopera se c\'è scritto il prezzo nel file), ognuno con le colonne \'name\' (nome del prodotto o servizio), \'quantity\' (quantità del prodotto o servizio) e \'price\' (prezzo del singolo prodotto o servizio).\\n- L\'ultima sezione deve essere \'price_info\' con le colonne \'net_price\' (prezzo netto), \'vat\' (IVA al 22%) e \'total\' (prezzo totale).\\n\\nEsempio di JSON da generare:\\n\\n{\\n  "company_info": {\\n    "name": "Cavallini Service",\\n    "address": "via Tal dei Tali, 15, Milano",\\n    "vat_number": "01234567899"\\n  },\\n  "personal_info": {\\n    "first_name": "Mario",\\n    "last_name": "Rossi",\\n    "phone_number": "1234567890",\\n    "email": "mario.rossi@example.com",\\n    "site_address": "via Esempio, 20",\\n    "city": "Milano",\\n    "province": "MI",\\n    "country": "Italia"\\n  },\\n  "products": [\\n    {\\n      "name": "Finestra in PVC",\\n      "quantity": 10,\\n      "price": 200\\n    },\\n    {\\n      "name": "Porta in legno",\\n      "quantity": 5,\\n      "price": 300\\n    },\\n    {\\n      "name": "Manodopera montaggio finestra",\\n      "quantity": 10,\\n      "price": 150\\n    },\\n    {\\n      "name": "Manodopera montaggio porta",\\n      "quantity": 5,\\n      "price": 150\\n    }\\n  ],\\n  "price_info": {\\n    "net_price": 5500,\\n    "vat": 1210,\\n    "total": 6710\\n  }\\n}. Non rispondere con nessun altra informazioni oltre il JSON. Il JSON non deve contenere commenti e dev\'essere ben formattato.';
         } else {

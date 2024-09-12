@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Resources\CategoryResource\RelationManagers;
+namespace App\Filament\Resources\MenuResource\RelationManagers;
 
 use Awcodes\Curator\Components\Forms\CuratorPicker;
 use Awcodes\Curator\Components\Tables\CuratorColumn;
