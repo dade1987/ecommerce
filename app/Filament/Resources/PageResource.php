@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources;
 
-
 use Closure;
 use Filament\Forms\Components\Actions\Action as FormAction;
 use Filament\Forms\Components\Group;
@@ -14,6 +13,8 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Unique;
@@ -25,7 +26,6 @@ use Z3d0X\FilamentFabricator\Resources\PageResource\Pages;
 
 class PageResource extends ResourcesPageResource
 {
-
     public static function form(Form $form): Form
     {
         return $form
@@ -96,7 +96,7 @@ class PageResource extends ResourcesPageResource
                                     ->preload()
                                     ->reactive()
                                     ->suffixAction(
-                                        fn ($get, $context) => FormAction::make($context . '-parent')
+                                        fn ($get, $context) => FormAction::make($context.'-parent')
                                             ->icon('heroicon-o-arrow-top-right-on-square')
                                             ->url(fn () => PageResource::getUrl($context, ['record' => $get('parent_id')]))
                                             ->openUrlInNewTab()

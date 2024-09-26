@@ -26,3 +26,4 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 
 Route::post('/send-message', [QuoterController::class, 'sendMessage']);
 Route::post('/create-thread', [QuoterController::class, 'createThread']);
+Route::post('/upload-file', [QuoterController::class, 'uploadFile']);

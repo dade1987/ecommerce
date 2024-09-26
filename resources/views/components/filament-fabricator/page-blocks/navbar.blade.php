@@ -15,10 +15,9 @@
         </ul>
         <div class="items-center flex-shrink-0 hidden lg:flex">
             @guest
-                <a href="{{ route('login') }}" class="self-center px-8 py-3 rounded text-xl font-bold text-gray-600">Sign in</a>
+                <a href="{{ route('login') }}" class="self-center px-8 py-3 rounded text-xl font-bold text-gray-600">Accedi</a>
                 <a href="{{ route('register') }}"
-                    class="self-center px-8 py-3 font-semibold rounded dark:bg-violet-400 dark:text-gray-900 text-xl font-bold text-gray-600">Sign
-                    up</a>
+                    class="self-center px-8 py-3 font-semibold rounded dark:bg-violet-400 dark:text-gray-900 text-xl font-bold text-gray-600">Registrati</a>
             @endguest
             @auth
                 @if ($cartEnabled === true)
@@ -26,7 +25,7 @@
                 @else
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf
-                        <button type='submit' class="text-xl font-bold text-gray-600">Logout</button>
+                        <button type='submit' class="text-xl font-bold text-gray-600">Esci</button>
                     </form>
                 @endif
             @endauth

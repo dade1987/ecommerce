@@ -170,6 +170,7 @@ return [
         App\Providers\EventServiceProvider::class,
         App\Providers\Filament\AdminPanelProvider::class,
         App\Providers\RouteServiceProvider::class,
+        App\Providers\FolioServiceProvider::class,
         App\Providers\CartServiceProvider::class,
     ])->toArray(),
 
@@ -186,7 +187,7 @@ return [
 
     'aliases' => Facade::defaultAliases()->merge([
         // 'Example' => App\Facades\Example::class,
-        "Cart"=> Cart::class
+        'Cart'=> Cart::class,
     ])->toArray(),
 
 ];
