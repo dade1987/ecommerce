@@ -1,8 +1,8 @@
 @aware(['page'])
 <!-- component -->
-<link rel="stylesheet" href="https://demos.creative-tim.com/notus-js/assets/styles/tailwind.css">
+<link rel="stylesheet" href="/css/tailwind.css">
 <link rel="stylesheet"
-    href="https://demos.creative-tim.com/notus-js/assets/vendor/@fortawesome/fontawesome-free/css/all.min.css">
+    href="/css/all.min.css">
 
 <main class="profile-page">
     <section class="relative block h-500-px ">

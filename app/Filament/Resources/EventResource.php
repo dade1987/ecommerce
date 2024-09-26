@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\EventResource\Pages;
 use App\Filament\Resources\EventResource\RelationManagers;
 use App\Models\Event;
+use Awcodes\Curator\Components\Forms\CuratorPicker;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -23,7 +24,18 @@ class EventResource extends Resource
     {
         return $form
             ->schema([
-                //
+                Forms\Components\TextInput::make('name')
+                    ->required()
+                    ->maxLength(255),
+                Forms\Components\DateTimePicker::make('starts_at')
+                    ->required(),
+                Forms\Components\DateTimePicker::make('ends_at')
+                    ->required(),
+                Forms\Components\Textarea::make('description'),
+                CuratorPicker::make('featured_image_id')
+                    ->relationship('featuredImage', 'id')
+                    ->imageResizeTargetWidth(10),
+
             ]);
     }
 
@@ -31,7 +43,8 @@ class EventResource extends Resource
     {
         return $table
             ->columns([
-                //
+                Tables\Columns\TextColumn::make('name')
+                    ->searchable(),
             ])
             ->filters([
                 //
