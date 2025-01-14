@@ -19,7 +19,7 @@ class BlogIndex extends PageBlock
 
     public static function mutateData(array $data): array
     {
-        $data['rows'] = Article::get();
+        $data['rows'] = Article::orderBy('created_at', 'desc')->get();
 
         return $data;
     }
