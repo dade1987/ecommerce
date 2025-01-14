@@ -1,6 +1,6 @@
 @aware(['page'])
 
-<h2 class="text-2xl font-bold text-gray-800 text-center mb-6">Intelligenza Artificiale per l'Energia Solare</h2>
+<h2 class="text-2xl font-bold text-gray-800 text-center mb-6">Fai il tuo preventivo con l'AI</h2>
 
 <div class="flex bg-white h-[70vh]">
 
