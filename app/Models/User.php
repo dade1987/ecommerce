@@ -3,19 +3,21 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Filament\Panel;
-use App\Models\Traits\HasTeams;
-use App\Models\Traits\HasOrders;
-use Laravel\Sanctum\HasApiTokens;
 use App\Models\Traits\HasAddresses;
-use Spatie\Permission\Traits\HasRoles;
-use Filament\Panel\Concerns\HasTenancy;
-use Illuminate\Notifications\Notifiable;
+use App\Models\Traits\HasOrders;
+use App\Models\Traits\HasTeams;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Models\Contracts\HasTenants;
+use Filament\Panel;
+use Filament\Panel\Concerns\HasTenancy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Collection;
+use Laravel\Sanctum\HasApiTokens;
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable implements FilamentUser, HasTenants
 {
@@ -57,11 +59,33 @@ class User extends Authenticatable implements FilamentUser, HasTenants
         'password' => 'hashed',
     ];
 
-
     public function canAccessPanel(Panel $panel): bool
     {
         return $this->hasRole('super_admin');
 
         //return true;
+    }
+
+    public function teams(): MorphToMany
+    {
+        $pivot_class = TeamMorph::class;
+        $pivot = app($pivot_class);
+        $pivot_table = $pivot->getTable();
+        $pivot_fields = $pivot->getFillable();
+
+        return $this->morphToMany(Team::class, 'model', $pivot_table)
+            ->using($pivot_class)
+            ->withPivot($pivot_fields)
+            ->withTimestamps();
+    }
+
+    public function getTenants(Panel $panel): Collection
+    {
+        return $this->teams;
+    }
+
+    public function canAccessTenant(Model $tenant): bool
+    {
+        return $this->teams()->whereKey($tenant)->exists();
     }
 }

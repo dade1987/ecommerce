@@ -15,6 +15,8 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class AgendaResource extends Resource
 {
+    protected static bool $isScopedToTenant = false;
+
     protected static ?string $model = Agenda::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
@@ -91,14 +93,14 @@ class AgendaResource extends Resource
                 Tables\Actions\CreateAction::make(),
             ]);
     }
-    
+
     public static function getRelations(): array
     {
         return [
             //
         ];
     }
-    
+
     public static function getPages(): array
     {
         return [
@@ -106,5 +108,5 @@ class AgendaResource extends Resource
             'create' => Pages\CreateAgenda::route('/create'),
             'edit' => Pages\EditAgenda::route('/{record}/edit'),
         ];
-    }    
+    }
 }

@@ -2,6 +2,8 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Pages\Tenancy\EditTeamProfile;
+use App\Filament\Pages\Tenancy\RegisterTeam;
 use App\Models\Team;
 use Awcodes\Curator\CuratorPlugin;
 use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
@@ -34,6 +36,7 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
+
             ->colors([
                 'primary' => Color::Amber,
             ])
@@ -102,11 +105,12 @@ class AdminPanelProvider extends PanelProvider
                             'hiddenDays' => [0, 6],
                             // rimuovi la prenotazione del giorno intero
                             'allDaySlot' => false,
-
                         ]),
-
                 ]
+            )
+            //->tenant(Team::class, ownershipRelationship: 'team', slugAttribute: 'slug')
+            ->tenantRegistration(page: RegisterTeam::class)
+            ->tenantProfile(EditTeamProfile::class);
 
-            );
     }
 }
