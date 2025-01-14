@@ -103,7 +103,8 @@ class QuoterController extends Controller
             threadId: $threadId,
             parameters: [
                 'assistant_id' => 'asst_34SA8ZkwlHiiXxNufoZYddn0',
-                'instructions' => 'Devi fare il preventivo per un azienda di fotovoltaico. Ti serve che ti carico il file della bolletta e alcune informazioni aggiuntive.',
+                //'instructions' => 'Devi fare il preventivo per un azienda di fotovoltaico. Ti serve che ti carico il file della bolletta e alcune informazioni aggiuntive.',
+                'instructions' => 'Sei una segretaria che fa preventivi per un\'azienda di sviluppo software. Cerca le informazioni nei file che ti ho passato.',
                 'tools' => [
                     [
                         'type' => 'file_search',
@@ -130,7 +131,7 @@ class QuoterController extends Controller
     {
         //Chiedimi il mio nome, cognome, indirizzo email, numero di telefono, poi fare il preventivo dei servizi richiesti. Scrivi la domanda in modo conciso
         if ($userMessage === 'Intro') {
-            return '
+            /*return '
             Esegui i seguenti punti uno alla volta:
 
             1. SCRIVI QUALI SONO LE ORE DI PIENO SOLE PER ZONA IN ITALIA ANNUALI. CHIEDI SE Ti trovi a nord, centro o sud?
@@ -145,13 +146,15 @@ class QuoterController extends Controller
             10. Vuoi conoscere le aziende vicino a te che hanno le migliori recensioni in materia di realizzazione di impianti di energia solare?
             11. Io sono un intelligenza artificiale. Vuoi parlare con un esperto ai fini di prenotare un sopralluogo senza impegno?
             11a (solo se ha risposto di si alla domanda precedente). In che orari vuoi essere contattato?
-                        
-            Alla fine crea un breve riassunto dei dati inseriti. 
-            
-            NB per fare una stima dei costi, l\'impianto consigliato parte da 6kw. 
-            ogni pannello da 5mq genera 1kw, quindi per fare 6kw servono 30mq. 
-            la dimensione dell\'impianto si calcola con la formula (CONSUMO ANNUO + 10% / 1200)';
 
+            Alla fine crea un breve riassunto dei dati inseriti.
+
+            NB per fare una stima dei costi, l\'impianto consigliato parte da 6kw.
+            ogni pannello da 5mq genera 1kw, quindi per fare 6kw servono 30mq.
+            la dimensione dell\'impianto si calcola con la formula (CONSUMO ANNUO + 10% / 1200)';
+*/
+
+            return 'Chiedimi il mio nome, cognome, indirizzo email, numero di telefono, poi fare il preventivo dei servizi richiesti. Scrivi la domanda in modo conciso';
             //crea un pdf con i dati di riepilogo
         } elseif ($userMessage === 'Genera Preventivo') {
             return 'Genera un preventivo per l\'azienda Cavallini Service con sede a Noale in via del Musonetto, 4, partita IVA numero CVLDVD87M23L736P. Il preventivo deve essere in formato JSON Object, con la seguente struttura:\\n\\n- La prima sezione deve essere \'company_info\' con le colonne \'name\' (nome dell\'azienda), \'address\' (indirizzo dell\'azienda) e \'vat_number\' (partita IVA dell\'azienda).\\n- La seconda sezione deve essere \'personal_info\' con le colonne \'first_name\' (nome), \'last_name\' (cognome), \'phone_number\' (numero di telefono), \'email\' (indirizzo email).\\n- La terza sezione deve essere \'products\' che contiene una lista di prodotti e servizi (inclusa la manodopera se c\'è scritto il prezzo nel file), ognuno con le colonne \'name\' (nome del prodotto o servizio), \'quantity\' (quantità del prodotto o servizio) e \'price\' (prezzo del singolo prodotto o servizio).\\n- L\'ultima sezione deve essere \'price_info\' con le colonne \'net_price\' (prezzo netto), \'vat\' (IVA al 22%) e \'total\' (prezzo totale).\\n\\nEsempio di JSON da generare:\\n\\n{\\n  "company_info": {\\n    "name": "Cavallini Service",\\n    "address": "via Tal dei Tali, 15, Milano",\\n    "vat_number": "01234567899"\\n  },\\n  "personal_info": {\\n    "first_name": "Mario",\\n    "last_name": "Rossi",\\n    "phone_number": "1234567890",\\n    "email": "mario.rossi@example.com",\\n    "site_address": "via Esempio, 20",\\n    "city": "Milano",\\n    "province": "MI",\\n    "country": "Italia"\\n  },\\n  "products": [\\n    {\\n      "name": "Finestra in PVC",\\n      "quantity": 10,\\n      "price": 200\\n    },\\n    {\\n      "name": "Porta in legno",\\n      "quantity": 5,\\n      "price": 300\\n    },\\n    {\\n      "name": "Manodopera montaggio finestra",\\n      "quantity": 10,\\n      "price": 150\\n    },\\n    {\\n      "name": "Manodopera montaggio porta",\\n      "quantity": 5,\\n      "price": 150\\n    }\\n  ],\\n  "price_info": {\\n    "net_price": 5500,\\n    "vat": 1210,\\n    "total": 6710\\n  }\\n}. Non rispondere con nessun altra informazioni oltre il JSON. Il JSON non deve contenere commenti e dev\'essere ben formattato.';
