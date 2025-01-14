@@ -1,5 +1,5 @@
 @aware(['page'])
-<section class="py-24 bg-lime-600">
+<section class="py-24">
 
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <h2 class="font-manrope text-4xl font-bold text-gray-900 text-center mb-16">{{ $title }}</h2>
