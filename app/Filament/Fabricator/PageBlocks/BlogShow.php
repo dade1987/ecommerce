@@ -18,7 +18,7 @@ class BlogShow extends PageBlock
 
     public static function mutateData(array $data): array
     {
-        $data['row'] = Article::findOrFail(request()->route('item0'));
+        $data['row'] = Article::where('slug', request()->route('item0'))->first() ?? Article::findOrFail(request()->route('item0'));
 
         return $data;
     }
