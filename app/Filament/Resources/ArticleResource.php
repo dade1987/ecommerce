@@ -14,7 +14,8 @@ use Filament\Forms\Set;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use function Safe\json_decode; // Importa la funzione sicura json_decode
+use Illuminate\Support\Str;
+use function Safe\json_decode;
 
 class ArticleResource extends Resource
 {
@@ -35,27 +36,38 @@ class ArticleResource extends Resource
 
                 Forms\Components\TextInput::make('title')
                     ->required()
-                    ->maxLength(255),
+                    ->maxLength(255)
+                    ->live(onBlur: true) // Met à jour le slug après modification du titre
+                    ->afterStateUpdated(fn (Set $set, ?string $state) => $set('slug', Str::slug($state))),
+
+                Forms\Components\TextInput::make('slug')
+                    ->label('Slug')
+                    ->required()
+                    ->unique(ignoreRecord: true) // Vérifie l'unicité sauf lors de la modification
+                    ->dehydrated() // Assure que la valeur est bien envoyée au modèle
+                    ->disabled(fn ($livewire) => $livewire instanceof Pages\EditArticle) // Édition désactivée sauf lors de la modification
+                    ->afterStateUpdated(fn (Set $set, ?string $state) => $set('slug', Str::slug($state)))
+                    ->reactive(),
 
                 Forms\Components\RichEditor::make('content')
-                ->required()
-                ->columnSpanFull()
-                ->hintAction(
-                    Action::make('generateWithGpt')
-                        ->icon('heroicon-m-sparkles')
-                        ->label('Generate with AI')
-                        ->requiresConfirmation()
-                        ->action(function (Set $set, callable $get) {
-                            $title = $get('title'); // Récupère la valeur du champ 'title'
+                    ->required()
+                    ->columnSpanFull()
+                    ->hintAction(
+                        Action::make('generateWithGpt')
+                            ->icon('heroicon-m-sparkles')
+                            ->label('Generate with AI')
+                            ->requiresConfirmation()
+                            ->action(function (Set $set, callable $get) {
+                                $title = $get('title');
 
-                            if (! $title || trim($title) === '') {
-                                throw new \Exception('The title field must be filled before generating content.');
-                            }
+                                if (! $title || trim($title) === '') {
+                                    throw new \Exception('The title field must be filled before generating content.');
+                                }
 
-                            $generatedContent = static::generateContent($title);
-                            $set('content', $generatedContent);
-                        })
-                ),
+                                $generatedContent = static::generateContent($title);
+                                $set('content', $generatedContent);
+                            })
+                    ),
 
                 CuratorPicker::make('featured_image_id')
                     ->relationship('featuredImage', 'id')
@@ -87,7 +99,7 @@ class ArticleResource extends Resource
                     'Content-Type'  => 'application/json',
                 ],
                 'json' => [
-                    'model' => 'gpt-4-turbo', // Utilisez 'gpt-4' ou 'gpt-4-turbo' si disponible
+                    'model' => 'gpt-4-turbo',
                     'messages' => [
                         ['role' => 'system', 'content' => 'Sei uno scrittore professionista di blog.'],
                         ['role' => 'user', 'content' => "Scrivi un articolo dettagliato (senza usare formattazioni di GPT) sul seguente argomento: {$title}"],
@@ -111,10 +123,19 @@ class ArticleResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('title')
                     ->searchable(),
+
+                Tables\Columns\TextColumn::make('slug')
+                    ->label('Slug')
+                    ->searchable()
+                    ->sortable()
+                    ->copyable() // Ajoute un bouton pour copier la valeur
+                    ->toggleable(isToggledHiddenByDefault: true),
+
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+
                 Tables\Columns\TextColumn::make('updated_at')
                     ->dateTime()
                     ->sortable()
@@ -135,9 +156,7 @@ class ArticleResource extends Resource
 
     public static function getRelations(): array
     {
-        return [
-            //
-        ];
+        return [];
     }
 
     public static function getPages(): array

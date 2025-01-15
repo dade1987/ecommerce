@@ -40,8 +40,6 @@ class PageController extends Controller
 
         $pageId = array_search($value, $pageUrls);
 
-        //dd(['pageUrls'=>$pageUrls,'value'=>$value, 'pageId'=>$pageId,'pageModel'=>$pageModel]);
-
         //qui potrei usare le policy tipo
         $page = $pageModel::query()
             ->where('id', $pageId)
