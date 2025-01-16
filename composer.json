@@ -28,7 +28,7 @@
         "spatie/laravel-tags": "^4.6",
         "thecodingmachine/safe": "^2.5",
         "van-ons/laraberg": "^2.0",
-        "z3d0x/filament-fabricator": "^2.0"
+        "z3d0x/filament-fabricator": "2.2.2"
     },
     "require-dev": {
         "barryvdh/laravel-debugbar": "^3.9",
