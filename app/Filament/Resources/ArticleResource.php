@@ -59,12 +59,17 @@ class ArticleResource extends Resource
                             ->requiresConfirmation()
                             ->action(function (Set $set, callable $get) {
                                 $title = $get('title');
+                                $prompt = $get('content');
 
                                 if (! $title || trim($title) === '') {
                                     throw new \Exception('The title field must be filled before generating content.');
                                 }
 
-                                $generatedContent = static::generateContent($title);
+                                if (! $prompt || trim($prompt) === '') {
+                                    throw new \Exception('The content field must be filled before generating content.');
+                                }
+
+                                $generatedContent = static::generateContent($title, $prompt);
                                 $set('content', $generatedContent);
                             })
                     ),
@@ -82,7 +87,7 @@ class ArticleResource extends Resource
      * @return string
      * @throws \Exception
      */
-    protected static function generateContent(string $title): string
+    protected static function generateContent(string $title, string $prompt): string
     {
         $apiKey = config('services.openai.key');
 
@@ -99,10 +104,11 @@ class ArticleResource extends Resource
                     'Content-Type'  => 'application/json',
                 ],
                 'json' => [
-                    'model' => 'gpt-4-turbo',
+                    'model' => 'gpt-4o',
                     'messages' => [
                         ['role' => 'system', 'content' => 'Sei uno scrittore professionista di blog.'],
-                        ['role' => 'user', 'content' => "Scrivi un articolo dettagliato (senza usare formattazioni di GPT) sul seguente argomento: {$title}"],
+                        ['role' => 'user', 'content' => "Scrivi un articolo dettagliato con testo NON FORMATTATO sul seguente argomento: {$title}"],
+                        ['role' => 'user', 'content' => "In più ti fornisco le seguenti indicazioni: {$prompt}"],
                     ],
                     'max_tokens' => 1000,
                     'temperature' => 0.75,
