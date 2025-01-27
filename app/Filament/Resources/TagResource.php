@@ -45,11 +45,15 @@ class TagResource extends Resource
                 Tables\Columns\TextColumn::make('name')
                     ->searchable(),
 
+                Tables\Columns\TextColumn::make('slug')
+                    ->label('Slug')
+                    ->searchable()
+                    ->toggleable(false), // La colonna non può essere nascosta
+
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
-
             ])
             ->filters([
                 //

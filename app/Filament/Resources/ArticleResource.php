@@ -107,7 +107,7 @@ class ArticleResource extends Resource
                     'model' => 'gpt-4o',
                     'messages' => [
                         ['role' => 'system', 'content' => 'Sei uno scrittore professionista di blog.'],
-                        ['role' => 'user', 'content' => "Scrivi un articolo dettagliato con testo NON FORMATTATO sul seguente argomento: {$title}"],
+                        ['role' => 'user', 'content' => "Scrivi un articolo dettagliato con testo NON FORMATTATO ECCETTO GLI \"A CAPI\", sul seguente argomento: {$title}"],
                         ['role' => 'user', 'content' => "In più ti fornisco le seguenti indicazioni: {$prompt}"],
                     ],
                     'max_tokens' => 1000,
@@ -134,19 +134,21 @@ class ArticleResource extends Resource
                     ->label('Slug')
                     ->searchable()
                     ->sortable()
-                    ->copyable() // Ajoute un bouton pour copier la valeur
+                    ->copyable() // Aggiunge un pulsante per copiare il valore
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('created_at')
+                    ->label('Created At')
                     ->dateTime()
                     ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->toggleable(false), // La colonna non è disattivabile
 
                 Tables\Columns\TextColumn::make('updated_at')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
+            ->defaultSort('id', 'desc') // Ordine discendente per ID
             ->filters([
                 //
             ])
