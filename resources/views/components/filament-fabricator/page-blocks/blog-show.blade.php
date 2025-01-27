@@ -12,6 +12,12 @@
             class="block antialiased tracking-normal font-sans text-4xl font-semibold leading-[1.3] text-blue-gray-900 my-4 font-black text-4xl !leading-snug">
             {{ $row->title }}
         </h2>
+
+        {{-- Data di pubblicazione e autore --}}
+        <p class="block antialiased font-sans text-sm font-light leading-normal text-inherit text-gray-600 mb-4">
+            Pubblicato il <span class="font-medium text-gray-800">{{ date('d M Y', strtotime($row->created_at)) }}</span>
+        </p>
+
         <p
             class="block antialiased font-sans text-base font-light leading-relaxed text-inherit font-normal !text-gray-500">
             {!! $row->content !!}
