@@ -11,7 +11,11 @@ class Quote extends Component
 
     public function mount()
     {
-        $this->quotes = Quoter::get();
+        if (auth()->check()) {
+            $this->quotes = Quoter::get();
+        } else {
+            abort(403);
+        }
     }
 
     public function render()
