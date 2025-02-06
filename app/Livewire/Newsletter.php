@@ -8,9 +8,13 @@ use Spatie\Newsletter\Facades\Newsletter as Nl;
 
 class Newsletter extends Component
 {
-    public $email;
+    public $email = '';
 
-    public $isModalVisible = true; // Aggiunto per gestire la visibilità del modal
+    public $isModalVisible = true;
+
+    public $isPrivacyModalVisible = false;
+
+    public $isPrivacyChecked = false; // Aggiunta della variabile isPrivacyChecked
 
     public function render()
     {
@@ -23,20 +27,31 @@ class Newsletter extends Component
 
     public function setNewsletterVisited()
     {
-        Cookie::queue('newsletter_visited', true, 60 * 24 * 30); // Imposta il cookie per 30 giorni
+        Cookie::queue('newsletter_visited', true, 60 * 24 * 30);
     }
 
     public function save()
     {
-        if ($this->email) {
+        if ($this->email && $this->isPrivacyChecked) { // Controllo aggiunto per isPrivacyChecked
             Nl::subscribe($this->email);
+
+            $this->close();
         }
-        $this->close();
     }
 
     public function close()
     {
         $this->setNewsletterVisited();
-        $this->isModalVisible = false; // Imposta isModalVisible a false
+        $this->isModalVisible = false;
+    }
+
+    public function openPrivacyModal()
+    {
+        $this->isPrivacyModalVisible = true;
+    }
+
+    public function closePrivacyModal()
+    {
+        $this->isPrivacyModalVisible = false;
     }
 }

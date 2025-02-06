@@ -14,7 +14,7 @@
             @endforeach
         </ul>
         <div class="items-center flex-shrink-0 hidden lg:flex">
-            @guest
+            {{--@guest
                 <a href="{{ route('login') }}" class="self-center px-8 py-3 rounded text-xl font-bold text-gray-600">Accedi</a>
                 <a href="{{ route('register') }}"
                     class="self-center px-8 py-3 font-semibold rounded dark:bg-violet-400 dark:text-gray-900 text-xl font-bold text-gray-600">Registrati</a>
@@ -28,7 +28,7 @@
                         <button type='submit' class="text-xl font-bold text-gray-600">Esci</button>
                     </form>
                 @endif
-            @endauth
+            @endauth--}}
         </div>
         <button id="menu-button" class="p-4 lg:hidden">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"
