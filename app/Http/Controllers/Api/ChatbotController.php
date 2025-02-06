@@ -117,16 +117,19 @@ class ChatbotController extends Controller
 
     private function getGptResponseWithProducts($originalMessage, $productData)
     {
-        Log::info('getGptResponseWithProducts: Inizio formattazione risposta con prodotti', ['originalMessage' => $originalMessage, 'productData' => $productData]);
         $client = new Client();
 
-        // Formatta i dati dei prodotti per GPT
+        // Formatta i dati dei prodotti come testo leggibile
         $formattedProductInfo = collect($productData)->map(function ($product) {
-            return "- **{$product['name']}**: ".($product['description'] ?? 'No description available').". Price: €{$product['price']}.";
+            return "- **{$product['name']}**: "
+                .($product['description'] ? $product['description'] : 'No description available')
+                .". Price: €{$product['price']}.";
         })->implode("\n");
 
-        Log::info('getGptResponseWithProducts: Informazioni prodotti formattate', ['formattedProductInfo' => $formattedProductInfo]);
+        // Prompt aggiornato per rendere il dato più vincolante
+        $promptMessage = "Based on the menu information provided below, respond to the user's query strictly using the product details without making assumptions or guesses.\n\nMenu Information:\n$formattedProductInfo";
 
+        // Chiamata all'API GPT
         $response = $client->post('https://api.openai.com/v1/chat/completions', [
             'headers' => [
                 'Authorization' => 'Bearer '.env('OPENAI_API_KEY'),
@@ -135,16 +138,13 @@ class ChatbotController extends Controller
             'json' => [
                 'model' => 'gpt-4-0613',
                 'messages' => [
-                    ['role' => 'system', 'content' => 'You are a chatbot that provides elegant answers about menu products.'],
+                    ['role' => 'system', 'content' => 'You are a chatbot that answers menu-related questions with precise information.'],
                     ['role' => 'user', 'content' => $originalMessage],
-                    ['role' => 'assistant', 'content' => "Here is the product information I found:\n$formattedProductInfo"],
+                    ['role' => 'assistant', 'content' => $promptMessage],
                 ],
             ],
         ]);
 
-        $finalResponse = json_decode($response->getBody(), true)['choices'][0]['message']['content'];
-        Log::info('getGptResponseWithProducts: Risposta finale GPT ricevuta', ['finalResponse' => $finalResponse]);
-
-        return $finalResponse;
+        return json_decode($response->getBody(), true)['choices'][0]['message']['content'];
     }
 }
