@@ -127,7 +127,7 @@ class ChatbotController extends Controller
         })->implode("\n");
 
         // Prompt aggiornato per rendere il dato più vincolante
-        $promptMessage = "Based on the menu information provided below, respond to the user's query strictly using the product details without making assumptions or guesses.\n\nMenu Information:\n$formattedProductInfo";
+        $promptMessage = "Based on the menu information provided below, respond to the user's query strictly using the product details without making assumptions or guesses. Additionally, provide a refined description of the dish as if you were a chef.\n\nMenu Information:\n$formattedProductInfo";
 
         // Chiamata all'API GPT
         $response = $client->post('https://api.openai.com/v1/chat/completions', [
