@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\ChatbotController;
 use App\Http\Controllers\QuoterController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -27,3 +28,16 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 Route::post('/send-message', [QuoterController::class, 'sendMessage']);
 Route::post('/create-thread', [QuoterController::class, 'createThread']);
 Route::post('/upload-file', [QuoterController::class, 'uploadFile']);
+
+//TEST FUNCTION CALLING
+Route::get('/products', function (Request $request) {
+    $query = App\Models\Product::query();
+
+    if ($request->has('name')) {
+        $query->where('name', 'like', '%'.$request->input('name').'%');
+    }
+
+    return response()->json($query->get());
+});
+
+Route::post('/chatbot', [ChatbotController::class, 'handleChat']);
