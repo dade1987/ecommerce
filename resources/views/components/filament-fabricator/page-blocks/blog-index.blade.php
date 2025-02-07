@@ -11,9 +11,9 @@
                         </span>
                     </div>
                     <div class="p-6 flex-1 flex flex-col">
-                        <h4 class="text-xl text-gray-800 font-semibold leading-6 mb-3 group-hover:text-indigo-600 transition-colors min-h-[64px]">
+                        <a href="/blog/{{ $row->slug ?? $row->id }}" class="text-xl text-gray-800 font-semibold leading-6 mb-3 group-hover:text-indigo-600 transition-colors min-h-[64px]">
                             {{ $row->title }}
-                        </h4>
+                        </a>
                         <p class="text-gray-600 leading-6 mb-6 flex-grow">
                             {!! Str::limit($row->content, 150) !!}...
                         </p>
