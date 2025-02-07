@@ -6,10 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-   {{-- <!-- Title -->
+   <!-- Title -->
     <title>@yield('title', config('metatag.default.title'))</title>
 
-    <!-- Meta Description -->
+    {{-- <!-- Meta Description -->
     <meta name="description" content="@yield('meta-description', config('metatag.default.description'))">
 
     <!-- Meta Robots -->
