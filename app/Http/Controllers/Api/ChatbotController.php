@@ -74,7 +74,7 @@ class ChatbotController extends Controller
                                         'description' => 'Nomi dei prodotti da recuperare.',
                                     ],
                                 ],
-                                'required' => ['product_names'],
+                                'required' => [],
                             ],
                         ],
                     ],
@@ -92,7 +92,7 @@ class ChatbotController extends Controller
 
             if ($functionCall->name === 'getProductInfo') {
                 $arguments = json_decode($functionCall->arguments, true);
-                $productNames = $arguments['product_names'];
+                $productNames = $arguments['product_names'] ?? [];
 
                 // Recupera i dati dei prodotti
                 $productData = $this->fetchProductData($productNames, $teamSlug);
@@ -145,15 +145,21 @@ class ChatbotController extends Controller
         $client = new Client();
         $products = [];
 
-        foreach ($productNames as $name) {
-            Log::info('fetchProductData: Richiesta dati per prodotto', ['name' => $name]);
-            $response = $client->get("https://cavalliniservice.com/api/products/{$teamSlug}", [
-                'query' => ['name' => $name],
-            ]);
+        if (empty($productNames)) {
+            Log::info('fetchProductData: Richiesta indice di tutti i prodotti');
+            $response = $client->get("https://cavalliniservice.com/api/products/{$teamSlug}");
+            $products = json_decode($response->getBody(), true);
+        } else {
+            foreach ($productNames as $name) {
+                Log::info('fetchProductData: Richiesta dati per prodotto', ['name' => $name]);
+                $response = $client->get("https://cavalliniservice.com/api/products/{$teamSlug}", [
+                    'query' => ['name' => $name],
+                ]);
 
-            $productData = json_decode($response->getBody(), true);
-            Log::info('fetchProductData: Dati prodotto ricevuti', ['productData' => $productData]);
-            $products = array_merge($products, $productData);
+                $productData = json_decode($response->getBody(), true);
+                Log::info('fetchProductData: Dati prodotto ricevuti', ['productData' => $productData]);
+                $products = array_merge($products, $productData);
+            }
         }
 
         Log::info('fetchProductData: Dati prodotti finali', ['products' => $products]);
