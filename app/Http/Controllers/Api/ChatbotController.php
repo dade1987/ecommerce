@@ -57,20 +57,20 @@ class ChatbotController extends Controller
             threadId: $threadId,
             parameters: [
                 'assistant_id' => 'asst_34SA8ZkwlHiiXxNufoZYddn0',
-                'instructions' => 'You are a chatbot that answers questions about menu products.',
+                'instructions' => 'Sei un chatbot che risponde a domande sui prodotti del menu.',
                 'tools' => [
                     [
                         'type' => 'function',
                         'function' => [
                             'name' => 'getProductInfo',
-                            'description' => 'Retrieve information about menu products by their names.',
+                            'description' => 'Recupera informazioni sui prodotti del menu tramite i loro nomi.',
                             'parameters' => [
                                 'type' => 'object',
                                 'properties' => [
                                     'product_names' => [
                                         'type' => 'array',
                                         'items' => ['type' => 'string'],
-                                        'description' => 'Names of the products to retrieve.',
+                                        'description' => 'Nomi dei prodotti da recuperare.',
                                     ],
                                 ],
                                 'required' => ['product_names'],

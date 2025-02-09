@@ -2,27 +2,27 @@
 
 namespace App\Filament\Resources;
 
-use Filament\Forms;
-use Filament\Tables;
-use Filament\Forms\Set;
+use App\Filament\Resources\CategoryResource\Pages;
+use App\Filament\Resources\CategoryResource\RelationManagers;
+use App\Filament\Resources\ProductMorphResource;
 use App\Models\Category;
-use Filament\Forms\Form;
-use Filament\Tables\Table;
-use Illuminate\Support\Str;
 use App\Models\Traits\HasTeams;
-use Filament\Resources\Resource;
+use Awcodes\Curator\Components\Forms\CuratorPicker;
+use Awcodes\Curator\Components\Tables\CuratorColumn;
+use Filament\Forms;
 use Filament\Forms\Components\Checkbox;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Form;
+use Filament\Forms\Set;
+use Filament\Resources\Resource;
+use Filament\Tables;
+use Filament\Tables\Columns\BooleanColumn;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Forms\Components\TextInput;
+use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Filament\Tables\Columns\BooleanColumn;
-use App\Filament\Resources\ProductMorphResource;
-use App\Filament\Resources\CategoryResource\Pages;
-use Awcodes\Curator\Components\Forms\CuratorPicker;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Awcodes\Curator\Components\Tables\CuratorColumn;
-use App\Filament\Resources\CategoryResource\RelationManagers;
+use Illuminate\Support\Str;
 use SevendaysDigital\FilamentNestedResources\Columns\ChildResourceLink;
 
 class CategoryResource extends Resource
@@ -42,7 +42,11 @@ class CategoryResource extends Resource
                 Checkbox::make('is_hidden'),
                 CuratorPicker::make('featured_image_id')
                     ->relationship('featuredImage', 'id')
-                    ->imageResizeTargetWidth(10)
+                    ->imageResizeTargetWidth(10),
+                Forms\Components\Select::make('team_id')
+                    ->label('Team')
+                    ->relationship('team', 'name')
+                    ->required(),
             ]);
     }
 

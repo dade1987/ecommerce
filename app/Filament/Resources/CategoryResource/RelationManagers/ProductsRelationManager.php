@@ -2,15 +2,15 @@
 
 namespace App\Filament\Resources\CategoryResource\RelationManagers;
 
+use Awcodes\Curator\Components\Forms\CuratorPicker;
+use Awcodes\Curator\Components\Tables\CuratorColumn;
 use Filament\Forms;
-use Filament\Tables;
 use Filament\Forms\Form;
+use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Awcodes\Curator\Components\Forms\CuratorPicker;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Awcodes\Curator\Components\Tables\CuratorColumn;
-use Filament\Resources\RelationManagers\RelationManager;
 
 class ProductsRelationManager extends RelationManager
 {
@@ -32,7 +32,12 @@ class ProductsRelationManager extends RelationManager
                     ->prefix('€'),
                 CuratorPicker::make('featured_image_id')
                     ->relationship('featuredImage', 'id')
-                    ->imageResizeTargetWidth(10)
+                    ->imageResizeTargetWidth(10),
+                Forms\Components\Select::make('team_id')
+                    ->label('Team')
+                    ->relationship('team', 'name')
+                    ->default(fn ($record) => $record ? $record->category->team_id : null)
+                    ->required(),
             ]);
     }
 
@@ -59,7 +64,7 @@ class ProductsRelationManager extends RelationManager
                     ->numeric()
                     ->sortable(),
                 CuratorColumn::make('featured_image')
-                    ->size(40)
+                    ->size(40),
             ])
             ->filters([
                 //
