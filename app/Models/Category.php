@@ -4,21 +4,21 @@ namespace App\Models;
 
 use App\Models\Traits\HasTeams;
 use Awcodes\Curator\Models\Media;
-use Illuminate\Support\Facades\Route;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Spatie\EloquentSortable\SortableTrait;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
+use Illuminate\Support\Facades\Route;
+use Spatie\EloquentSortable\SortableTrait;
 
 class Category extends Model
 {
     use HasFactory;
-
     use SortableTrait;
     use HasTeams;
-    protected $fillable = ['name', 'order_column', 'is_hidden','slug'];
+
+    protected $fillable = ['name', 'order_column', 'is_hidden', 'slug'];
 
     protected $casts = ['is_hidden' => 'boolean'];
 
@@ -39,7 +39,6 @@ class Category extends Model
         $pivot_table = $pivot->getTable();
         $pivot_fields = $pivot->getFillable();
 
-
         return $this->morphToMany(Product::class, 'model', $pivot_table)
             ->using($pivot_class)
             ->withPivot($pivot_fields)
@@ -48,11 +47,16 @@ class Category extends Model
 
     public function getActionAttribute()
     {
-        return ' onClick=location.href=\'' . route('{item2?}.index', ['container0' => 'categories', 'item0' => $this, 'container1' => 'products']) . '\' ';
+        return ' onClick=location.href=\''.route('{item2?}.index', ['container0' => 'categories', 'item0' => $this, 'container1' => 'products']).'\' ';
     }
 
     public function getActionTextAttribute()
     {
         return 'Apri Categoria';
+    }
+
+    public function team()
+    {
+        return $this->belongsTo(Team::class);
     }
 }

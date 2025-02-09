@@ -13,73 +13,140 @@ class ChatbotController extends Controller
     public function handleChat(Request $request)
     {
         Log::info('handleChat: Inizio elaborazione richiesta');
+
+        // Recupera il messaggio inviato dall'utente e, se presente, il thread_id della sessione
         $userInput = $request->input('message');
-        Log::info('handleChat: Messaggio utente ricevuto', ['message' => $userInput]);
+        $threadId = $request->input('thread_id'); // il thread_id fornito dal client (se esiste)
+        Log::info('handleChat: Messaggio utente ricevuto', [
+            'message'   => $userInput,
+            'thread_id' => $threadId,
+        ]);
 
-        // Step 1: Ottieni la risposta di GPT
-        $gptResponse = $this->getGptResponse($userInput);
-        Log::info('handleChat: Risposta GPT ottenuta', ['gptResponse' => $gptResponse]);
+        // Se non esiste un thread_id, creane uno tramite l’endpoint /v1/threads
+        if (! $threadId) {
+            $threadId = $this->createThread();
+            Log::info('handleChat: Nuovo thread creato', ['thread_id' => $threadId]);
+        }
 
-        // Step 2: Gestione del function calling
+        // Step 1: Chiediamo a ChatGPT la risposta iniziale, passando il thread_id per mantenere il contesto
+        $gptResponse = $this->getGptResponse($userInput, $threadId);
+        Log::info('handleChat: Risposta GPT iniziale ottenuta', ['gptResponse' => $gptResponse]);
+
+        // La risposta di ChatGPT DEVE essere in formato JSON (nella proprietà "content") con le chiavi "message" e "thread_id"
+        $decodedResponse = json_decode($gptResponse['content'], true);
+        $finalMessage = $decodedResponse['message'] ?? '';
+
+        // Se ChatGPT restituisce un thread_id, lo usiamo (altrimenti, manteniamo quello corrente)
+        $threadId = $decodedResponse['thread_id'] ?? $threadId;
+
+        // Step 2: Se la risposta di ChatGPT include una "function_call", la gestiamo
         if (isset($gptResponse['function_call'])) {
             Log::info('handleChat: Function call rilevata', ['function_call' => $gptResponse['function_call']]);
             $functionCall = $gptResponse['function_call'];
             $functionName = $functionCall['name'];
             $arguments = json_decode($functionCall['arguments'], true);
-            Log::info('handleChat: Function name e arguments', ['functionName' => $functionName, 'arguments' => $arguments]);
+            Log::info('handleChat: Nome funzione e argomenti', [
+                'functionName' => $functionName,
+                'arguments'    => $arguments,
+            ]);
 
             if ($functionName === 'getProductInfo' && isset($arguments['product_names'])) {
                 $productNames = $arguments['product_names'];
-                Log::info('handleChat: Product names rilevati', ['productNames' => $productNames]);
+                Log::info('handleChat: Nomi dei prodotti rilevati', ['productNames' => $productNames]);
 
-                // Step 3: Chiama l'API dei prodotti
+                // Step 3: Recupera i dati dei prodotti tramite l’API esterna
                 $productData = $this->fetchProductData($productNames);
-                Log::info('handleChat: Dati prodotti ottenuti', ['productData' => $productData]);
+                Log::info('handleChat: Dati dei prodotti ottenuti', ['productData' => $productData]);
 
-                // Step 4: Riformula la risposta utilizzando GPT
-                $finalMessage = $this->getGptResponseWithProducts($userInput, $productData);
-                Log::info('handleChat: Messaggio finale ottenuto', ['finalMessage' => $finalMessage]);
+                // Step 4: Riformula la risposta includendo le informazioni sui prodotti,
+                // passando il thread_id per mantenere il contesto della conversazione
+                $gptResponseConProdotti = $this->getGptResponseWithProducts($userInput, $productData, $threadId);
+                Log::info('handleChat: Risposta finale con prodotti ottenuta', ['gptResponseConProdotti' => $gptResponseConProdotti]);
 
-                // Step 5: Invia la risposta all'utente
-                return response()->json(['message' => $finalMessage]);
+                $decodedResponse = json_decode($gptResponseConProdotti['content'], true);
+                $finalMessage = $decodedResponse['message'] ?? '';
+                // Il thread_id dovrebbe rimanere invariato
+                $threadId = $decodedResponse['thread_id'] ?? $threadId;
             }
         }
 
-        // Risposta standard se non ci sono function call
-        Log::info('handleChat: Nessuna function call, risposta standard inviata');
+        Log::info('handleChat: Invio risposta finale', [
+            'finalMessage' => $finalMessage,
+            'thread_id'    => $threadId,
+        ]);
 
-        return response()->json(['message' => $gptResponse['message']]);
+        // Restituisce la risposta al client, includendo il thread_id per mantenere il contesto della chat
+        return response()->json([
+            'message'   => $finalMessage,
+            'thread_id' => $threadId,
+        ]);
     }
 
-    private function getGptResponse($message)
+    /**
+     * Crea un nuovo thread chiamando l’endpoint /v1/threads e restituisce il thread_id.
+     */
+    private function createThread()
     {
-        Log::info('getGptResponse: Inizio richiesta a GPT', ['message' => $message]);
         $client = new Client();
+
+        $response = $client->post('https://api.openai.com/v1/threads', [
+            'headers' => [
+                'Authorization' => 'Bearer '.env('OPENAI_API_KEY'),
+                'Content-Type'  => 'application/json',
+            ],
+            // Se necessari, è possibile passare dei parametri nel corpo della richiesta
+            'json' => [],
+        ]);
+
+        $data = json_decode($response->getBody(), true);
+        Log::info('createThread: Thread creato', ['data' => $data]);
+
+        // Supponiamo che la risposta contenga una chiave "id" con il thread_id
+        return $data['id'];
+    }
+
+    /**
+     * Invia una richiesta a ChatGPT per ottenere la risposta iniziale.
+     * Il thread_id viene passato nel payload per mantenere il contesto della conversazione.
+     */
+    private function getGptResponse($message, $threadId)
+    {
+        Log::info('getGptResponse: Inizio richiesta a ChatGPT', ['message' => $message, 'thread_id' => $threadId]);
+        $client = new Client();
+
+        $systemMessage = 'Sei un chatbot che risponde a domande sui prodotti del menù. '.
+                         'Quando rispondi, utilizza il seguente formato JSON: '.
+                         '{"message": "il testo della risposta", "thread_id": "identificativo della sessione"}. '.
+                         'Se viene fornito un thread_id, usalo senza modificarlo; altrimenti, generane uno costante per la sessione.';
+
+        $messages = [
+            ['role' => 'system', 'content' => $systemMessage],
+            ['role' => 'user', 'content' => $message],
+        ];
+
         $response = $client->post('https://api.openai.com/v1/chat/completions', [
             'headers' => [
                 'Authorization' => 'Bearer '.env('OPENAI_API_KEY'),
-                'Content-Type' => 'application/json',
+                'Content-Type'  => 'application/json',
             ],
             'json' => [
-                'model' => 'gpt-4-0613',
-                'messages' => [
-                    ['role' => 'system', 'content' => 'You are a chatbot that answers questions about menu products.'],
-                    ['role' => 'user', 'content' => $message],
-                ],
+                'model'    => 'gpt-4-0613',
+                'thread'   => $threadId, // Passiamo il thread_id per mantenere il contesto
+                'messages' => $messages,
                 'functions' => [
                     [
-                        'name' => 'getProductInfo',
-                        'description' => 'Retrieve information about menu products by their names.',
-                        'parameters' => [
-                            'type' => 'object',
+                        'name'        => 'getProductInfo',
+                        'description' => 'Recupera informazioni sui prodotti del menù a partire dai loro nomi.',
+                        'parameters'  => [
+                            'type'       => 'object',
                             'properties' => [
                                 'product_names' => [
-                                    'type' => 'array',
-                                    'items' => ['type' => 'string'],
-                                    'description' => 'Names of the products to retrieve.',
+                                    'type'        => 'array',
+                                    'items'       => ['type' => 'string'],
+                                    'description' => 'Nomi dei prodotti da recuperare.',
                                 ],
                             ],
-                            'required' => ['product_names'],
+                            'required'   => ['product_names'],
                         ],
                     ],
                 ],
@@ -88,63 +155,82 @@ class ChatbotController extends Controller
         ]);
 
         $gptResponse = json_decode($response->getBody(), true)['choices'][0]['message'];
-        Log::info('getGptResponse: Risposta GPT ricevuta', ['gptResponse' => $gptResponse]);
+        Log::info('getGptResponse: Risposta ricevuta da ChatGPT', ['gptResponse' => $gptResponse]);
 
         return $gptResponse;
     }
 
+    /**
+     * Recupera i dati dei prodotti tramite chiamata a un’API esterna.
+     */
     private function fetchProductData(array $productNames)
     {
-        Log::info('fetchProductData: Inizio recupero dati prodotti', ['productNames' => $productNames]);
+        Log::info('fetchProductData: Inizio recupero dati per i prodotti', ['productNames' => $productNames]);
         $client = new Client();
         $products = [];
 
         foreach ($productNames as $name) {
-            Log::info('fetchProductData: Richiesta dati per prodotto', ['name' => $name]);
+            Log::info('fetchProductData: Richiesta dati per il prodotto', ['name' => $name]);
             $response = $client->get('https://cavalliniservice.com/api/products', [
                 'query' => ['name' => $name],
             ]);
-
             $productData = json_decode($response->getBody(), true);
-            Log::info('fetchProductData: Dati prodotto ricevuti', ['productData' => $productData]);
+            Log::info('fetchProductData: Dati ricevuti per il prodotto', ['productData' => $productData]);
             $products = array_merge($products, $productData);
         }
 
-        Log::info('fetchProductData: Dati prodotti finali', ['products' => $products]);
+        Log::info('fetchProductData: Dati finali dei prodotti', ['products' => $products]);
 
         return $products;
     }
 
-    private function getGptResponseWithProducts($originalMessage, $productData)
+    /**
+     * Invia una richiesta a ChatGPT includendo i dettagli dei prodotti ottenuti,
+     * in modo da riformulare la risposta dell'utente.
+     * Il thread_id viene passato nel payload per mantenere il contesto della conversazione.
+     */
+    private function getGptResponseWithProducts($originalMessage, $productData, $threadId)
     {
         $client = new Client();
 
-        // Formatta i dati dei prodotti come testo leggibile
+        // Formattiamo i dati dei prodotti in un testo leggibile
         $formattedProductInfo = collect($productData)->map(function ($product) {
-            return "- **{$product['name']}**: "
-                .($product['description'] ? $product['description'] : 'No description available')
-                .". Price: €{$product['price']}.";
+            return "- **{$product['name']}**: ".
+                   ($product['description'] ? $product['description'] : 'Nessuna descrizione disponibile').
+                   ". Prezzo: €{$product['price']}.";
         })->implode("\n");
 
-        // Prompt aggiornato per rendere il dato più vincolante
-        $promptMessage = "Based on the menu information provided below, respond to the user's query strictly using the product details without making assumptions or guesses. Additionally, provide a refined description of the dish as if you were a chef.\n\nMenu Information:\n$formattedProductInfo";
+        $promptMessage = "In base alle seguenti informazioni del menù, rispondi alla domanda dell'utente utilizzando esclusivamente i dettagli forniti. ".
+                         "Inoltre, offri una descrizione raffinata del piatto come se fossi uno chef.\n\n".
+                         "Informazioni del menù:\n$formattedProductInfo\n\n".
+                         'Rispondi in formato JSON: {"message": "il testo della risposta", "thread_id": "identificativo della sessione"}.';
 
-        // Chiamata all'API GPT
+        $systemMessage = 'Sei un chatbot che risponde a domande sui prodotti del menù e fornisce descrizioni raffinate. '.
+                         'Quando rispondi, utilizza il seguente formato JSON: '.
+                         '{"message": "il testo della risposta", "thread_id": "identificativo della sessione"}. '.
+                         'Se viene fornito un thread_id, usalo senza modificarlo; altrimenti, generane uno costante per la sessione.';
+
+        $messages = [
+            ['role' => 'system', 'content' => $systemMessage],
+            ['role' => 'user', 'content' => $originalMessage],
+            ['role' => 'assistant', 'content' => $promptMessage],
+        ];
+
         $response = $client->post('https://api.openai.com/v1/chat/completions', [
             'headers' => [
                 'Authorization' => 'Bearer '.env('OPENAI_API_KEY'),
-                'Content-Type' => 'application/json',
+                'Content-Type'  => 'application/json',
             ],
             'json' => [
-                'model' => 'gpt-4-0613',
-                'messages' => [
-                    ['role' => 'system', 'content' => 'You are a chatbot that answers menu-related questions with precise information.'],
-                    ['role' => 'user', 'content' => $originalMessage],
-                    ['role' => 'assistant', 'content' => $promptMessage],
-                ],
+                'model'    => 'gpt-4-0613',
+                'thread'   => $threadId, // Passiamo il thread_id per mantenere il contesto
+                'messages' => $messages,
             ],
         ]);
 
-        return json_decode($response->getBody(), true)['choices'][0]['message']['content'];
+        $gptResponse = json_decode($response->getBody(), true)['choices'][0]['message'];
+        Log::info('getGptResponseWithProducts: Risposta ricevuta da ChatGPT', ['gptResponse' => $gptResponse]);
+
+        return $gptResponse;
     }
 }
