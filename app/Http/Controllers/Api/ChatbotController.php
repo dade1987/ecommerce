@@ -28,8 +28,8 @@ class ChatbotController extends Controller
             Log::info('handleChat: Nuovo thread creato', ['thread_id' => $threadId]);
         }
 
-        // Step 1: Chiediamo a ChatGPT la risposta iniziale, passando il thread_id per mantenere il contesto
-        $gptResponse = $this->getGptResponse($userInput, $threadId);
+        // Step 1: Chiediamo a ChatGPT la risposta iniziale (senza passare "thread" nel payload)
+        $gptResponse = $this->getGptResponse($userInput);
         Log::info('handleChat: Risposta GPT iniziale ottenuta', ['gptResponse' => $gptResponse]);
 
         // La risposta di ChatGPT DEVE essere in formato JSON (nella proprietà "content") con le chiavi "message" e "thread_id"
@@ -58,9 +58,8 @@ class ChatbotController extends Controller
                 $productData = $this->fetchProductData($productNames);
                 Log::info('handleChat: Dati dei prodotti ottenuti', ['productData' => $productData]);
 
-                // Step 4: Riformula la risposta includendo le informazioni sui prodotti,
-                // passando il thread_id per mantenere il contesto della conversazione
-                $gptResponseConProdotti = $this->getGptResponseWithProducts($userInput, $productData, $threadId);
+                // Step 4: Riformula la risposta includendo le informazioni sui prodotti
+                $gptResponseConProdotti = $this->getGptResponseWithProducts($userInput, $productData);
                 Log::info('handleChat: Risposta finale con prodotti ottenuta', ['gptResponseConProdotti' => $gptResponseConProdotti]);
 
                 $decodedResponse = json_decode($gptResponseConProdotti['content'], true);
@@ -93,25 +92,24 @@ class ChatbotController extends Controller
             'headers' => [
                 'Authorization' => 'Bearer '.env('OPENAI_API_KEY'),
                 'Content-Type'  => 'application/json',
+                'OpenAI-Beta'   => 'assistants=v2',
             ],
-            // Se necessari, è possibile passare dei parametri nel corpo della richiesta
             'json' => [],
         ]);
 
         $data = json_decode($response->getBody(), true);
         Log::info('createThread: Thread creato', ['data' => $data]);
 
-        // Supponiamo che la risposta contenga una chiave "id" con il thread_id
         return $data['id'];
     }
 
     /**
      * Invia una richiesta a ChatGPT per ottenere la risposta iniziale.
-     * Il thread_id viene passato nel payload per mantenere il contesto della conversazione.
+     * NOTA: Non passiamo il parametro "thread" nel payload, in quanto non è riconosciuto dall’endpoint.
      */
-    private function getGptResponse($message, $threadId)
+    private function getGptResponse($message)
     {
-        Log::info('getGptResponse: Inizio richiesta a ChatGPT', ['message' => $message, 'thread_id' => $threadId]);
+        Log::info('getGptResponse: Inizio richiesta a ChatGPT', ['message' => $message]);
         $client = new Client();
 
         $systemMessage = 'Sei un chatbot che risponde a domande sui prodotti del menù. '.
@@ -128,12 +126,12 @@ class ChatbotController extends Controller
             'headers' => [
                 'Authorization' => 'Bearer '.env('OPENAI_API_KEY'),
                 'Content-Type'  => 'application/json',
+                'OpenAI-Beta'   => 'assistants=v2',
             ],
             'json' => [
-                'model'    => 'gpt-4-0613',
-                'thread'   => $threadId, // Passiamo il thread_id per mantenere il contesto
-                'messages' => $messages,
-                'functions' => [
+                'model'         => 'gpt-4-0613',
+                'messages'      => $messages,
+                'functions'     => [
                     [
                         'name'        => 'getProductInfo',
                         'description' => 'Recupera informazioni sui prodotti del menù a partire dai loro nomi.',
@@ -187,9 +185,9 @@ class ChatbotController extends Controller
     /**
      * Invia una richiesta a ChatGPT includendo i dettagli dei prodotti ottenuti,
      * in modo da riformulare la risposta dell'utente.
-     * Il thread_id viene passato nel payload per mantenere il contesto della conversazione.
+     * NOTA: Anche qui NON passiamo il parametro "thread" nel payload.
      */
-    private function getGptResponseWithProducts($originalMessage, $productData, $threadId)
+    private function getGptResponseWithProducts($originalMessage, $productData)
     {
         $client = new Client();
 
@@ -206,8 +204,7 @@ class ChatbotController extends Controller
                          'Rispondi in formato JSON: {"message": "il testo della risposta", "thread_id": "identificativo della sessione"}.';
 
         $systemMessage = 'Sei un chatbot che risponde a domande sui prodotti del menù e fornisce descrizioni raffinate. '.
-                         'Quando rispondi, utilizza il seguente formato JSON: '.
-                         '{"message": "il testo della risposta", "thread_id": "identificativo della sessione"}. '.
+                         'Quando rispondi, utilizza il seguente formato JSON: {"message": "il testo della risposta", "thread_id": "identificativo della sessione"}. '.
                          'Se viene fornito un thread_id, usalo senza modificarlo; altrimenti, generane uno costante per la sessione.';
 
         $messages = [
@@ -220,10 +217,10 @@ class ChatbotController extends Controller
             'headers' => [
                 'Authorization' => 'Bearer '.env('OPENAI_API_KEY'),
                 'Content-Type'  => 'application/json',
+                'OpenAI-Beta'   => 'assistants=v2',
             ],
             'json' => [
                 'model'    => 'gpt-4-0613',
-                'thread'   => $threadId, // Passiamo il thread_id per mantenere il contesto
                 'messages' => $messages,
             ],
         ]);
