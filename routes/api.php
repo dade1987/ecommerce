@@ -30,8 +30,9 @@ Route::post('/create-thread', [QuoterController::class, 'createThread']);
 Route::post('/upload-file', [QuoterController::class, 'uploadFile']);
 
 //TEST FUNCTION CALLING
-Route::get('/products', function (Request $request) {
-    $query = App\Models\Product::query();
+Route::get('/products/{slug}', function (Request $request, $slug) {
+    $team = App\Models\Team::where('slug', $slug)->firstOrFail();
+    $query = App\Models\Product::where('team_id', $team->id);
 
     if ($request->has('name')) {
         $query->where('name', 'like', '%'.$request->input('name').'%');
