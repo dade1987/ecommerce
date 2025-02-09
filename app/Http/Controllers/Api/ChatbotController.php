@@ -36,6 +36,7 @@ class ChatbotController extends Controller
         Log::info('handleChat: Inizio elaborazione richiesta');
         $threadId = $request->input('thread_id');
         $userInput = $request->input('message');
+        $teamSlug = $request->input('team');
 
         // Se non viene passato un thread_id, ne crea uno nuovo
         if (! $threadId) {
@@ -94,7 +95,7 @@ class ChatbotController extends Controller
                 $productNames = $arguments['product_names'];
 
                 // Recupera i dati dei prodotti
-                $productData = $this->fetchProductData($productNames);
+                $productData = $this->fetchProductData($productNames, $teamSlug);
 
                 // Invia i risultati a GPT
                 $this->client->threads()->runs()->submitToolOutputs(
@@ -138,15 +139,15 @@ class ChatbotController extends Controller
         }
     }
 
-    private function fetchProductData(array $productNames)
+    private function fetchProductData(array $productNames, $teamSlug)
     {
-        Log::info('fetchProductData: Inizio recupero dati prodotti', ['productNames' => $productNames]);
+        Log::info('fetchProductData: Inizio recupero dati prodotti', ['productNames' => $productNames, 'teamSlug' => $teamSlug]);
         $client = new Client();
         $products = [];
 
         foreach ($productNames as $name) {
             Log::info('fetchProductData: Richiesta dati per prodotto', ['name' => $name]);
-            $response = $client->get('https://cavalliniservice.com/api/products', [
+            $response = $client->get("https://cavalliniservice.com/api/products/{$teamSlug}", [
                 'query' => ['name' => $name],
             ]);
 

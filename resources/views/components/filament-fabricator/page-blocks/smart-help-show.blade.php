@@ -16,6 +16,7 @@
         const userInputElement = document.getElementById('userInput');
         const sendButton = document.getElementById('sendButton');
         let threadId = null;
+        const team = window.location.pathname.split('/').pop(); // Estrae l'ultima parte dell'URL come team
 
         sendButton.addEventListener('click', sendMessage);
         userInputElement.addEventListener('keyup', function(event) {
@@ -65,6 +66,7 @@
                     body: JSON.stringify({
                         message: message,
                         thread_id: threadId,
+                        team: team, // Passa il team all'API
                     }),
                 });
 
