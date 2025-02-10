@@ -16,4 +16,9 @@ class Event extends Model
     {
         return $this->belongsTo(Media::class, 'featured_image_id', 'id');
     }
+
+    public function team(): BelongsTo
+    {
+        return $this->belongsTo(Team::class, 'team_id', 'id');
+    }
 }
