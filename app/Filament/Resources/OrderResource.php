@@ -2,17 +2,17 @@
 
 namespace App\Filament\Resources;
 
-use Filament\Forms;
-use Filament\Tables;
-use App\Models\Order;
-use Filament\Forms\Form;
-use Filament\Tables\Table;
-use Filament\Resources\Resource;
-use Illuminate\Database\Eloquent\Builder;
 use App\Filament\Resources\OrderResource\Pages;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 use App\Filament\Resources\OrderResource\RelationManagers;
 use App\Filament\Resources\OrderResource\RelationManagers\ProductsRelationManager;
+use App\Models\Order;
+use Filament\Forms;
+use Filament\Forms\Form;
+use Filament\Resources\Resource;
+use Filament\Tables;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class OrderResource extends Resource
 {
@@ -26,7 +26,10 @@ class OrderResource extends Resource
             ->schema([
                 Forms\Components\DateTimePicker::make('delivery_date'),
                 Forms\Components\Select::make('address_id')
-                    ->relationship(name: 'addresses', titleAttribute: 'street')
+                    ->relationship(name: 'addresses', titleAttribute: 'street'),
+                Forms\Components\TextInput::make('phone') // Aggiungi il campo phone
+                    ->label('Telefono')
+                    ->required(),
             ]);
     }
 
@@ -37,7 +40,10 @@ class OrderResource extends Resource
                 Tables\Columns\TextColumn::make('delivery_date')
                     ->dateTime()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('addresses.street')
+                Tables\Columns\TextColumn::make('addresses.street'),
+                Tables\Columns\TextColumn::make('phone') // Aggiungi la colonna phone
+                    ->label('Telefono')
+                    ->sortable(),
 
             ])
             ->filters([
@@ -60,7 +66,7 @@ class OrderResource extends Resource
     public static function getRelations(): array
     {
         return [
-            ProductsRelationManager::class
+            ProductsRelationManager::class,
         ];
     }
 
