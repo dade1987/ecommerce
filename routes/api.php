@@ -44,16 +44,7 @@ Route::get('/products/{slug}', function (Request $request, $slug) {
 Route::get('/teams/{slug}', function ($slug) {
     $team = App\Models\Team::where('slug', $slug)->firstOrFail();
 
-    return response()->json([
-        'name' => $team->name,
-        'slug' => $team->slug,
-        'nation' => $team->nation,
-        'region' => $team->region,
-        'province' => $team->province,
-        'municipality' => $team->municipality,
-        'street' => $team->street,
-        'postal_code' => $team->postal_code,
-    ]);
+    return response()->json($team);
 });
 Route::get('/events/{slug}', function ($slug) {
     $team = App\Models\Team::where('slug', $slug)->firstOrFail();
@@ -64,6 +55,28 @@ Route::get('/events/{slug}', function ($slug) {
         ->get(['starts_at', 'ends_at', 'name', 'featured_image_id', 'description']);
 
     return response()->json($events);
+});
+
+Route::post('/order/{slug}', function (Request $request, $slug) {
+    $team = App\Models\Team::where('slug', $slug)->firstOrFail();
+
+    $order = new App\Models\Order();
+    $order->team_id = $team->id;
+    $order->delivery_date = $request->input('delivery_date');
+    $order->save();
+
+    $address = new App\Models\Address();
+    $address->fill($request->input('address'));
+    $address->order_id = $order->id;
+    $address->save();
+
+    $productIds = $request->input('product_ids', []);
+    $order->products()->attach($productIds);
+
+    return response()->json([
+        'order_id' => $order->id,
+        'message' => 'Ordine creato con successo',
+    ]);
 });
 
 Route::post('/chatbot', [ChatbotController::class, 'handleChat']);
