@@ -55,14 +55,13 @@ Route::get('/teams/{slug}', function ($slug) {
         'postal_code' => $team->postal_code,
     ]);
 });
-
 Route::get('/events/{slug}', function ($slug) {
     $team = App\Models\Team::where('slug', $slug)->firstOrFail();
     $events = App\Models\Event::where('team_id', $team->id)
         ->where('name', 'Disponibile')
-        ->where('date', '>=', now())
-        ->orderBy('date', 'asc')
-        ->get();
+        ->where('starts_at', '>=', now())
+        ->orderBy('starts_at', 'asc')
+        ->get(['starts_at', 'ends_at', 'name', 'featured_image_id', 'description']);
 
     return response()->json($events);
 });
