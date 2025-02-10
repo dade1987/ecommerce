@@ -35,6 +35,9 @@ class EventResource extends Resource
                 CuratorPicker::make('featured_image_id')
                     ->relationship('featuredImage', 'id')
                     ->imageResizeTargetWidth(10),
+                Forms\Components\Select::make('team_id')
+                    ->relationship('team', 'name')
+                    ->required(),
 
             ]);
     }
