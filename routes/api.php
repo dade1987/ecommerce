@@ -41,4 +41,10 @@ Route::get('/products/{slug}', function (Request $request, $slug) {
     return response()->json($query->get());
 });
 
+Route::get('/teams/{slug}', function ($slug) {
+    $team = App\Models\Team::where('slug', $slug)->firstOrFail();
+
+    return response()->json($team);
+});
+
 Route::post('/chatbot', [ChatbotController::class, 'handleChat']);
