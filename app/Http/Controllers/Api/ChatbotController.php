@@ -15,6 +15,8 @@ class ChatbotController extends Controller
 {
     public OpenAIClient $client;
 
+    private $productIds = [];
+
     public function __construct()
     {
         $apiKey = config('openapi.key');
@@ -157,6 +159,9 @@ class ChatbotController extends Controller
                 // Recupera i dati dei prodotti
                 $productData = $this->fetchProductData($productNames, $teamSlug);
 
+                // Memorizza gli ID dei prodotti
+                $this->productIds = array_column($productData, 'id');
+
                 // Invia i risultati a GPT
                 $this->client->threads()->runs()->submitToolOutputs(
                     threadId: $threadId,
@@ -221,10 +226,9 @@ class ChatbotController extends Controller
                 $arguments = json_decode($functionCall->arguments, true);
                 $userAddress = $arguments['user_address'];
                 $deliveryDate = $arguments['delivery_date'];
-                $productIds = $arguments['product_ids'];
 
                 // Crea l'ordine
-                $orderData = $this->createOrder($userAddress, $deliveryDate, $productIds, $teamSlug);
+                $orderData = $this->createOrder($userAddress, $deliveryDate, $this->productIds, $teamSlug);
 
                 // Invia i risultati a GPT
                 $this->client->threads()->runs()->submitToolOutputs(

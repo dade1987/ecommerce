@@ -71,6 +71,8 @@ class TeamResource extends Resource
                     ->searchable(),
                 TextColumn::make('postal_code')
                     ->searchable(),
+                TextColumn::make('phone')
+                    ->searchable(),
             ])
             ->filters([
                 //
