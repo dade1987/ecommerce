@@ -1,12 +1,12 @@
-<div id="chatContainer" style="display: flex; flex-direction: column; height: 85vh; background-color: #1e1e1e; border-radius: 5px;">
-    <div id="messages" style="flex: 1; padding: 10px; overflow-y: scroll; background-color: #2c2c2c; color: #fff;">
-        <div class="message bot" style="padding: 10px; margin-bottom: 10px; border-radius: 5px; background-color: #3a3a3a; color: #fff;">
-            Benvenuto al centro olistico! Come posso aiutarti oggi?
+<div id="chatContainer" style="display: flex; flex-direction: column; height: 85vh; background-color: #ffffff; border-radius: 5px;">
+    <div id="messages" style="flex: 1; padding: 10px; overflow-y: scroll; background-color: #ffffff; color: #000;">
+        <div class="message bot" style="padding: 10px; margin-bottom: 10px; bsorder-radius: 5px; background-color: #ffa500; color: #000; border: 1px solid #000;">
+            Benvenuto al Centro Olistico Demo, un'oasi di serenità e benessere. Come posso assisterti oggi?
         </div>
     </div>
-    <div style="display: flex; padding: 10px; border-top: 1px solid #444; background-color: #1e1e1e; width: 100%;">
-        <input id="userInput" type="text" placeholder="Scrivi un messaggio..." style="flex: 1; padding: 10px; border: 1px solid #444; border-radius: 5px; margin-right: 10px; background-color: #2c2c2c; color: #fff;">
-        <button id="sendButton" style="padding: 10px 20px; border: none; border-radius: 5px; background-color: #3a3a3a; color: #fff;">Send</button>
+    <div style="display: flex; padding: 10px; border-top: 1px solid #000; background-color: #ffffff; width: 100%;">
+        <input id="userInput" type="text" placeholder="Scrivi un messaggio..." style="flex: 1; padding: 10px; border: 1px solid #000; border-radius: 5px; margin-right: 10px; background-color: #ffffff; color: #000;">
+        <button id="sendButton" style="padding: 10px 20px; border: none; border-radius: 5px; background-color: #f5deb3; color: #000; border: 1px solid #000;">Send</button>
     </div>
 </div>
 
@@ -50,7 +50,7 @@
         function addMessageToChat(message) {
             const messageElement = document.createElement('div');
             messageElement.className = `message ${message.role}`;
-            messageElement.style = `padding: 10px; margin-bottom: 10px; border-radius: 5px; background-color: ${message.role === 'user' ? '#81c784' : '#8e24aa'}; color: #fff;`;
+            messageElement.style = `padding: 10px; margin-bottom: 10px; border-radius: 5px; background-color: ${message.role === 'user' ? 'rgb(158, 173, 255)' : '#ffa500'}; color: #000; border: 1px solid #000;`;
             messageElement.textContent = message.content;
             messagesElement.appendChild(messageElement);
             messagesElement.scrollTop = messagesElement.scrollHeight;

@@ -56,4 +56,15 @@ Route::get('/teams/{slug}', function ($slug) {
     ]);
 });
 
+Route::get('/events/{slug}', function ($slug) {
+    $team = App\Models\Team::where('slug', $slug)->firstOrFail();
+    $events = App\Models\Event::where('team_id', $team->id)
+        ->where('name', 'Disponibile')
+        ->where('date', '>=', now())
+        ->orderBy('date', 'asc')
+        ->get();
+
+    return response()->json($events);
+});
+
 Route::post('/chatbot', [ChatbotController::class, 'handleChat']);

@@ -95,6 +95,23 @@ class ChatbotController extends Controller
                             ],
                         ],
                     ],
+                    [
+                        'type' => 'function',
+                        'function' => [
+                            'name' => 'getAvailableTimes',
+                            'description' => 'Recupera gli orari disponibili per un appuntamento.',
+                            'parameters' => [
+                                'type' => 'object',
+                                'properties' => [
+                                    'team_slug' => [
+                                        'type' => 'string',
+                                        'description' => 'Slug del team per recuperare gli orari disponibili.',
+                                    ],
+                                ],
+                                'required' => ['team_slug'],
+                            ],
+                        ],
+                    ],
                 ],
             ]
         );
@@ -132,7 +149,7 @@ class ChatbotController extends Controller
                 $run = $this->retrieveRunResult($threadId, $run->id);
             } elseif ($functionCall->name === 'getAddressInfo') {
                 $arguments = json_decode($functionCall->arguments, true);
-                $teamSlug = $arguments['team_slug'];
+                $teamSlug = $request->input('team');
 
                 // Recupera i dati dell'indirizzo
                 $addressData = $this->fetchAddressData($teamSlug);
@@ -146,6 +163,29 @@ class ChatbotController extends Controller
                             [
                                 'tool_call_id' => $requiredAction->submitToolOutputs->toolCalls[0]->id,
                                 'output' => json_encode($addressData),
+                            ],
+                        ],
+                    ]
+                );
+
+                // Recupera la risposta finale
+                $run = $this->retrieveRunResult($threadId, $run->id);
+            } elseif ($functionCall->name === 'getAvailableTimes') {
+                $arguments = json_decode($functionCall->arguments, true);
+                $teamSlug = $request->input('team');
+
+                // Recupera gli orari disponibili
+                $availableTimes = $this->fetchAvailableTimes($teamSlug);
+
+                // Invia i risultati a GPT
+                $this->client->threads()->runs()->submitToolOutputs(
+                    threadId: $threadId,
+                    runId: $run->id,
+                    parameters: [
+                        'tool_outputs' => [
+                            [
+                                'tool_call_id' => $requiredAction->submitToolOutputs->toolCalls[0]->id,
+                                'output' => json_encode($availableTimes),
                             ],
                         ],
                     ]
@@ -216,5 +256,16 @@ class ChatbotController extends Controller
         Log::info('fetchAddressData: Dati indirizzo ricevuti', ['addressData' => $addressData]);
 
         return $addressData;
+    }
+
+    private function fetchAvailableTimes($teamSlug)
+    {
+        Log::info('fetchAvailableTimes: Inizio recupero orari disponibili', ['teamSlug' => $teamSlug]);
+        $client = new Client();
+        $response = $client->get("https://cavalliniservice.com/api/events/{$teamSlug}");
+        $availableTimes = json_decode($response->getBody(), true);
+        Log::info('fetchAvailableTimes: Orari disponibili ricevuti', ['availableTimes' => $availableTimes]);
+
+        return $availableTimes;
     }
 }
