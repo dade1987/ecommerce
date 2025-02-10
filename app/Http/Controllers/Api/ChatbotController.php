@@ -112,6 +112,32 @@ class ChatbotController extends Controller
                             ],
                         ],
                     ],
+                    [
+                        'type' => 'function',
+                        'function' => [
+                            'name' => 'createOrder',
+                            'description' => 'Crea un ordine con i dati forniti.',
+                            'parameters' => [
+                                'type' => 'object',
+                                'properties' => [
+                                    'user_address' => [
+                                        'type' => 'string',
+                                        'description' => 'Indirizzo dell\'utente per la consegna.',
+                                    ],
+                                    'delivery_date' => [
+                                        'type' => 'string',
+                                        'description' => 'Data di consegna dell\'ordine.',
+                                    ],
+                                    'product_ids' => [
+                                        'type' => 'array',
+                                        'items' => ['type' => 'integer'],
+                                        'description' => 'ID dei prodotti da includere nell\'ordine.',
+                                    ],
+                                ],
+                                'required' => ['user_address', 'delivery_date', 'product_ids'],
+                            ],
+                        ],
+                    ],
                 ],
             ]
         );
@@ -149,7 +175,6 @@ class ChatbotController extends Controller
                 $run = $this->retrieveRunResult($threadId, $run->id);
             } elseif ($functionCall->name === 'getAddressInfo') {
                 $arguments = json_decode($functionCall->arguments, true);
-                $teamSlug = $request->input('team');
 
                 // Recupera i dati dell'indirizzo
                 $addressData = $this->fetchAddressData($teamSlug);
@@ -172,7 +197,6 @@ class ChatbotController extends Controller
                 $run = $this->retrieveRunResult($threadId, $run->id);
             } elseif ($functionCall->name === 'getAvailableTimes') {
                 $arguments = json_decode($functionCall->arguments, true);
-                $teamSlug = $request->input('team');
 
                 // Recupera gli orari disponibili
                 $availableTimes = $this->fetchAvailableTimes($teamSlug);
@@ -186,6 +210,31 @@ class ChatbotController extends Controller
                             [
                                 'tool_call_id' => $requiredAction->submitToolOutputs->toolCalls[0]->id,
                                 'output' => json_encode($availableTimes),
+                            ],
+                        ],
+                    ]
+                );
+
+                // Recupera la risposta finale
+                $run = $this->retrieveRunResult($threadId, $run->id);
+            } elseif ($functionCall->name === 'createOrder') {
+                $arguments = json_decode($functionCall->arguments, true);
+                $userAddress = $arguments['user_address'];
+                $deliveryDate = $arguments['delivery_date'];
+                $productIds = $arguments['product_ids'];
+
+                // Crea l'ordine
+                $orderData = $this->createOrder($userAddress, $deliveryDate, $productIds, $teamSlug);
+
+                // Invia i risultati a GPT
+                $this->client->threads()->runs()->submitToolOutputs(
+                    threadId: $threadId,
+                    runId: $run->id,
+                    parameters: [
+                        'tool_outputs' => [
+                            [
+                                'tool_call_id' => $requiredAction->submitToolOutputs->toolCalls[0]->id,
+                                'output' => json_encode($orderData),
                             ],
                         ],
                     ]
@@ -267,5 +316,22 @@ class ChatbotController extends Controller
         Log::info('fetchAvailableTimes: Orari disponibili ricevuti', ['availableTimes' => $availableTimes]);
 
         return $availableTimes;
+    }
+
+    private function createOrder($userAddress, $deliveryDate, $productIds, $teamSlug)
+    {
+        Log::info('createOrder: Inizio creazione ordine', ['userAddress' => $userAddress, 'deliveryDate' => $deliveryDate, 'productIds' => $productIds, 'teamSlug' => $teamSlug]);
+        $client = new Client();
+        $response = $client->post("https://cavalliniservice.com/api/order/{$teamSlug}", [
+            'json' => [
+                'user_address' => $userAddress,
+                'delivery_date' => $deliveryDate,
+                'product_ids' => $productIds,
+            ],
+        ]);
+        $orderData = json_decode($response->getBody(), true);
+        Log::info('createOrder: Ordine creato', ['orderData' => $orderData]);
+
+        return $orderData;
     }
 }
