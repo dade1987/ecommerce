@@ -78,6 +78,23 @@ class ChatbotController extends Controller
                             ],
                         ],
                     ],
+                    [
+                        'type' => 'function',
+                        'function' => [
+                            'name' => 'getAddressInfo',
+                            'description' => 'Recupera informazioni sull\'indirizzo del team.',
+                            'parameters' => [
+                                'type' => 'object',
+                                'properties' => [
+                                    'team_slug' => [
+                                        'type' => 'string',
+                                        'description' => 'Slug del team per recuperare l\'indirizzo.',
+                                    ],
+                                ],
+                                'required' => ['team_slug'],
+                            ],
+                        ],
+                    ],
                 ],
             ]
         );
@@ -106,6 +123,29 @@ class ChatbotController extends Controller
                             [
                                 'tool_call_id' => $requiredAction->submitToolOutputs->toolCalls[0]->id,
                                 'output' => json_encode($productData),
+                            ],
+                        ],
+                    ]
+                );
+
+                // Recupera la risposta finale
+                $run = $this->retrieveRunResult($threadId, $run->id);
+            } elseif ($functionCall->name === 'getAddressInfo') {
+                $arguments = json_decode($functionCall->arguments, true);
+                $teamSlug = $arguments['team_slug'];
+
+                // Recupera i dati dell'indirizzo
+                $addressData = $this->fetchAddressData($teamSlug);
+
+                // Invia i risultati a GPT
+                $this->client->threads()->runs()->submitToolOutputs(
+                    threadId: $threadId,
+                    runId: $run->id,
+                    parameters: [
+                        'tool_outputs' => [
+                            [
+                                'tool_call_id' => $requiredAction->submitToolOutputs->toolCalls[0]->id,
+                                'output' => json_encode($addressData),
                             ],
                         ],
                     ]
@@ -165,5 +205,16 @@ class ChatbotController extends Controller
         Log::info('fetchProductData: Dati prodotti finali', ['products' => $products]);
 
         return $products;
+    }
+
+    private function fetchAddressData($teamSlug)
+    {
+        Log::info('fetchAddressData: Inizio recupero dati indirizzo', ['teamSlug' => $teamSlug]);
+        $client = new Client();
+        $response = $client->get("https://cavalliniservice.com/api/teams/{$teamSlug}");
+        $addressData = json_decode($response->getBody(), true);
+        Log::info('fetchAddressData: Dati indirizzo ricevuti', ['addressData' => $addressData]);
+
+        return $addressData;
     }
 }

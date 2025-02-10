@@ -1,12 +1,12 @@
-<div id="chatContainer" style="display: flex; flex-direction: column; height: 85vh; border: 1px solid #b0bec5; border-radius: 5px;">
-    <div id="messages" style="flex: 1; padding: 10px; overflow-y: scroll; background-color: #f3e5f5;">
-        <div class="message bot" style="padding: 10px; margin-bottom: 10px; border-radius: 5px; background-color: #8e24aa; color: #fff;">
-            Benvenuto al centro olistico "Demo". Sono qui per guidarti verso la serenità. Scrivimi per scoprire i nostri prodotti o per fissare un appuntamento. Namaste.
+<div id="chatContainer" style="display: flex; flex-direction: column; height: 85vh; background-color: #1e1e1e; border-radius: 5px;">
+    <div id="messages" style="flex: 1; padding: 10px; overflow-y: scroll; background-color: #2c2c2c; color: #fff;">
+        <div class="message bot" style="padding: 10px; margin-bottom: 10px; border-radius: 5px; background-color: #3a3a3a; color: #fff;">
+            Benvenuto al centro olistico! Come posso aiutarti oggi?
         </div>
     </div>
-    <div style="display: flex; padding: 10px; border-top: 1px solid #b0bec5; background-color: #f1f8e9; width: 100%;">
-        <input id="userInput" type="text" placeholder="Scrivi un messaggio..." style="flex: 1; padding: 10px; border: 1px solid #b0bec5; border-radius: 5px; margin-right: 10px;">
-        <button id="sendButton" style="padding: 10px 20px; border: none; border-radius: 5px; background-color: #a5d6a7; color: #fff;">Invia</button>
+    <div style="display: flex; padding: 10px; border-top: 1px solid #444; background-color: #1e1e1e; width: 100%;">
+        <input id="userInput" type="text" placeholder="Scrivi un messaggio..." style="flex: 1; padding: 10px; border: 1px solid #444; border-radius: 5px; margin-right: 10px; background-color: #2c2c2c; color: #fff;">
+        <button id="sendButton" style="padding: 10px 20px; border: none; border-radius: 5px; background-color: #3a3a3a; color: #fff;">Send</button>
     </div>
 </div>
 

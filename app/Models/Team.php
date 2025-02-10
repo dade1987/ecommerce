@@ -15,7 +15,7 @@ class Team extends Model
     use HasFactory;
     use HasTeams;
 
-    protected $fillable = ['name', 'slug'];
+    protected $fillable = ['name', 'slug', 'nation', 'region', 'province', 'municipality', 'street', 'postal_code'];
 
     public function members(): MorphToMany
     {

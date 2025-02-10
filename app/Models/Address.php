@@ -9,7 +9,7 @@ class Address extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['nation', 'region', 'province', 'municipality', 'street', 'postal_code'];
+    protected $fillable = ['nation', 'region', 'province', 'municipality', 'street', 'postal_code', 'team_id'];
 
     public function getFullAddressAttribute()
     {
