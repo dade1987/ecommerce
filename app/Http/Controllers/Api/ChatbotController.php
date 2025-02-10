@@ -123,7 +123,7 @@ class ChatbotController extends Controller
                                 'properties' => [
                                     'user_phone' => [
                                         'type' => 'string',
-                                        'description' => 'Numero di cellulare dell\'utente per la consegna.',
+                                        'description' => 'Numero di telefono dell\'utente per la prenotazione.',
                                     ],
                                     'delivery_date' => [
                                         'type' => 'string',
@@ -226,6 +226,22 @@ class ChatbotController extends Controller
                 $userPhone = $arguments['user_phone'];
                 $deliveryDate = $arguments['delivery_date'];
                 $productIds = $arguments['product_ids']; // Prendi gli ID dei prodotti dai parametri
+
+                // Verifica se il numero di telefono è presente
+                if (empty($userPhone)) {
+                    return response()->json([
+                        'message' => 'Per favore fornisci un numero di telefono fisso o cellulare per completare la prenotazione.',
+                        'thread_id' => $threadId,
+                    ]);
+                }
+
+                // Verifica se ci sono product_ids
+                if (empty($productIds)) {
+                    return response()->json([
+                        'message' => 'Per favore fornisci informazioni aggiuntive sul prodotto che vorresti acquistare.',
+                        'thread_id' => $threadId,
+                    ]);
+                }
 
                 // Crea l'ordine
                 $orderData = $this->createOrder($userPhone, $deliveryDate, $productIds, $teamSlug);
