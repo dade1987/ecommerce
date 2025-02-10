@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use GuzzleHttp\Client;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Log;
 use OpenAI;
 use OpenAI\Client as OpenAIClient;
@@ -14,8 +15,6 @@ use function Safe\json_encode;
 class ChatbotController extends Controller
 {
     public OpenAIClient $client;
-
-    private $productIds = [];
 
     public function __construct()
     {
@@ -122,9 +121,9 @@ class ChatbotController extends Controller
                             'parameters' => [
                                 'type' => 'object',
                                 'properties' => [
-                                    'user_address' => [
+                                    'user_phone' => [
                                         'type' => 'string',
-                                        'description' => 'Indirizzo dell\'utente per la consegna.',
+                                        'description' => 'Numero di cellulare dell\'utente per la consegna.',
                                     ],
                                     'delivery_date' => [
                                         'type' => 'string',
@@ -136,7 +135,7 @@ class ChatbotController extends Controller
                                         'description' => 'ID dei prodotti da includere nell\'ordine.',
                                     ],
                                 ],
-                                'required' => ['user_address', 'delivery_date', 'product_ids'],
+                                'required' => ['user_phone', 'delivery_date', 'product_ids'],
                             ],
                         ],
                     ],
@@ -159,8 +158,9 @@ class ChatbotController extends Controller
                 // Recupera i dati dei prodotti
                 $productData = $this->fetchProductData($productNames, $teamSlug);
 
-                // Memorizza gli ID dei prodotti
-                $this->productIds = array_column($productData, 'id');
+                // Memorizza gli ID dei prodotti in un cookie
+                $productIds = array_column($productData, 'id');
+                Cookie::queue('product_ids', json_encode($productIds), 60);
 
                 // Invia i risultati a GPT
                 $this->client->threads()->runs()->submitToolOutputs(
@@ -224,12 +224,12 @@ class ChatbotController extends Controller
                 $run = $this->retrieveRunResult($threadId, $run->id);
             } elseif ($functionCall->name === 'createOrder') {
                 $arguments = json_decode($functionCall->arguments, true);
-                $userAddress = $arguments['user_address'];
+                $userPhone = $arguments['user_phone'];
                 $deliveryDate = $arguments['delivery_date'];
-                $productIds = $this->productIds; // Prendi gli ID dei prodotti da getProductInfo
+                $productIds = json_decode(Cookie::get('product_ids', '[]'), true); // Prendi gli ID dei prodotti dal cookie
 
                 // Crea l'ordine
-                $orderData = $this->createOrder($userAddress, $deliveryDate, $productIds, $teamSlug);
+                $orderData = $this->createOrder($userPhone, $deliveryDate, $productIds, $teamSlug);
 
                 // Invia i risultati a GPT
                 $this->client->threads()->runs()->submitToolOutputs(
@@ -323,13 +323,13 @@ class ChatbotController extends Controller
         return $availableTimes;
     }
 
-    private function createOrder($userAddress, $deliveryDate, $productIds, $teamSlug)
+    private function createOrder($userPhone, $deliveryDate, $productIds, $teamSlug)
     {
-        Log::info('createOrder: Inizio creazione ordine', ['userAddress' => $userAddress, 'deliveryDate' => $deliveryDate, 'productIds' => $productIds, 'teamSlug' => $teamSlug]);
+        Log::info('createOrder: Inizio creazione ordine', ['userPhone' => $userPhone, 'deliveryDate' => $deliveryDate, 'productIds' => $productIds, 'teamSlug' => $teamSlug]);
         $client = new Client();
         $response = $client->post("https://cavalliniservice.com/api/order/{$teamSlug}", [
             'json' => [
-                'user_address' => $userAddress,
+                'user_phone' => $userPhone,
                 'delivery_date' => $deliveryDate,
                 'product_ids' => $productIds,
             ],
@@ -338,7 +338,7 @@ class ChatbotController extends Controller
         Log::info('createOrder: Richiesta inviata', [
             'url' => "https://cavalliniservice.com/api/order/{$teamSlug}",
             'payload' => [
-                'user_address' => $userAddress,
+                'user_phone' => $userPhone,
                 'delivery_date' => $deliveryDate,
                 'product_ids' => $productIds,
             ],

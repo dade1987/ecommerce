@@ -16,7 +16,7 @@ class Order extends Model
     //custom traits
     use HasAddresses;
 
-    protected $fillable = ['team_id', 'delivery_date'];
+    protected $fillable = ['team_id', 'delivery_date', 'phone'];
 
     public function products(): MorphToMany
     {

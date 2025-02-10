@@ -63,6 +63,7 @@ Route::post('/order/{slug}', function (Request $request, $slug) {
     $order = new App\Models\Order();
     $order->team_id = $team->id;
     $order->delivery_date = $request->input('delivery_date');
+    $order->phone = $request->input('user_phone'); // Aggiungi il numero di telefono all'ordine
     $order->save();
 
     $productIds = $request->input('product_ids', []);
