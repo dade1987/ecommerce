@@ -50,6 +50,9 @@ class TeamResource extends Resource
                 TextInput::make('postal_code')
                     ->maxLength(255)
                     ->default(null),
+                TextInput::make('phone')
+                    ->maxLength(255)
+                    ->default(null),
             ]);
     }
 
