@@ -84,7 +84,7 @@ class ChatbotController extends Controller
                         'type' => 'function',
                         'function' => [
                             'name' => 'getAddressInfo',
-                            'description' => 'Recupera informazioni sull\'indirizzo del team.',
+                            'description' => 'Recupera informazioni sull\'indirizzo del centro olistico, compreso indirizzo e numero di telefono.',
                             'parameters' => [
                                 'type' => 'object',
                                 'properties' => [
@@ -226,9 +226,10 @@ class ChatbotController extends Controller
                 $arguments = json_decode($functionCall->arguments, true);
                 $userAddress = $arguments['user_address'];
                 $deliveryDate = $arguments['delivery_date'];
+                $productIds = $this->productIds; // Prendi gli ID dei prodotti da getProductInfo
 
                 // Crea l'ordine
-                $orderData = $this->createOrder($userAddress, $deliveryDate, $this->productIds, $teamSlug);
+                $orderData = $this->createOrder($userAddress, $deliveryDate, $productIds, $teamSlug);
 
                 // Invia i risultati a GPT
                 $this->client->threads()->runs()->submitToolOutputs(
@@ -328,6 +329,15 @@ class ChatbotController extends Controller
         $client = new Client();
         $response = $client->post("https://cavalliniservice.com/api/order/{$teamSlug}", [
             'json' => [
+                'user_address' => $userAddress,
+                'delivery_date' => $deliveryDate,
+                'product_ids' => $productIds,
+            ],
+        ]);
+
+        Log::info('createOrder: Richiesta inviata', [
+            'url' => "https://cavalliniservice.com/api/order/{$teamSlug}",
+            'payload' => [
                 'user_address' => $userAddress,
                 'delivery_date' => $deliveryDate,
                 'product_ids' => $productIds,

@@ -65,11 +65,6 @@ Route::post('/order/{slug}', function (Request $request, $slug) {
     $order->delivery_date = $request->input('delivery_date');
     $order->save();
 
-    $address = new App\Models\Address();
-    $address->fill($request->input('address'));
-    $address->order_id = $order->id;
-    $address->save();
-
     $productIds = $request->input('product_ids', []);
     $order->products()->attach($productIds);
 
