@@ -160,7 +160,6 @@ class ChatbotController extends Controller
 
                 // Memorizza gli ID dei prodotti in un cookie
                 $productIds = array_column($productData, 'id');
-                Cookie::queue('product_ids', json_encode($productIds), 60);
 
                 // Invia i risultati a GPT
                 $this->client->threads()->runs()->submitToolOutputs(
@@ -226,7 +225,7 @@ class ChatbotController extends Controller
                 $arguments = json_decode($functionCall->arguments, true);
                 $userPhone = $arguments['user_phone'];
                 $deliveryDate = $arguments['delivery_date'];
-                $productIds = json_decode(Cookie::get('product_ids', '[]'), true); // Prendi gli ID dei prodotti dal cookie
+                $productIds = $arguments['product_ids']; // Prendi gli ID dei prodotti dai parametri
 
                 // Crea l'ordine
                 $orderData = $this->createOrder($userPhone, $deliveryDate, $productIds, $teamSlug);
@@ -257,6 +256,7 @@ class ChatbotController extends Controller
         return response()->json([
             'message' => $content,
             'thread_id' => $threadId,
+            'product_ids' => $productIds ?? [], // Aggiungi gli ID dei prodotti alla risposta
         ]);
     }
 

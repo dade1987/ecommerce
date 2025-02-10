@@ -1,6 +1,6 @@
 <div id="chatContainer" style="display: flex; flex-direction: column; height: 85vh; background-color: #ffffff; border-radius: 5px;">
     <div id="messages" style="flex: 1; padding: 10px; overflow-y: scroll; background-color: #ffffff; color: #000;">
-        <div class="message bot" style="padding: 10px; margin-bottom: 10px; bsorder-radius: 5px; background-color: #ffa500; color: #000; border: 1px solid #000;">
+        <div class="message bot" style="padding: 10px; margin-bottom: 10px; border-radius: 5px; background-color: #ffa500; color: #000; border: 1px solid #000;">
             Benvenuto al Centro Olistico Demo, un'oasi di serenità e benessere. Come posso assisterti oggi?
         </div>
     </div>
@@ -16,6 +16,7 @@
         const userInputElement = document.getElementById('userInput');
         const sendButton = document.getElementById('sendButton');
         let threadId = null;
+        let productIds = []; // Inizializza un array per gestire i product_ids
         const team = window.location.pathname.split('/').pop(); // Estrae l'ultima parte dell'URL come team
 
         sendButton.addEventListener('click', sendMessage);
@@ -44,6 +45,11 @@
             };
             addMessageToChat(botMessage);
 
+            // Aggiorna i product_ids se presenti nella risposta
+            if (response.product_ids) {
+                productIds = response.product_ids;
+            }
+
             userInputElement.value = '';
         }
 
@@ -67,6 +73,7 @@
                         message: message,
                         thread_id: threadId,
                         team: team, // Passa il team all'API
+                        product_ids: productIds, // Passa i product_ids all'API
                     }),
                 });
 
