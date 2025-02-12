@@ -1,13 +1,13 @@
 <!-- Start of Selection -->
 <div id="chatContainer" style="display: flex; flex-direction: column; height: 75vh; background-color: #f0f0f0; border-radius: 5px;">
     <div id="messages" style="flex: 1; padding: 10px; overflow-y: scroll; background-color: #f0f0f0; color: #333;">
-        <div class="message bot" style="padding: 10px; margin-bottom: 10px; border-radius: 5px; background-color: #FFCC66; color: #333; border: 1px solid #ccc;">
+        <div class="message bot" style="padding: 10px; margin-bottom: 10px; border-radius: 5px; background-color: #e0e0e0; color: #333; border: 1px solid #000000;">
             Benvenuto al Centro Olistico Demo, un'oasi di serenità e benessere. Come posso assisterti oggi?
         </div>
     </div>
     <div style="display: flex; padding: 10px; border-top: 1px solid #ccc; background-color: #f0f0f0; width: 100%;">
-        <input id="userInput" type="text" placeholder="Scrivi un messaggio..." style="flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 5px; margin-right: 10px; background-color: #ffffff; color: #333;">
-        <button id="sendButton" style="padding: 10px 20px; border: none; border-radius: 5px; background-color: #e0e0e0; color: #333; border: 1px solid #ccc;">Invia</button>
+        <input id="userInput" type="text" placeholder="Scrivi un messaggio..." style="flex: 1; padding: 10px; border: 1px solid #000000; border-radius: 5px; margin-right: 10px; background-color: #ffffff; color: #333;">
+        <button id="sendButton" style="padding: 10px 20px; border: none; border-radius: 5px; background-color: #dcdcdc; color: #333; border: 1px solid #000000;">Invia</button>
     </div>
 </div>
 
@@ -60,7 +60,7 @@
         function addMessageToChat(message) {
             const messageElement = document.createElement('div');
             messageElement.className = `message ${message.role}`;
-            messageElement.style = `padding: 10px; margin-bottom: 10px; border-radius: 5px; background-color: ${message.role === 'user' ? '#66CCFF' : '#FFCC66'}; color: #333; border: 1px solid #ccc;`;
+            messageElement.style = `padding: 10px; margin-bottom: 10px; border-radius: 5px; background-color: ${message.role === 'user' ? '#f0f0f0' : '#e0e0e0'}; color: #333; border: 1px solid ${message.role === 'user' ? '#000000' : '#000000'};`;
             messageElement.innerHTML = message.content; // Usa innerHTML per supportare il contenuto HTML
             messagesElement.appendChild(messageElement);
             messagesElement.scrollTop = messagesElement.scrollHeight;
@@ -69,7 +69,7 @@
         function addTypingIndicator() {
             const typingElement = document.createElement('div');
             typingElement.className = 'message bot';
-            typingElement.style = 'padding: 10px; margin-bottom: 10px; border-radius: 5px; background-color: #FFCC66; color: #333; border: 1px solid #ccc;';
+            typingElement.style = 'padding: 10px; margin-bottom: 10px; border-radius: 5px; background-color: #e0e0e0; color: #333; border: 1px solid #000000;';
             typingElement.textContent = '.';
             messagesElement.appendChild(typingElement);
             messagesElement.scrollTop = messagesElement.scrollHeight;
