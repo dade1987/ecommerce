@@ -11,6 +11,7 @@ use OpenAI;
 use OpenAI\Client as OpenAIClient;
 use function Safe\json_decode;
 use function Safe\json_encode;
+use function Safe\preg_replace;
 
 class ChatbotController extends Controller
 {
@@ -59,20 +60,21 @@ class ChatbotController extends Controller
             threadId: $threadId,
             parameters: [
                 'assistant_id' => 'asst_34SA8ZkwlHiiXxNufoZYddn0',
-                'instructions' => 'Sei un chatbot che risponde a domande sui prodotti del menu.',
+                'instructions' => 'Sei un chatbot che risponde a domande sui prodotti, servizi o trattamenti offerti dal centro olistico.',
+                'model' => 'gpt-4o',
                 'tools' => [
                     [
                         'type' => 'function',
                         'function' => [
                             'name' => 'getProductInfo',
-                            'description' => 'Recupera informazioni sui prodotti del menu tramite i loro nomi.',
+                            'description' => 'Recupera informazioni sui prodotti, servizi o trattamenti del menu tramite i loro nomi.',
                             'parameters' => [
                                 'type' => 'object',
                                 'properties' => [
                                     'product_names' => [
                                         'type' => 'array',
                                         'items' => ['type' => 'string'],
-                                        'description' => 'Nomi dei prodotti da recuperare.',
+                                        'description' => 'Nomi dei prodotti, servizi o trattamenti da recuperare.',
                                     ],
                                 ],
                                 'required' => [],
@@ -132,7 +134,7 @@ class ChatbotController extends Controller
                                     'product_ids' => [
                                         'type' => 'array',
                                         'items' => ['type' => 'integer'],
-                                        'description' => 'ID dei prodotti da includere nell\'ordine.',
+                                        'description' => 'ID dei prodotti o trattamenti da includere nell\'ordine.',
                                     ],
                                 ],
                                 'required' => ['user_phone', 'delivery_date', 'product_ids'],
@@ -269,8 +271,11 @@ class ChatbotController extends Controller
         $messages = $this->client->threads()->messages()->list($threadId)->data;
         $content = $messages[0]->content[0]->text->value;
 
+        // Formatta il contenuto della risposta
+        $formattedContent = $this->formatResponseContent($content);
+
         return response()->json([
-            'message' => $content,
+            'message' => $formattedContent,
             'thread_id' => $threadId,
             'product_ids' => $productIds ?? [], // Aggiungi gli ID dei prodotti alla risposta
         ]);
@@ -363,5 +368,15 @@ class ChatbotController extends Controller
         Log::info('createOrder: Ordine creato', ['orderData' => $orderData]);
 
         return $orderData;
+    }
+
+    private function formatResponseContent($content)
+    {
+        // Formatta il contenuto della risposta
+        $formattedContent = nl2br($content); // Aggiungi interruzioni di riga
+        $formattedContent = preg_replace('/\*\*(.*?)\*\*/', '<strong>$1</strong>', $formattedContent); // Aggiungi grassetto
+        $formattedContent = preg_replace('/\d+\.\s/', '<br><br><strong>$0</strong>', $formattedContent); // Aggiungi elenchi numerati
+
+        return $formattedContent;
     }
 }
