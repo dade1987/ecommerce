@@ -60,21 +60,21 @@ class ChatbotController extends Controller
             threadId: $threadId,
             parameters: [
                 'assistant_id' => 'asst_34SA8ZkwlHiiXxNufoZYddn0',
-                'instructions' => 'Sei un chatbot che risponde a domande sui prodotti, servizi o trattamenti offerti dal centro olistico.',
+                'instructions' => 'Sei un chatbot che risponde a domande sui prodotti, servizi, trattamenti, sessioni o attività offerti dal centro olistico.',
                 'model' => 'gpt-4o',
                 'tools' => [
                     [
                         'type' => 'function',
                         'function' => [
                             'name' => 'getProductInfo',
-                            'description' => 'Recupera informazioni sui prodotti, servizi o trattamenti del menu tramite i loro nomi.',
+                            'description' => 'Recupera informazioni sui prodotti, servizi, trattamenti, sessioni o attività del menu tramite i loro nomi.',
                             'parameters' => [
                                 'type' => 'object',
                                 'properties' => [
                                     'product_names' => [
                                         'type' => 'array',
                                         'items' => ['type' => 'string'],
-                                        'description' => 'Nomi dei prodotti, servizi o trattamenti da recuperare.',
+                                        'description' => 'Nomi dei prodotti, servizi, trattamenti, sessioni o attività da recuperare.',
                                     ],
                                 ],
                                 'required' => [],
@@ -134,7 +134,7 @@ class ChatbotController extends Controller
                                     'product_ids' => [
                                         'type' => 'array',
                                         'items' => ['type' => 'integer'],
-                                        'description' => 'ID dei prodotti o trattamenti da includere nell\'ordine.',
+                                        'description' => 'ID dei prodotti, servizi, trattamenti, sessioni o attività da includere nell\'ordine.',
                                     ],
                                 ],
                                 'required' => ['user_phone', 'delivery_date', 'product_ids'],
