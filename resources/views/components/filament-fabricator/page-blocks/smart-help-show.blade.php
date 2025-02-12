@@ -1,7 +1,7 @@
 <!-- Start of Selection -->
 <div id="chatContainer" style="display: flex; flex-direction: column; height: 75vh; background-color: #f0f0f0; border-radius: 5px;">
     <div id="messages" style="flex: 1; padding: 10px; overflow-y: scroll; background-color: #f0f0f0; color: #333;">
-        <div class="message bot" style="padding: 10px; margin-bottom: 10px; border-radius: 5px; background-color: #66CCFF; color: #333; border: 1px solid #ccc;">
+        <div class="message bot" style="padding: 10px; margin-bottom: 10px; border-radius: 5px; background-color: #FFCC66; color: #333; border: 1px solid #ccc;">
             Benvenuto al Centro Olistico Demo, un'oasi di serenità e benessere. Come posso assisterti oggi?
         </div>
     </div>
@@ -60,7 +60,7 @@
         function addMessageToChat(message) {
             const messageElement = document.createElement('div');
             messageElement.className = `message ${message.role}`;
-            messageElement.style = `padding: 10px; margin-bottom: 10px; border-radius: 5px; background-color: ${message.role === 'user' ? '#FFCC66' : '#66CCFF'}; color: #333; border: 1px solid #ccc;`;
+            messageElement.style = `padding: 10px; margin-bottom: 10px; border-radius: 5px; background-color: ${message.role === 'user' ? '#66CCFF' : '#FFCC66'}; color: #333; border: 1px solid #ccc;`;
             messageElement.innerHTML = message.content; // Usa innerHTML per supportare il contenuto HTML
             messagesElement.appendChild(messageElement);
             messagesElement.scrollTop = messagesElement.scrollHeight;
@@ -69,7 +69,7 @@
         function addTypingIndicator() {
             const typingElement = document.createElement('div');
             typingElement.className = 'message bot';
-            typingElement.style = 'padding: 10px; margin-bottom: 10px; border-radius: 5px; background-color: #66CCFF; color: #333; border: 1px solid #ccc;';
+            typingElement.style = 'padding: 10px; margin-bottom: 10px; border-radius: 5px; background-color: #FFCC66; color: #333; border: 1px solid #ccc;';
             typingElement.textContent = '.';
             messagesElement.appendChild(typingElement);
             messagesElement.scrollTop = messagesElement.scrollHeight;
