@@ -1,5 +1,5 @@
 <!-- Start of Selection -->
-<div id="chatContainer" style="display: flex; flex-direction: column; height: 85vh; background-color: #f0f0f0; border-radius: 5px;">
+<div id="chatContainer" style="display: flex; flex-direction: column; height: 75vh; background-color: #f0f0f0; border-radius: 5px;">
     <div id="messages" style="flex: 1; padding: 10px; overflow-y: scroll; background-color: #f0f0f0; color: #333;">
         <div class="message bot" style="padding: 10px; margin-bottom: 10px; border-radius: 5px; background-color: #d3d3d3; color: #333; border: 1px solid #ccc;">
             Benvenuto al Centro Olistico Demo, un'oasi di serenità e benessere. Come posso assisterti oggi?
