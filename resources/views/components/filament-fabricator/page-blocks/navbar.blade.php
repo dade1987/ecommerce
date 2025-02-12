@@ -39,14 +39,13 @@
         </button>
     </div>
     <div id="mobile-menu" class="lg:hidden hidden">
-        <ul class="flex flex-col items-start space-y-2">
+        <ul class="flex flex-col items-start space-y-2 p-4 bg-gray-100 dark:bg-gray-700 rounded-md shadow-md">
             @foreach($items as $item)
-                <li>
+                <li class="w-full">
                     <a rel="noopener noreferrer" href="{{ $item->href }}"
-                        class="text-xl font-bold flex items-center px-4 -mb-1 border-b-2 dark:border-transparent dark:text-violet-400 dark:border-violet-400">{{ $item->name }}</a>
+                        class="block w-full text-xl font-bold px-4 py-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 dark:text-violet-400">{{ $item->name }}</a>
                 </li>
             @endforeach
-            
         </ul>
     </div>
 </header>
