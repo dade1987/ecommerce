@@ -62,7 +62,7 @@ class ChatbotController extends Controller
             $welcomeMessage = $team ? $team->welcome_message : 'Benvenuto!';
 
             return response()->json([
-                'message' => $welcomeMessage,
+                'message' => $welcomeMessage.' Per favore fornisci il tuo nome, email e numero di telefono per procedere.',
                 'thread_id' => $threadId,
             ]);
         }
