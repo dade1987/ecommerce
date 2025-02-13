@@ -1,7 +1,7 @@
 <!-- Start of Selection -->
 <div id="chatContainer" class="flex flex-col h-[75vh] bg-white rounded px-6">
     <div class="bg-white">
-        <h1 class="font-montserrat text-2xl text-left text-gray-800"><strong>Centro</strong> Olistico AI</h1>
+        <h1 class="font-montserrat text-2xl text-left text-gray-800"><strong>Centro</strong> Olistico Rossi AI</h1>
     </div>
     <div id="messages" class="flex-1 overflow-y-scroll bg-white text-gray-800 py-6">
         
