@@ -35,7 +35,6 @@ class CustomerResource extends Resource
                     ->required()
                     ->maxLength(255),
                 Forms\Components\TextInput::make('address')
-                    ->required()
                     ->maxLength(255),
             ]);
     }
@@ -76,14 +75,14 @@ class CustomerResource extends Resource
                 Tables\Actions\CreateAction::make(),
             ]);
     }
-    
+
     public static function getRelations(): array
     {
         return [
             //
         ];
     }
-    
+
     public static function getPages(): array
     {
         return [
@@ -91,5 +90,5 @@ class CustomerResource extends Resource
             'create' => Pages\CreateCustomer::route('/create'),
             'edit' => Pages\EditCustomer::route('/{record}/edit'),
         ];
-    }    
+    }
 }
