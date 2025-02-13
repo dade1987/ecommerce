@@ -286,6 +286,11 @@ class ChatbotController extends Controller
         // Formatta il contenuto della risposta
         $formattedContent = $this->formatResponseContent($content);
 
+        // Risposta predefinita per domande non pertinenti
+        if (! $this->isRelevantQuestion($userInput)) {
+            $formattedContent = 'Contatta il numero 3487433620 per il setup specifico per la tua azienda';
+        }
+
         return response()->json([
             'message' => $formattedContent,
             'thread_id' => $threadId,
@@ -390,5 +395,17 @@ class ChatbotController extends Controller
         $formattedContent = preg_replace('/\d+\.\s/', '<strong>$0</strong>', $formattedContent); // Aggiungi elenchi numerati
 
         return $formattedContent;
+    }
+
+    private function isRelevantQuestion($userInput)
+    {
+        $keywords = ['trattamenti', 'prenotazioni', 'informazioni', 'centro olistico', 'prodotti', 'servizi', 'sessioni', 'attività'];
+        foreach ($keywords as $keyword) {
+            if (stripos($userInput, $keyword) !== false) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
