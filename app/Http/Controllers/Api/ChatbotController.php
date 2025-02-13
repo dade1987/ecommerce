@@ -387,7 +387,7 @@ class ChatbotController extends Controller
         // Formatta il contenuto della risposta
         $formattedContent = nl2br($content); // Aggiungi interruzioni di riga
         $formattedContent = preg_replace('/\*\*(.*?)\*\*/', '<strong>$1</strong>', $formattedContent); // Aggiungi grassetto
-        $formattedContent = preg_replace('/\d+\.\s/', '<br><br><strong>$0</strong>', $formattedContent); // Aggiungi elenchi numerati
+        $formattedContent = preg_replace('/\d+\.\s/', '<br><strong>$0</strong>', $formattedContent); // Aggiungi elenchi numerati
 
         return $formattedContent;
     }
