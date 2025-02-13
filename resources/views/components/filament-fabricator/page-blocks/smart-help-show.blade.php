@@ -29,7 +29,7 @@
             const botMessage = {
                 id: Date.now(),
                 role: 'bot',
-                content: response.message,
+                content: `<strong>${response.message.split(' ')[0]}</strong> ${response.message.slice(response.message.indexOf(' ') + 1)}`,
             };
             addMessageToChat(botMessage);
         });
@@ -48,7 +48,7 @@
             const userMessage = {
                 id: Date.now(),
                 role: 'user',
-                content: userInput,
+                content: `<strong>${userInput.split(' ')[0]}</strong> ${userInput.slice(userInput.indexOf(' ') + 1)}`,
             };
 
             addMessageToChat(userMessage);
@@ -61,7 +61,7 @@
             const botMessage = {
                 id: Date.now() + 1,
                 role: 'bot',
-                content: response.message,
+                content: `<strong>${response.message.split(' ')[0]}</strong> ${response.message.slice(response.message.indexOf(' ') + 1)}`,
             };
             addMessageToChat(botMessage);
 
@@ -74,8 +74,8 @@
         function addMessageToChat(message) {
             const messageElement = document.createElement('div');
             messageElement.className = `message ${message.role}`;
-            messageElement.style = `padding: 10px; margin-bottom: 10px; border-radius: 5px; background-color: ${message.role === 'user' ? '#ffffff' : '#ffffff'}; color: #333; border: ${message.role === 'user' ? '1px solid orange' : '1px solid blue'};`;
-            messageElement.innerHTML = `<span style="font-family: Arial, sans-serif; font-size: 16px;">${message.content}</span>`; // Usa innerHTML per supportare il contenuto HTML
+            messageElement.style = `padding: 10px; margin-bottom: 10px; border-radius: 5px; background-color: #ffffff; color: ${message.role === 'user' ? '#00008b' : 'black'}; border: ${message.role === 'user' ? '2px solid blue' : '3px solid #ffb300'}; font-family: Montserrat, sans-serif;`;
+            messageElement.innerHTML = `<span style="font-size: 16px;">${message.content}</span>`; // Usa innerHTML per supportare il contenuto HTML
             messagesElement.appendChild(messageElement);
             messagesElement.scrollTop = messagesElement.scrollHeight;
         }
@@ -83,7 +83,7 @@
         function addTypingIndicator() {
             const typingElement = document.createElement('div');
             typingElement.className = 'message bot';
-            typingElement.style = 'padding: 10px; margin-bottom: 10px; border-radius: 5px; background-color: #ffffff; color: #333; border: 1px solid blue;';
+            typingElement.style = 'padding: 10px; margin-bottom: 10px; border-radius: 5px; background-color: #ffffff; color: black; border: 3px solid #ffb300; font-family: Montserrat, sans-serif;';
             typingElement.textContent = '.';
             messagesElement.appendChild(typingElement);
             messagesElement.scrollTop = messagesElement.scrollHeight;
@@ -125,7 +125,7 @@
                 return data;
             } catch (error) {
                 console.error('Errore durante l\'invio del messaggio:', error);
-                return { message: 'Errore durante l\'invio del messaggio. Riprova più tardi.' };
+                return { message: '<strong>Errore</strong> durante l\'invio del messaggio. Riprova più tardi.' };
             }
         }
     });
