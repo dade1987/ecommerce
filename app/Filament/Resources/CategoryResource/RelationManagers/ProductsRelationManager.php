@@ -37,8 +37,8 @@ class ProductsRelationManager extends RelationManager
                     ->label('Team')
                     ->relationship('team', 'name')
                     ->default(fn ($record) => $record ? $record->category->team_id : null)
-                    ->required()
-                    ->visible(condition: fn ($record) => auth()->user()->teams->isEmpty()),
+                    ->required(),
+                //->visible(condition: fn ($record) => auth()->user()->teams->isEmpty()),
 
             ]);
     }
