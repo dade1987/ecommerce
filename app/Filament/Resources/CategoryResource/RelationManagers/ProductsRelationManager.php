@@ -19,11 +19,7 @@ class ProductsRelationManager extends RelationManager
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        // Ottiene l'utente autenticato
-        $user = Auth::user();
-
-        // Assegna il team dell'utente autenticato
-        $data['team_id'] = $user->team_id;
+        $data['team_id'] = $this->getOwnerRecord()->team_id;
 
         return $data;
     }
