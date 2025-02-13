@@ -7,7 +7,7 @@ use App\Models\Team;
 use GuzzleHttp\Client;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cookie;
-use Illuminate\Support\Facades\Log; // Importa il modello Team
+use Illuminate\Support\Facades\Log;
 use OpenAI;
 use OpenAI\Client as OpenAIClient;
 use function Safe\json_decode;
@@ -56,7 +56,7 @@ class ChatbotController extends Controller
             'content' => $userInput,
         ]);
 
-        // Se il messaggio è "Intro", recupera il welcome message dal modello Team
+        // Se il messaggio è "buongiorno", recupera il welcome message dal modello Team
         if (strtolower($userInput) === 'buongiorno') {
             $team = Team::where('slug', $teamSlug)->first();
             $welcomeMessage = $team ? $team->welcome_message : 'Benvenuto!';
@@ -72,7 +72,7 @@ class ChatbotController extends Controller
             threadId: $threadId,
             parameters: [
                 'assistant_id' => 'asst_34SA8ZkwlHiiXxNufoZYddn0',
-                'instructions' => 'Sei un chatbot che risponde a domande sui prodotti, servizi, trattamenti, sessioni o attività offerti dal centro olistico.',
+                'instructions' => 'Sei un chatbot che risponde esclusivamente a domande relative a prodotti, servizi, trattamenti, sessioni o attività offerti dal centro olistico. Se la domanda dell\'utente non rientra in questi ambiti, invoca la funzione "fallback" per rispondere: "Per un setup più specifico per la tua attività contatta 3487433620 Giuliano". Le domande consentite sono quindi solo quelle inerenti a: prodotti, servizi, trattamenti, sessioni o attività del centro olistico.',
                 'model' => 'gpt-4o',
                 'tools' => [
                     [
@@ -150,6 +150,18 @@ class ChatbotController extends Controller
                                     ],
                                 ],
                                 'required' => ['user_phone', 'delivery_date', 'product_ids'],
+                            ],
+                        ],
+                    ],
+                    // Funzione fallback per domande fuori contesto
+                    [
+                        'type' => 'function',
+                        'function' => [
+                            'name' => 'fallback',
+                            'description' => 'Risponde a domande non inerenti al contesto consentito con il messaggio predefinito: "Per un setup più specifico per la tua attività contatta 3487433620 Giuliano". Le domande consentite riguardano esclusivamente prodotti, servizi, trattamenti, sessioni o attività offerti dal centro olistico.',
+                            'parameters' => [
+                                'type' => 'object',
+                                'properties' => new \stdClass(), // Nessun parametro richiesto
                             ],
                         ],
                     ],
@@ -239,7 +251,7 @@ class ChatbotController extends Controller
                 $arguments = json_decode($functionCall->arguments, true);
                 $userPhone = $arguments['user_phone'];
                 $deliveryDate = $arguments['delivery_date'];
-                $productIds = $arguments['product_ids']; // Prendi gli ID dei prodotti dai parametri
+                $productIds = $arguments['product_ids'];
 
                 // Verifica se il numero di telefono è presente
                 if (empty($userPhone)) {
@@ -276,6 +288,23 @@ class ChatbotController extends Controller
 
                 // Recupera la risposta finale
                 $run = $this->retrieveRunResult($threadId, $run->id);
+            } elseif ($functionCall->name === 'fallback') {
+                // Gestione della funzione fallback: rispondi con il messaggio predefinito
+                $fallbackMessage = 'Per un setup più specifico per la tua attività contatta 3487433620 Giuliano';
+                $this->client->threads()->runs()->submitToolOutputs(
+                    threadId: $threadId,
+                    runId: $run->id,
+                    parameters: [
+                        'tool_outputs' => [
+                            [
+                                'tool_call_id' => $requiredAction->submitToolOutputs->toolCalls[0]->id,
+                                'output' => json_encode(['message' => $fallbackMessage]),
+                            ],
+                        ],
+                    ]
+                );
+                // Recupera la risposta finale dopo aver inviato il fallback
+                $run = $this->retrieveRunResult($threadId, $run->id);
             }
         }
 
@@ -289,7 +318,7 @@ class ChatbotController extends Controller
         return response()->json([
             'message' => $formattedContent,
             'thread_id' => $threadId,
-            'product_ids' => $productIds ?? [], // Aggiungi gli ID dei prodotti alla risposta
+            'product_ids' => $productIds ?? [], // Aggiungi gli ID dei prodotti alla risposta, se presenti
         ]);
     }
 
@@ -358,7 +387,12 @@ class ChatbotController extends Controller
 
     private function createOrder($userPhone, $deliveryDate, $productIds, $teamSlug)
     {
-        Log::info('createOrder: Inizio creazione ordine', ['userPhone' => $userPhone, 'deliveryDate' => $deliveryDate, 'productIds' => $productIds, 'teamSlug' => $teamSlug]);
+        Log::info('createOrder: Inizio creazione ordine', [
+            'userPhone' => $userPhone,
+            'deliveryDate' => $deliveryDate,
+            'productIds' => $productIds,
+            'teamSlug' => $teamSlug,
+        ]);
         $client = new Client();
         $response = $client->post("https://cavalliniservice.com/api/order/{$teamSlug}", [
             'json' => [
