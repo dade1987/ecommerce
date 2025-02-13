@@ -19,6 +19,9 @@ class CustomerResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
+    // Variabile per indicare che i customer non hanno un team
+    protected static bool $hasTeam = false;
+
     public static function form(Form $form): Form
     {
         return $form
