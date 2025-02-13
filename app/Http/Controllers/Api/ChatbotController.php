@@ -67,7 +67,7 @@ class ChatbotController extends Controller
             ]);
         }
 
-        // Crea e gestisci il run
+        // Crea e gestisci il run con i vari tool disponibili
         $run = $this->client->threads()->runs()->create(
             threadId: $threadId,
             parameters: [
@@ -150,6 +150,32 @@ class ChatbotController extends Controller
                                     ],
                                 ],
                                 'required' => ['user_phone', 'delivery_date', 'product_ids'],
+                            ],
+                        ],
+                    ],
+                    // Nuovo function call per gestire i dati anagrafici
+                    [
+                        'type' => 'function',
+                        'function' => [
+                            'name' => 'submitUserData',
+                            'description' => 'Registra i dati anagrafici dell\'utente (nome, email e numero di telefono) e risponde ringraziando per averli forniti. I dati verranno trattati in conformità al GDPR e all\'informativa sulla privacy del sito.',
+                            'parameters' => [
+                                'type' => 'object',
+                                'properties' => [
+                                    'user_phone' => [
+                                        'type' => 'string',
+                                        'description' => 'Numero di telefono dell\'utente',
+                                    ],
+                                    'user_email' => [
+                                        'type' => 'string',
+                                        'description' => 'Email dell\'utente',
+                                    ],
+                                    'user_name' => [
+                                        'type' => 'string',
+                                        'description' => 'Nome dell\'utente',
+                                    ],
+                                ],
+                                'required' => ['user_phone', 'user_email', 'user_name'],
                             ],
                         ],
                     ],
@@ -288,6 +314,39 @@ class ChatbotController extends Controller
 
                 // Recupera la risposta finale
                 $run = $this->retrieveRunResult($threadId, $run->id);
+            } elseif ($functionCall->name === 'submitUserData') {
+                $arguments = json_decode($functionCall->arguments, true);
+                $userPhone = $arguments['user_phone'] ?? null;
+                $userEmail = $arguments['user_email'] ?? null;
+                $userName = $arguments['user_name'] ?? null;
+
+                // Verifica che tutti i dati siano stati forniti
+                if (empty($userPhone) || empty($userEmail) || empty($userName)) {
+                    return response()->json([
+                        'message' => 'Per favore fornisci nome, email e numero di telefono.',
+                        'thread_id' => $threadId,
+                    ]);
+                }
+
+                // Richiama l'API per registrare i dati anagrafici
+                $userDataResponse = $this->submitUserData($userPhone, $userEmail, $userName, $teamSlug);
+
+                // Invia i risultati a GPT
+                $this->client->threads()->runs()->submitToolOutputs(
+                    threadId: $threadId,
+                    runId: $run->id,
+                    parameters: [
+                        'tool_outputs' => [
+                            [
+                                'tool_call_id' => $requiredAction->submitToolOutputs->toolCalls[0]->id,
+                                'output' => json_encode($userDataResponse),
+                            ],
+                        ],
+                    ]
+                );
+
+                // Recupera la risposta finale
+                $run = $this->retrieveRunResult($threadId, $run->id);
             } elseif ($functionCall->name === 'fallback') {
                 // Gestione della funzione fallback: rispondi con il messaggio predefinito
                 $fallbackMessage = 'Per un setup più specifico per la tua attività contatta 3487433620 Giuliano';
@@ -414,6 +473,44 @@ class ChatbotController extends Controller
         Log::info('createOrder: Ordine creato', ['orderData' => $orderData]);
 
         return $orderData;
+    }
+
+    private function submitUserData($userPhone, $userEmail, $userName, $teamSlug)
+    {
+        Log::info('submitUserData: Inizio invio dati utente', [
+            'userPhone' => $userPhone,
+            'userEmail' => $userEmail,
+            'userName'  => $userName,
+            'teamSlug'  => $teamSlug,
+        ]);
+
+        $client = new Client();
+
+        // Costruisci l'URL completo dell'endpoint locale
+        // Assumendo che config('app.url') contenga l'URL base della tua applicazione
+        $url = 'https://cavalliniservice.com/api/customers';
+
+        // Effettua la richiesta POST all'endpoint /customers
+        $response = $client->post($url, [
+            'json' => [
+                'name'  => $userName,
+                'phone' => $userPhone,
+                'email' => $userEmail,
+            ],
+        ]);
+
+        Log::info('submitUserData: Dati utente inviati', [
+            'url'     => $url,
+            'payload' => [
+                'name'  => $userName,
+                'phone' => $userPhone,
+                'email' => $userEmail,
+            ],
+        ]);
+
+        $responseData = json_decode($response->getBody(), true);
+
+        return $responseData;
     }
 
     private function formatResponseContent($content)

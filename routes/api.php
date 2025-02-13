@@ -75,4 +75,17 @@ Route::post('/order/{slug}', function (Request $request, $slug) {
     ]);
 });
 
+Route::post('/customers', function (Request $request) {
+    $customer = new App\Models\Customer();
+    $customer->name = $request->input('name');
+    $customer->phone = $request->input('phone');
+    $customer->email = $request->input('email');
+    $customer->save();
+
+    return response()->json([
+        'customer_id' => $customer->id,
+        'message' => 'Cliente creato con successo',
+    ]);
+});
+
 Route::post('/chatbot', [ChatbotController::class, 'handleChat']);
