@@ -9,15 +9,15 @@
             @foreach($items as $item)
                 <li class="flex">
                     <a rel="noopener noreferrer" href="{{ $item->href }}"
-                        class="text-xl font-bold flex items-center px-4 -mb-1 border-b-2 border-transparent text-violet-400 border-violet-400">{{ $item->name }}</a>
+                        class="text-xl font-bold flex items-center px-4 -mb-1 border-b-2 text-black border-black">{{ $item->name }}</a>
                 </li>
             @endforeach
         </ul>
         <div class="items-center flex-shrink-0 hidden lg:flex">
             {{--@guest
-                <a href="{{ route('login') }}" class="self-center px-8 py-3 rounded text-xl font-bold text-gray-600">Accedi</a>
+                <a href="{{ route('login') }}" class="self-center px-8 py-3 rounded text-xl font-bold text-black">Accedi</a>
                 <a href="{{ route('register') }}"
-                    class="self-center px-8 py-3 font-semibold rounded bg-violet-400 text-gray-900 text-xl font-bold text-gray-600">Registrati</a>
+                    class="self-center px-8 py-3 font-semibold rounded bg-violet-400 text-gray-900 text-xl font-bold text-black">Registrati</a>
             @endguest
             @auth
                 @if ($cartEnabled === true)
@@ -25,7 +25,7 @@
                 @else
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf
-                        <button type='submit' class="text-xl font-bold text-gray-600">Esci</button>
+                        <button type='submit' class="text-xl font-bold text-black">Esci</button>
                     </form>
                 @endif
             @endauth--}}
@@ -39,11 +39,11 @@
         </button>
     </div>
     <div id="mobile-menu" class="lg:hidden hidden">
-        <ul class="flex flex-col items-start space-y-2 p-4 bg-white rounded-md shadow-md">
+        <ul class="flex flex-col items-start space-y-2 p-4 bg-gray-100 rounded-md shadow-md">
             @foreach($items as $item)
                 <li class="w-full">
                     <a rel="noopener noreferrer" href="{{ $item->href }}"
-                        class="block w-full text-xl font-bold px-4 py-2 rounded-md hover:bg-gray-200 text-violet-400">{{ $item->name }}</a>
+                        class="block w-full text-xl font-bold px-4 py-2 rounded-md hover:bg-gray-200 text-black">{{ $item->name }}</a>
                 </li>
             @endforeach
         </ul>
