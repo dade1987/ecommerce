@@ -20,6 +20,7 @@ class RegisterTeam extends RegisterTenant
             ->schema([
                 TextInput::make('name'),
                 TextInput::make('slug'),
+                TextInput::make('welcome_message'),
             ]);
     }
 
