@@ -37,7 +37,8 @@ class EventResource extends Resource
                     ->imageResizeTargetWidth(10),
                 Forms\Components\Select::make('team_id')
                     ->relationship('team', 'name')
-                    ->required(),
+                    ->required()
+                    ->visible(condition: fn ($record) => auth()->user()->teams->isEmpty()),
 
             ]);
     }
@@ -48,6 +49,10 @@ class EventResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('name')
                     ->searchable(),
+                Tables\Columns\TextColumn::make('starts_at')
+                    ->dateTime('d/m/Y H:i'),
+                Tables\Columns\TextColumn::make('ends_at')
+                    ->dateTime('d/m/Y H:i'),
             ])
             ->filters([
                 //

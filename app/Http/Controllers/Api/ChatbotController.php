@@ -3,10 +3,11 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Team;
 use GuzzleHttp\Client;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cookie;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Log; // Importa il modello Team
 use OpenAI;
 use OpenAI\Client as OpenAIClient;
 use function Safe\json_decode;
@@ -54,6 +55,17 @@ class ChatbotController extends Controller
             'role' => 'user',
             'content' => $userInput,
         ]);
+
+        // Se il messaggio è "Intro", recupera il welcome message dal modello Team
+        if (strtolower($userInput) === 'buongiorno') {
+            $team = Team::where('slug', $teamSlug)->first();
+            $welcomeMessage = $team ? $team->welcome_message : 'Benvenuto!';
+
+            return response()->json([
+                'message' => $welcomeMessage,
+                'thread_id' => $threadId,
+            ]);
+        }
 
         // Crea e gestisci il run
         $run = $this->client->threads()->runs()->create(

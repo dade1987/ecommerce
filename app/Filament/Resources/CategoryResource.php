@@ -46,7 +46,8 @@ class CategoryResource extends Resource
                 Forms\Components\Select::make('team_id')
                     ->label('Team')
                     ->relationship('team', 'name')
-                    ->required(),
+                    ->required()
+                    ->visible(fn ($record) => auth()->user()->teams->isEmpty()),
             ]);
     }
 

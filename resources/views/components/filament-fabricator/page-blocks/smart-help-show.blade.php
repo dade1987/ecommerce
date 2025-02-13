@@ -1,9 +1,7 @@
 <!-- Start of Selection -->
 <div id="chatContainer" style="display: flex; flex-direction: column; height: 75vh; background-color: #f2f2f2; border-radius: 5px;">
     <div id="messages" style="flex: 1; padding: 10px; overflow-y: scroll; background-color: #f2f2f2; color: #333;">
-        <div class="message bot" style="padding: 10px; margin-bottom: 10px; border-radius: 5px; background-color: #ffffff; color: #333; border: 1px solid blue;">
-            <span style="font-family: Arial, sans-serif; font-size: 16px;">Benvenuto al Centro Olistico Demo, un'oasi di serenità e benessere. Come posso assisterti oggi?</span>
-        </div>
+        
     </div>
     <div style="display: flex; padding: 10px; border-top: 1px solid #ccc; background-color: #f2f2f2; width: 100%;">
         <div style="position: relative; flex: 1; display: flex; align-items: center;">
@@ -25,6 +23,16 @@
         let threadId = null;
         let productIds = []; // Inizializza un array per gestire i product_ids
         const team = window.location.pathname.split('/').pop(); // Estrae l'ultima parte dell'URL come team
+
+        // Invia il messaggio "Intro" all'API quando la pagina viene caricata
+        postMessage('Buongiorno').then(response => {
+            const botMessage = {
+                id: Date.now(),
+                role: 'bot',
+                content: response.message,
+            };
+            addMessageToChat(botMessage);
+        });
 
         sendButton.addEventListener('click', sendMessage);
         userInputElement.addEventListener('keyup', function(event) {

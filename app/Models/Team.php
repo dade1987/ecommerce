@@ -15,7 +15,7 @@ class Team extends Model
     use HasFactory;
     use HasTeams;
 
-    protected $fillable = ['name', 'slug', 'nation', 'region', 'province', 'municipality', 'street', 'postal_code', 'phone'];
+    protected $fillable = ['welcome_message', 'logo', 'name', 'slug', 'nation', 'region', 'province', 'municipality', 'street', 'postal_code', 'phone'];
 
     public function members(): MorphToMany
     {
@@ -105,5 +105,10 @@ class Team extends Model
     public function categories()
     {
         return $this->hasMany(Category::class);
+    }
+
+    public function events()
+    {
+        return $this->hasMany(Event::class);
     }
 }

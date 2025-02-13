@@ -53,6 +53,12 @@ class TeamResource extends Resource
                 TextInput::make('phone')
                     ->maxLength(255)
                     ->default(null),
+                TextInput::make('welcome_message')
+                    ->maxLength(255)
+                    ->default(null),
+                TextInput::make('logo')
+                    ->maxLength(255)
+                    ->default(null),
             ]);
     }
 
