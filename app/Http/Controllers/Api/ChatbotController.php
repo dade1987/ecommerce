@@ -283,12 +283,12 @@ class ChatbotController extends Controller
         $messages = $this->client->threads()->messages()->list($threadId)->data;
         $content = $messages[0]->content[0]->text->value;
 
-        // Formatta il contenuto della risposta
-        $formattedContent = $this->formatResponseContent($content);
-
-        // Risposta predefinita per domande non pertinenti
-        if (! $this->isRelevantQuestion($userInput)) {
-            $formattedContent = 'Contatta il numero 3487433620 per il setup specifico per la tua azienda';
+        // Verifica se il contenuto della risposta è rilevante
+        if ($this->isIrrelevantQuestion($content)) {
+            $formattedContent = 'Per un setup più specifico per la tua attività contatta 3487433620 Giuliano';
+        } else {
+            // Formatta il contenuto della risposta
+            $formattedContent = $this->formatResponseContent($content);
         }
 
         return response()->json([
@@ -397,15 +397,17 @@ class ChatbotController extends Controller
         return $formattedContent;
     }
 
-    private function isRelevantQuestion($userInput)
+    private function isIrrelevantQuestion($content)
     {
-        $keywords = ['trattamenti', 'prenotazioni', 'informazioni', 'centro olistico', 'prodotti', 'servizi', 'sessioni', 'attività'];
-        foreach ($keywords as $keyword) {
-            if (stripos($userInput, $keyword) !== false) {
-                return true;
-            }
-        }
+        // Usa GPT per rilevare domande anomale
+        $response = $this->client->completions()->create([
+            'model' => 'gpt-4o',
+            'prompt' => "Questa domanda è rilevante per trattamenti, prenotazioni o informazioni sul centro olistico? Rispondi con 'sì' o 'no'.\n\nDomanda: {$content}",
+            'max_tokens' => 5,
+        ]);
 
-        return false;
+        $answer = strtolower(trim($response->choices[0]->text));
+
+        return $answer === 'no';
     }
 }
