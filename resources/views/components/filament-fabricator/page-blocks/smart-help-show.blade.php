@@ -1,13 +1,13 @@
 <!-- Start of Selection -->
-<div id="chatContainer" style="display: flex; flex-direction: column; height: 75vh; background-color: #f2f2f2; border-radius: 5px;">
-    <div id="messages" style="flex: 1; padding: 10px; overflow-y: scroll; background-color: #f2f2f2; color: #333;">
+<div id="chatContainer" style="display: flex; flex-direction: column; height: 75vh; background-color: #ffffff; border-radius: 5px;">
+    <div id="messages" style="flex: 1; padding: 10px; overflow-y: scroll; background-color: #ffffff; color: #333;">
         
     </div>
-    <div style="display: flex; padding: 10px; border-top: 1px solid #ccc; background-color: #f2f2f2; width: 100%;">
+    <div style="display: flex; padding: 10px; border-top: 1px solid #ccc; background-color: #ffffff; width: 100%;">
         <div style="position: relative; flex: 1; display: flex; align-items: center;">
             <div style="display: flex; width: 100%; border-radius: 5px; overflow: hidden; background-color: #ffffff;">
                 <input id="userInput" type="text" placeholder="Scrivi un messaggio..." style="flex: 1; padding: 10px; border: none; color: #333; font-family: Arial, sans-serif; font-size: 16px;">
-                <button id="sendButton" style="padding: 10px 20px; background-color: #f2f2f2; color: #000000; font-family: Arial, sans-serif; font-size: 16px; cursor: pointer; border: none;">
+                <button id="sendButton" style="padding: 10px 20px; background-color: #ffffff; color: #000000; font-family: Arial, sans-serif; font-size: 16px; cursor: pointer; border: none;">
                     Invia
                 </button>
             </div>
