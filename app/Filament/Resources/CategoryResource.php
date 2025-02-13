@@ -6,7 +6,9 @@ use App\Filament\Resources\CategoryResource\Pages;
 use App\Filament\Resources\CategoryResource\RelationManagers;
 use App\Filament\Resources\ProductMorphResource;
 use App\Models\Category;
+use App\Models\Team;
 use App\Models\Traits\HasTeams;
+use App\Providers\Filament\AdminPanelProvider;
 use Awcodes\Curator\Components\Forms\CuratorPicker;
 use Awcodes\Curator\Components\Tables\CuratorColumn;
 use Filament\Forms;
@@ -47,7 +49,6 @@ class CategoryResource extends Resource
                     ->label('Team')
                     ->relationship('team', 'name')
                     ->required(),
-                //->visible(fn ($record) => auth()->user()->teams->isEmpty()),
             ]);
     }
 

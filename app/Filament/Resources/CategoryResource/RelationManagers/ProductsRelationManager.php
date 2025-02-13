@@ -11,10 +11,22 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Facades\Auth;
 
 class ProductsRelationManager extends RelationManager
 {
     protected static string $relationship = 'products';
+
+    protected function mutateFormDataBeforeCreate(array $data): array
+    {
+        // Ottiene l'utente autenticato
+        $user = Auth::user();
+
+        // Assegna il team dell'utente autenticato
+        $data['team_id'] = $user->team_id;
+
+        return $data;
+    }
 
     public function form(Form $form): Form
     {

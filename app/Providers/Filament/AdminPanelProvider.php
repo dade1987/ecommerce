@@ -108,7 +108,7 @@ class AdminPanelProvider extends PanelProvider
                         ]),
                 ]
             )
-            //->tenant(Team::class, ownershipRelationship: 'team', slugAttribute: 'slug')
+            ->tenant(Team::class, ownershipRelationship: 'team', slugAttribute: 'slug')
             ->tenantRegistration(page: RegisterTeam::class)
             ->tenantProfile(EditTeamProfile::class);
 
