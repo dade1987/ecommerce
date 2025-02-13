@@ -45,12 +45,11 @@ class ProductsRelationManager extends RelationManager
                 CuratorPicker::make('featured_image_id')
                     ->relationship('featuredImage', 'id')
                     ->imageResizeTargetWidth(10),
-                Forms\Components\Select::make('team_id')
+                /* Forms\Components\Select::make('team_id')
                     ->label('Team')
                     ->relationship('team', 'name')
                     ->default(fn ($record) => $record ? $record->category->team_id : null)
-                    ->required(),
-                //->visible(condition: fn ($record) => auth()->user()->teams->isEmpty()),
+                    ->required(),*/
 
             ]);
     }
