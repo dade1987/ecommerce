@@ -283,13 +283,8 @@ class ChatbotController extends Controller
         $messages = $this->client->threads()->messages()->list($threadId)->data;
         $content = $messages[0]->content[0]->text->value;
 
-        // Verifica se il contenuto della risposta è rilevante
-        if ($this->isIrrelevantQuestion($content)) {
-            $formattedContent = 'Per un setup più specifico per la tua attività contatta 3487433620 Giuliano';
-        } else {
-            // Formatta il contenuto della risposta
-            $formattedContent = $this->formatResponseContent($content);
-        }
+        // Formatta il contenuto della risposta
+        $formattedContent = $this->formatResponseContent($content);
 
         return response()->json([
             'message' => $formattedContent,
@@ -395,19 +390,5 @@ class ChatbotController extends Controller
         $formattedContent = preg_replace('/\d+\.\s/', '<strong>$0</strong>', $formattedContent); // Aggiungi elenchi numerati
 
         return $formattedContent;
-    }
-
-    private function isIrrelevantQuestion($content)
-    {
-        // Usa GPT per rilevare domande anomale
-        $response = $this->client->completions()->create([
-            'model' => 'gpt-4o',
-            'prompt' => "Questa domanda è rilevante per trattamenti, prenotazioni o informazioni sul centro olistico? Rispondi con 'sì' o 'no'.\n\nDomanda: {$content}",
-            'max_tokens' => 5,
-        ]);
-
-        $answer = strtolower(trim($response->choices[0]->text));
-
-        return $answer === 'no';
     }
 }
