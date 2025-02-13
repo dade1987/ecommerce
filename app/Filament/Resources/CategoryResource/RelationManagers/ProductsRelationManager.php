@@ -45,7 +45,8 @@ class ProductsRelationManager extends RelationManager
                    ->label('Team')
                    ->relationship('team', 'name')
                    ->default(fn ($record) => $this->getOwnerRecord()->team_id)
-                   ->required(),
+                   ->required()
+                   ->hidden(),
 
             ]);
     }
