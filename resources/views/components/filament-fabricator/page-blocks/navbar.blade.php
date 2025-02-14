@@ -9,7 +9,7 @@
             @foreach($items as $item)
                 <li class="flex">
                     <a rel="noopener noreferrer" href="{{ $item->href }}"
-                        class="text-xl font-bold flex items-center px-4 -mb-1 border-b-2 text-black border-black">{{ $item->name }}</a>
+                        class="text-xl font-bold flex items-center px-4 -mb-1 text-black border-black">{{ $item->name }}</a>
                 </li>
             @endforeach
         </ul>
