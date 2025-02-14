@@ -21,7 +21,7 @@ class CalzaturieroController extends Controller
     public function extractProductInfo(Request $request)
     {
         if ($request->hasFile('file')) {
-            // Se presente un cookie 'thread_id' lo riutilizzo, altrimenti ne creo uno nuovo
+            // Se esiste già un thread (tramite cookie), lo riutilizziamo, altrimenti ne creiamo uno nuovo
             if ($request->hasCookie('thread_id')) {
                 $threadId = $request->cookie('thread_id');
             } else {
@@ -29,7 +29,7 @@ class CalzaturieroController extends Controller
                 $threadId = $thread->id;
             }
 
-            // Salva il file e caricalo tramite l'API di OpenAI
+            // Salviamo il file e lo carichiamo tramite l'API OpenAI
             $file = $request->file('file');
             $path = $file->store('uploads', 'public');
             $fullPath = storage_path('app/public/'.$path);
@@ -40,10 +40,11 @@ class CalzaturieroController extends Controller
                 'file'    => $fileResource,
             ]);
 
-            // Costruisci il messaggio con il prompt e allega il file caricato
+            // Creiamo il messaggio con il prompt:
+            // Istruzione chiara: rispondi soltanto con un JSON object conforme al formato indicato.
             $messageContent = "Estrai l'etichetta del prodotto e la quantità dal file PDF caricato. "
-                .'Restituisci il risultato in formato JSON con il seguente formato: '
-                .'{"prodotto": "nome_prodotto", "quantita": quantita}.';
+                .'Rispondi esclusivamente con un JSON object, senza alcun testo aggiuntivo. '
+                .'Il JSON deve rispettare esattamente il seguente formato: {"prodotto": "nome_prodotto", "quantita": quantita}.';
 
             $this->client->threads()->messages()->create($threadId, [
                 'role'        => 'user',
@@ -67,17 +68,32 @@ class CalzaturieroController extends Controller
                 ]
             );
 
-            // Attendi che il run sia completato
+            // Attende il completamento del run
             $this->retrieveRunResult($threadId, $run->id);
 
-            // Recupera i messaggi dal thread; qui assumiamo che la risposta sia nel primo messaggio
+            // Recupera i messaggi dal thread
             $messages = $this->client->threads()->messages()->list($threadId)->data;
-            $content = $messages[0]->content[0]->text->value;
 
-            return response()->json([
-                'thread_id' => $threadId,
-                'response'  => $content,
-            ])->cookie('thread_id', $threadId, 60);
+            // Assumiamo che la risposta dell'assistente contenga esclusivamente il JSON desiderato.
+            // Se l'assistente ha inviato più messaggi, prendiamo il primo messaggio con role 'assistant'.
+            $jsonResponse = null;
+            foreach ($messages as $message) {
+                if ($message->role === 'assistant') {
+                    $jsonResponse = $message->content[0]->text->value;
+                    break;
+                }
+            }
+
+            // Se non troviamo un messaggio assistant, usiamo l'ultimo messaggio ricevuto
+            if (! $jsonResponse && count($messages) > 0) {
+                $lastMessage = end($messages);
+                $jsonResponse = $lastMessage->content[0]->text->value;
+            }
+
+            // Restituisce la risposta con header 'application/json'
+            return response($jsonResponse, 200)
+                ->header('Content-Type', 'application/json')
+                ->cookie('thread_id', $threadId, 60);
         } else {
             return response()->json(['error' => 'No file uploaded'], 400);
         }
@@ -85,7 +101,7 @@ class CalzaturieroController extends Controller
 
     private function retrieveRunResult($threadId, $runId)
     {
-        // Polling finché il run non risulta completato
+        // Esegue il polling finché il run non risulta completato
         while (true) {
             $run = $this->client->threads()->runs()->retrieve($threadId, $runId);
 
