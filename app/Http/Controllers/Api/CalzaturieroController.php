@@ -15,7 +15,7 @@ class CalzaturieroController extends Controller
 
     public function __construct()
     {
-        $apiKey = config('openai.key');
+        $apiKey = config('openapi.key');
         $this->client = OpenAI::client($apiKey);
     }
 
