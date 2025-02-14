@@ -73,11 +73,11 @@ class ChatbotController extends Controller
             Quoter::create([
                 'thread_id' => $threadId,
                 'role' => 'chatbot',
-                'content' => $welcomeMessage.' Per favore fornisci il tuo nome, email e numero di telefono per procedere.',
+                'content' => $welcomeMessage,
             ]);
 
             return response()->json([
-                'message' => $welcomeMessage.' Per favore fornisci il tuo nome, email e numero di telefono per procedere.',
+                'message' => $welcomeMessage,
                 'thread_id' => $threadId,
             ]);
         }
