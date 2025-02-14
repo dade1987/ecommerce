@@ -94,7 +94,7 @@ class ChatbotController extends Controller
                         'type' => 'function',
                         'function' => [
                             'name' => 'getProductInfo',
-                            'description' => 'Recupera informazioni sui prodotti, servizi, trattamenti, sessioni o attività del menu tramite i loro nomi.',
+                            'description' => 'Recupera informazioni sui prodotti, servizi, trattamenti, sessioni o attività del menu tramite i loro nomi o recupera tutti chiamando l\'API senza specificare il nome.',
                             'parameters' => [
                                 'type' => 'object',
                                 'properties' => [
