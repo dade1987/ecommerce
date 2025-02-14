@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Quoter;
 use App\Models\Team;
 use GuzzleHttp\Client;
 use Illuminate\Http\Request;
@@ -50,6 +51,13 @@ class ChatbotController extends Controller
 
         Log::info('handleChat: Messaggio utente ricevuto', ['message' => $userInput, 'thread_id' => $threadId]);
 
+        // Salva il messaggio dell'utente nel modello Quoter
+        Quoter::create([
+            'thread_id' => $threadId,
+            'role' => 'user',
+            'content' => $userInput,
+        ]);
+
         // Aggiungi il messaggio dell'utente al thread
         $this->client->threads()->messages()->create($threadId, [
             'role' => 'user',
@@ -60,6 +68,13 @@ class ChatbotController extends Controller
         if (strtolower($userInput) === 'buongiorno') {
             $team = Team::where('slug', $teamSlug)->first();
             $welcomeMessage = $team ? $team->welcome_message : 'Benvenuto!';
+
+            // Salva il messaggio del chatbot nel modello Quoter
+            Quoter::create([
+                'thread_id' => $threadId,
+                'role' => 'chatbot',
+                'content' => $welcomeMessage.' Per favore fornisci il tuo nome, email e numero di telefono per procedere.',
+            ]);
 
             return response()->json([
                 'message' => $welcomeMessage.' Per favore fornisci il tuo nome, email e numero di telefono per procedere.',
@@ -369,6 +384,13 @@ class ChatbotController extends Controller
         // Recupera i messaggi aggiornati
         $messages = $this->client->threads()->messages()->list($threadId)->data;
         $content = $messages[0]->content[0]->text->value;
+
+        // Salva il messaggio del chatbot nel modello Quoter
+        Quoter::create([
+            'thread_id' => $threadId,
+            'role' => 'chatbot',
+            'content' => $content,
+        ]);
 
         // Formatta il contenuto della risposta
         $formattedContent = $this->formatResponseContent($content);
