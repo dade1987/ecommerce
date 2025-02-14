@@ -54,13 +54,14 @@ class ChatbotController extends Controller
         // Salva il messaggio dell'utente nel modello Quoter
         Quoter::create([
             'thread_id' => $threadId,
-            'role' => 'user',
-            'content' => $userInput,
+            'role'      => 'user',
+            'content'   => $userInput,
         ]);
 
-        // Aggiungi il messaggio dell'utente al thread
-        $this->client->threads()->messages()->create($threadId, [
-            'role' => 'user',
+        // Aggiungi il messaggio dell'utente al thread.
+        // Se è presente un run attivo, il metodo addMessageWithRetry attende il completamento.
+        $this->addMessageWithRetry($threadId, [
+            'role'    => 'user',
             'content' => $userInput,
         ]);
 
@@ -72,12 +73,12 @@ class ChatbotController extends Controller
             // Salva il messaggio del chatbot nel modello Quoter
             Quoter::create([
                 'thread_id' => $threadId,
-                'role' => 'chatbot',
-                'content' => $welcomeMessage,
+                'role'      => 'chatbot',
+                'content'   => $welcomeMessage,
             ]);
 
             return response()->json([
-                'message' => $welcomeMessage,
+                'message'   => $welcomeMessage,
                 'thread_id' => $threadId,
             ]);
         }
@@ -86,122 +87,122 @@ class ChatbotController extends Controller
         $run = $this->client->threads()->runs()->create(
             threadId: $threadId,
             parameters: [
-                'assistant_id' => 'asst_34SA8ZkwlHiiXxNufoZYddn0',
-                'instructions' => 'Sei un chatbot che risponde esclusivamente a domande relative a prodotti, servizi, trattamenti, sessioni o attività offerti dal centro olistico. Se la domanda dell\'utente non rientra in questi ambiti, invoca la funzione "fallback" per rispondere: "Per un setup più specifico per la tua attività contatta 3487433620 Giuliano". Le domande consentite sono quindi solo quelle inerenti a: prodotti, servizi, trattamenti, sessioni o attività del centro olistico. Inoltre, se non conosci già il nome e l\'email, chiedili esplicitamente, spiegando che verranno utilizzati solo per la demo.',
-                'model' => 'gpt-4o',
-                'tools' => [
+                'assistant_id'  => 'asst_34SA8ZkwlHiiXxNufoZYddn0',
+                'instructions'  => 'Sei un chatbot che risponde esclusivamente a domande relative a prodotti, servizi, trattamenti, sessioni o attività offerti dal centro olistico. Se la domanda dell\'utente non rientra in questi ambiti, invoca la funzione "fallback" per rispondere: "Per un setup più specifico per la tua attività contatta 3487433620 Giuliano". Le domande consentite sono quindi solo quelle inerenti a: prodotti, servizi, trattamenti, sessioni o attività del centro olistico. Inoltre, se non conosci già il nome e l\'email, chiedili esplicitamente, spiegando che verranno utilizzati solo per la demo.',
+                'model'         => 'gpt-4o',
+                'tools'         => [
                     [
-                        'type' => 'function',
+                        'type'     => 'function',
                         'function' => [
-                            'name' => 'getProductInfo',
+                            'name'        => 'getProductInfo',
                             'description' => 'Recupera informazioni sui prodotti, servizi, trattamenti, sessioni o attività del menu tramite i loro nomi o recupera tutti chiamando l\'API senza specificare il nome.',
-                            'parameters' => [
-                                'type' => 'object',
+                            'parameters'  => [
+                                'type'       => 'object',
                                 'properties' => [
                                     'product_names' => [
-                                        'type' => 'array',
-                                        'items' => ['type' => 'string'],
+                                        'type'        => 'array',
+                                        'items'       => ['type' => 'string'],
                                         'description' => 'Nomi dei prodotti, servizi, trattamenti, sessioni o attività da recuperare.',
                                     ],
                                 ],
-                                'required' => [],
+                                'required'   => [],
                             ],
                         ],
                     ],
                     [
-                        'type' => 'function',
+                        'type'     => 'function',
                         'function' => [
-                            'name' => 'getAddressInfo',
+                            'name'        => 'getAddressInfo',
                             'description' => 'Recupera informazioni sull\'indirizzo del centro olistico, compreso indirizzo e numero di telefono.',
-                            'parameters' => [
-                                'type' => 'object',
+                            'parameters'  => [
+                                'type'       => 'object',
                                 'properties' => [
                                     'team_slug' => [
-                                        'type' => 'string',
+                                        'type'        => 'string',
                                         'description' => 'Slug del team per recuperare l\'indirizzo.',
                                     ],
                                 ],
-                                'required' => ['team_slug'],
+                                'required'   => ['team_slug'],
                             ],
                         ],
                     ],
                     [
-                        'type' => 'function',
+                        'type'     => 'function',
                         'function' => [
-                            'name' => 'getAvailableTimes',
+                            'name'        => 'getAvailableTimes',
                             'description' => 'Recupera gli orari disponibili per un appuntamento.',
-                            'parameters' => [
-                                'type' => 'object',
+                            'parameters'  => [
+                                'type'       => 'object',
                                 'properties' => [
                                     'team_slug' => [
-                                        'type' => 'string',
+                                        'type'        => 'string',
                                         'description' => 'Slug del team per recuperare gli orari disponibili.',
                                     ],
                                 ],
-                                'required' => ['team_slug'],
+                                'required'   => ['team_slug'],
                             ],
                         ],
                     ],
                     [
-                        'type' => 'function',
+                        'type'     => 'function',
                         'function' => [
-                            'name' => 'createOrder',
+                            'name'        => 'createOrder',
                             'description' => 'Crea un ordine con i dati forniti.',
-                            'parameters' => [
-                                'type' => 'object',
+                            'parameters'  => [
+                                'type'       => 'object',
                                 'properties' => [
                                     'user_phone' => [
-                                        'type' => 'string',
+                                        'type'        => 'string',
                                         'description' => 'Numero di telefono dell\'utente per la prenotazione.',
                                     ],
                                     'delivery_date' => [
-                                        'type' => 'string',
+                                        'type'        => 'string',
                                         'description' => 'Data di consegna dell\'ordine.',
                                     ],
                                     'product_ids' => [
-                                        'type' => 'array',
-                                        'items' => ['type' => 'integer'],
+                                        'type'        => 'array',
+                                        'items'       => ['type' => 'integer'],
                                         'description' => 'ID dei prodotti, servizi, trattamenti, sessioni o attività da includere nell\'ordine.',
                                     ],
                                 ],
-                                'required' => ['user_phone', 'delivery_date', 'product_ids'],
+                                'required'   => ['user_phone', 'delivery_date', 'product_ids'],
                             ],
                         ],
                     ],
-                    // Nuovo function call per gestire i dati anagrafici
+                    // Funzione per gestire i dati anagrafici
                     [
-                        'type' => 'function',
+                        'type'     => 'function',
                         'function' => [
-                            'name' => 'submitUserData',
+                            'name'        => 'submitUserData',
                             'description' => 'Registra i dati anagrafici dell\'utente (nome, email e numero di telefono) e risponde ringraziando per averli forniti. I dati verranno trattati in conformità al GDPR e all\'informativa sulla privacy del sito.',
-                            'parameters' => [
-                                'type' => 'object',
+                            'parameters'  => [
+                                'type'       => 'object',
                                 'properties' => [
                                     'user_phone' => [
-                                        'type' => 'string',
+                                        'type'        => 'string',
                                         'description' => 'Numero di telefono dell\'utente',
                                     ],
                                     'user_email' => [
-                                        'type' => 'string',
+                                        'type'        => 'string',
                                         'description' => 'Email dell\'utente',
                                     ],
                                     'user_name' => [
-                                        'type' => 'string',
+                                        'type'        => 'string',
                                         'description' => 'Nome dell\'utente',
                                     ],
                                 ],
-                                'required' => ['user_phone', 'user_email', 'user_name'],
+                                'required'   => ['user_phone', 'user_email', 'user_name'],
                             ],
                         ],
                     ],
                     // Funzione fallback per domande fuori contesto
                     [
-                        'type' => 'function',
+                        'type'     => 'function',
                         'function' => [
-                            'name' => 'fallback',
+                            'name'        => 'fallback',
                             'description' => 'Risponde a domande non inerenti al contesto consentito con il messaggio predefinito: "Per un setup più specifico per la tua attività contatta 3487433620 Giuliano". Le domande consentite riguardano esclusivamente prodotti, servizi, trattamenti, sessioni o attività offerti dal centro olistico.',
-                            'parameters' => [
-                                'type' => 'object',
+                            'parameters'  => [
+                                'type'       => 'object',
                                 'properties' => new \stdClass(), // Nessun parametro richiesto
                             ],
                         ],
@@ -219,13 +220,14 @@ class ChatbotController extends Controller
             $functionCall = $requiredAction->submitToolOutputs->toolCalls[0]->function;
 
             if ($functionCall->name === 'getProductInfo') {
+                Log::info('Function call arguments: '.$functionCall->arguments);
                 $arguments = json_decode($functionCall->arguments, true);
                 $productNames = $arguments['product_names'] ?? [];
 
                 // Recupera i dati dei prodotti
                 $productData = $this->fetchProductData($productNames, $teamSlug);
 
-                // Memorizza gli ID dei prodotti in un cookie
+                // Memorizza gli ID dei prodotti (es. per uso successivo)
                 $productIds = array_column($productData, 'id');
 
                 // Invia i risultati a GPT
@@ -236,7 +238,7 @@ class ChatbotController extends Controller
                         'tool_outputs' => [
                             [
                                 'tool_call_id' => $requiredAction->submitToolOutputs->toolCalls[0]->id,
-                                'output' => json_encode($productData),
+                                'output'       => json_encode($productData),
                             ],
                         ],
                     ]
@@ -258,7 +260,7 @@ class ChatbotController extends Controller
                         'tool_outputs' => [
                             [
                                 'tool_call_id' => $requiredAction->submitToolOutputs->toolCalls[0]->id,
-                                'output' => json_encode($addressData),
+                                'output'       => json_encode($addressData),
                             ],
                         ],
                     ]
@@ -280,7 +282,7 @@ class ChatbotController extends Controller
                         'tool_outputs' => [
                             [
                                 'tool_call_id' => $requiredAction->submitToolOutputs->toolCalls[0]->id,
-                                'output' => json_encode($availableTimes),
+                                'output'       => json_encode($availableTimes),
                             ],
                         ],
                     ]
@@ -297,7 +299,7 @@ class ChatbotController extends Controller
                 // Verifica se il numero di telefono è presente
                 if (empty($userPhone)) {
                     return response()->json([
-                        'message' => 'Per favore fornisci un numero di telefono fisso o cellulare per completare la prenotazione.',
+                        'message'   => 'Per favore fornisci un numero di telefono fisso o cellulare per completare la prenotazione.',
                         'thread_id' => $threadId,
                     ]);
                 }
@@ -305,7 +307,7 @@ class ChatbotController extends Controller
                 // Verifica se ci sono product_ids
                 if (empty($productIds)) {
                     return response()->json([
-                        'message' => 'Per favore fornisci informazioni aggiuntive sul prodotto che vorresti acquistare.',
+                        'message'   => 'Per favore fornisci informazioni aggiuntive sul prodotto che vorresti acquistare.',
                         'thread_id' => $threadId,
                     ]);
                 }
@@ -321,7 +323,7 @@ class ChatbotController extends Controller
                         'tool_outputs' => [
                             [
                                 'tool_call_id' => $requiredAction->submitToolOutputs->toolCalls[0]->id,
-                                'output' => json_encode($orderData),
+                                'output'       => json_encode($orderData),
                             ],
                         ],
                     ]
@@ -338,7 +340,7 @@ class ChatbotController extends Controller
                 // Verifica che tutti i dati siano stati forniti
                 if (empty($userPhone) || empty($userEmail) || empty($userName)) {
                     return response()->json([
-                        'message' => 'Per favore fornisci nome, email e numero di telefono.',
+                        'message'   => 'Per favore fornisci nome, email e numero di telefono.',
                         'thread_id' => $threadId,
                     ]);
                 }
@@ -354,7 +356,7 @@ class ChatbotController extends Controller
                         'tool_outputs' => [
                             [
                                 'tool_call_id' => $requiredAction->submitToolOutputs->toolCalls[0]->id,
-                                'output' => json_encode($userDataResponse),
+                                'output'       => json_encode($userDataResponse),
                             ],
                         ],
                     ]
@@ -372,7 +374,7 @@ class ChatbotController extends Controller
                         'tool_outputs' => [
                             [
                                 'tool_call_id' => $requiredAction->submitToolOutputs->toolCalls[0]->id,
-                                'output' => json_encode(['message' => $fallbackMessage]),
+                                'output'       => json_encode(['message' => $fallbackMessage]),
                             ],
                         ],
                     ]
@@ -389,18 +391,41 @@ class ChatbotController extends Controller
         // Salva il messaggio del chatbot nel modello Quoter
         Quoter::create([
             'thread_id' => $threadId,
-            'role' => 'chatbot',
-            'content' => $content,
+            'role'      => 'chatbot',
+            'content'   => $content,
         ]);
 
         // Formatta il contenuto della risposta
         $formattedContent = $this->formatResponseContent($content);
 
         return response()->json([
-            'message' => $formattedContent,
-            'thread_id' => $threadId,
+            'message'     => $formattedContent,
+            'thread_id'   => $threadId,
             'product_ids' => $productIds ?? [], // Aggiungi gli ID dei prodotti alla risposta, se presenti
         ]);
+    }
+
+    /**
+     * Tenta di aggiungere il messaggio al thread.
+     * Se il thread ha un run attivo che impedisce l'aggiunta,
+     * attende (sleep) e riprova.
+     */
+    private function addMessageWithRetry($threadId, $message)
+    {
+        $added = false;
+        while (! $added) {
+            try {
+                $this->client->threads()->messages()->create($threadId, $message);
+                $added = true;
+            } catch (\Exception $e) {
+                if (strpos($e->getMessage(), 'while a run') !== false) {
+                    // Attendi 1 secondo e riprova
+                    sleep(1);
+                } else {
+                    throw $e;
+                }
+            }
+        }
     }
 
     private function retrieveRunResult($threadId, $runId)
@@ -432,7 +457,6 @@ class ChatbotController extends Controller
                 $response = $client->get("https://cavalliniservice.com/api/products/{$teamSlug}", [
                     'query' => ['name' => $name],
                 ]);
-
                 $productData = json_decode($response->getBody(), true);
                 Log::info('fetchProductData: Dati prodotto ricevuti', ['productData' => $productData]);
                 $products = array_merge($products, $productData);
@@ -469,26 +493,26 @@ class ChatbotController extends Controller
     private function createOrder($userPhone, $deliveryDate, $productIds, $teamSlug)
     {
         Log::info('createOrder: Inizio creazione ordine', [
-            'userPhone' => $userPhone,
-            'deliveryDate' => $deliveryDate,
-            'productIds' => $productIds,
-            'teamSlug' => $teamSlug,
+            'userPhone'   => $userPhone,
+            'deliveryDate'=> $deliveryDate,
+            'productIds'  => $productIds,
+            'teamSlug'    => $teamSlug,
         ]);
         $client = new Client();
         $response = $client->post("https://cavalliniservice.com/api/order/{$teamSlug}", [
             'json' => [
-                'user_phone' => $userPhone,
+                'user_phone'    => $userPhone,
                 'delivery_date' => $deliveryDate,
-                'product_ids' => $productIds,
+                'product_ids'   => $productIds,
             ],
         ]);
 
         Log::info('createOrder: Richiesta inviata', [
-            'url' => "https://cavalliniservice.com/api/order/{$teamSlug}",
+            'url'     => "https://cavalliniservice.com/api/order/{$teamSlug}",
             'payload' => [
-                'user_phone' => $userPhone,
+                'user_phone'    => $userPhone,
                 'delivery_date' => $deliveryDate,
-                'product_ids' => $productIds,
+                'product_ids'   => $productIds,
             ],
         ]);
         $orderData = json_decode($response->getBody(), true);
@@ -507,12 +531,7 @@ class ChatbotController extends Controller
         ]);
 
         $client = new Client();
-
-        // Costruisci l'URL completo dell'endpoint locale
-        // Assumendo che config('app.url') contenga l'URL base della tua applicazione
         $url = 'https://cavalliniservice.com/api/customers';
-
-        // Effettua la richiesta POST all'endpoint /customers
         $response = $client->post($url, [
             'json' => [
                 'name'  => $userName,
@@ -537,10 +556,12 @@ class ChatbotController extends Controller
 
     private function formatResponseContent($content)
     {
-        // Formatta il contenuto della risposta
-        $formattedContent = nl2br($content); // Aggiungi interruzioni di riga
-        $formattedContent = preg_replace('/\*\*(.*?)\*\*/', '<strong>$1</strong>', $formattedContent); // Aggiungi grassetto
-        $formattedContent = preg_replace('/\d+\.\s/', '<strong>$0</strong>', $formattedContent); // Aggiungi elenchi numerati
+        // Formatta il contenuto della risposta:
+        // - nl2br per le interruzioni di riga
+        // - preg_replace per evidenziare in grassetto eventuali parti tra ** ** e numeri nelle liste
+        $formattedContent = nl2br($content);
+        $formattedContent = preg_replace('/\*\*(.*?)\*\*/', '<strong>$1</strong>', $formattedContent);
+        $formattedContent = preg_replace('/\d+\.\s/', '<strong>$0</strong>', $formattedContent);
 
         return $formattedContent;
     }
