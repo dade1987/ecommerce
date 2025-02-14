@@ -9,7 +9,11 @@ return [
         'navigation_group' => true,
         'is_globally_searchable' => false,
         'show_model_path' => true,
+        'is_scoped_to_tenant' => false,
+        'cluster' => null,
     ],
+
+    'tenant_model' => null,
 
     'auth_provider_model' => [
         'fqcn' => 'App\\Models\\User',
@@ -22,9 +26,9 @@ return [
         'intercept_gate' => 'before', // after
     ],
 
-    'filament_user' => [
+    'panel_user' => [
         'enabled' => true,
-        'name' => 'filament_user',
+        'name' => 'panel_user',
     ],
 
     'permission_prefixes' => [
@@ -56,6 +60,8 @@ return [
 
     'generator' => [
         'option' => 'policies_and_permissions',
+        'policy_directory' => 'Policies',
+        'policy_namespace' => 'Policies',
     ],
 
     'exclude' => [
@@ -70,6 +76,12 @@ return [
         ],
 
         'resources' => [],
+    ],
+
+    'discovery' => [
+        'discover_all_resources' => false,
+        'discover_all_widgets' => false,
+        'discover_all_pages' => false,
     ],
 
     'register_role_policy' => [

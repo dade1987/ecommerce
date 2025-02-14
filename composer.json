@@ -10,7 +10,7 @@
     "require": {
         "php": "^8.1",
         "awcodes/filament-curator": "^3.0",
-        "bezhansalleh/filament-shield": "^3.0@beta",
+        "bezhansalleh/filament-shield": "^3.3",
         "digikraaft/laravel-review-rating": "^3.0",
         "diglactic/laravel-breadcrumbs": "^8.1",
         "drewm/mailchimp-api": "^2.5",

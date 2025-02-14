@@ -88,4 +88,10 @@ Route::post('/customers', function (Request $request) {
     ]);
 });
 
+Route::post('/calzaturiero/extract-product-info', [App\Http\Controllers\Api\CalzaturieroController::class, 'extractProductInfo']);
+
+// Per fare una prova in curl, usa il seguente comando:
+// curl -X POST -F "file=@/path/to/your/file.pdf" https://cavalliniservice.com/api/calzaturiero/extract-product-info
+// Assicurati di sostituire "/path/to/your/file.pdf" con il percorso effettivo del file PDF che vuoi caricare.
+
 Route::post('/chatbot', [ChatbotController::class, 'handleChat']);

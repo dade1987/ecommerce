@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "90f6b8fce0b734719e2b5ad58dbaaa00",
+    "content-hash": "e8e9477e32f6801cbc13a2aaad0ac4af",
     "packages": [
         {
             "name": "anourvalar/eloquent-serialize",
@@ -6209,7 +6209,7 @@
         },
         {
             "name": "sevendays-digital/filament-nested-resources",
-            "version": "dev-master",
+            "version": "dev-9eefe04cd069dded3f5080d2b110b626891670b8",
             "dist": {
                 "type": "path",
                 "url": "./packages/sevendays-digital/filament-nested-resources",
@@ -17880,7 +17880,6 @@
     "aliases": [],
     "minimum-stability": "dev",
     "stability-flags": {
-        "bezhansalleh/filament-shield": 10,
         "laraxot/laravel-auto-dev": 20
     },
     "prefer-stable": true,
