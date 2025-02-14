@@ -35,7 +35,7 @@ class CalzaturieroController extends Controller
             // Utilizza GPT per estrarre le informazioni dal file PDF
             $result = $this->client->completions()->create([
                 'model' => 'gpt-4o',
-                'prompt' => 'Estrai l\'etichetta del prodotto e la quantità dal file PDF caricato e restituisci in formato JSON con nome "prodotto" e "quantita".',
+                'prompt' => 'Estrai l\'etichetta del prodotto e la quantità dal file PDF caricato e restituisci in formato JSON con il seguente formato: {"prodotto": "nome_prodotto", "quantita": quantita}.',
                 'max_tokens' => 150,
                 'temperature' => 0.7,
                 'attachments' => [['file_id' => $response->id, 'tools' => [['type' => 'file_search']]]],
