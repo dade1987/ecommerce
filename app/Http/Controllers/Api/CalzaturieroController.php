@@ -41,10 +41,11 @@ class CalzaturieroController extends Controller
             ]);
 
             // Creiamo il messaggio con il prompt:
-            // Istruzione chiara: rispondi soltanto con un JSON object conforme al formato indicato.
+            // Istruzione chiara: rispondi soltanto con un array JSON conforme al formato indicato.
             $messageContent = "Estrai l'etichetta del prodotto e la quantità dal file PDF caricato. "
-                .'Rispondi esclusivamente con un JSON object, senza alcun testo aggiuntivo. '
-                .'Il JSON deve rispettare esattamente il seguente formato: {"prodotto": "nome_prodotto", "quantita": quantita}.';
+                .'Rispondi esclusivamente con un array JSON, senza alcun testo aggiuntivo. '
+                .'Il JSON deve rispettare esattamente il seguente formato: [{"prodotto": "nome_prodotto", "quantita": quantita}]. '
+                .'L\'array può contenere uno o più oggetti a seconda del contenuto del PDF.';
 
             $this->client->threads()->messages()->create($threadId, [
                 'role'        => 'user',
