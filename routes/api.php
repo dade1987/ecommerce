@@ -97,6 +97,9 @@ Route::get('/faqs', function (Request $request) {
     return response()->json($faqs);
 });
 
+// Esempio di domanda curl:
+// curl -X GET "https://cavalliniservice.com/api/faqs?query=la%20tua%20domanda"
+
 Route::post('/calzaturiero/extract-product-info', [App\Http\Controllers\Api\CalzaturieroController::class, 'extractProductInfo']);
 
 // Per fare una prova in curl, usa il seguente comando:

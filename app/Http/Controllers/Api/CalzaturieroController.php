@@ -95,9 +95,9 @@ class CalzaturieroController extends Controller
 
             // Converti il JSON in CSV
             $data = json_decode($jsonResponse, true);
-            $csvContent = "prodotto,quantita\n";
+            $csvContent = "prodotto,taglia,quantita,prezzo,data_di_consegna,codice_fornitore\n";
             foreach ($data as $item) {
-                $csvContent .= "{$item['prodotto']},{$item['quantita']}\n";
+                $csvContent .= "{$item['prodotto']},{$item['taglia']},{$item['quantita']},{$item['prezzo']},{$item['data_di_consegna']},{$item['codice_fornitore']}\n";
             }
 
             // Restituisce la risposta con header 'text/csv' per il download del file CSV
