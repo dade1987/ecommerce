@@ -37,9 +37,7 @@ class EventResource extends Resource
                     ->imageResizeTargetWidth(10),
                 Forms\Components\Select::make('team_id')
                     ->relationship('team', 'name')
-                    ->required()
-                    ->visible(condition: fn ($record) => auth()->user()->teams->isEmpty()),
-
+                    ->required(),
             ]);
     }
 
