@@ -45,10 +45,10 @@ class CategoryResource extends Resource
                 CuratorPicker::make('featured_image_id')
                     ->relationship('featuredImage', 'id')
                     ->imageResizeTargetWidth(10),
-                /*Forms\Components\Select::make('team_id')
+                Forms\Components\Select::make('team_id')
                     ->label('Team')
                     ->relationship('team', 'name')
-                    ->required(),*/
+                    ->required(),
             ]);
     }
 
