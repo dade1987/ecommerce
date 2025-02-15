@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use OpenAI;
 use OpenAI\Client;
 use function Safe\fopen;
+use function Safe\json_decode;
 
 class CalzaturieroController extends Controller
 {
@@ -41,10 +43,10 @@ class CalzaturieroController extends Controller
             ]);
 
             // Creiamo il messaggio con il prompt:
-            // Istruzione chiara: rispondi soltanto con un array JSON conforme al formato indicato.
+            // Istruzione chiara: rispondi con un array JSON conforme al formato indicato.
             $messageContent = "Estrai l'etichetta del prodotto e la quantità dal file PDF caricato. "
-                .'Rispondi esclusivamente con un array JSON, senza alcun testo aggiuntivo. '
-                .'Il JSON deve rispettare esattamente il seguente formato: [{"prodotto": "nome_prodotto", "quantita": quantita}]. '
+                .'Rispondi esclusivamente con un array, senza alcun testo aggiuntivo. '
+                .'L\'array deve rispettare esattamente il seguente formato: [{"prodotto": "nome_prodotto", "taglia": "taglia_prodotto", "quantita": quantita, "prezzo": prezzo, "data_di_consegna": "data_consegna", "codice_fornitore": "codice_fornitore"}]. '
                 .'L\'array può contenere uno o più oggetti a seconda del contenuto del PDF.';
 
             $this->client->threads()->messages()->create($threadId, [
@@ -91,9 +93,17 @@ class CalzaturieroController extends Controller
                 $jsonResponse = $lastMessage->content[0]->text->value;
             }
 
-            // Restituisce la risposta con header 'application/json'
-            return response($jsonResponse, 200)
-                ->header('Content-Type', 'application/json')
+            // Converti il JSON in CSV
+            $data = json_decode($jsonResponse, true);
+            $csvContent = "prodotto,quantita\n";
+            foreach ($data as $item) {
+                $csvContent .= "{$item['prodotto']},{$item['quantita']}\n";
+            }
+
+            // Restituisce la risposta con header 'text/csv' per il download del file CSV
+            return response($csvContent, 200)
+                ->header('Content-Type', 'text/csv')
+                ->header('Content-Disposition', 'attachment; filename="prodotti.csv"')
                 ->cookie('thread_id', $threadId, 60);
         } else {
             return response()->json(['error' => 'No file uploaded'], 400);
