@@ -1,7 +1,7 @@
 <!-- Start of Selection -->
 <div id="chatContainer" class="flex flex-col h-[75vh] bg-white rounded px-6">
     <div class="bg-white">
-        <h1 class="font-montserrat text-2xl text-left text-gray-800"><strong>Centro</strong> Olistico Rossi AI</h1>
+        <h1 class="font-montserrat text-2xl text-left text-gray-800"><strong>Enjoy</strong> Work</h1>
     </div>
     <div id="messages" class="flex-1 overflow-y-scroll bg-white text-gray-800 py-6">
         
@@ -77,7 +77,7 @@
         function addMessageToChat(message) {
             const messageElement = document.createElement('div');
             messageElement.className = `message ${message.role}`;
-            messageElement.style = `padding: 10px; margin-bottom: 10px; border-radius: 5px; background-color: #ffffff; color: ${message.role === 'user' ? '#00008b' : 'black'}; border: ${message.role === 'user' ? '2px solid blue' : '3px solid #ffb300'}; font-family: Montserrat, sans-serif;`;
+            messageElement.style = `padding: 10px; margin-bottom: 10px; border-radius: 5px; background-color: #ffffff; color: ${message.role === 'user' ? '#00008b' : 'black'}; border: ${message.role === 'user' ? '2px solid #9090ff' : '3px solid rgb(236, 236, 236)'}; font-family: Montserrat, sans-serif;`;
             messageElement.innerHTML = `<span style="font-size: 16px;">${message.content}</span>`; // Usa innerHTML per supportare il contenuto HTML
             messagesElement.appendChild(messageElement);
             messagesElement.scrollTop = messagesElement.scrollHeight;
@@ -86,7 +86,7 @@
         function addTypingIndicator() {
             const typingElement = document.createElement('div');
             typingElement.className = 'message bot';
-            typingElement.style = 'padding: 10px; margin-bottom: 10px; border-radius: 5px; background-color: #ffffff; color: black; border: 3px solid #ffb300; font-family: Montserrat, sans-serif;';
+            typingElement.style = 'padding: 10px; margin-bottom: 10px; border-radius: 5px; background-color: #ffffff; color: black; border: 3px solid rgb(236, 236, 236); font-family: Montserrat, sans-serif;';
             typingElement.textContent = '.';
             messagesElement.appendChild(typingElement);
             messagesElement.scrollTop = messagesElement.scrollHeight;
