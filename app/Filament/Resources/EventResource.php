@@ -51,6 +51,9 @@ class EventResource extends Resource
                     ->dateTime('d/m/Y H:i'),
                 Tables\Columns\TextColumn::make('ends_at')
                     ->dateTime('d/m/Y H:i'),
+                Tables\Columns\TextColumn::make('team.name')
+                    ->label('Team')
+                    ->sortable(),
             ])
             ->filters([
                 //
