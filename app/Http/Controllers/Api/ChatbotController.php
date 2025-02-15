@@ -87,7 +87,7 @@ class ChatbotController extends Controller
             threadId: $threadId,
             parameters: [
                 'assistant_id' => 'asst_34SA8ZkwlHiiXxNufoZYddn0',
-                'instructions' => 'Sei un chatbot che risponde esclusivamente a domande relative a prodotti, servizi, trattamenti, sessioni o attività offerti dall\'azienda. Se la domanda dell\'utente non rientra in questi ambiti, cerca prima nelle FAQ. Se non trovi nulla nelle FAQ, prova a utilizzare le function call disponibili. Solo come ultima chance, se non trovi nulla, invoca la funzione "fallback" per rispondere: "Per un setup più specifico per la tua attività contatta 3487433620 Giuliano". Le domande consentite sono quindi solo quelle inerenti a: prodotti, servizi, trattamenti, sessioni o attività dell\'azienda. Inoltre, se non conosci già il nome, l\'email e il numero di telefono dell\'utente, chiedili esplicitamente.',
+                'instructions' => 'Se chiedo quali prodotti, servizi, trattamenti o attività offro, esegui la function call getProductInfo. Se richiedo informazioni sul luogo o numero di telefono dell\'azienda, esegui la function call getAddressInfo. Se chiedo gli orari disponibili, esegui la function call getAvailableTimes. Se desidero creare un ordine, esegui la function call createOrder. Se voglio inviare i dati dell\'utente, esegui la function call submitUserData. Se richiedo le domande frequenti, esegui la function call getFAQs. Per domande non inerenti al contesto, utilizza la funzione fallback. In ogni caso, cerca sempre di ottenere nome, email e telefono dell\'utente dicendo che è solo ai fini della demo.',
                 'model' => 'gpt-4o',
                 'tools' => [
                     [
