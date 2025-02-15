@@ -87,7 +87,8 @@ class ChatbotController extends Controller
             threadId: $threadId,
             parameters: [
                 'assistant_id' => 'asst_34SA8ZkwlHiiXxNufoZYddn0',
-                'instructions' => 'Sei un chatbot che risponde esclusivamente a domande relative a prodotti, servizi, trattamenti, sessioni o attività offerti dal centro olistico. Se la domanda dell\'utente non rientra in questi ambiti, invoca la funzione "fallback" per rispondere: "Per un setup più specifico per la tua attività contatta 3487433620 Giuliano". Le domande consentite sono quindi solo quelle inerenti a: prodotti, servizi, trattamenti, sessioni o attività del centro olistico. Inoltre, se non conosci già il nome, l\'email e il numero di telefono dell\'utente, chiedili esplicitamente.',                'model' => 'gpt-4o',
+                'instructions' => 'Sei un chatbot che risponde esclusivamente a domande relative a prodotti, servizi, trattamenti, sessioni o attività offerti dall\'azienda. Se la domanda dell\'utente non rientra in questi ambiti, cerca prima nelle FAQ e se non trovi nulla invoca la funzione "fallback" per rispondere: "Per un setup più specifico per la tua attività contatta 3487433620 Giuliano". Le domande consentite sono quindi solo quelle inerenti a: prodotti, servizi, trattamenti, sessioni o attività dell\'azienda. Inoltre, se non conosci già il nome, l\'email e il numero di telefono dell\'utente, chiedili esplicitamente.',
+                'model' => 'gpt-4o',
                 'tools' => [
                     [
                         'type' => 'function',
@@ -111,7 +112,7 @@ class ChatbotController extends Controller
                         'type' => 'function',
                         'function' => [
                             'name' => 'getAddressInfo',
-                            'description' => 'Recupera informazioni sull\'indirizzo del centro olistico, compreso indirizzo e numero di telefono.',
+                            'description' => 'Recupera informazioni sull\'indirizzo dell\'azienda, compreso indirizzo e numero di telefono.',
                             'parameters' => [
                                 'type' => 'object',
                                 'properties' => [
@@ -198,7 +199,7 @@ class ChatbotController extends Controller
                         'type' => 'function',
                         'function' => [
                             'name' => 'getFAQs',
-                            'description' => 'Recupera le domande frequenti (FAQ) dal sistema. Esempio di domande frequenti: "Che cos\'è un centro olistico?", "Quali trattamenti offrite?", "Chi sono i professionisti del centro?".',
+                            'description' => 'Recupera le domande frequenti (FAQ) dal sistema. Esempio di domande frequenti: "Che cos\'è un\'azienda?", "Quali trattamenti offrite?", "Chi sono i professionisti dell\'azienda?".',
                             'parameters' => [
                                 'type' => 'object',
                                 'properties' => [
@@ -216,7 +217,7 @@ class ChatbotController extends Controller
                         'type' => 'function',
                         'function' => [
                             'name' => 'fallback',
-                            'description' => 'Risponde a domande non inerenti al contesto consentito con il messaggio predefinito: "Per un setup più specifico per la tua attività contatta 3487433620 Giuliano". Le domande consentite riguardano esclusivamente prodotti, servizi, trattamenti, sessioni o attività offerti dal centro olistico.',
+                            'description' => 'Risponde a domande non inerenti al contesto consentito con il messaggio predefinito: "Per un setup più specifico per la tua attività contatta 3487433620 Giuliano". Le domande consentite riguardano esclusivamente prodotti, servizi, trattamenti, sessioni o attività offerti dall\'azienda.',
                             'parameters' => [
                                 'type' => 'object',
                                 'properties' => new \stdClass(), // Nessun parametro richiesto
@@ -467,23 +468,23 @@ class ChatbotController extends Controller
         $products = [];
 
         if (empty($productNames)) {
-            Log::info('fetchProductData: Richiesta indice di tutti i prodotti');
+            Log::info('fetchProductData: Richiesta indice di tutti i prodotti e servizi');
             $response = $client->get("https://cavalliniservice.com/api/products/{$teamSlug}");
             $products = json_decode($response->getBody(), true);
         } else {
             foreach ($productNames as $name) {
-                Log::info('fetchProductData: Richiesta dati per prodotto', ['name' => $name]);
+                Log::info('fetchProductData: Richiesta dati per prodotto o servizio', ['name' => $name]);
                 $response = $client->get("https://cavalliniservice.com/api/products/{$teamSlug}", [
                     'query' => ['name' => $name],
                 ]);
 
                 $productData = json_decode($response->getBody(), true);
-                Log::info('fetchProductData: Dati prodotto ricevuti', ['productData' => $productData]);
+                Log::info('fetchProductData: Dati prodotto o servizio ricevuti', ['productData' => $productData]);
                 $products = array_merge($products, $productData);
             }
         }
 
-        Log::info('fetchProductData: Dati prodotti finali', ['products' => $products]);
+        Log::info('fetchProductData: Dati prodotti e servizi finali', ['products' => $products]);
 
         return $products;
     }
