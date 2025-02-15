@@ -88,6 +88,15 @@ Route::post('/customers', function (Request $request) {
     ]);
 });
 
+Route::get('/faqs', function (Request $request) {
+    $query = $request->input('query');
+
+    $faqs = App\Models\Faq::whereRaw('MATCH(question, answer) AGAINST(? IN NATURAL LANGUAGE MODE)', [$query])
+        ->get(['question', 'answer']);
+
+    return response()->json($faqs);
+});
+
 Route::post('/calzaturiero/extract-product-info', [App\Http\Controllers\Api\CalzaturieroController::class, 'extractProductInfo']);
 
 // Per fare una prova in curl, usa il seguente comando:

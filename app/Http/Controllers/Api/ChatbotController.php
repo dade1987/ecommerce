@@ -205,6 +205,24 @@ class ChatbotController extends Controller
                             ],
                         ],
                     ],
+                    // Nuovo function call per richiedere le domande frequenti (FAQ)
+                    [
+                        'type' => 'function',
+                        'function' => [
+                            'name' => 'getFAQs',
+                            'description' => 'Recupera le domande frequenti (FAQ) dal sistema.',
+                            'parameters' => [
+                                'type' => 'object',
+                                'properties' => [
+                                    'team_slug' => [
+                                        'type' => 'string',
+                                        'description' => 'Slug del team per recuperare le FAQ.',
+                                    ],
+                                ],
+                                'required' => ['team_slug'],
+                            ],
+                        ],
+                    ],
                 ],
             ]
         );
@@ -381,6 +399,28 @@ class ChatbotController extends Controller
                     );
                     // Recupera la risposta finale dopo aver inviato il fallback
                     $run = $this->retrieveRunResult($threadId, $run->id);
+                } elseif ($functionCall->name === 'getFAQs') {
+                    $arguments = json_decode($functionCall->arguments, true);
+
+                    // Recupera le FAQ
+                    $faqData = $this->fetchFAQs();
+
+                    // Invia i risultati a GPT
+                    $this->client->threads()->runs()->submitToolOutputs(
+                        threadId: $threadId,
+                        runId: $run->id,
+                        parameters: [
+                            'tool_outputs' => [
+                                [
+                                    'tool_call_id' => $toolCall->id,
+                                    'output' => json_encode($faqData),
+                                ],
+                            ],
+                        ]
+                    );
+
+                    // Recupera la risposta finale
+                    $run = $this->retrieveRunResult($threadId, $run->id);
                 }
             }
         }
@@ -537,6 +577,17 @@ class ChatbotController extends Controller
         $responseData = json_decode($response->getBody(), true);
 
         return $responseData;
+    }
+
+    private function fetchFAQs()
+    {
+        Log::info('fetchFAQs: Inizio recupero FAQ');
+        $client = new Client();
+        $response = $client->get('https://cavalliniservice.com/api/faqs');
+        $faqData = json_decode($response->getBody(), true);
+        Log::info('fetchFAQs: FAQ ricevute', ['faqData' => $faqData]);
+
+        return $faqData;
     }
 
     private function formatResponseContent($content)
