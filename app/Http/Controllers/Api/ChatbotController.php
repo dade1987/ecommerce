@@ -193,24 +193,12 @@ class ChatbotController extends Controller
                             ],
                         ],
                     ],
-                    // Funzione fallback per domande fuori contesto
-                    [
-                        'type' => 'function',
-                        'function' => [
-                            'name' => 'fallback',
-                            'description' => 'Risponde a domande non inerenti al contesto consentito con il messaggio predefinito: "Per un setup più specifico per la tua attività contatta 3487433620 Giuliano". Le domande consentite riguardano esclusivamente prodotti, servizi, trattamenti, sessioni o attività offerti dal centro olistico.',
-                            'parameters' => [
-                                'type' => 'object',
-                                'properties' => new \stdClass(), // Nessun parametro richiesto
-                            ],
-                        ],
-                    ],
                     // Nuovo function call per richiedere le domande frequenti (FAQ)
                     [
                         'type' => 'function',
                         'function' => [
                             'name' => 'getFAQs',
-                            'description' => 'Recupera le domande frequenti (FAQ) dal sistema.',
+                            'description' => 'Recupera le domande frequenti (FAQ) dal sistema. Esempio di domande frequenti: "Che cos\'è un centro olistico?", "Quali trattamenti offrite?", "Chi sono i professionisti del centro?".',
                             'parameters' => [
                                 'type' => 'object',
                                 'properties' => [
@@ -220,6 +208,18 @@ class ChatbotController extends Controller
                                     ],
                                 ],
                                 'required' => ['team_slug'],
+                            ],
+                        ],
+                    ],
+                    // Funzione fallback per domande fuori contesto
+                    [
+                        'type' => 'function',
+                        'function' => [
+                            'name' => 'fallback',
+                            'description' => 'Risponde a domande non inerenti al contesto consentito con il messaggio predefinito: "Per un setup più specifico per la tua attività contatta 3487433620 Giuliano". Le domande consentite riguardano esclusivamente prodotti, servizi, trattamenti, sessioni o attività offerti dal centro olistico.',
+                            'parameters' => [
+                                'type' => 'object',
+                                'properties' => new \stdClass(), // Nessun parametro richiesto
                             ],
                         ],
                     ],
@@ -382,23 +382,6 @@ class ChatbotController extends Controller
 
                     // Recupera la risposta finale
                     $run = $this->retrieveRunResult($threadId, $run->id);
-                } elseif ($functionCall->name === 'fallback') {
-                    // Gestione della funzione fallback: rispondi con il messaggio predefinito
-                    $fallbackMessage = 'Per un setup più specifico per la tua attività contatta 3487433620 Giuliano';
-                    $this->client->threads()->runs()->submitToolOutputs(
-                        threadId: $threadId,
-                        runId: $run->id,
-                        parameters: [
-                            'tool_outputs' => [
-                                [
-                                    'tool_call_id' => $toolCall->id,
-                                    'output' => json_encode(['message' => $fallbackMessage]),
-                                ],
-                            ],
-                        ]
-                    );
-                    // Recupera la risposta finale dopo aver inviato il fallback
-                    $run = $this->retrieveRunResult($threadId, $run->id);
                 } elseif ($functionCall->name === 'getFAQs') {
                     $arguments = json_decode($functionCall->arguments, true);
 
@@ -420,6 +403,23 @@ class ChatbotController extends Controller
                     );
 
                     // Recupera la risposta finale
+                    $run = $this->retrieveRunResult($threadId, $run->id);
+                } elseif ($functionCall->name === 'fallback') {
+                    // Gestione della funzione fallback: rispondi con il messaggio predefinito
+                    $fallbackMessage = 'Per un setup più specifico per la tua attività contatta 3487433620 Giuliano';
+                    $this->client->threads()->runs()->submitToolOutputs(
+                        threadId: $threadId,
+                        runId: $run->id,
+                        parameters: [
+                            'tool_outputs' => [
+                                [
+                                    'tool_call_id' => $toolCall->id,
+                                    'output' => json_encode(['message' => $fallbackMessage]),
+                                ],
+                            ],
+                        ]
+                    );
+                    // Recupera la risposta finale dopo aver inviato il fallback
                     $run = $this->retrieveRunResult($threadId, $run->id);
                 }
             }
