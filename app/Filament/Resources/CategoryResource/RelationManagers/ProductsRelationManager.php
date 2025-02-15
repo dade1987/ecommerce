@@ -17,13 +17,6 @@ class ProductsRelationManager extends RelationManager
 {
     protected static string $relationship = 'products';
 
-    protected function mutateFormDataBeforeCreate(array $data): array
-    {
-        $data['team_id'] = $this->getOwnerRecord()->team_id;
-
-        return $data;
-    }
-
     public function form(Form $form): Form
     {
         return $form
@@ -45,9 +38,7 @@ class ProductsRelationManager extends RelationManager
                    ->label('Team')
                    ->relationship('team', 'name')
                    ->default(fn ($record) => $this->getOwnerRecord()->team_id)
-                   ->required()
-                   ->hidden(),
-
+                   ->required(),
             ]);
     }
 
