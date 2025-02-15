@@ -213,171 +213,175 @@ class ChatbotController extends Controller
         $run = $this->retrieveRunResult($threadId, $run->id);
 
         // Gestione del function calling
-        if ($run->status === 'requires_action') {
+        while ($run->status === 'requires_action') {
             $requiredAction = $run->requiredAction;
-            $functionCall = $requiredAction->submitToolOutputs->toolCalls[0]->function;
 
-            if ($functionCall->name === 'getProductInfo') {
-                $arguments = json_decode($functionCall->arguments, true);
-                $productNames = $arguments['product_names'] ?? [];
+            foreach ($requiredAction->submitToolOutputs->toolCalls as $toolCall) {
+                $functionCall = $toolCall->function;
+                Log::info('Esecuzione funzione', ['function_name' => $functionCall->name]);
 
-                // Recupera i dati dei prodotti
-                $productData = $this->fetchProductData($productNames, $teamSlug);
+                if ($functionCall->name === 'getProductInfo') {
+                    $arguments = json_decode($functionCall->arguments, true);
+                    $productNames = $arguments['product_names'] ?? [];
 
-                // Memorizza gli ID dei prodotti in un cookie
-                $productIds = array_column($productData, 'id');
+                    // Recupera i dati dei prodotti
+                    $productData = $this->fetchProductData($productNames, $teamSlug);
 
-                // Invia i risultati a GPT
-                $this->client->threads()->runs()->submitToolOutputs(
-                    threadId: $threadId,
-                    runId: $run->id,
-                    parameters: [
-                        'tool_outputs' => [
-                            [
-                                'tool_call_id' => $requiredAction->submitToolOutputs->toolCalls[0]->id,
-                                'output' => json_encode($productData),
+                    // Memorizza gli ID dei prodotti in un cookie
+                    $productIds = array_column($productData, 'id');
+
+                    // Invia i risultati a GPT
+                    $this->client->threads()->runs()->submitToolOutputs(
+                        threadId: $threadId,
+                        runId: $run->id,
+                        parameters: [
+                            'tool_outputs' => [
+                                [
+                                    'tool_call_id' => $toolCall->id,
+                                    'output' => json_encode($productData),
+                                ],
                             ],
-                        ],
-                    ]
-                );
+                        ]
+                    );
 
-                // Recupera la risposta finale
-                $run = $this->retrieveRunResult($threadId, $run->id);
-            } elseif ($functionCall->name === 'getAddressInfo') {
-                $arguments = json_decode($functionCall->arguments, true);
+                    // Recupera la risposta finale
+                    $run = $this->retrieveRunResult($threadId, $run->id);
+                } elseif ($functionCall->name === 'getAddressInfo') {
+                    $arguments = json_decode($functionCall->arguments, true);
 
-                // Recupera i dati dell'indirizzo
-                $addressData = $this->fetchAddressData($teamSlug);
+                    // Recupera i dati dell'indirizzo
+                    $addressData = $this->fetchAddressData($teamSlug);
 
-                // Invia i risultati a GPT
-                $this->client->threads()->runs()->submitToolOutputs(
-                    threadId: $threadId,
-                    runId: $run->id,
-                    parameters: [
-                        'tool_outputs' => [
-                            [
-                                'tool_call_id' => $requiredAction->submitToolOutputs->toolCalls[0]->id,
-                                'output' => json_encode($addressData),
+                    // Invia i risultati a GPT
+                    $this->client->threads()->runs()->submitToolOutputs(
+                        threadId: $threadId,
+                        runId: $run->id,
+                        parameters: [
+                            'tool_outputs' => [
+                                [
+                                    'tool_call_id' => $toolCall->id,
+                                    'output' => json_encode($addressData),
+                                ],
                             ],
-                        ],
-                    ]
-                );
+                        ]
+                    );
 
-                // Recupera la risposta finale
-                $run = $this->retrieveRunResult($threadId, $run->id);
-            } elseif ($functionCall->name === 'getAvailableTimes') {
-                $arguments = json_decode($functionCall->arguments, true);
+                    // Recupera la risposta finale
+                    $run = $this->retrieveRunResult($threadId, $run->id);
+                } elseif ($functionCall->name === 'getAvailableTimes') {
+                    $arguments = json_decode($functionCall->arguments, true);
 
-                // Recupera gli orari disponibili
-                $availableTimes = $this->fetchAvailableTimes($teamSlug);
+                    // Recupera gli orari disponibili
+                    $availableTimes = $this->fetchAvailableTimes($teamSlug);
 
-                // Invia i risultati a GPT
-                $this->client->threads()->runs()->submitToolOutputs(
-                    threadId: $threadId,
-                    runId: $run->id,
-                    parameters: [
-                        'tool_outputs' => [
-                            [
-                                'tool_call_id' => $requiredAction->submitToolOutputs->toolCalls[0]->id,
-                                'output' => json_encode($availableTimes),
+                    // Invia i risultati a GPT
+                    $this->client->threads()->runs()->submitToolOutputs(
+                        threadId: $threadId,
+                        runId: $run->id,
+                        parameters: [
+                            'tool_outputs' => [
+                                [
+                                    'tool_call_id' => $toolCall->id,
+                                    'output' => json_encode($availableTimes),
+                                ],
                             ],
-                        ],
-                    ]
-                );
+                        ]
+                    );
 
-                // Recupera la risposta finale
-                $run = $this->retrieveRunResult($threadId, $run->id);
-            } elseif ($functionCall->name === 'createOrder') {
-                $arguments = json_decode($functionCall->arguments, true);
-                $userPhone = $arguments['user_phone'];
-                $deliveryDate = $arguments['delivery_date'];
-                $productIds = $arguments['product_ids'];
+                    // Recupera la risposta finale
+                    $run = $this->retrieveRunResult($threadId, $run->id);
+                } elseif ($functionCall->name === 'createOrder') {
+                    $arguments = json_decode($functionCall->arguments, true);
+                    $userPhone = $arguments['user_phone'];
+                    $deliveryDate = $arguments['delivery_date'];
+                    $productIds = $arguments['product_ids'];
 
-                // Verifica se il numero di telefono è presente
-                if (empty($userPhone)) {
-                    return response()->json([
-                        'message' => 'Per favore fornisci un numero di telefono fisso o cellulare per completare la prenotazione.',
-                        'thread_id' => $threadId,
-                    ]);
+                    // Verifica se il numero di telefono è presente
+                    if (empty($userPhone)) {
+                        return response()->json([
+                            'message' => 'Per favore fornisci un numero di telefono fisso o cellulare per completare la prenotazione.',
+                            'thread_id' => $threadId,
+                        ]);
+                    }
+
+                    // Verifica se ci sono product_ids
+                    if (empty($productIds)) {
+                        return response()->json([
+                            'message' => 'Per favore fornisci informazioni aggiuntive sul prodotto che vorresti acquistare.',
+                            'thread_id' => $threadId,
+                        ]);
+                    }
+
+                    // Crea l'ordine
+                    $orderData = $this->createOrder($userPhone, $deliveryDate, $productIds, $teamSlug);
+
+                    // Invia i risultati a GPT
+                    $this->client->threads()->runs()->submitToolOutputs(
+                        threadId: $threadId,
+                        runId: $run->id,
+                        parameters: [
+                            'tool_outputs' => [
+                                [
+                                    'tool_call_id' => $toolCall->id,
+                                    'output' => json_encode($orderData),
+                                ],
+                            ],
+                        ]
+                    );
+
+                    // Recupera la risposta finale
+                    $run = $this->retrieveRunResult($threadId, $run->id);
+                } elseif ($functionCall->name === 'submitUserData') {
+                    $arguments = json_decode($functionCall->arguments, true);
+                    $userPhone = $arguments['user_phone'] ?? null;
+                    $userEmail = $arguments['user_email'] ?? null;
+                    $userName = $arguments['user_name'] ?? null;
+
+                    // Verifica che tutti i dati siano stati forniti
+                    if (empty($userPhone) || empty($userEmail) || empty($userName)) {
+                        return response()->json([
+                            'message' => 'Per favore fornisci nome, email e numero di telefono.',
+                            'thread_id' => $threadId,
+                        ]);
+                    }
+
+                    // Richiama l'API per registrare i dati anagrafici
+                    $userDataResponse = $this->submitUserData($userPhone, $userEmail, $userName, $teamSlug);
+
+                    // Invia i risultati a GPT
+                    $this->client->threads()->runs()->submitToolOutputs(
+                        threadId: $threadId,
+                        runId: $run->id,
+                        parameters: [
+                            'tool_outputs' => [
+                                [
+                                    'tool_call_id' => $toolCall->id,
+                                    'output' => json_encode($userDataResponse),
+                                ],
+                            ],
+                        ]
+                    );
+
+                    // Recupera la risposta finale
+                    $run = $this->retrieveRunResult($threadId, $run->id);
+                } elseif ($functionCall->name === 'fallback') {
+                    // Gestione della funzione fallback: rispondi con il messaggio predefinito
+                    $fallbackMessage = 'Per un setup più specifico per la tua attività contatta 3487433620 Giuliano';
+                    $this->client->threads()->runs()->submitToolOutputs(
+                        threadId: $threadId,
+                        runId: $run->id,
+                        parameters: [
+                            'tool_outputs' => [
+                                [
+                                    'tool_call_id' => $toolCall->id,
+                                    'output' => json_encode(['message' => $fallbackMessage]),
+                                ],
+                            ],
+                        ]
+                    );
+                    // Recupera la risposta finale dopo aver inviato il fallback
+                    $run = $this->retrieveRunResult($threadId, $run->id);
                 }
-
-                // Verifica se ci sono product_ids
-                if (empty($productIds)) {
-                    return response()->json([
-                        'message' => 'Per favore fornisci informazioni aggiuntive sul prodotto che vorresti acquistare.',
-                        'thread_id' => $threadId,
-                    ]);
-                }
-
-                // Crea l'ordine
-                $orderData = $this->createOrder($userPhone, $deliveryDate, $productIds, $teamSlug);
-
-                // Invia i risultati a GPT
-                $this->client->threads()->runs()->submitToolOutputs(
-                    threadId: $threadId,
-                    runId: $run->id,
-                    parameters: [
-                        'tool_outputs' => [
-                            [
-                                'tool_call_id' => $requiredAction->submitToolOutputs->toolCalls[0]->id,
-                                'output' => json_encode($orderData),
-                            ],
-                        ],
-                    ]
-                );
-
-                // Recupera la risposta finale
-                $run = $this->retrieveRunResult($threadId, $run->id);
-            } elseif ($functionCall->name === 'submitUserData') {
-                $arguments = json_decode($functionCall->arguments, true);
-                $userPhone = $arguments['user_phone'] ?? null;
-                $userEmail = $arguments['user_email'] ?? null;
-                $userName = $arguments['user_name'] ?? null;
-
-                // Verifica che tutti i dati siano stati forniti
-                if (empty($userPhone) || empty($userEmail) || empty($userName)) {
-                    return response()->json([
-                        'message' => 'Per favore fornisci nome, email e numero di telefono.',
-                        'thread_id' => $threadId,
-                    ]);
-                }
-
-                // Richiama l'API per registrare i dati anagrafici
-                $userDataResponse = $this->submitUserData($userPhone, $userEmail, $userName, $teamSlug);
-
-                // Invia i risultati a GPT
-                $this->client->threads()->runs()->submitToolOutputs(
-                    threadId: $threadId,
-                    runId: $run->id,
-                    parameters: [
-                        'tool_outputs' => [
-                            [
-                                'tool_call_id' => $requiredAction->submitToolOutputs->toolCalls[0]->id,
-                                'output' => json_encode($userDataResponse),
-                            ],
-                        ],
-                    ]
-                );
-
-                // Recupera la risposta finale
-                $run = $this->retrieveRunResult($threadId, $run->id);
-            } elseif ($functionCall->name === 'fallback') {
-                // Gestione della funzione fallback: rispondi con il messaggio predefinito
-                $fallbackMessage = 'Per un setup più specifico per la tua attività contatta 3487433620 Giuliano';
-                $this->client->threads()->runs()->submitToolOutputs(
-                    threadId: $threadId,
-                    runId: $run->id,
-                    parameters: [
-                        'tool_outputs' => [
-                            [
-                                'tool_call_id' => $requiredAction->submitToolOutputs->toolCalls[0]->id,
-                                'output' => json_encode(['message' => $fallbackMessage]),
-                            ],
-                        ],
-                    ]
-                );
-                // Recupera la risposta finale dopo aver inviato il fallback
-                $run = $this->retrieveRunResult($threadId, $run->id);
             }
         }
 
@@ -406,6 +410,7 @@ class ChatbotController extends Controller
     {
         while (true) {
             $run = $this->client->threads()->runs()->retrieve($threadId, $runId);
+            Log::info('retrieveRunResult: Stato del run', ['threadId' => $threadId, 'runId' => $runId, 'status' => $run->status]);
 
             if ($run->status === 'completed' || $run->status === 'requires_action') {
                 return $run;
