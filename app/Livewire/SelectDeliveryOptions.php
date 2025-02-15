@@ -4,32 +4,36 @@ namespace App\Livewire;
 
 use App\Models\Address;
 use App\Models\User;
-use Livewire\Component;
-use Filament\Forms\Form;
-use Filament\Actions\Action;
-use Illuminate\Contracts\View\View;
 use App\Notifications\CustomerOrder;
 use App\Services\Cart\Facades\Cart;
-use Illuminate\Support\Facades\Auth;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Contracts\HasForms;
-use Illuminate\Database\Eloquent\Model;
-use Filament\Forms\Components\TextInput;
-use Filament\Actions\Contracts\HasActions;
-use Illuminate\Support\Facades\Notification;
-use Filament\Forms\Components\DateTimePicker;
-use Filament\Forms\Concerns\InteractsWithForms;
+use Filament\Actions\Action;
 use Filament\Actions\Concerns\InteractsWithActions;
+use Filament\Actions\Contracts\HasActions;
+use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Concerns\InteractsWithForms;
+use Filament\Forms\Contracts\HasForms;
+use Filament\Forms\Form;
+use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Notification;
+use Livewire\Component;
 
 class SelectDeliveryOptions extends Component implements HasForms, HasActions
 {
     use InteractsWithActions;
     use InteractsWithForms;
+
     public ?array $addressData = [];
+
     public ?array $dateData = [];
+
     public User $user;
 
     private array $items = [];
+
     private string $total = '';
 
     public function mount(): void
@@ -58,7 +62,6 @@ class SelectDeliveryOptions extends Component implements HasForms, HasActions
             ->action(fn (array $data) => Auth::user()->addresses()->create($data));
     }
 
-
     public function selectAddressForm(Form $form): Form
     {
         return $form
@@ -66,7 +69,7 @@ class SelectDeliveryOptions extends Component implements HasForms, HasActions
                 Select::make('address_id')
                     ->label('Indirizzo')
                     ->relationship(name: 'addresses'/*, titleAttribute: 'street'*/)
-                    ->getOptionLabelFromRecordUsing(fn (Address $record) => $record->full_address)
+                    ->getOptionLabelFromRecordUsing(fn (Address $record) => $record->full_address),
             ])
             ->statePath('addressData')
             ->model($this->user);
@@ -82,13 +85,11 @@ class SelectDeliveryOptions extends Component implements HasForms, HasActions
                     ->seconds(false)
                     ->default(now())
                     ->hoursStep(1)
-                    ->minutesStep(15)
-
+                    ->minutesStep(15),
 
             ])
             ->statePath('dateData');
     }
-
 
     protected function getForms(): array
     {
@@ -124,7 +125,8 @@ class SelectDeliveryOptions extends Component implements HasForms, HasActions
         Cart::destroy();
 
         Notification::route('mail', [
-            'davidecavallini1987@gmail.com' => 'Davide Cavallini',
+            'd.cavallini@cavalliniservice.com' => 'Davide Cavallini',
+            'g.florian@cavalliniservice.com' => 'Giuliano Florian',
         ])->notify(new CustomerOrder($order, $this->total));
 
         return redirect()->route('{item2?}.index', ['container0' => 'order-completed']);

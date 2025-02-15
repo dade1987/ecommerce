@@ -23,8 +23,11 @@ class Reservation extends Model
                 'starts_at' => $event->starts_at,
                 'ends_at' => $event->ends_at,
             ];
-            Notification::route('mail', 'davidecavallini1987@gmail.com')
-                ->notify(new FreeConsultationBookingNotification($details));
+            $emails = ['d.cavallini@cavalliniservice.com', 'g.florian@cavalliniservice.com'];
+            foreach ($emails as $email) {
+                Notification::route('mail', $email)
+                    ->notify(new FreeConsultationBookingNotification($details));
+            }
         });
 
         static::updated(function ($event) {
@@ -35,8 +38,11 @@ class Reservation extends Model
                 'starts_at' => $event->starts_at,
                 'ends_at' => $event->ends_at,
             ];
-            Notification::route('mail', 'davidecavallini1987@gmail.com')
-                ->notify(new FreeConsultationBookingNotification($details));
+            $emails = ['d.cavallini@cavalliniservice.com', 'g.florian@cavalliniservice.com'];
+            foreach ($emails as $email) {
+                Notification::route('mail', $email)
+                    ->notify(new FreeConsultationBookingNotification($details));
+            }
         });
 
         static::deleted(function ($event) {
@@ -47,8 +53,11 @@ class Reservation extends Model
                 'starts_at' => $event->starts_at,
                 'ends_at' => $event->ends_at,
             ];
-            Notification::route('mail', 'davidecavallini1987@gmail.com')
-                ->notify(new FreeConsultationBookingNotification($details));
+            $emails = ['d.cavallini@cavalliniservice.com', 'g.florian@cavalliniservice.com'];
+            foreach ($emails as $email) {
+                Notification::route('mail', $email)
+                    ->notify(new FreeConsultationBookingNotification($details));
+            }
         });
     }
 }

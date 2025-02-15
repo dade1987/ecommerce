@@ -30,9 +30,11 @@ class ContactForm extends Component
     {
         $this->validate();
 
-        $email = 'davidecavallini1987@gmail.com';
+        $emails = ['d.cavallini@cavalliniservice.com', 'g.florian@cavalliniservice.com'];
 
-        Notification::route('mail', $email)->notify(new SendEmailNotification($this->form_data));
+        foreach ($emails as $email) {
+            Notification::route('mail', $email)->notify(new SendEmailNotification($this->form_data));
+        }
 
         session()->flash('message', 'Messaggio Inviato');
     }
