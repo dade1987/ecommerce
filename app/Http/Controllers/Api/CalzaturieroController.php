@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use OpenAI;
 use OpenAI\Client;
@@ -93,6 +94,7 @@ class CalzaturieroController extends Controller
                 $jsonResponse = $lastMessage->content[0]->text->value;
             }
 
+            Log::info('extractProductInfo: JSON ricevuto', ['jsonResponse' => $jsonResponse]);
             // Converti il JSON in CSV
             $data = json_decode($jsonResponse, true);
             $csvContent = "prodotto,taglia,quantita,prezzo,data_di_consegna,codice_fornitore\n";
