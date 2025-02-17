@@ -47,8 +47,8 @@ class CalzaturieroController extends Controller
             // Istruzione chiara: rispondi con un array JSON conforme al formato indicato.
             $messageContent = "Estrai l'etichetta del prodotto e la quantità dal file PDF caricato. "
                 .'Rispondi esclusivamente con un array, senza alcun testo aggiuntivo. '
-                .'L\'array deve rispettare esattamente il seguente formato: [{"prodotto": "nome_prodotto", "taglia": "taglia_prodotto", "quantita": quantita, "prezzo": prezzo, "data_di_consegna": "data_consegna", "codice_fornitore": "codice_fornitore"}]. '
-                .'L\'array può contenere uno o più oggetti a seconda del contenuto del PDF.';
+                .'L\'array deve rispettare esattamente il seguente formato: [{"prodotto": "nome_prodotto", "taglia": "taglia_prodotto", "quantita": quantita, "prezzo": null, "data_di_consegna": "data_consegna", "codice_fornitore": null}]. '
+                .'Non devono esserci altre scritte.';
 
             $this->client->threads()->messages()->create($threadId, [
                 'role'        => 'user',
