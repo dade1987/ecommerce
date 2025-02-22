@@ -177,4 +177,9 @@ class ArticleResource extends Resource
             'edit' => Pages\EditArticle::route('/{record}/edit'),
         ];
     }
+
+    public static function canViewAny(): bool
+    {
+        return auth()->user()->hasRole('super_admin');
+    }
 }

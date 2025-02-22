@@ -10,20 +10,16 @@ use Awcodes\Curator\Components\Tables\CuratorColumn;
 use Filament\Forms;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
+use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use SevendaysDigital\FilamentNestedResources\NestedResource;
 
-class ProductResource extends NestedResource
+class ProductResource extends Resource
 {
     protected static ?string $model = Product::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
-
-    public static function getParent(): string
-    {
-        return CategoryResource::class;
-    }
 
     public static function form(Form $form): Form
     {

@@ -61,7 +61,7 @@ class CategoryResource extends Resource
                 IconColumn::make('is_hidden')->boolean(),
                 CuratorColumn::make('featured_image')
                     ->size(40),
-                ChildResourceLink::make(ProductResource::class),
+                //ChildResourceLink::make(ProductResource::class),
             ])
             ->filters([
                 //

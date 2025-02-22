@@ -14,5 +14,12 @@ class Customer extends Model
         'email',
         'phone',
         'address',
+        'website',
+        'status',
     ];
+
+    public function customerGroup()
+    {
+        return $this->belongsTo(CustomerGroup::class);
+    }
 }

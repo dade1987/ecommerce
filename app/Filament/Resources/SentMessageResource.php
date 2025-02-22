@@ -2,9 +2,9 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\QuoterResource\Pages;
-use App\Filament\Resources\QuoterResource\RelationManagers;
-use App\Models\Quoter;
+use App\Filament\Resources\SentMessageResource\Pages;
+use App\Filament\Resources\SentMessageResource\RelationManagers;
+use App\Models\SentMessage;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -13,9 +13,9 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
-class QuoterResource extends Resource
+class SentMessageResource extends Resource
 {
-    protected static ?string $model = Quoter::class;
+    protected static ?string $model = SentMessage::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
@@ -23,15 +23,20 @@ class QuoterResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('thread_id')
+                Forms\Components\RichEditor::make('message')
+                    ->label('Messaggio')
+                    ->required(),
+                Forms\Components\TextInput::make('contact')
+                    ->label('Contatto')
                     ->required()
                     ->maxLength(255),
-                Forms\Components\TextInput::make('role')
+                Forms\Components\Select::make('type')
+                    ->label('Tipo')
                     ->required()
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('content')
-                    ->required()
-                    ->maxLength(255),
+                    ->options([
+                        'email' => 'Email',
+                        'sms' => 'SMS',
+                    ]),
             ]);
     }
 
@@ -40,19 +45,24 @@ class QuoterResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('created_at')
+                    ->label('Creato il')
                     ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('updated_at')
+                    ->label('Aggiornato il')
                     ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('thread_id')
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('contact')
+                    ->label('Contatto')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('role')
+                Tables\Columns\TextColumn::make('type')
+                    ->label('Tipo')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('content')
-                    ->searchable(),
+                Tables\Columns\TextColumn::make('message')
+                ->label('Messaggio')
+                ->searchable()
+                ->limit(255)
+                ->html(),
             ])
             ->filters([
                 //
@@ -77,14 +87,9 @@ class QuoterResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListQuoters::route('/'),
-            'create' => Pages\CreateQuoter::route('/create'),
-            'edit' => Pages\EditQuoter::route('/{record}/edit'),
+            'index' => Pages\ListSentMessages::route('/'),
+            'create' => Pages\CreateSentMessage::route('/create'),
+            'edit' => Pages\EditSentMessage::route('/{record}/edit'),
         ];
-    }
-
-    public static function canViewAny(): bool
-    {
-        return auth()->user()->hasRole('super_admin');
     }
 }
