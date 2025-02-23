@@ -58,7 +58,9 @@ class ProductResource extends Resource
 
             ])
             ->filters([
-                //
+                Tables\Filters\SelectFilter::make('categories')
+                    ->relationship('categories', 'name')
+                    ->multiple(),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),

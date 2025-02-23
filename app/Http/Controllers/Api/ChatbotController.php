@@ -87,20 +87,20 @@ class ChatbotController extends Controller
             threadId: $threadId,
             parameters: [
                 'assistant_id' => 'asst_34SA8ZkwlHiiXxNufoZYddn0',
-                'instructions' => 'Se chiedo quali servizi, trattamenti o attività offri, esegui la function call getProductInfo. Se richiedo informazioni sul luogo o numero di telefono dell\'azienda, esegui la function call getAddressInfo. Se chiedo gli orari disponibili, esegui la function call getAvailableTimes. Se desidero prenotare un trattamento o un servizio, esegui la function call createOrder. Se chiedo di organizzare qualcosa, come un meeting, cerca tra i prodotti e utilizza la function call getProductInfo. Se insrisco da qualche parte i dati dell\'utente, esegui la function call submitUserData. Se richiedo le domande frequenti, esegui la function call getFAQs. Per domande non inerenti al contesto, utilizza la function fallback. In ogni caso, chiedi prima il nome dell\'utente. Dopo aver ricevuto il nome, descrivi le funzionalità del chatbot (ad esempio, come recuperare informazioni sui servizi, gli orari disponibili, come prenotare, ecc.). Infine, chiedi il numero di telefono all\'atto della prenotazione dell\'ordine, specificando che è solo ai fini della demo.',                'model'        => 'gpt-4o',
+                'instructions' => 'Se chiedo quali servizi, attività o prodotti offri, esegui la function call getProductInfo. Se richiedo informazioni sul luogo o numero di telefono dell\'azienda, esegui la function call getAddressInfo. Se chiedo gli orari disponibili, esegui la function call getAvailableTimes. Se desidero prenotare un servizio o un prodotto, esegui la function call createOrder. Se chiedo di organizzare qualcosa, come un meeting, cerca tra i prodotti e utilizza la function call getProductInfo. Se insrisco da qualche parte i dati dell\'utente, esegui la function call submitUserData. Se richiedo le domande frequenti, esegui la function call getFAQs. Per domande non inerenti al contesto, utilizza la function fallback. In ogni caso, chiedi prima il nome dell\'utente. Dopo aver ricevuto il nome, descrivi le funzionalità del chatbot (ad esempio, come recuperare informazioni sui servizi, gli orari disponibili, come prenotare, ecc.). Infine, chiedi il numero di telefono all\'atto della prenotazione dell\'ordine, specificando che è solo ai fini della demo.',                'model'        => 'gpt-4o',
                 'tools'        => [
                     [
                         'type'     => 'function',
                         'function' => [
                             'name'        => 'getProductInfo',
-                            'description' => 'Recupera informazioni sui prodotti, servizi, trattamenti, sessioni o attività del menu tramite i loro nomi.',
+                            'description' => 'Recupera informazioni sui prodotti, servizi, attività del menu tramite i loro nomi.',
                             'parameters'  => [
                                 'type'       => 'object',
                                 'properties' => [
                                     'product_names' => [
                                         'type'        => 'array',
                                         'items'       => ['type' => 'string'],
-                                        'description' => 'Nomi dei prodotti, servizi, trattamenti, sessioni o attività da recuperare.',
+                                        'description' => 'Nomi dei prodotti, servizi, attività da recuperare.',
                                     ],
                                 ],
                                 'required'   => [],
@@ -160,7 +160,7 @@ class ChatbotController extends Controller
                                     'product_ids' => [
                                         'type'        => 'array',
                                         'items'       => ['type' => 'integer'],
-                                        'description' => 'ID dei prodotti, servizi, trattamenti, sessioni o attività da includere nell\'ordine.',
+                                        'description' => 'ID dei prodotti, servizi, attività da includere nell\'ordine.',
                                     ],
                                 ],
                                 'required'   => ['user_phone', 'delivery_date', 'product_ids'],
@@ -198,7 +198,7 @@ class ChatbotController extends Controller
                         'type'     => 'function',
                         'function' => [
                             'name'        => 'getFAQs',
-                            'description' => 'Recupera le domande frequenti (FAQ) dal sistema. Esempio di domande frequenti: "Che cos\'è un\'azienda?", "Quali trattamenti offrite?", "Chi sono i professionisti dell\'azienda?".',
+                            'description' => 'Recupera le domande frequenti (FAQ) dal sistema. Esempio di domande frequenti: "Che cos\'è un\'azienda?", "Quali servizi offrite?", "Chi sono i professionisti dell\'azienda?".',
                             'parameters'  => [
                                 'type'       => 'object',
                                 'properties' => [
@@ -216,7 +216,7 @@ class ChatbotController extends Controller
                         'type'     => 'function',
                         'function' => [
                             'name'        => 'fallback',
-                            'description' => 'Risponde a domande non inerenti al contesto consentito con il messaggio predefinito: "Per un setup più specifico per la tua attività contatta 3487433620 Giuliano". Le domande consentite riguardano esclusivamente prodotti, servizi, trattamenti, sessioni o attività offerti dall\'azienda.',
+                            'description' => 'Risponde a domande non inerenti al contesto consentito con il messaggio predefinito: "Per un setup più specifico per la tua attività contatta 3487433620 Giuliano". Le domande consentite riguardano esclusivamente prodotti, servizi, attività offerti dall\'azienda.',
                             'parameters'  => [
                                 'type'       => 'object',
                                 'properties' => new \stdClass(), // Nessun parametro richiesto

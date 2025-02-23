@@ -56,8 +56,10 @@ class CategoryResource extends Resource
     {
         return $table
             ->columns([
-
-                TextColumn::make('name'),
+                TextColumn::make('name')
+                    ->url(function (Category $category): string {
+                        return ProductResource::getUrl('index', ['tableFilters' => ['categories' => ['values' => [$category->id]]]]);
+                    }),
                 IconColumn::make('is_hidden')->boolean(),
                 CuratorColumn::make('featured_image')
                     ->size(40),

@@ -97,6 +97,22 @@ Route::get('/faqs', function (Request $request) {
     return response()->json($faqs);
 });
 
+Route::get('/visit/{uuid}', function ($uuid) {
+    $customer = App\Models\Customer::where('uuid', $uuid)->first();
+    if (! $customer) {
+        return response()->json(['message' => 'Cliente non trovato'], 404);
+    }
+
+    $customer->status = 'in_negotiation';
+    $customer->visited_at = now();
+    $customer->save();
+
+    return response()->json([
+        'customer_id' => $customer->id,
+        'message' => 'Cliente aggiornato con successo',
+    ]);
+});
+
 // Esempio di domanda curl:
 // curl -X GET "https://cavalliniservice.com/api/faqs?query=la%20tua%20domanda"
 

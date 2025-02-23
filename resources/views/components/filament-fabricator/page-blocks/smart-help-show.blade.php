@@ -27,6 +27,22 @@
         let productIds = []; // Inizializza un array per gestire i product_ids
         const team = window.location.pathname.split('/').pop(); // Estrae l'ultima parte dell'URL come team
 
+        // Estrai l'UUID dalla query string
+        const urlParams = new URLSearchParams(window.location.search);
+        const uuid = urlParams.get('uuid');
+
+        // Chiama l'API /visit/{uuid} quando la pagina viene caricata
+        if (uuid) {
+            fetch(`/api/visit/${uuid}`)
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Visita registrata:', data.message);
+                })
+                .catch(error => {
+                    console.error('Errore durante la registrazione della visita:', error);
+                });
+        }
+
         // Invia il messaggio "Intro" all'API quando la pagina viene caricata
         postMessage('Buongiorno').then(response => {
             const botMessage = {
