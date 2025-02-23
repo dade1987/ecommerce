@@ -165,7 +165,7 @@ class CustomerResource extends Resource
                             ->required(),
                     ])
                     ->action(function (array $data, \Illuminate\Support\Collection $records) {
-                        app(SendBulkEmailAction::class)->onQueue('emails')->execute($data, $records);
+                        app(SendBulkEmailAction::class)->onQueue()->execute($data, $records);
                     })
                     ->deselectRecordsAfterCompletion()
                     ->requiresConfirmation()
