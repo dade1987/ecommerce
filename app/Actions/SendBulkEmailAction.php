@@ -2,9 +2,9 @@
 
 namespace App\Actions;
 
-use Illuminate\Support\Collection;
 use App\Actions\SendEmailJobAction;
 use Filament\Notifications\Notification;
+use Illuminate\Support\Collection;
 use Spatie\QueueableAction\QueueableAction;
 
 class SendBulkEmailAction
