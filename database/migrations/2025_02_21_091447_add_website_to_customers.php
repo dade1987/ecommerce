@@ -12,7 +12,7 @@ return new class extends Migration {
     {
         Schema::table('customers', function (Blueprint $table) {
             $table->string('website')->nullable();
-            $table->enum('status', ['not_contacted', 'in_contact', 'in_negotiation', 'converted'])->default('not_contacted');
+            $table->enum('status', allowed: ['not_contacted', 'in_contact', 'in_negotiation', 'converted', 'discarded'])->default('not_contacted');
         });
     }
 

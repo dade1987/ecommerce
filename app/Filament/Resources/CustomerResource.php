@@ -57,6 +57,7 @@ class CustomerResource extends Resource
                         'in_contact'     => 'In contatto',
                         'in_negotiation' => 'In trattativa',
                         'converted'      => 'Convertito',
+                        'discarded'      => 'Scartato',
                     ]),
                 Forms\Components\DateTimePicker::make('visited_at')
                     ->label('Data di visita')
@@ -137,9 +138,7 @@ class CustomerResource extends Resource
                     ->label('Data di visita')
                     ->dateTime()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('uuid')
-                ->label('UUID')
-                ->searchable(),
+
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('status')
@@ -148,6 +147,7 @@ class CustomerResource extends Resource
                         'in_contact'     => 'In contatto',
                         'in_negotiation' => 'In trattativa',
                         'converted'      => 'Convertito',
+                        'discarded'      => 'Scartato',
                     ]),
                 Tables\Filters\SelectFilter::make('customer_group_id')
                     ->label('Gruppo Cliente')
