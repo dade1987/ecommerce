@@ -60,8 +60,7 @@ class CustomerResource extends Resource
                     ]),
                 Forms\Components\DateTimePicker::make('visited_at')
                     ->label('Data di visita')
-                    ->nullable()
-                    ->sortable(),
+                    ->nullable(),
             ]);
     }
 
@@ -136,7 +135,8 @@ class CustomerResource extends Resource
                     ->searchable(),
                 Tables\Columns\TextColumn::make('visited_at')
                     ->label('Data di visita')
-                    ->dateTime(),
+                    ->dateTime()
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('uuid')
                 ->label('UUID')
                 ->searchable(),
