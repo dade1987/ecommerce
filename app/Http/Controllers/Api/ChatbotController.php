@@ -1,5 +1,7 @@
 <?php
 
+// File: app/Http/Controllers/Api/ChatbotController.php
+
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
@@ -87,7 +89,8 @@ class ChatbotController extends Controller
             threadId: $threadId,
             parameters: [
                 'assistant_id' => 'asst_34SA8ZkwlHiiXxNufoZYddn0',
-                'instructions' => 'Se chiedo quali servizi, attività o prodotti offri, esegui la function call getProductInfo. Se richiedo informazioni sul luogo o numero di telefono dell\'azienda, esegui la function call getAddressInfo. Se chiedo gli orari disponibili, esegui la function call getAvailableTimes. Se desidero prenotare un servizio o un prodotto, esegui la function call createOrder. Se chiedo di organizzare qualcosa, come un meeting, cerca tra i prodotti e utilizza la function call getProductInfo. Se insrisco da qualche parte i dati dell\'utente, esegui la function call submitUserData. Se richiedo le domande frequenti, esegui la function call getFAQs. Per domande non inerenti al contesto, utilizza la function fallback. In ogni caso, chiedi prima il nome dell\'utente. Dopo aver ricevuto il nome, descrivi le funzionalità del chatbot (ad esempio, come recuperare informazioni sui servizi, gli orari disponibili, come prenotare, ecc.). Infine, chiedi il numero di telefono all\'atto della prenotazione dell\'ordine, specificando che è solo ai fini della demo.',                'model'        => 'gpt-4o',
+                'instructions' => 'Se chiedo quali servizi, attività o prodotti offri, esegui la function call getProductInfo. Se richiedo informazioni sul luogo o numero di telefono dell\'azienda, esegui la function call getAddressInfo. Se chiedo gli orari disponibili, esegui la function call getAvailableTimes. Se desidero prenotare un servizio o un prodotto, esegui la function call createOrder. Se chiedo di organizzare qualcosa, come un meeting, cerca tra i prodotti e utilizza la function call getProductInfo. Se insrisco da qualche parte i dati dell\'utente, esegui la function call submitUserData. Se richiedo le domande frequenti, esegui la function call getFAQs. Per domande non inerenti al contesto, utilizza la function fallback. In ogni caso, chiedi prima il nome dell\'utente. Dopo aver ricevuto il nome, descrivi le funzionalità del chatbot (ad esempio, come recuperare informazioni sui servizi, gli orari disponibili, come prenotare, ecc.). Infine, chiedi il numero di telefono all\'atto della prenotazione dell\'ordine, specificando che è solo ai fini della demo.',
+                'model'        => 'gpt-4o',
                 'tools'        => [
                     [
                         'type'     => 'function',
@@ -155,7 +158,7 @@ class ChatbotController extends Controller
                                     ],
                                     'delivery_date' => [
                                         'type'        => 'string',
-                                        'description' => 'Data di consegna dell\'ordine.',
+                                        'description' => 'Data di consegna dell\'ordine, includendo ora, minuti e secondi di inizio.',
                                     ],
                                     'product_ids' => [
                                         'type'        => 'array',
@@ -167,7 +170,6 @@ class ChatbotController extends Controller
                             ],
                         ],
                     ],
-                    // Nuovo function call per gestire i dati anagrafici
                     [
                         'type'     => 'function',
                         'function' => [
@@ -193,12 +195,11 @@ class ChatbotController extends Controller
                             ],
                         ],
                     ],
-                    // Nuovo function call per richiedere le domande frequenti (FAQ)
                     [
                         'type'     => 'function',
                         'function' => [
                             'name'        => 'getFAQs',
-                            'description' => 'Recupera le domande frequenti (FAQ) dal sistema. Esempio di domande frequenti: "Che cos\'è un\'azienda?", "Quali servizi offrite?", "Chi sono i professionisti dell\'azienda?".',
+                            'description' => 'Recupera le domande frequenti (FAQ) dal sistema in base a una query. Esempi: "Che cos\'è un\'azienda?", "Quali servizi offrite?", "Chi sono i professionisti dell\'azienda?".',
                             'parameters'  => [
                                 'type'       => 'object',
                                 'properties' => [
@@ -206,12 +207,15 @@ class ChatbotController extends Controller
                                         'type'        => 'string',
                                         'description' => 'Slug del team per recuperare le FAQ.',
                                     ],
+                                    'query' => [
+                                        'type'        => 'string',
+                                        'description' => 'Query per cercare nelle FAQ.',
+                                    ],
                                 ],
-                                'required'   => ['team_slug'],
+                                'required'   => ['team_slug', 'query'],
                             ],
                         ],
                     ],
-                    // Funzione fallback per domande fuori contesto
                     [
                         'type'     => 'function',
                         'function' => [
@@ -219,7 +223,7 @@ class ChatbotController extends Controller
                             'description' => 'Risponde a domande non inerenti al contesto consentito con il messaggio predefinito: "Per un setup più specifico per la tua attività contatta 3487433620 Giuliano". Le domande consentite riguardano esclusivamente prodotti, servizi, attività offerti dall\'azienda.',
                             'parameters'  => [
                                 'type'       => 'object',
-                                'properties' => new \stdClass(), // Nessun parametro richiesto
+                                'properties' => new \stdClass(),
                             ],
                         ],
                     ],
@@ -306,7 +310,9 @@ class ChatbotController extends Controller
                     ];
                 } elseif ($functionCall->name === 'getFAQs') {
                     $arguments = json_decode($functionCall->arguments, true);
-                    $faqData = $this->fetchFAQs();
+                    $faqTeamSlug = $arguments['team_slug'] ?? $teamSlug;
+                    $faqQuery = $arguments['query'] ?? '';
+                    $faqData = $this->fetchFAQs($faqTeamSlug, $faqQuery);
                     $toolOutputs[] = [
                         'tool_call_id' => $toolCall->id,
                         'output'       => json_encode($faqData),
@@ -429,7 +435,7 @@ class ChatbotController extends Controller
         $response = $client->post("https://cavalliniservice.com/api/order/{$teamSlug}", [
             'json' => [
                 'user_phone'    => $userPhone,
-                'delivery_date' => $deliveryDate,
+                'delivery_date' => $deliveryDate, // La delivery_date include ora, minuti e secondi di inizio
                 'product_ids'   => $productIds,
             ],
         ]);
@@ -482,11 +488,13 @@ class ChatbotController extends Controller
         return $responseData;
     }
 
-    private function fetchFAQs()
+    private function fetchFAQs($teamSlug, $query)
     {
-        Log::info('fetchFAQs: Inizio recupero FAQ');
+        Log::info('fetchFAQs: Inizio recupero FAQ', ['teamSlug' => $teamSlug, 'query' => $query]);
         $client = new Client();
-        $response = $client->get('https://cavalliniservice.com/api/faqs');
+        $response = $client->get("https://cavalliniservice.com/api/faqs/{$teamSlug}", [
+            'query' => ['query' => $query],
+        ]);
         $faqData = json_decode($response->getBody(), true);
         Log::info('fetchFAQs: FAQ ricevute', ['faqData' => $faqData]);
 
