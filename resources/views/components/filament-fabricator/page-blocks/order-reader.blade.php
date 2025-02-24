@@ -3,7 +3,7 @@
 <h2 class="text-xl font-semibold text-center mb-4">MODULO DI INSERIMENTO ORDINI</h2>
 <div class="px-4 py-4 md:py-8 bg-gray-100">
     <div class="max-w-7xl mx-auto bg-white shadow-md rounded-lg p-6">
-        <form action="/api/calzaturiero/extract-product-info" method="POST" enctype="multipart/form-data" class="space-y-6">
+        <form action="/api/calzaturiero/process-order" method="POST" enctype="multipart/form-data" class="space-y-6">
             @csrf
             <div class="flex flex-col">
                 <label for="file" class="mb-2 text-lg font-medium text-gray-700">Carica il file:</label>
