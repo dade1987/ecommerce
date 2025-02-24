@@ -25,7 +25,7 @@ class ProductionReportMail extends Mailable
      */
     public function build()
     {
-        return $this->subject('Report Produzione - Ordine Cliente')
+        return $this->subject('AI TEST')
                     ->view('emails.production_report')
                     ->with('orderData', $this->orderData);
     }
