@@ -89,11 +89,9 @@ Route::post('/customers', function (Request $request) {
     ]);
 });
 
-Route::get('/faqs', function (Request $request) {
-    $query = $request->input('query');
-
-    $faqs = App\Models\Faq::whereRaw('MATCH(question, answer) AGAINST(? IN NATURAL LANGUAGE MODE)', [$query])
-        ->get(['question', 'answer']);
+Route::get('/faqs/{slug}', function ($slug) {
+    $team = App\Models\Team::where('slug', $slug)->firstOrFail();
+    $faqs = App\Models\Faq::where('team_id', $team->id)->get(['question', 'answer']);
 
     return response()->json($faqs);
 });
