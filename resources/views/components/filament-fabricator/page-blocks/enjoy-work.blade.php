@@ -1,8 +1,15 @@
-<!-- Start of Selection -->
 <div id="chatContainer" class="flex flex-col h-[75vh] bg-white rounded px-6">
     <div class="bg-white">
         <h1 class="font-montserrat text-2xl text-left text-gray-800"><strong>Enjoy</strong> Work</h1>
     </div>
+
+    <!-- Container per i bottoni di risposte rapide -->
+    <div id="quickReplies" class="flex flex-wrap gap-2 mb-4">
+        <button class="quick-reply-btn bg-blue-100 text-blue-800 px-3 py-2 rounded" data-message="Quali servizi offrite?">Quali servizi offrite?</button>
+        <button class="quick-reply-btn bg-blue-100 text-blue-800 px-3 py-2 rounded" data-message="Quali sono gli orari disponibili per un appuntamento?">Orari disponibili?</button>
+        <button class="quick-reply-btn bg-blue-100 text-blue-800 px-3 py-2 rounded" data-message="Qual è il vostro indirizzo?">Qual è il vostro indirizzo?</button>
+    </div>
+
     <div id="messages" class="flex-1 overflow-y-scroll bg-white text-gray-800 py-6">
         
     </div>
@@ -23,9 +30,25 @@
         const messagesElement = document.getElementById('messages');
         const userInputElement = document.getElementById('userInput');
         const sendButton = document.getElementById('sendButton');
+        const quickRepliesContainer = document.getElementById('quickReplies');
         let threadId = null;
         let productIds = []; // Inizializza un array per gestire i product_ids
         const team = window.location.pathname.split('/').pop(); // Estrae l'ultima parte dell'URL come team
+        let firstMessageSent = false; // Flag per nascondere i bottoni dopo il primo messaggio
+
+        // Event listener per i bottoni di risposte rapide
+        const quickReplyButtons = document.querySelectorAll('.quick-reply-btn');
+        quickReplyButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const quickMessage = this.getAttribute('data-message');
+                if (!firstMessageSent) {
+                    firstMessageSent = true;
+                    quickRepliesContainer.style.display = 'none';
+                }
+                userInputElement.value = quickMessage;
+                sendMessage();
+            });
+        });
 
         // Estrai l'UUID dalla query string
         const urlParams = new URLSearchParams(window.location.search);
@@ -43,7 +66,7 @@
                 });
         }
 
-        // Invia il messaggio "Intro" all'API quando la pagina viene caricata
+        // Invia il messaggio "Buongiorno" all'API quando la pagina viene caricata
         postMessage('Buongiorno').then(response => {
             const botMessage = {
                 id: Date.now(),
@@ -63,6 +86,10 @@
         async function sendMessage() {
             const userInput = userInputElement.value.trim();
             if (userInput === '') return;
+            if (!firstMessageSent) {
+                firstMessageSent = true;
+                quickRepliesContainer.style.display = 'none';
+            }
 
             const userMessage = {
                 id: Date.now(),
@@ -94,7 +121,7 @@
             const messageElement = document.createElement('div');
             messageElement.className = `message ${message.role}`;
             messageElement.style = `padding: 10px; margin-bottom: 10px; border-radius: 20px; background-color: #ffffff; color: ${message.role === 'user' ? '#00008b' : 'black'}; border: ${message.role === 'user' ? '2px solid #9090ff' : '3px solid rgb(236, 236, 236)'}; font-family: Montserrat, sans-serif;`;
-            messageElement.innerHTML = `<span style="font-size: 16px;">${message.content}</span>`; // Usa innerHTML per supportare il contenuto HTML
+            messageElement.innerHTML = `<span style="font-size: 16px;">${message.content}</span>`;
             messagesElement.appendChild(messageElement);
             messagesElement.scrollTop = messagesElement.scrollHeight;
         }
@@ -107,7 +134,6 @@
             messagesElement.appendChild(typingElement);
             messagesElement.scrollTop = messagesElement.scrollHeight;
 
-            // Aggiungi animazione ai puntini di caricamento
             const interval = setInterval(() => {
                 typingElement.textContent += '.';
                 if (typingElement.textContent.length > 3) {
@@ -115,12 +141,12 @@
                 }
             }, 500);
 
-            typingElement.dataset.intervalId = interval; // Salva l'ID dell'intervallo per la rimozione
+            typingElement.dataset.intervalId = interval;
             return typingElement;
         }
 
         function removeTypingIndicator(typingElement) {
-            clearInterval(typingElement.dataset.intervalId); // Ferma l'animazione
+            clearInterval(typingElement.dataset.intervalId);
             messagesElement.removeChild(typingElement);
         }
 
@@ -134,8 +160,8 @@
                     body: JSON.stringify({
                         message: message,
                         thread_id: threadId,
-                        team: team, // Passa il team all'API
-                        product_ids: productIds, // Passa i product_ids all'API
+                        team: team,
+                        product_ids: productIds,
                     }),
                 });
 
@@ -149,4 +175,3 @@
         }
     });
 </script>
-<!-- End of Selection -->
