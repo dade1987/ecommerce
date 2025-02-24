@@ -60,7 +60,8 @@ class CustomerResource extends Resource
                     ]),
                 Forms\Components\DateTimePicker::make('visited_at')
                     ->label('Data di visita')
-                    ->nullable(),
+                    ->nullable()
+                    ->sortable(),
             ]);
     }
 
