@@ -159,6 +159,13 @@ class SommelierApiController extends Controller
                 'vintage' => '2019',
                 'description' => 'Vino rosso versatile, perfetto con carni e formaggi.',
             ],
+            [
+                'id' => 21,
+                'name' => 'Raboso',
+                'region' => 'Veneto',
+                'vintage' => '2018',
+                'description' => 'Vino rosso robusto e tannico, con note di frutti di bosco e spezie.',
+            ],
         ];
 
         // Filtra in base ai parametri forniti
