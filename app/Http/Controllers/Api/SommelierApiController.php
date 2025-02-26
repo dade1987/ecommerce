@@ -17,77 +17,147 @@ class SommelierApiController extends Controller
         $region = $request->query('region');
         $vintage = $request->query('vintage');
 
-        // Dati fittizi di esempio
+        // Array dei 20 vini più venduti in Veneto
         $wines = [
             [
                 'id' => 1,
-                'name' => 'Chianti Classico',
-                'region' => 'Toscana',
-                'vintage' => '2015',
-                'description' => 'Vino rosso robusto con note fruttate e speziate.',
+                'name' => 'Amarone della Valpolicella Classico',
+                'region' => 'Veneto',
+                'vintage' => '2019',
+                'description' => 'Vino rosso robusto ed elegante, con note di ciliegia e spezie.',
             ],
             [
                 'id' => 2,
-                'name' => 'Barolo',
-                'region' => 'Piemonte',
-                'vintage' => '2014',
-                'description' => 'Vino corposo con tannini intensi e un lungo finale.',
+                'name' => 'Prosecco DOC',
+                'region' => 'Veneto',
+                'vintage' => 'NV',
+                'description' => 'Spumante fresco e frizzante, ideale per ogni occasione.',
             ],
             [
                 'id' => 3,
-                'name' => 'Brunello di Montalcino',
-                'region' => 'Toscana',
-                'vintage' => '2016',
-                'description' => 'Vino rosso elegante con note di ciliegia e spezie.',
+                'name' => 'Soave Classico',
+                'region' => 'Veneto',
+                'vintage' => '2018',
+                'description' => 'Vino bianco aromatico, con sentori di frutta e fiori.',
             ],
             [
                 'id' => 4,
-                'name' => 'Amarone della Valpolicella',
+                'name' => 'Lugana DOC',
                 'region' => 'Veneto',
-                'vintage' => '2013',
-                'description' => 'Vino rosso intenso con note di frutta secca e cioccolato.',
+                'vintage' => '2020',
+                'description' => 'Vino bianco fresco, con note di agrumi e fiori bianchi.',
             ],
             [
                 'id' => 5,
-                'name' => 'Prosecco',
+                'name' => 'Bardolino',
                 'region' => 'Veneto',
-                'vintage' => 'NV',
-                'description' => 'Vino spumante leggero e frizzante con note di mela e pera.',
+                'vintage' => '2017',
+                'description' => 'Vino rosso leggero e fruttato, perfetto per piatti delicati.',
             ],
             [
                 'id' => 6,
-                'name' => 'Sauvignon Blanc',
-                'region' => 'Friuli Venezia Giulia',
-                'vintage' => '2018',
-                'description' => 'Vino bianco fresco con note di agrumi e erbe aromatiche.',
+                'name' => 'Valpolicella Ripasso',
+                'region' => 'Veneto',
+                'vintage' => '2016',
+                'description' => 'Rosso intenso con tannini morbidi e note speziate.',
             ],
             [
                 'id' => 7,
-                'name' => 'Pinot Grigio',
-                'region' => 'Trentino-Alto Adige',
+                'name' => 'Custoza DOC',
+                'region' => 'Veneto',
                 'vintage' => '2019',
-                'description' => 'Vino bianco leggero con note di mela verde e fiori bianchi.',
+                'description' => 'Vino bianco secco ed elegante, con sentori floreali.',
             ],
             [
                 'id' => 8,
-                'name' => 'Vermentino',
-                'region' => 'Sardegna',
-                'vintage' => '2020',
-                'description' => 'Vino bianco aromatico con note di pesca e mandorla.',
+                'name' => 'Lessini Durello Spumante',
+                'region' => 'Veneto',
+                'vintage' => '2015',
+                'description' => 'Spumante metodo classico, fresco e persistente.',
             ],
             [
                 'id' => 9,
-                'name' => 'Nero d\'Avola',
-                'region' => 'Sicilia',
-                'vintage' => '2017',
-                'description' => 'Vino rosso intenso con note di frutti di bosco e spezie.',
+                'name' => 'Rosso di Verona IGT',
+                'region' => 'Veneto',
+                'vintage' => '2018',
+                'description' => 'Rosso equilibrato con profumi di frutti rossi.',
             ],
             [
                 'id' => 10,
-                'name' => 'Lambrusco',
-                'region' => 'Emilia-Romagna',
+                'name' => 'Pinot Grigio Veneto',
+                'region' => 'Veneto',
+                'vintage' => '2019',
+                'description' => 'Bianco leggero, fresco e fruttato.',
+            ],
+            [
+                'id' => 11,
+                'name' => 'Merlot Veneto',
+                'region' => 'Veneto',
+                'vintage' => '2017',
+                'description' => 'Rosso morbido con note di prugna e ciliegia.',
+            ],
+            [
+                'id' => 12,
+                'name' => 'Cabernet Sauvignon Veneto',
+                'region' => 'Veneto',
+                'vintage' => '2018',
+                'description' => 'Rosso strutturato con tannini decisi e aromi di frutti neri.',
+            ],
+            [
+                'id' => 13,
+                'name' => 'Sauvignon Blanc Veneto',
+                'region' => 'Veneto',
+                'vintage' => '2020',
+                'description' => 'Bianco fresco con note erbacee e agrumate.',
+            ],
+            [
+                'id' => 14,
+                'name' => 'Glera Prosecco',
+                'region' => 'Veneto',
                 'vintage' => 'NV',
-                'description' => 'Vino rosso frizzante con note di frutti rossi e fiori.',
+                'description' => 'Spumante vivace e leggero, perfetto come aperitivo.',
+            ],
+            [
+                'id' => 15,
+                'name' => 'Cabernet Franc Veneto',
+                'region' => 'Veneto',
+                'vintage' => '2016',
+                'description' => 'Rosso elegante con aromi di frutti rossi e spezie.',
+            ],
+            [
+                'id' => 16,
+                'name' => 'Riesling Veneto',
+                'region' => 'Veneto',
+                'vintage' => '2018',
+                'description' => 'Bianco aromatico con note minerali e fruttate.',
+            ],
+            [
+                'id' => 17,
+                'name' => 'Veneto Rosé',
+                'region' => 'Veneto',
+                'vintage' => '2020',
+                'description' => 'Rosé fresco e fruttato, ideale per l’estate.',
+            ],
+            [
+                'id' => 18,
+                'name' => 'Valpolicella Classico',
+                'region' => 'Veneto',
+                'vintage' => '2017',
+                'description' => 'Rosso equilibrato con profumi intensi di frutta.',
+            ],
+            [
+                'id' => 19,
+                'name' => 'Valpolicella Superiore',
+                'region' => 'Veneto',
+                'vintage' => '2018',
+                'description' => 'Rosso strutturato con note di spezie e vaniglia.',
+            ],
+            [
+                'id' => 20,
+                'name' => 'Veneto Rosso IGT',
+                'region' => 'Veneto',
+                'vintage' => '2019',
+                'description' => 'Vino rosso versatile, perfetto con carni e formaggi.',
             ],
         ];
 
@@ -117,30 +187,29 @@ class SommelierApiController extends Controller
     public function getPairing(Request $request)
     {
         $food = $request->query('food');
-        $preferences = $request->query('preferences');
 
-        // Dati fittizi per abbinamenti
+        // Suggerimenti di abbinamento basati sui vini veneti
         $pairings = [
             'pizza' => [
-                'suggestion' => 'Prova un Chianti Classico, ideale per una pizza margherita.',
+                'suggestion' => 'Prova il Prosecco DOC: un abbinamento fresco per una pizza margherita.',
             ],
             'carne' => [
-                'suggestion' => 'Un Barolo si abbina perfettamente a piatti di carne rossa.',
+                'suggestion' => 'Un Amarone della Valpolicella Classico si sposa bene con carni rosse.',
             ],
             'pesce' => [
-                'suggestion' => 'Un Vermentino è perfetto per accompagnare piatti di pesce.',
+                'suggestion' => 'Il Soave Classico è perfetto per piatti di pesce e crostacei.',
             ],
             'formaggio' => [
-                'suggestion' => 'Abbina un Sauvignon Blanc con formaggi freschi.',
+                'suggestion' => 'Un Lugana DOC si abbina egregiamente con formaggi stagionati.',
             ],
             'cioccolato' => [
-                'suggestion' => 'Un Porto si sposa bene con il cioccolato fondente.',
+                'suggestion' => 'Prova un Veneto Rosé per un contrasto interessante con il cioccolato fondente.',
             ],
             'pasta' => [
-                'suggestion' => 'Un Pinot Grigio è un ottimo abbinamento per piatti di pasta leggeri.',
+                'suggestion' => 'Il Valpolicella Ripasso è ideale per piatti di pasta ricchi e saporiti.',
             ],
             'insalata' => [
-                'suggestion' => 'Prova un Rosé per un abbinamento fresco con l\'insalata.',
+                'suggestion' => 'Il Sauvignon Blanc Veneto dona freschezza ad una buona insalata estiva.',
             ],
         ];
 
@@ -155,7 +224,7 @@ class SommelierApiController extends Controller
         }
 
         if (empty($result)) {
-            $result = ['suggestion' => 'Non abbiamo trovato un abbinamento specifico. Prova un vino versatile come il Merlot.'];
+            $result = ['suggestion' => 'Non abbiamo trovato un abbinamento specifico. Prova un vino versatile come il Veneto Rosso IGT.'];
         }
 
         return response()->json($result);
@@ -168,16 +237,28 @@ class SommelierApiController extends Controller
     {
         $topic = $request->query('topic');
 
+        // Curiosità relative ai vini veneti
         $trivia = [
-            'default' => 'Il vino ha una storia millenaria e ogni regione vanta peculiarità uniche.',
-            'chianti'  => 'Il Chianti Classico è principalmente prodotto con uve Sangiovese.',
-            'barolo' => 'Il Barolo è conosciuto come il "Re dei Vini" ed è prodotto con uve Nebbiolo.',
-            'vermentino' => 'Il Vermentino è un vino bianco aromatico, tipico della Sardegna e della Liguria.',
-            'sauvignon' => 'Il Sauvignon Blanc è un vino bianco fresco e aromatico, originario della regione di Bordeaux.',
-            'porto' => 'Il Porto è un vino liquoroso prodotto nella regione del Douro, in Portogallo.',
-            'pinot' => 'Il Pinot Grigio è un vino bianco leggero e rinfrescante, molto popolare in Italia.',
-            'rosé' => 'Il Rosé è un vino che può essere prodotto con diverse varietà di uve rosse, ma con una breve macerazione delle bucce.',
-            'merlot' => 'Il Merlot è un vino rosso morbido e fruttato, molto versatile negli abbinamenti.',
+            'default'   => 'Il Veneto è una delle regioni vinicole più importanti d’Italia, celebre per Prosecco, Amarone, Soave e Lugana.',
+            'amarone'   => 'L\'Amarone della Valpolicella è un vino rosso corposo, noto per il suo processo di appassimento delle uve che ne esalta la complessità aromatica.',
+            'prosecco'  => 'Il Prosecco è un vino spumante leggero e frizzante, perfetto per aperitivi e celebrazioni, famoso per le sue note di mela verde e fiori bianchi.',
+            'soave'     => 'Il Soave è un vino bianco elegante, caratterizzato da note di mandorla e fiori bianchi, ideale per accompagnare piatti di pesce e antipasti.',
+            'lugana'    => 'Il Lugana DOC è un vino bianco fresco e minerale, prodotto tra Veneto e Lombardia, apprezzato per la sua versatilità e capacità di invecchiamento.',
+            'valpolicella' => 'I vini Valpolicella, come il Ripasso e il Classico, sono noti per la loro struttura e complessità, con note di ciliegia e spezie, perfetti per piatti di carne.',
+            'prosecco_superiore' => 'Il Prosecco Superiore DOCG è una versione premium del Prosecco, prodotto nelle colline di Conegliano e Valdobbiadene, con una maggiore complessità e finezza.',
+            'bardolino' => 'Il Bardolino è un vino rosso leggero e fruttato, con note di ciliegia e spezie, ideale per piatti di pasta e carni bianche.',
+            'custoza' => 'Il Custoza è un vino bianco aromatico, con sentori di frutta esotica e fiori, perfetto per piatti di pesce e insalate.',
+            'recioto' => 'Il Recioto della Valpolicella è un vino dolce e ricco, ottenuto da uve appassite, ideale per dessert e formaggi erborinati.',
+            'durello' => 'Il Durello è un vino spumante autoctono del Veneto, noto per la sua acidità vivace e le note di agrumi, perfetto come aperitivo.',
+            'garganega' => 'La Garganega è l\'uva principale del Soave, apprezzata per la sua capacità di produrre vini eleganti e longevi, con note di mandorla e fiori.',
+            'raboso' => 'Il Raboso è un vino rosso robusto e tannico, con note di frutti di bosco e spezie, tradizionalmente invecchiato in botti di legno.',
+            'torcolato' => 'Il Torcolato è un vino dolce ottenuto da uve Vespaiola appassite, noto per le sue note di miele e frutta secca, perfetto per dessert.',
+            'pinot_grigio' => 'Il Pinot Grigio del Veneto è un vino bianco fresco e fruttato, con note di pera e mela, ideale per aperitivi e piatti leggeri.',
+            'merlot' => 'Il Merlot del Veneto è un vino rosso morbido e vellutato, con note di prugna e cioccolato, perfetto per piatti di carne e formaggi.',
+            'cabernet_sauvignon' => 'Il Cabernet Sauvignon del Veneto è un vino rosso strutturato, con note di ribes nero e spezie, ideale per piatti di carne e selvaggina.',
+            'chardonnay' => 'Lo Chardonnay del Veneto è un vino bianco elegante, con note di frutta tropicale e vaniglia, perfetto per piatti di pesce e pollame.',
+            'moscato' => 'Il Moscato del Veneto è un vino dolce e aromatico, con note di pesca e fiori, ideale per dessert e frutta.',
+            'verduzzo' => 'Il Verduzzo è un vino bianco dolce, con note di miele e frutta secca, perfetto per dessert e formaggi stagionati.',
         ];
 
         $result = $trivia['default'];
@@ -195,76 +276,77 @@ class SommelierApiController extends Controller
     {
         $region = $request->query('region');
 
+        // Eventi esclusivamente in Veneto
         $events = [
             [
                 'id' => 1,
-                'title' => 'Festival del Vino di Roma',
-                'region' => 'Lazio',
+                'title' => 'Fiera del Vino di Verona',
+                'region' => 'Veneto',
                 'date' => '2025-05-20',
-                'description' => 'Un evento imperdibile per gli amanti del vino, con degustazioni e masterclass.',
+                'description' => 'Degustazioni e masterclass dedicate ai vini veneti, tra cui Amarone e Prosecco.',
             ],
             [
                 'id' => 2,
-                'title' => 'Notte dei Vini a Venezia',
+                'title' => 'Notte dei Vini a Treviso',
                 'region' => 'Veneto',
                 'date' => '2025-06-18',
-                'description' => 'Una serata magica tra i canali di Venezia, con degustazioni di vini locali.',
+                'description' => 'Evento esclusivo con degustazioni di Soave e Lugana.',
             ],
             [
                 'id' => 3,
-                'title' => 'Sagra del Vino di Napoli',
-                'region' => 'Campania',
+                'title' => 'Festival del Prosecco',
+                'region' => 'Veneto',
                 'date' => '2025-07-25',
-                'description' => 'Un evento tradizionale con degustazioni di vini campani e piatti tipici.',
+                'description' => 'Celebrazione del Prosecco e delle tradizioni venete.',
             ],
             [
                 'id' => 4,
-                'title' => 'Cantine Aperte in Piemonte',
-                'region' => 'Piemonte',
+                'title' => 'Degustazione Valpolicella',
+                'region' => 'Veneto',
                 'date' => '2025-08-12',
-                'description' => 'Visite guidate e degustazioni nelle cantine più rinomate del Piemonte.',
+                'description' => 'Scopri i segreti del Valpolicella Classico e Ripasso in degustazione.',
             ],
             [
                 'id' => 5,
-                'title' => 'Festa del Vino di Palermo',
-                'region' => 'Sicilia',
+                'title' => 'Serata di Vini Rossi Veneti',
+                'region' => 'Veneto',
                 'date' => '2025-09-05',
-                'description' => 'Un evento per scoprire i vini siciliani, con musica e spettacoli dal vivo.',
+                'description' => 'Evento dedicato ai vini rossi della regione, perfetto per gli appassionati.',
             ],
             [
                 'id' => 6,
-                'title' => 'Degustazione di Vini Friulani',
-                'region' => 'Friuli Venezia Giulia',
+                'title' => 'Giornata del Soave',
+                'region' => 'Veneto',
                 'date' => '2025-10-10',
-                'description' => 'Scopri i sapori unici dei vini friulani in un evento esclusivo.',
+                'description' => 'Esplora l\'eleganza del Soave Classico con degustazioni guidate.',
             ],
             [
                 'id' => 7,
-                'title' => 'Vino e Arte a Firenze',
-                'region' => 'Toscana',
+                'title' => 'Mercato del Vino a Vicenza',
+                'region' => 'Veneto',
                 'date' => '2025-11-15',
-                'description' => 'Un connubio perfetto tra arte e vino nella splendida cornice di Firenze.',
+                'description' => 'Una giornata tra produttori e degustazioni dei migliori vini veneti.',
             ],
             [
                 'id' => 8,
-                'title' => 'Weekend del Vino a Torino',
-                'region' => 'Piemonte',
+                'title' => 'Festa del Valpolicella',
+                'region' => 'Veneto',
                 'date' => '2025-12-01',
-                'description' => 'Un fine settimana dedicato ai migliori vini piemontesi.',
+                'description' => 'Un viaggio tra i sapori del Valpolicella Superiore e Classico.',
             ],
             [
                 'id' => 9,
-                'title' => 'Vini e Sapori di Sardegna',
-                'region' => 'Sardegna',
+                'title' => 'Weekend dei Vini Bianchi Veneti',
+                'region' => 'Veneto',
                 'date' => '2026-01-20',
-                'description' => 'Un viaggio tra i sapori e i profumi dei vini sardi.',
+                'description' => 'Degustazioni di Soave, Lugana e Sauvignon Blanc in un evento esclusivo.',
             ],
             [
                 'id' => 10,
-                'title' => 'Fiera del Vino di Bari',
-                'region' => 'Puglia',
+                'title' => 'Evento Vino e Cucina a Padova',
+                'region' => 'Veneto',
                 'date' => '2026-02-14',
-                'description' => 'Un evento per scoprire i vini pugliesi, con degustazioni e incontri con i produttori.',
+                'description' => 'Abbinamenti enogastronomici con i migliori vini veneti.',
             ],
         ];
 
