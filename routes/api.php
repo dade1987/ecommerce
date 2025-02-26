@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\CalzaturieroController;
 use App\Http\Controllers\Api\ChatbotController;
+use App\Http\Controllers\Api\SommelierApiController;
 use App\Http\Controllers\Api\SommelierChatbotController;
 use App\Http\Controllers\QuoterController;
 use Illuminate\Http\Request;
