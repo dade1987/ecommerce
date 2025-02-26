@@ -13,7 +13,7 @@ class SendCustomHtmlEmailAction
     {
         Mail::send([], [], function ($message) use ($customer, $emailContent) {
             $message->to($customer->email)
-                ->subject('Alla cortese attenzione della direzione')
+                ->subject('Fai interagire i Consumatori con il tuo Sommelier AI')
                 ->html($emailContent);
         });
     }
