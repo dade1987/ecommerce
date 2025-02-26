@@ -21,5 +21,6 @@ class SendCustomHtmlEmailAction
         });
 
         $customer->update(['status' => 'in_contact']);
+
     }
 }
