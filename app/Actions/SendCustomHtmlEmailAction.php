@@ -19,5 +19,7 @@ class SendCustomHtmlEmailAction
                 ->subject('Fai interagire i Consumatori con il tuo Sommelier AI Vini')
                 ->html($emailContent);
         });
+
+        $customer->update(['status' => 'in_contact']);
     }
 }
