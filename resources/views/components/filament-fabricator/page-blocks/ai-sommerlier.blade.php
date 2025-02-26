@@ -41,10 +41,6 @@
         quickReplyButtons.forEach(button => {
             button.addEventListener('click', function() {
                 const quickMessage = this.getAttribute('data-message');
-                if (!firstMessageSent) {
-                    firstMessageSent = true;
-                    quickRepliesContainer.style.display = 'none';
-                }
                 userInputElement.value = quickMessage;
                 sendMessage();
             });
@@ -87,7 +83,6 @@
             if (userInput === '') return;
             if (!firstMessageSent) {
                 firstMessageSent = true;
-                quickRepliesContainer.style.display = 'none';
             }
 
             const userMessage = {
