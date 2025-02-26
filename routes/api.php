@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\CalzaturieroController;
 use App\Http\Controllers\Api\ChatbotController;
+use App\Http\Controllers\Api\SommelierChatbotController;
 use App\Http\Controllers\QuoterController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -125,3 +126,13 @@ Route::post('/calzaturiero/process-order', [CalzaturieroController::class, 'proc
 // Assicurati di sostituire "/path/to/your/file.pdf" con il percorso effettivo del file PDF che vuoi caricare.
 
 Route::post('/chatbot', [ChatbotController::class, 'handleChat']);
+
+// Endpoint per il chatbot sommelier
+Route::post('sommelier/chat', [SommelierChatbotController::class, 'handleChat']);
+Route::post('sommelier/thread', [SommelierChatbotController::class, 'createThread']);
+
+// Endpoint per le API dei vini e dei relativi servizi
+Route::get('wines', [SommelierApiController::class, 'getWines']);
+Route::get('pairing', [SommelierApiController::class, 'getPairing']);
+Route::get('trivia', [SommelierApiController::class, 'getTrivia']);
+Route::get('events', [SommelierApiController::class, 'getEvents']);
