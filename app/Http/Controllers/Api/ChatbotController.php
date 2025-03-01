@@ -109,7 +109,7 @@ Per domande non inerenti al contesto, utilizza la function fallback.
 
 In ogni caso, chiedi prima il nome dell'utente. Dopo aver ricevuto il nome, descrivi le funzionalità del chatbot (come recuperare informazioni sui servizi, gli orari disponibili, come prenotare, ecc.). Alla fine, quando l'utente decide di prenotare, chiedi il numero di telefono per completare l'ordine.
 TXT,
-                'model'        => 'gpt-4o-mini',
+                'model'        => 'gpt-4o',
                 'tools'        => [
                     [
                         'type'     => 'function',
