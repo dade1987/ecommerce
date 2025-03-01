@@ -137,3 +137,14 @@ Route::get('wines', [SommelierApiController::class, 'getWines']);
 Route::get('pairing', [SommelierApiController::class, 'getPairing']);
 Route::get('trivia', [SommelierApiController::class, 'getTrivia']);
 Route::get('events', [SommelierApiController::class, 'getEvents']);
+
+Route::get('/avatar/{teamslug}', function ($teamslug) {
+    $team = App\Models\Team::where('slug', $teamslug)->firstOrFail();
+
+    return response()->json([
+        'team' => [
+            'name' => $team->name,
+            'logo' => $team->logo,
+        ],
+    ]);
+});
