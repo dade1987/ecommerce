@@ -37,23 +37,25 @@
     </div>
   
     <!-- Footer con input e pulsante di invio -->
-    <div class="flex border-t border-[#4f4f58] bg-[#343541] w-full pt-4">
-      <div class="relative flex-1 flex items-center">
-        <div class="flex w-full rounded-md overflow-hidden bg-[#40414f] border border-[#565869]">
-          <input
-            id="userInput"
-            type="text"
-            placeholder="Scrivi un messaggio..."
-            class="flex-1 p-4 text-white bg-transparent focus:outline-none placeholder-gray-400"
-          />
-          <button
-            id="sendButton"
-            class="bg-[#40414f] px-4 text-white border-l border-[#565869] hover:bg-[#565869]"
-          >
-            Invia
-          </button>
+    <div class="relative flex h-full max-w-full flex-1 flex-col overflow-hidden">
+        <div class="flex border-t border-[#4f4f58] bg-[#343541] w-full pt-4 fixed bottom-0 left-0">
+            <div class="relative flex-1 flex items-center">
+                <div class="flex w-full rounded-md overflow-hidden bg-[#40414f] border border-[#565869]">
+                    <input
+                        id="userInput"
+                        type="text"
+                        placeholder="Scrivi un messaggio..."
+                        class="flex-1 p-4 text-white bg-transparent focus:outline-none placeholder-gray-400"
+                    />
+                    <button
+                        id="sendButton"
+                        class="bg-[#40414f] px-4 text-white border-l border-[#565869] hover:bg-[#565869]"
+                    >
+                        Invia
+                    </button>
+                </div>
+            </div>
         </div>
-      </div>
     </div>
 </div>
 
