@@ -181,8 +181,8 @@ document.addEventListener('DOMContentLoaded', function() {
   function addMessageToChat(message) {
     const messageElement = document.createElement('div');
     messageElement.className = message.role === 'user'
-      ? 'message user self-end max-w-[70%] ml-[5%] bg-[#3b4b58] text-[#d1d5db] border border-[#565869] px-4 py-3 rounded-md'
-      : 'message bot self-start max-w-[75%] bg-[#40414f] text-[#e8e8ea] border border-[#565869] px-4 py-3 rounded-md';
+      ? 'message user self-end w-full ml-[5%] bg-[#3b4b58] text-[#d1d5db] border border-[#565869] px-4 py-3 rounded-md'
+      : 'message bot self-start w-full bg-[#40414f] text-[#e8e8ea] border border-[#565869] px-4 py-3 rounded-md';
     messageElement.innerHTML = message.content;
     messagesElement.appendChild(messageElement);
     messagesElement.scrollTop = messagesElement.scrollHeight;
@@ -190,7 +190,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function addTypingIndicator() {
     const typingElement = document.createElement('div');
-    typingElement.className = 'message bot self-start max-w-[75%] bg-[#40414f] text-white border border-[#565869] px-4 py-3 rounded-md italic opacity-80';
+    typingElement.className = 'message bot self-start w-full bg-[#40414f] text-white border border-[#565869] px-4 py-3 rounded-md italic opacity-80';
     typingElement.textContent = '.';
     messagesElement.appendChild(typingElement);
     messagesElement.scrollTop = messagesElement.scrollHeight;
