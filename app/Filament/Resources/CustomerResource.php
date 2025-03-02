@@ -18,6 +18,7 @@ use GuzzleHttp\Client;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use function Safe\file_get_contents;
 use function Safe\json_decode;
 
@@ -63,6 +64,11 @@ class CustomerResource extends Resource
                 Forms\Components\DateTimePicker::make('visited_at')
                     ->label('Data di visita')
                     ->nullable(),
+                Forms\Components\TextInput::make('uuid')
+                    ->label('UUID')
+                    ->disabled()
+                    //->default(Str::uuid()->toString())
+                    ->maxLength(36),
             ]);
     }
 

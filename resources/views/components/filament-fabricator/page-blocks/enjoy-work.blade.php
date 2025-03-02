@@ -15,21 +15,9 @@
   <div id="quickReplies" class="px-4 flex flex-wrap gap-3 mb-5">
     <button 
       class="quick-reply-btn bg-[#4f4f58] hover:bg-[#5e5e69] text-white px-2 py-2 rounded-md"
-      data-message="Quali servizi offrite?"
+      data-message="Come l'AI può potenziare la mia azienda?"
     >
-      Quali servizi offrite?
-    </button>
-    <button 
-      class="quick-reply-btn bg-[#4f4f58] hover:bg-[#5e5e69] text-white px-2 py-2 rounded-md"
-      data-message="Quali sono gli orari disponibili per un appuntamento?"
-    >
-      Orari disponibili?
-    </button>
-    <button 
-      class="quick-reply-btn bg-[#4f4f58] hover:bg-[#5e5e69] text-white px-2 py-2 rounded-md"
-      data-message="Qual è il vostro indirizzo?"
-    >
-      Qual è il vostro indirizzo?
+      Come l'AI può potenziare la mia azienda?
     </button>
   </div>
 
@@ -71,6 +59,10 @@ document.addEventListener('DOMContentLoaded', function() {
   const teamSlug = window.location.pathname.split('/').pop();
   let firstMessageSent = false;
 
+  // Estrai l'UUID dalla query string
+  const urlParams = new URLSearchParams(window.location.search);
+  const uuid = urlParams.get('uuid');
+
   // Carica nome e logo azienda
   fetch(`/api/avatar/${teamSlug}`)
     .then(response => response.json())
@@ -101,10 +93,6 @@ document.addEventListener('DOMContentLoaded', function() {
       sendMessage();
     });
   });
-
-  // Estrai l'UUID dalla query string
-  const urlParams = new URLSearchParams(window.location.search);
-  const uuid = urlParams.get('uuid');
 
   // Chiamata API /visit/{uuid} al caricamento
   if (uuid) {
@@ -220,7 +208,8 @@ document.addEventListener('DOMContentLoaded', function() {
           message,
           thread_id: threadId,
           team: teamSlug,
-          product_ids: productIds
+          product_ids: productIds,
+          uuid: uuid // Passa l'UUID all'API se disponibile
         }),
       });
       const data = await response.json();

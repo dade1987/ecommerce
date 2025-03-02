@@ -1,10 +1,9 @@
 <?php
 
-// File: app/Http/Controllers/Api/ChatbotController.php
-
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Customer;
 use App\Models\Quoter;
 use App\Models\Team;
 use GuzzleHttp\Client;
@@ -40,9 +39,11 @@ class ChatbotController extends Controller
     public function handleChat(Request $request)
     {
         Log::info('handleChat: Inizio elaborazione richiesta');
+
         $threadId = $request->input('thread_id');
         $userInput = $request->input('message');
         $teamSlug = $request->input('team');
+        $activityUuid = $request->input('uuid');  // UUID identificativo dell’attività
 
         // Se non viene passato un thread_id, ne crea uno nuovo
         if (! $threadId) {
@@ -51,7 +52,11 @@ class ChatbotController extends Controller
             Log::info('handleChat: Creato nuovo thread', ['thread_id' => $threadId]);
         }
 
-        Log::info('handleChat: Messaggio utente ricevuto', ['message' => $userInput, 'thread_id' => $threadId]);
+        Log::info('handleChat: Messaggio utente ricevuto', [
+            'message'   => $userInput,
+            'thread_id' => $threadId,
+            'uuid'      => $activityUuid,
+        ]);
 
         // Salva il messaggio dell'utente nel modello Quoter
         Quoter::create([
@@ -60,18 +65,17 @@ class ChatbotController extends Controller
             'content'   => $userInput,
         ]);
 
-        // Aggiungi il messaggio dell'utente al thread
+        // Aggiunge il messaggio dell'utente al thread su OpenAI
         $this->client->threads()->messages()->create($threadId, [
             'role'    => 'user',
             'content' => $userInput,
         ]);
 
-        // Se il messaggio è "buongiorno", recupera il welcome message dal modello Team
+        // Se l'utente scrive "buongiorno", recupera il welcome message dal modello Team
         if (strtolower($userInput) === 'buongiorno') {
             $team = Team::where('slug', $teamSlug)->first();
             $welcomeMessage = $team ? $team->welcome_message : 'Benvenuto!';
 
-            // Salva il messaggio del chatbot nel modello Quoter
             Quoter::create([
                 'thread_id' => $threadId,
                 'role'      => 'chatbot',
@@ -89,7 +93,6 @@ class ChatbotController extends Controller
             threadId: $threadId,
             parameters: [
                 'assistant_id' => 'asst_34SA8ZkwlHiiXxNufoZYddn0',
-                // ISTRUZIONI MODIFICATE QUI SOTTO:
                 'instructions' => <<<'TXT'
 Se chiedo quali servizi, attività o prodotti offri, esegui la function call getProductInfo.
 
@@ -105,12 +108,14 @@ Se inserisco da qualche parte i dati dell'utente (nome, email, telefono), esegui
 
 Se richiedo le domande frequenti, esegui la function call getFAQs.
 
+Se chiedo che cosa può fare l’AI per la mia attività, esegui la function call scrapeSite.
+
 Per domande non inerenti al contesto, utilizza la function fallback.
 
-In ogni caso, chiedi prima il nome dell'utente. Dopo aver ricevuto il nome, descrivi le funzionalità del chatbot (come recuperare informazioni sui servizi, gli orari disponibili, come prenotare, ecc.). Alla fine, quando l'utente decide di prenotare, chiedi il numero di telefono per completare l'ordine.
+Descrivi le funzionalità del chatbot (come recuperare informazioni sui servizi, gli orari disponibili, come prenotare, ecc.). Alla fine, quando l'utente decide di prenotare, chiedi il numero di telefono per completare l'ordine.
 TXT,
-                'model'        => 'gpt-4o',
-                'tools'        => [
+                'model'  => 'gpt-4o',
+                'tools'  => [
                     [
                         'type'     => 'function',
                         'function' => [
@@ -193,7 +198,7 @@ TXT,
                         'type'     => 'function',
                         'function' => [
                             'name'        => 'submitUserData',
-                            'description' => 'Registra i dati anagrafici dell\'utente (nome, email e numero di telefono) e risponde ringraziando per averli forniti. I dati verranno trattati in conformità al GDPR e all\'informativa sulla privacy del sito.',
+                            'description' => 'Registra i dati anagrafici dell\'utente e risponde ringraziando. Dati trattati in conformità al GDPR.',
                             'parameters'  => [
                                 'type'       => 'object',
                                 'properties' => [
@@ -218,7 +223,7 @@ TXT,
                         'type'     => 'function',
                         'function' => [
                             'name'        => 'getFAQs',
-                            'description' => 'Recupera le domande frequenti (FAQ) dal sistema in base a una query. Esempi: "Che cos\'è un\'azienda?", "Quali servizi offrite?", "Chi sono i professionisti dell\'azienda?".',
+                            'description' => 'Recupera le domande frequenti (FAQ) dal sistema in base a una query.',
                             'parameters'  => [
                                 'type'       => 'object',
                                 'properties' => [
@@ -239,10 +244,28 @@ TXT,
                         'type'     => 'function',
                         'function' => [
                             'name'        => 'fallback',
-                            'description' => 'Risponde a domande non inerenti al contesto consentito con il messaggio predefinito: "Per un setup più specifico per la tua attività contatta 3487433620 Giuliano". Le domande consentite riguardano esclusivamente prodotti, servizi, attività offerti dall\'azienda.',
+                            'description' => 'Risponde a domande non inerenti al contesto con il messaggio predefinito.',
                             'parameters'  => [
                                 'type'       => 'object',
                                 'properties' => new \stdClass(),
+                            ],
+                        ],
+                    ],
+                    // FUNZIONE per "Che cosa può fare l’AI per la mia attività?"
+                    [
+                        'type'     => 'function',
+                        'function' => [
+                            'name'        => 'scrapeSite',
+                            'description' => "Recupera il testo del sito (senza tag HTML) associato all'UUID nel modello Customer e con GPT risponde su cosa può fare l'AI.",
+                            'parameters'  => [
+                                'type'       => 'object',
+                                'properties' => [
+                                    'user_uuid' => [
+                                        'type'        => 'string',
+                                        'description' => "UUID che identifica l'utente/attività nel modello Customer.",
+                                    ],
+                                ],
+                                'required' => ['user_uuid'],
                             ],
                         ],
                     ],
@@ -253,7 +276,7 @@ TXT,
         // Recupera il risultato del run
         $run = $this->retrieveRunResult($threadId, $run->id);
 
-        // Gestione del function calling: accumula tutti gli output e inviali in un'unica chiamata
+        // Gestione del function calling
         while ($run->status === 'requires_action') {
             $requiredAction = $run->requiredAction;
             $toolOutputs = [];
@@ -270,6 +293,7 @@ TXT,
                         'tool_call_id' => $toolCall->id,
                         'output'       => json_encode($productData),
                     ];
+
                 } elseif ($functionCall->name === 'getAddressInfo') {
                     $arguments = json_decode($functionCall->arguments, true);
                     $addressData = $this->fetchAddressData($teamSlug);
@@ -277,6 +301,7 @@ TXT,
                         'tool_call_id' => $toolCall->id,
                         'output'       => json_encode($addressData),
                     ];
+
                 } elseif ($functionCall->name === 'getAvailableTimes') {
                     $arguments = json_decode($functionCall->arguments, true);
                     $availableTimes = $this->fetchAvailableTimes($teamSlug);
@@ -284,6 +309,7 @@ TXT,
                         'tool_call_id' => $toolCall->id,
                         'output'       => json_encode($availableTimes),
                     ];
+
                 } elseif ($functionCall->name === 'createOrder') {
                     $arguments = json_decode($functionCall->arguments, true);
                     $userPhone = $arguments['user_phone'];
@@ -299,7 +325,7 @@ TXT,
 
                     if (empty($productIds)) {
                         return response()->json([
-                            'message'   => 'Per favore fornisci informazioni aggiuntive sul prodotto che vorresti acquistare.',
+                            'message'   => 'Per favore fornisci informazioni aggiuntive sul prodotto/servizio che vorresti acquistare.',
                             'thread_id' => $threadId,
                         ]);
                     }
@@ -309,6 +335,7 @@ TXT,
                         'tool_call_id' => $toolCall->id,
                         'output'       => json_encode($orderData),
                     ];
+
                 } elseif ($functionCall->name === 'submitUserData') {
                     $arguments = json_decode($functionCall->arguments, true);
                     $userPhone = $arguments['user_phone'] ?? null;
@@ -327,6 +354,7 @@ TXT,
                         'tool_call_id' => $toolCall->id,
                         'output'       => json_encode($userDataResponse),
                     ];
+
                 } elseif ($functionCall->name === 'getFAQs') {
                     $arguments = json_decode($functionCall->arguments, true);
                     $faqTeamSlug = $arguments['team_slug'] ?? $teamSlug;
@@ -336,16 +364,28 @@ TXT,
                         'tool_call_id' => $toolCall->id,
                         'output'       => json_encode($faqData),
                     ];
+
                 } elseif ($functionCall->name === 'fallback') {
                     $fallbackMessage = 'Per un setup più specifico per la tua attività contatta 3487433620 Giuliano';
                     $toolOutputs[] = [
                         'tool_call_id' => $toolCall->id,
                         'output'       => json_encode(['message' => $fallbackMessage]),
                     ];
+
+                } elseif ($functionCall->name === 'scrapeSite') {
+                    // Funzione di scraping + analisi
+                    $arguments = json_decode($functionCall->arguments, true);
+                    $uuidToUse = $activityUuid;
+
+                    $scrapeData = $this->scrapeSite($uuidToUse);
+                    $toolOutputs[] = [
+                        'tool_call_id' => $toolCall->id,
+                        'output'       => json_encode($scrapeData),
+                    ];
                 }
             }
 
-            // Invia tutti gli output in una sola chiamata
+            // Invia in un'unica chiamata tutti i risultati dei tool
             $this->client->threads()->runs()->submitToolOutputs(
                 threadId: $threadId,
                 runId: $run->id,
@@ -354,13 +394,13 @@ TXT,
                 ]
             );
 
-            // Recupera la risposta finale dopo aver inviato gli output
+            // Recupera la risposta finale dopo gli output
             $run = $this->retrieveRunResult($threadId, $run->id);
         }
 
-        // Recupera i messaggi aggiornati
+        // Run completato o non richiede altre azioni
         $messages = $this->client->threads()->messages()->list($threadId)->data;
-        $content = $messages[0]->content[0]->text->value;
+        $content = $messages[0]->content[0]->text->value ?? 'Nessuna risposta trovata.';
 
         // Salva il messaggio del chatbot nel modello Quoter
         Quoter::create([
@@ -379,23 +419,32 @@ TXT,
         ]);
     }
 
+    /**
+     * Recupera il risultato del run, attendendo finché non è 'completed' o 'requires_action'.
+     */
     private function retrieveRunResult($threadId, $runId)
     {
         while (true) {
             $run = $this->client->threads()->runs()->retrieve($threadId, $runId);
-            Log::info('retrieveRunResult: Stato del run', ['threadId' => $threadId, 'runId' => $runId, 'status' => $run->status]);
+            Log::info('retrieveRunResult: Stato del run', [
+                'threadId' => $threadId,
+                'runId'    => $runId,
+                'status'   => $run->status,
+            ]);
 
             if ($run->status === 'completed' || $run->status === 'requires_action') {
                 return $run;
             }
-
             sleep(1);
         }
     }
 
     private function fetchProductData(array $productNames, $teamSlug)
     {
-        Log::info('fetchProductData: Inizio recupero dati prodotti', ['productNames' => $productNames, 'teamSlug' => $teamSlug]);
+        Log::info('fetchProductData: Inizio recupero dati prodotti', [
+            'productNames' => $productNames,
+            'teamSlug'     => $teamSlug,
+        ]);
         $client = new Client();
         $products = [];
 
@@ -410,7 +459,6 @@ TXT,
                     'query' => ['name' => $name],
                 ]);
                 $productData = json_decode($response->getBody(), true);
-                Log::info('fetchProductData: Dati prodotto o servizio ricevuti', ['productData' => $productData]);
                 $products = array_merge($products, $productData);
             }
         }
@@ -454,19 +502,11 @@ TXT,
         $response = $client->post("https://cavalliniservice.com/api/order/{$teamSlug}", [
             'json' => [
                 'user_phone'    => $userPhone,
-                'delivery_date' => $deliveryDate, // La delivery_date include ora, minuti e secondi di inizio
-                'product_ids'   => $productIds,
-            ],
-        ]);
-
-        Log::info('createOrder: Richiesta inviata', [
-            'url'     => "https://cavalliniservice.com/api/order/{$teamSlug}",
-            'payload' => [
-                'user_phone'    => $userPhone,
                 'delivery_date' => $deliveryDate,
                 'product_ids'   => $productIds,
             ],
         ]);
+
         $orderData = json_decode($response->getBody(), true);
         Log::info('createOrder: Ordine creato', ['orderData' => $orderData]);
 
@@ -493,15 +533,6 @@ TXT,
             ],
         ]);
 
-        Log::info('submitUserData: Dati utente inviati', [
-            'url'     => $url,
-            'payload' => [
-                'name'  => $userName,
-                'phone' => $userPhone,
-                'email' => $userEmail,
-            ],
-        ]);
-
         $responseData = json_decode($response->getBody(), true);
 
         return $responseData;
@@ -520,12 +551,87 @@ TXT,
         return $faqData;
     }
 
+    /**
+     * Scrape (ma estrai solo testo) + analisi con GPT su come l'AI può aiutare l'attività.
+     */
+    private function scrapeSite(?string $userUuid)
+    {
+        Log::info('scrapeSite: Inizio recupero Customer da uuid', ['userUuid' => $userUuid]);
+
+        if (! $userUuid) {
+            return ['error' => "Nessun UUID fornito per l'utente/attività."];
+        }
+
+        $customer = Customer::where('uuid', $userUuid)->first();
+        if (! $customer) {
+            Log::warning('scrapeSite: Nessun customer trovato', ['userUuid' => $userUuid]);
+
+            return ['error' => 'Nessun cliente trovato per l\'UUID fornito.'];
+        }
+
+        if (! $customer->website) {
+            Log::warning('scrapeSite: Nessun sito web associato a questo customer', ['userUuid' => $userUuid]);
+
+            return ['error' => 'Nessun sito web specificato per questo utente.'];
+        }
+
+        // 1) Scarica il contenuto dal sito
+        try {
+            $client = new Client();
+            $response = $client->get($customer->website);
+            $html = $response->getBody()->getContents();
+        } catch (\Exception $e) {
+            Log::error('scrapeSite: Errore nello scraping', ['error' => $e->getMessage()]);
+
+            return ['error' => 'Impossibile recuperare il contenuto del sito.'];
+        }
+
+        // 2) Estrai il contenuto testuale (rimuovendo i tag HTML)
+        $dom = new \DOMDocument();
+        @$dom->loadHTML($html);
+        $body = $dom->getElementsByTagName('body')->item(0);
+        $plainText = strip_tags($dom->saveHTML($body));
+
+        // 3) Chiamata a GPT con il testo "pulito"
+        try {
+            Log::info('scrapeSite: Invio richiesta a GPT con testo pulito.');
+
+            $analysisResponse = $this->client->chat()->create([
+                'model'    => 'gpt-4o',
+                'messages' => [
+                    [
+                        'role'    => 'system',
+                        'content' => 'Sei un AI Assistant specializzato in consulenza aziendale, marketing e automazione dei processi.',
+                    ],
+                    [
+                        'role'    => 'user',
+                        'content' => "Ecco il testo estratto dal sito:\n\n{$plainText}\n\n".
+                                     "In base a questi contenuti, descrivi in modo conciso come l'AI può aiutare questa attività ".
+                                     'a migliorare processi, marketing, vendite o altri aspetti rilevanti.',
+                    ],
+                ],
+                'temperature' => 0.7,
+            ]);
+
+            $aiAnalysis = $analysisResponse->choices[0]->message->content ?? 'Nessuna analisi disponibile.';
+        } catch (\Exception $e) {
+            Log::error('scrapeSite: Errore durante la chiamata GPT.', ['error' => $e->getMessage()]);
+
+            return ['error' => 'Impossibile generare un riepilogo. Errore GPT.'];
+        }
+
+        // Restituiamo i dati della function: testo e analisi GPT
+        return [
+            'site_content' => mb_substr($plainText, 0, 4000).'...',
+            'ai_analysis'  => $aiAnalysis,
+        ];
+    }
+
     private function formatResponseContent($content)
     {
-        // Formatta il contenuto della risposta: interruzioni di linea, grassetto, elenchi numerati
         $formattedContent = nl2br($content);
         $formattedContent = preg_replace('/\*\*(.*?)\*\*/', '<strong>$1</strong>', $formattedContent);
-        $formattedContent = preg_replace('/\d+\.\s/', '<strong>$0</strong>', $formattedContent);
+        $formattedContent = preg_replace('/(\d+\.\s)/', '<strong>$1</strong>', $formattedContent);
 
         return $formattedContent;
     }
