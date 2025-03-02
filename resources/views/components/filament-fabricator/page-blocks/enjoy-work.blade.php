@@ -179,14 +179,14 @@ document.addEventListener('DOMContentLoaded', function() {
   function addTypingIndicator() {
     const typingElement = document.createElement('div');
     typingElement.className = 'message bot self-start w-full bg-[#40414f] text-white border border-[#565869] px-4 py-3 rounded-md italic opacity-80';
-    typingElement.textContent = '.';
+    typingElement.textContent = 'Attendi.';
     messagesElement.appendChild(typingElement);
     messagesElement.scrollTop = messagesElement.scrollHeight;
 
     const interval = setInterval(() => {
       typingElement.textContent += '.';
-      if (typingElement.textContent.length > 3) {
-        typingElement.textContent = '.';
+      if (typingElement.textContent.length > 10) {
+        typingElement.textContent = 'Attendi.';
       }
     }, 500);
 
