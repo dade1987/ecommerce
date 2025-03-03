@@ -16,7 +16,7 @@ class SendCustomHtmlEmailAction
 
         Mail::send([], [], function ($message) use ($customer, $emailContent) {
             $message->to($customer->email)
-                ->subject('Fai interagire i Consumatori con il tuo Sommelier AI Vini')
+                ->subject('Scopri l\'idea che ha l\'AI per potenziare la tua azienda')
                 ->html($emailContent);
         });
 
