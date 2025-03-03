@@ -14,7 +14,7 @@
       class="quick-reply-btn bg-[#4f4f58] hover:bg-[#5e5e69] text-white px-2 py-2 rounded-md"
       data-message="Come l'AI può potenziare la mia azienda?"
     >
-      Come l'AI può potenziare la mia azienda?
+      Come l'AI può potenziare la mia azienda? (clicca qui per saperlo)
     </button>
   </div>
 
