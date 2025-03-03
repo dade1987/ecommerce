@@ -1,6 +1,3 @@
-<!-- Includi Tailwind CSS (solo se non l'hai già incluso altrove) -->
-<script src="https://cdn.tailwindcss.com"></script>
-
 <!-- Contenitore principale a tutta altezza -->
 <div class="flex flex-col h-screen w-screen bg-[#343541]">
 
@@ -35,7 +32,7 @@
       <input
         id="userInput"
         type="text"
-        placeholder="Scrivi un messaggio..."
+        placeholder="Chiedi all'AI..."
         class="flex-1 p-4 text-white bg-transparent focus:outline-none placeholder-gray-400"
       />
       <button
