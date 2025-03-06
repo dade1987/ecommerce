@@ -18,10 +18,25 @@
             Pubblicato il <span class="font-medium text-gray-800">{{ date('d M Y', strtotime($row->created_at)) }}</span>
         </p>
 
-        <p
-            class="block antialiased font-sans text-base font-light leading-relaxed text-inherit font-normal !text-gray-500">
+        <div class="prose prose-lg max-w-none">
+            <style>
+                .prose ul { @apply list-disc list-inside mb-4 }
+                .prose ol { @apply list-decimal list-inside mb-4 }
+                .prose li { @apply mb-2 text-gray-700 }
+                .prose p { @apply mb-4 text-gray-700 }
+                .prose h1 { @apply text-3xl font-bold mb-4 text-gray-900 }
+                .prose h2 { @apply text-2xl font-bold mb-3 text-gray-900 }
+                .prose h3 { @apply text-xl font-bold mb-3 text-gray-900 }
+                .prose a { @apply text-blue-600 hover:text-blue-800 underline }
+                .prose blockquote { @apply border-l-4 border-gray-300 pl-4 italic my-4 }
+                .prose code { @apply bg-gray-100 rounded px-1 py-0.5 text-sm }
+                .prose pre { @apply bg-gray-100 rounded p-4 mb-4 overflow-x-auto }
+                .prose img { @apply rounded-lg my-4 }
+                .prose table { @apply w-full border-collapse mb-4 }
+                .prose th, .prose td { @apply border border-gray-300 p-2 }
+            </style>
             {!! $row->content !!}
-        </p>
+        </div>
 
         {{-- Tasto Condividi su Linkedin --}}
         <a href="https://www.linkedin.com/shareArticle?mini=true&url={{ urlencode(request()->fullUrl()) }}&title={{ urlencode($row->title) }}&summary={{ urlencode($row->content) }}" 
@@ -31,4 +46,3 @@
         </a>
     </div>
 </section>
-
