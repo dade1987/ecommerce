@@ -2,16 +2,18 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
-use App\Mail\ProductionReportMail;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Storage;
 use OpenAI;
 use OpenAI\Client;
 use function Safe\fopen;
+use Illuminate\Http\Request;
+use App\Exports\OrdineExport;
 use function Safe\json_decode;
+use App\Mail\ProductionReportMail;
+use Illuminate\Support\Facades\Log;
+use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Mail;
+use Maatwebsite\Excel\Facades\Excel;
+use Illuminate\Support\Facades\Storage;
 
 class CalzaturieroController extends Controller
 {
@@ -162,11 +164,14 @@ class CalzaturieroController extends Controller
                 return response()->json(['error' => 'Errore nell\'estrazione dei dati dal PDF.'], 500);
             }
 
+
+            return Excel::download(new OrdineExport($orderData["ordine"]), 'ordine.xlsx');
+
             // Invia il report via email con i dati dell'ordine come contenuto (corpo dell'email)
-            Mail::to(['d.cavallini@cavalliniservice.com', 'g.florian@cavalliniservice.com', 'andrea.tripodi@formificiostf.it'])
+            /*Mail::to(['d.cavallini@cavalliniservice.com', 'g.florian@cavalliniservice.com', 'andrea.tripodi@formificiostf.it'])
                 ->send((new ProductionReportMail($orderData))->subject('AI TEST'));
 
-            return response()->json(['message' => 'Documento di produzione inviato via email con successo'], 200);
+            return response()->json(['message' => 'Documento di produzione inviato via email con successo'], 200);*/
         } else {
             return response()->json(['error' => 'Nessun file caricato'], 400);
         }
