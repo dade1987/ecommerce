@@ -42,7 +42,7 @@
         "larastan/larastan": "^2.9",
         "laravel/breeze": "^1.23",
         "laravel/pint": "^1.0",
-        "laravel/sail": "^1.18",
+        "laravel/sail": "^1.41",
         "laraxot/laravel-auto-dev": "dev-master",
         "mockery/mockery": "^1.4.4",
         "nunomaduro/collision": "^7.0",
@@ -51,10 +51,8 @@
         "php-parallel-lint/php-code-style": "^2.0",
         "php-parallel-lint/php-parallel-lint": "^1.4",
         "phpro/grumphp": "^1.16",
-        "psalm/plugin-laravel": "^2.11",
         "spatie/laravel-ignition": "^2.0",
-        "thecodingmachine/phpstan-safe-rule": "^1.2",
-        "vimeo/psalm": "^5.23"
+        "thecodingmachine/phpstan-safe-rule": "^1.2"
     },
     "autoload": {
         "psr-4": {
