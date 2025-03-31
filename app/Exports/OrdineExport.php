@@ -4,10 +4,10 @@ namespace App\Exports;
 
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\FromArray;
-use Maatwebsite\Excel\Concerns\WithTitle;
-use Maatwebsite\Excel\Concerns\WithStyles;
-use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Concerns\WithStyles;
+use Maatwebsite\Excel\Concerns\WithTitle;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 class OrdineExport implements FromArray, WithTitle, WithStyles
@@ -34,7 +34,7 @@ class OrdineExport implements FromArray, WithTitle, WithStyles
             ['Data Ordine', '', $this->ordine['data_ordine']],
             ['Data Consegna', '', $this->ordine['data_consegna']],
             ['Numero Ordine', '', str_replace('/', ' ', $this->ordine['numero_ordine'])],
-            ['Persona Contatto', '', 'YSS - ' . $dest['referente']],
+            ['Persona Contatto', '', 'YSS - '.$dest['referente']],
             [],
 
             ['Matricola', '', $articolo['matricola'] ?? ''],
@@ -51,11 +51,10 @@ class OrdineExport implements FromArray, WithTitle, WithStyles
         for ($i = 1; $i <= 6; $i++) {
             $sheet->getStyle("A{$i}:C{$i}")->getFont()->setBold(true);
         }
-    
+
         return [];
     }
-    
-   
+
     public function title(): string
     {
         return 'Ordine';
