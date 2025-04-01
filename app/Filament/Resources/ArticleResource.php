@@ -2,20 +2,21 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\ArticleResource\Pages;
-use App\Models\Article;
 use App\Models\Tag;
-use Awcodes\Curator\Components\Forms\CuratorPicker;
 use Filament\Forms;
-use Filament\Forms\Components\Actions\Action;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Form;
-use Filament\Forms\Set;
-use Filament\Resources\Resource;
 use Filament\Tables;
+use App\Models\Article;
+use Filament\Forms\Set;
+use Filament\Forms\Form;
 use Filament\Tables\Table;
 use Illuminate\Support\Str;
 use function Safe\json_decode;
+use Filament\Resources\Resource;
+use Filament\Forms\Components\Select;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Forms\Components\Actions\Action;
+use App\Filament\Resources\ArticleResource\Pages;
+use Awcodes\Curator\Components\Forms\CuratorPicker;
 
 class ArticleResource extends Resource
 {
@@ -152,7 +153,8 @@ class ArticleResource extends Resource
             ])
             ->defaultSort('id', 'desc') // Ordine discendente per ID
             ->filters([
-                //
+                SelectFilter::make('tags')
+                ->relationship('tags', 'name')
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),

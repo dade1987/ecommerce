@@ -30,6 +30,8 @@ class TeamMembersCard extends PageBlock
                                     ->label('Person Role'),
                                 TextInput::make('text')
                                     ->label('Person Text'),
+                                TextInput::make('linkedin')
+                                    ->label('Linkedin Url'),
                             ])
                             ->minItems(1) // Numero minimo di elementi
                             ->maxItems(10) // Numero massimo di elementi
