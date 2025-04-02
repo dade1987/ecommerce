@@ -159,7 +159,6 @@ class CalzaturieroController extends Controller
                 return response()->json(['error' => 'Errore nell\'estrazione dei dati dal PDF.'], 500);
             }
 
-
             //dd($orderData);
 
             return Excel::download(new OrdineExport($orderData['ordine']), 'ordine.xlsx');

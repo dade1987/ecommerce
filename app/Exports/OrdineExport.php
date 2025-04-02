@@ -32,7 +32,7 @@ class OrdineExport implements FromArray, WithTitle, WithStyles
             ['Numero Ordine', '', str_replace('/', ' ', $this->ordine['numero_ordine'])],
             ['Persona Contatto', '', $dest['referente']],
             [''],
-            ['']
+            [''],
         ];
 
         foreach ($articoli as $articolo) {
@@ -40,7 +40,7 @@ class OrdineExport implements FromArray, WithTitle, WithStyles
             $taglie = array_keys($quantita);
             $quantita_valori = array_values($quantita);
 
-            $output[] = ['Matricola', '', $articolo['matricola'] ?? '', 'Marcatura', '', $articolo['descrizione'] ?? '', '', '','', 'Calzata', $articolo['calzata'] ?? ''];
+            $output[] = ['Matricola', '', $articolo['matricola'] ?? '', 'Marcatura', '', $articolo['descrizione'] ?? '', '', '', '', 'Calzata', $articolo['calzata'] ?? ''];
             $output[] = ['Taglie',  ...$taglie];
             $output[] = ['Quantità', ...$quantita_valori];
             $output[] = ['Note di produzione', ($articolo['note_di_produzione'] === 'N/A') ? '' : ($articolo['note_di_produzione'] ?? '')];
@@ -48,7 +48,7 @@ class OrdineExport implements FromArray, WithTitle, WithStyles
         }
 
         return $output;
-        
+
     }
 
     public function styles(Worksheet $sheet)
@@ -56,16 +56,17 @@ class OrdineExport implements FromArray, WithTitle, WithStyles
         // Ottieni l'intervallo di celle utilizzate nel foglio
         $lastRow = $sheet->getHighestRow();
         $lastColumn = $sheet->getHighestColumn();
-        
+
         // Applica il grassetto alla prima colonna di tutte le righe
         for ($row = 1; $row <= $lastRow; $row++) {
-            $sheet->getStyle('A' . $row)->getFont()->setBold(true);
+            $sheet->getStyle('A'.$row)->getFont()->setBold(true);
         }
-        
+
         // Imposta la larghezza delle colonne per una migliore leggibilità
         $sheet->getColumnDimension('A')->setWidth(20);
         $sheet->getColumnDimension('B')->setWidth(10);
         $sheet->getColumnDimension('C')->setWidth(20);
+
         return [];
     }
 
