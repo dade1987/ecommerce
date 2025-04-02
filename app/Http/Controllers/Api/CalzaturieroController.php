@@ -70,20 +70,13 @@ class CalzaturieroController extends Controller
     },
     \"dettagli_articoli\": [
       {
-        \"codice_articolo\": \"stringa\",
+        \"note_di_produzione\": \"stringa\",
+        \"matricola\": \"stringa\",
         \"descrizione\": \"stringa\",
+        \"calzata\": \"stringa\",
         \"colore\": \"stringa\",
         \"quantita_per_taglia\": {
-          \"35\": numero,
-          \"36\": numero,
-          \"37\": numero,
-          \"38\": numero,
-          \"39\": numero,
-          \"40\": numero,
-          \"41\": numero,
-          \"42\": numero,
-          \"43\": numero,
-          \"44\": numero
+          \"elenco taglie prese dall'ordine + taglie precedenti e successive\": numero per taglia,
         }
       }
     ],
@@ -105,10 +98,12 @@ class CalzaturieroController extends Controller
    - **referente**: Il nome della persona di riferimento. Se non indicato, \"N/A\".
 6. **dettagli_articoli** (array):
    - Per ogni articolo nell'ordine, estrai:
-     - **codice_articolo**: Il codice identificativo dell’articolo. Se non presente, \"N/A\".
+     - **calzata**:La calzata è la misura della larghezza della forma che determina come la scarpa veste il piede, influenzando comfort e vestibilità.Se non presente, \"N/A\".
+     - **matricola**: Il codice identificativo numerico che trovi dopo la descrizione dell'articolo. Deve seguire l'articolo.
      - **descrizione**: La descrizione completa dell’articolo. Se non disponibile, \"N/A\".
      - **colore**: Se specificato, il colore dell’articolo. Se non indicato, \"N/A\".
      - **quantita_per_taglia**: Mantieni **le taglie numeriche esatte** e imposta **0** se la quantità non è indicata.
+     - **note_di_produzione**: Se specificata, qualche termine o condizione particolare specificata dal cliente su come vuole l'ordine. Non usare \"N/A\" se non è specificato.
 7. **condizioni_pagamento**: Se presente, estrai i termini di pagamento. Se non disponibile, \"N/A\".
 8. **modalita_spedizione**: Se specificata, estrai la modalità di spedizione. Se non indicata, \"N/A\".
 
@@ -163,6 +158,9 @@ class CalzaturieroController extends Controller
             if ($orderData === null) {
                 return response()->json(['error' => 'Errore nell\'estrazione dei dati dal PDF.'], 500);
             }
+
+
+            //dd($orderData);
 
             return Excel::download(new OrdineExport($orderData['ordine']), 'ordine.xlsx');
 

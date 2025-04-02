@@ -6,11 +6,11 @@
         <div class="md:flex md:justify-between">
           <div class="mb-6 md:mb-0">
               <address class="not-italic text-sm text-gray-900 dark:text-white">
-                  <p>FLORIAN GIULIANO</p>
-                  <p>via Bettin 13\A - I Zero Branco TV</p>
+                  <p>DAVIDE CAVALLINI</p>
+                  <p>via del Musonetto 4 - I Noale VE</p>
                   <p>t. +39 391 1352526</p>
-                  <p>P.IVA IT04362300263</p>
-                  <p>C.F.: FLRGLN61M23M171N</p>
+                  <p>P.IVA IT04914550274</p>
+                  <p>C.F.: CVLDVD87M23L736P</p>
               </address>
           </div>
           <div class="grid grid-cols-2 gap-8 sm:gap-6 sm:grid-cols-3">
