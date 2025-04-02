@@ -7,8 +7,8 @@
           <div class="mb-6 md:mb-0">
               <address class="not-italic text-sm text-gray-900 dark:text-white">
                   <p>DAVIDE CAVALLINI</p>
-                  <p>via del Musonetto 4 - I Noale VE</p>
-                  <p>t. +39 391 1352526</p>
+                  <p>via del Musonetto 4 - Noale VE - Italy</p>
+                  <p>contatto: +39 391 1352526</p>
                   <p>P.IVA IT04914550274</p>
                   <p>C.F.: CVLDVD87M23L736P</p>
               </address>
