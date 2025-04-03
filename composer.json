@@ -38,7 +38,7 @@
         "barryvdh/laravel-debugbar": "^3.9",
         "doctrine/dbal": "^3.6",
         "fakerphp/faker": "^1.9.1",
-        "friendsofphp/php-cs-fixer": "^3.52",
+        "friendsofphp/php-cs-fixer": "^3.75",
         "larastan/larastan": "^2.9",
         "laravel/breeze": "^1.23",
         "laravel/pint": "^1.0",

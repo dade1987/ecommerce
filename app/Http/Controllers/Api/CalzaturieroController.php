@@ -71,12 +71,12 @@ class CalzaturieroController extends Controller
     \"dettagli_articoli\": [
       {
         \"note_di_produzione\": \"stringa\",
-        \"matricola\": \"stringa\",
+        \"matricola\": \"numero\", // Codice numerico presa dalla descrizione dell'articolo
         \"descrizione\": \"stringa\",
         \"calzata\": \"stringa\",
         \"colore\": \"stringa\",
         \"quantita_per_taglia\": {
-          \"elenco taglie prese dall'ordine + taglie precedenti e successive\": numero per taglia,
+          \"Per ogni taglia presente nell'ordine, riconosci prima se si tratta di taglie italiane, europee o americane. In base al sistema di taglie rilevato, includi la taglia stessa e le 5 precedenti e 5 successive secondo lo standard corretto, mantenendo eventuali mezze taglie nella posizione appropriata (es. 9.5 va tra 9 e 10), impostando quantità 0 se non presenti. Esempio taglia italiana/europea 39: 34,35,36,37,38,39,40,41,42,43,44 - Esempio taglia americana 9.5: 4.5,5.5,6.5,7.5,8.5,9.5,10.5,11.5,12.5,13.5,14.5 (utilizza tabelle di conversione standard per determinare l'intervallo corretto e gestisci mezze taglie in modo intelligente)\": numero,
         }
       }
     ],
