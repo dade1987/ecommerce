@@ -58,7 +58,6 @@ class CalzaturieroController extends Controller
   \"ordine\": {
     \"numero_ordine\": \"stringa\",
     \"data_ordine\": \"YYYY-MM-DD\",
-    \"data_consegna\": \"YYYY-MM-DD\",
     \"cliente\": {
       \"nome\": \"stringa\",
       \"indirizzo_fatturazione\": \"stringa\",
@@ -70,13 +69,14 @@ class CalzaturieroController extends Controller
     },
     \"dettagli_articoli\": [
       {
+        \"data_consegna\": \"YYYY-MM-DD\",
         \"note_di_produzione\": \"stringa\",
-        \"matricola\": \"numero\", // Codice numerico presa dalla descrizione dell'articolo
+        \"matricola\": \"numero\", 
         \"descrizione\": \"stringa\",
         \"calzata\": \"stringa\",
         \"colore\": \"stringa\",
         \"quantita_per_taglia\": {
-          \"Per ogni taglia presente nell'ordine, riconosci prima se si tratta di taglie italiane, europee o americane. In base al sistema di taglie rilevato, includi la taglia stessa e le 5 precedenti e 5 successive secondo lo standard corretto, mantenendo eventuali mezze taglie nella posizione appropriata (es. 9.5 va tra 9 e 10), impostando quantità 0 se non presenti. Esempio taglia italiana/europea 39: 34,35,36,37,38,39,40,41,42,43,44 - Esempio taglia americana 9.5: 4.5,5.5,6.5,7.5,8.5,9.5,10.5,11.5,12.5,13.5,14.5 (utilizza tabelle di conversione standard per determinare l'intervallo corretto e gestisci mezze taglie in modo intelligente)\": numero,
+          \"Per ogni taglia presente nell'ordine, riconosci prima se si tratta di taglie italiane, europee o americane. In base al sistema di taglie rilevato, includi la taglia stessa e le 5 precedenti e 5 successive secondo lo standard corretto, mantenendo eventuali mezze taglie nella posizione appropriata (es. 9.5 va tra 9 e 10), impostando quantità 0 se non presenti.\": numero
         }
       }
     ],
@@ -86,28 +86,39 @@ class CalzaturieroController extends Controller
 }
 
 ### **Istruzioni per l'estrazione:**
-1. **numero_ordine**: Se presente, estrai il numero identificativo dell’ordine. Se non è indicato, imposta \"N/A\".
+
+1. **numero_ordine**:  
+   - È un identificativo assegnato al progetto o ordine, e **non deve coincidere con la descrizione dell’articolo, marcatura tecnica o numero di matricola** (es. \"183639 / NEW ATOMIC OVER 50B272\" non è un numero ordine).
+   - Può essere presente in etichette o nel corpo della mail con formati come: “SS25-C7709”, “INDUSTRIA”, “The Row”, “YSMPIN 2024 1704”, ecc.
+   - Se nel documento è assente, scrivi esattamente `\"N/A\"` e **non dedurre** valori.
+
 2. **data_ordine**: Se disponibile, estrai la data di emissione dell’ordine in formato \"YYYY-MM-DD\", altrimenti \"N/A\".
-3. **data_consegna**: Estrai la data di consegna dell’ordine. Se non è indicata, imposta \"N/A\".
-4. **cliente**:
+
+3. **cliente**:
    - **nome**: Il nome dell’azienda cliente. Se non disponibile, \"N/A\".
    - **indirizzo_fatturazione**: Se presente, estrai l’indirizzo di fatturazione, altrimenti \"N/A\".
    - **partita_iva**: Se disponibile, estrai la partita IVA, altrimenti \"N/A\".
-5. **destinazione_merce**:
+
+4. **destinazione_merce**:
    - **indirizzo**: L’indirizzo di consegna della merce. Se non disponibile, \"N/A\".
    - **referente**: Il nome della persona di riferimento. Se non indicato, \"N/A\".
-6. **dettagli_articoli** (array):
-   - Per ogni articolo nell'ordine, estrai:
-     - **calzata**:La calzata è la misura della larghezza della forma che determina come la scarpa veste il piede, influenzando comfort e vestibilità.Se non presente, \"N/A\".
-     - **matricola**: Il codice identificativo numerico che trovi dopo la descrizione dell'articolo. Deve seguire l'articolo.
-     - **descrizione**: La descrizione completa dell’articolo. Se non disponibile, \"N/A\".
-     - **colore**: Se specificato, il colore dell’articolo. Se non indicato, \"N/A\".
-     - **quantita_per_taglia**: Mantieni **le taglie numeriche esatte** e imposta **0** se la quantità non è indicata.
-     - **note_di_produzione**: Se specificata, qualche termine o condizione particolare specificata dal cliente su come vuole l'ordine. Non usare \"N/A\" se non è specificato.
-7. **condizioni_pagamento**: Se presente, estrai i termini di pagamento. Se non disponibile, \"N/A\".
-8. **modalita_spedizione**: Se specificata, estrai la modalità di spedizione. Se non indicata, \"N/A\".
 
-⚠️ **Non aggiungere informazioni inventate o interpretate. Se il dato non è nel file, usa \"N/A\".\"";
+5. **dettagli_articoli** (array):
+   - Per ogni articolo nell'ordine, estrai:
+     - **data_consegna**: Se disponibile, la data specifica di consegna. Se non c'è, usa la data generale se presente, altrimenti \"N/A\".
+     - **calzata**: Larghezza forma (es. D, E, EE, ecc.) o numero. Se non presente, \"N/A\".
+     - **matricola**: Codice numerico univoco che segue la descrizione dell’articolo. Se assente, \"N/A\".
+     - **descrizione**: Descrizione estesa dell’articolo. Se assente, \"N/A\".
+     - **colore**: Se indicato, il colore. Se assente, \"N/A\".
+     - **quantita_per_taglia**: Registra tutte le taglie coinvolte nell’ordine e aggiungi 5 taglie precedenti e successive, con quantità 0 se mancanti.
+     - **note_di_produzione**: Eventuali richieste particolari, note tecniche o modifiche. Se nulla è indicato, lascia stringa vuota (non \"N/A\").
+
+6. **condizioni_pagamento**: Se presenti nel documento, altrimenti \"N/A\".
+
+7. **modalita_spedizione**: Se presenti nel documento, altrimenti \"N/A\".
+
+⚠️ Non aggiungere o indovinare nessuna informazione. Se non trovi un dato, scrivi esattamente `\"N/A\"`.
+";
 
             // Invia il messaggio a GPT, allegando il file caricato
             $this->client->threads()->messages()->create($threadId, [
@@ -127,9 +138,10 @@ class CalzaturieroController extends Controller
             $run = $this->client->threads()->runs()->create(
                 threadId: $threadId,
                 parameters: [
-                    'assistant_id' => 'asst_34SA8ZkwlHiiXxNufoZYddn0', // Sostituisci se necessario
+                    //'assistant_id' => 'asst_34SA8ZkwlHiiXxNufoZYddn0', // Sostituisci se necessario
+                    'assistant_id' => 'asst_UR3ku4W44oi6O1IcbFn7EY8Y',
                     'model'        => 'gpt-4o',
-                    'temperature'  => 0.1,
+                    'temperature'  => 0.2,
                 ]
             );
 

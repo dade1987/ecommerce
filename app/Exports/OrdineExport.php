@@ -28,7 +28,6 @@ class OrdineExport implements FromArray, WithTitle, WithStyles
             ['Nome Cliente', '', $cliente['nome']],
             ['Destinazione', '', $dest['indirizzo']],
             ['Data Ordine', '', $this->ordine['data_ordine']],
-            ['Data Consegna', '', $this->ordine['data_consegna']],
             ['Numero Ordine', '', str_replace('/', ' ', $this->ordine['numero_ordine'])],
             ['Persona Contatto', '', $dest['referente']],
             [''],
@@ -40,6 +39,7 @@ class OrdineExport implements FromArray, WithTitle, WithStyles
             $taglie = array_keys($quantita);
             $quantita_valori = array_values($quantita);
 
+            $output[] = ['Data Consegna', '', $articolo['data_consegna'] ?? ''];
             $output[] = ['Matricola', '', $articolo['matricola'] ?? '', 'Marcatura', '', $articolo['descrizione'] ?? '', '', '', '', 'Calzata', $articolo['calzata'] ?? ''];
             $output[] = ['Taglie',  ...$taglie];
             $output[] = ['Quantità', ...$quantita_valori];
