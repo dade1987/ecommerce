@@ -52,12 +52,12 @@
                     </h3>
                     <div class="prose max-w-none text-sm text-gray-700 overflow-y-auto max-h-[60vh]">
                         <p><strong>Titolare del Trattamento dei Dati</strong><br>
-                        FLORIAN GIULIANO<br>
-                        Via Bettin 13/A<br>
-                        31059 Zero Branco (TV) - Italia<br>
-                        Telefono: +39 391 1352526<br>
-                        P.IVA: IT04362300263<br>
-                        Codice Fiscale: FLRGLN61M23M171N</p>
+                        CAVALLINI DAVIDE<br>
+                        Via del musonetto 4<br>
+                        30033 Noale (VE) - Italia<br>
+                        Telefono: +39 320 4206795<br>
+                        P.IVA: IT04914550274<br>
+                        Codice Fiscale: CVLDVD87M23L736P</p>
 
                         <p><strong>Finalità del Trattamento</strong><br>
                         I Suoi dati personali, forniti volontariamente tramite la compilazione del form di iscrizione alla newsletter, saranno trattati per le seguenti finalità:</p>

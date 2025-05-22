@@ -80,11 +80,11 @@
                     </h3>
                     <div class="prose max-w-none text-sm text-gray-700 overflow-y-auto max-h-[60vh]">
                         <p><strong>Titolare del Trattamento dei Dati</strong><br>
-                            FLORIAN GIULIANO<br>
-                            via Bettin 13/A - I Zero Branco TV<br>
-                            t. +39 391 1352526<br>
-                            P.IVA IT04362300263<br>
-                            C.F.: FLRGLN61M23M171N</p>
+                            DAVIDE CAVALLINI<br>
+                            via del Musonetto, 4 - Noale (VE)<br>
+                            t. +39 320 4206795<br>
+                            P.IVA IT04914550274<br>
+                            C.F.: CVLDVD87M23L736P</p>
 
                         <p><strong>Finalità del Trattamento</strong><br>
                             I Suoi dati personali, forniti volontariamente tramite la compilazione del form di contatto,
