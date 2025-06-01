@@ -13,7 +13,7 @@
 	"php-cs-fixer.allowRisky": true,
 	"editor.defaultFormatter": "junstyle.php-cs-fixer",
 	"[php]": {
-		"editor.defaultFormatter": "junstyle.php-cs-fixer"
+		"editor.defaultFormatter": "bmewburn.vscode-intelephense-client"
 	},
 	"editor.tokenColorCustomizations": {
 		"semanticHighlighting": true
