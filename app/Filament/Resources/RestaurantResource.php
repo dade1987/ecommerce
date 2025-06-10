@@ -13,6 +13,8 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Awcodes\Curator\Components\Forms\CuratorPicker;
+use Awcodes\Curator\Components\Tables\CuratorColumn;
 
 class RestaurantResource extends Resource
 {
@@ -24,10 +26,13 @@ class RestaurantResource extends Resource
     {
         return $form
             ->schema([
+                CuratorPicker::make('featured_image_id')
+                    ->relationship('featuredImage', 'id')
+                    ->imageResizeTargetWidth(10),
                 Forms\Components\TextInput::make('name')
                     ->required()
                     ->maxLength(255),
-                Select::make('status')
+                Select::make('price_range')
                     ->options([
                         'E' => '10-20 €',
                         'EE' => '20-40 €',
@@ -54,6 +59,7 @@ class RestaurantResource extends Resource
     {
         return $table
             ->columns([
+                
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()

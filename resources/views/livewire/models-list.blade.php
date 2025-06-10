@@ -1,6 +1,7 @@
 <section class="text-gray-600 body-font">
     <div class="container py-3 mx-auto grid md:grid-cols-2 md:gap-2 sm:grid-cols-1 sm:gap-1">
-        @foreach ($rows as $row)
+
+    @foreach ($rows as $row)
             <div wire:key="{{ $row->id }}" class="text-center">
                 
                 <h1 class="sm:text-3xl text-2xl font-medium title-font mb-4 text-gray-900">{{ $row->name }}</h1>

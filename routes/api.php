@@ -5,6 +5,8 @@ use App\Http\Controllers\Api\ChatbotController;
 use App\Http\Controllers\Api\SommelierApiController;
 use App\Http\Controllers\Api\SommelierChatbotController;
 use App\Http\Controllers\QuoterController;
+use App\Http\Controllers\Api\TestController;
+use App\Http\Controllers\Api\StaticController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -148,3 +150,6 @@ Route::get('/avatar/{teamslug}', function ($teamslug) {
         ],
     ]);
 });
+
+Route::get('/test', TestController::class);
+Route::get('/static', StaticController::class);
