@@ -92,7 +92,7 @@ class CustomerResource extends Resource
 
                         if (is_string($file)) {
                             if (! Storage::disk('local')->exists($file)) {
-                                throw new \Exception('File non trovato: '.$file);
+                                throw new \Exception('File non trovato: ' . $file);
                             }
                             $content = Storage::disk('local')->get($file);
                         } else {
@@ -166,27 +166,30 @@ class CustomerResource extends Resource
             ->bulkActions([
 
                 Tables\Actions\BulkAction::make('send_custom_html_email')
-    ->label('Invia Email HTML Personalizzata')
-    ->form([
-        Forms\Components\RichEditor::make('email_content')
-            ->label('Contenuto Email (HTML)')
-            ->required(),
-    ])
-    ->action(function (array $data, \Illuminate\Support\Collection $records) {
-        foreach ($records as $record) {
-            app(SendCustomHtmlEmailAction::class)
-                ->onQueue() // mette l'azione in coda
-                ->execute($record, $data['email_content']);
-        }
-        Notification::make()
-            ->title('Email inviate con successo!')
-            ->success()
-            ->send();
-    })
-    ->deselectRecordsAfterCompletion()
-    ->requiresConfirmation()
-    ->modalHeading('Invia Email HTML Personalizzata')
-    ->modalSubheading('Inserisci il contenuto HTML dell\'email da inviare ai clienti selezionati.'),
+                    ->label('Invia Email HTML Personalizzata')
+                    ->form([
+                        Forms\Components\TextInput::make('email_subject')
+                            ->label('Oggetto Email')
+                            ->required(),
+                        Forms\Components\RichEditor::make('email_content')
+                            ->label('Contenuto Email (HTML)')
+                            ->required(),
+                    ])
+                    ->action(function (array $data, \Illuminate\Support\Collection $records) {
+                        foreach ($records as $record) {
+                            app(SendCustomHtmlEmailAction::class)
+                                ->onQueue() // mette l'azione in coda
+                                ->execute($record, $data['email_subject'], $data['email_content']);
+                        }
+                        Notification::make()
+                            ->title('Email inviate con successo!')
+                            ->success()
+                            ->send();
+                    })
+                    ->deselectRecordsAfterCompletion()
+                    ->requiresConfirmation()
+                    ->modalHeading('Invia Email HTML Personalizzata')
+                    ->modalSubheading('Inserisci il contenuto HTML dell\'email da inviare ai clienti selezionati.'),
 
                 Tables\Actions\BulkAction::make('send_bulk_email')
                     ->label('Invia Email Bulk')

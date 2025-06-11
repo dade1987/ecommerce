@@ -9,14 +9,14 @@ class SendCustomHtmlEmailAction
 {
     use QueueableAction;
 
-    public function execute($customer, string $emailContent): void
+    public function execute($customer, string $subject, string $emailContent): void
     {
         // Sostituisci [UUID] con ?uuid= e il valore della proprietà uuid del customer
         $emailContent = str_replace('[UUID]', '?uuid='.$customer->uuid, $emailContent);
 
-        Mail::send([], [], function ($message) use ($customer, $emailContent) {
+        Mail::send([], [], function ($message) use ($customer, $subject, $emailContent) {
             $message->to($customer->email)
-                ->subject('Niente più clienti persi all’ora di pranzo (ci pensa EnjoyWork)')
+                ->subject($subject)
                 ->html($emailContent);
         });
 
