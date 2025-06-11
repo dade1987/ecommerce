@@ -49,6 +49,7 @@
 </head>
 
 <body class="font-sans antialiased">
+    <livewire:notifications />
     <div class="h-full bg-gray-100">
         @if (isset($header))
             <header class="bg-white shadow">

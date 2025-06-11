@@ -9,6 +9,7 @@ use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Form;
 use Awcodes\Curator\Components\Forms\CuratorPicker;
+use Filament\Notifications\Notification;
 
 class RestaurantSearchBlock extends Component implements HasForms
 {
@@ -28,6 +29,9 @@ class RestaurantSearchBlock extends Component implements HasForms
     {
         return $form->schema([
 
+            /*CuratorPicker::make('feature_image_id')
+                ->label('Immagine di copertina')
+                ->required(),*/
             Forms\Components\TextInput::make('name')
                 ->label('Nome')
                 ->required()
@@ -66,6 +70,11 @@ class RestaurantSearchBlock extends Component implements HasForms
         $this->closeCreateModal();
         $this->form->fill(); // resetta il form
         $this->dispatch('filterRestaurants', search: $this->search); // aggiorna la lista
+
+        Notification::make()
+            ->title('Ristorante creato con successo')
+            ->success()
+            ->send();
     }
 
     public function cerca()
