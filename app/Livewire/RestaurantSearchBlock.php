@@ -83,20 +83,11 @@ class RestaurantSearchBlock extends Component implements HasForms
     public function addressForm(Form $form): Form
     {
         return $form->schema([
-            Geocomplete::make('location')
+            Forms\Components\TextInput::make('address_search')
                 ->label('Cerca Indirizzo')
-                ->isLocation()
-                ->updateLatLng()
-                ->geocodeOnLoad()
-                ->columnSpanFull()
-                ->reverseGeocode([
-                    'street'      => '%n %S',
-                    'municipality'    => '%L',
-                    'province'   => '%A2',
-                    'region' => '%A1',
-                    'nation'  => '%C',
-                    'postal_code'   => '%z',
-                ]),
+                ->placeholder('Inizia a digitare un indirizzo...')
+                ->extraInputAttributes(['id' => 'modal_address_search'])
+                ->columnSpanFull(),
             Forms\Components\TextInput::make('street')->label('Via')->required(),
             Forms\Components\TextInput::make('municipality')->label('Comune')->required(),
             Forms\Components\TextInput::make('province')->label('Provincia')->required(),
@@ -152,6 +143,7 @@ class RestaurantSearchBlock extends Component implements HasForms
     public function openCreateModal()
     {
         $this->showCreateModal = true;
+        $this->dispatch('open-create-modal');
     }
 
     public function closeCreateModal()

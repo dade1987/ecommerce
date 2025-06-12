@@ -3,7 +3,7 @@
 
     <!-- Ricerca e aggiunta ristorante -->
     <div class="flex flex-col gap-2 mb-6">
-        <form id="restaurant-search-form" method="GET" action="" class="p-4 bg-gray-100 rounded-lg shadow-md" data-maps-key="{{ $googleMapsApiKey }}">
+        <form id="restaurant-search-form" method="GET" action="/restaurants" class="p-4 bg-gray-100 rounded-lg shadow-md" data-maps-key="{{ $googleMapsApiKey }}">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                 <!-- Ricerca per nome -->
                 <div class="md:col-span-1">
@@ -150,4 +150,65 @@
 
     document.addEventListener('livewire:navigated', loadGoogleMapsApi);
     loadGoogleMapsApi();
+
+    function initModalAutocomplete() {
+        const addressInput = document.getElementById('modal_address_search');
+        if (!addressInput) {
+            return;
+        };
+
+        // Adding a guard to prevent re-initialization
+        if (addressInput.dataset.autocompleteInitialized) {
+            return;
+        }
+        addressInput.dataset.autocompleteInitialized = 'true';
+
+        const autocomplete = new google.maps.places.Autocomplete(addressInput, {
+            types: ['address'],
+            componentRestrictions: { 'country': 'it' }
+        });
+
+        autocomplete.addListener('place_changed', () => {
+            const place = autocomplete.getPlace();
+            if (!place.geometry || !place.address_components) {
+                return;
+            }
+
+            const componentForm = {
+                street_number: 'long_name',
+                route: 'long_name',
+                locality: 'long_name',
+                administrative_area_level_2: 'short_name',
+                administrative_area_level_1: 'long_name',
+                country: 'long_name',
+                postal_code: 'long_name',
+            };
+
+            const addressComponents = {};
+            for (const component of place.address_components) {
+                const addressType = component.types[0];
+                if (componentForm[addressType]) {
+                    addressComponents[addressType] = component[componentForm[addressType]];
+                }
+            }
+            
+            const livewireComponent = Livewire.find(addressInput.closest('[wire\\:id]').getAttribute('wire:id'));
+            
+            livewireComponent.set('formData.street', `${addressComponents.street_number || ''} ${addressComponents.route || ''}`.trim());
+            livewireComponent.set('formData.municipality', addressComponents.locality || '');
+            livewireComponent.set('formData.province', addressComponents.administrative_area_level_2 || '');
+            livewireComponent.set('formData.region', addressComponents.administrative_area_level_1 || '');
+            livewireComponent.set('formData.nation', addressComponents.country || '');
+            livewireComponent.set('formData.postal_code', addressComponents.postal_code || '');
+            livewireComponent.set('formData.latitude', place.geometry.location.lat());
+            livewireComponent.set('formData.longitude', place.geometry.location.lng());
+        });
+    }
+
+    document.addEventListener('open-create-modal', () => {
+        // Use requestAnimationFrame to wait for the next paint, ensuring the modal is visible.
+        requestAnimationFrame(() => {
+            setTimeout(initModalAutocomplete, 50); // A small delay can still be helpful
+        });
+    });
 </script>
