@@ -21,7 +21,7 @@
                     </h2>
                     @if (!empty($linkButton))
                         <a href="{{ $linkButton }}" type="button"
-                            class="rounded border-2 border-neutral-50 px-[46px] pt-[14px] pb-[12px] text-sm font-medium uppercase leading-normal text-neutral-50 transition duration-150 ease-in-out hover:border-neutral-100 hover:bg-neutral-100 hover:bg-opacity-10 hover:text-neutral-100 focus:border-neutral-100 focus:text-neutral-100 focus:outline-none focus:ring-0 active:border-neutral-200 active:text-neutral-200"
+                            class="inline-flex items-center justify-center rounded border-2 border-neutral-50 px-6 py-4 text-center text-sm font-medium uppercase leading-normal text-neutral-50 transition duration-150 ease-in-out hover:border-neutral-100 hover:bg-neutral-100 hover:bg-opacity-10 hover:text-neutral-100 focus:border-neutral-100 focus:text-neutral-100 focus:outline-none focus:ring-0 active:border-neutral-200 active:text-neutral-200 md:px-[46px] md:py-0 md:pt-[14px] md:pb-[12px]"
                             data-te-ripple-init data-te-ripple-color="light">
                             {{ $textButton }}
                         </a>
@@ -29,7 +29,7 @@
 
                     @if (!empty($linkSecondButton))
                         <a href="{{ $linkSecondButton }}" type="button"
-                            class="ml-10 rounded border-2 border-neutral-50 px-[46px] pt-[14px] pb-[12px] text-sm font-medium uppercase leading-normal text-neutral-50 transition duration-150 ease-in-out hover:border-neutral-100 hover:bg-neutral-100 hover:bg-opacity-10 hover:text-neutral-100 focus:border-neutral-100 focus:text-neutral-100 focus:outline-none focus:ring-0 active:border-neutral-200 active:text-neutral-200"
+                            class="ml-4 inline-flex items-center justify-center rounded border-2 border-neutral-50 px-6 py-4 text-center text-sm font-medium uppercase leading-normal text-neutral-50 transition duration-150 ease-in-out hover:border-neutral-100 hover:bg-neutral-100 hover:bg-opacity-10 hover:text-neutral-100 focus:border-neutral-100 focus:text-neutral-100 focus:outline-none focus:ring-0 active:border-neutral-200 active:text-neutral-200 md:ml-10 md:px-[46px] md:py-0 md:pt-[14px] md:pb-[12px]"
                             data-te-ripple-init data-te-ripple-color="light">
                             {{ $textSecondButton }}
                         </a>
