@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Digikraaft\ReviewRating\Traits\HasReviewRating;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\MorphToMany;
 
 class Restaurant extends Model
 {
@@ -21,6 +22,12 @@ class Restaurant extends Model
     {
         return $this->belongsTo(Media::class, 'featured_image_id', 'id');
     }
+
+    public function addresses(): MorphToMany
+    {
+        return $this->morphToMany(Address::class, 'model', 'address_morph');
+    }
+
     public function getActionTextAttribute()
     {
         return 'Prenota Tavolo';

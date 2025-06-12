@@ -98,6 +98,7 @@ class RestaurantResource extends Resource
     {
         return [
             RelationManagers\ReviewsRelationManager::class,
+            RelationManagers\AddressesRelationManager::class,
         ];
     }
 

@@ -2,37 +2,54 @@
 
 namespace App\Livewire;
 
-use Livewire\Component;
-use App\Models\Restaurant;
 use Filament\Forms;
-use Filament\Forms\Concerns\InteractsWithForms;
-use Filament\Forms\Contracts\HasForms;
+use App\Models\Address;
+use Livewire\Component;
 use Filament\Forms\Form;
-use Awcodes\Curator\Components\Forms\CuratorPicker;
+use App\Models\Restaurant;
+use Filament\Forms\Components\Grid;
+use Filament\Forms\Contracts\HasForms;
 use Filament\Notifications\Notification;
+use Filament\Forms\Concerns\InteractsWithForms;
+use Cheesegrits\FilamentGoogleMaps\Fields\Geocomplete;
 
 class RestaurantSearchBlock extends Component implements HasForms
 {
     use InteractsWithForms;
 
     public string $search = '';
+    public string $search_address = '';
+    public ?float $latitude = null;
+    public ?float $longitude = null;
+    public int $radius = 10; // Raggio di default in km
     public $showCreateModal = false;
+    public ?string $googleMapsApiKey;
 
     public ?array $formData = [];
 
+    protected function getForms(): array
+    {
+        return [
+            'form' => $this->form($this->makeForm()),
+            'addressForm' => $this->addressForm($this->makeForm()),
+        ];
+    }
+
     public function mount(): void
     {
-        $this->search = request()->query('search', '');
-        $this->form->fill($this->formData);
+        $this->googleMapsApiKey = config('services.google.maps.api_key');
+        $this->search = request()->query('search', $this->search);
+        $this->search_address = request()->query('search_address', $this->search_address);
+        $this->latitude = request()->query('latitude', $this->latitude);
+        $this->longitude = request()->query('longitude', $this->longitude);
+        $this->radius = request()->query('radius', $this->radius);
+        $this->form->fill();
+        $this->addressForm->fill();
     }
 
     public function form(Form $form): Form
     {
         return $form->schema([
-
-            /*CuratorPicker::make('feature_image_id')
-                ->label('Immagine di copertina')
-                ->required(),*/
             Forms\Components\TextInput::make('name')
                 ->label('Nome')
                 ->required()
@@ -63,13 +80,68 @@ class RestaurantSearchBlock extends Component implements HasForms
         ])->statePath('formData');
     }
 
+    public function addressForm(Form $form): Form
+    {
+        return $form->schema([
+            Geocomplete::make('location')
+                ->label('Cerca Indirizzo')
+                ->isLocation()
+                ->updateLatLng()
+                ->geocodeOnLoad()
+                ->columnSpanFull()
+                ->reverseGeocode([
+                    'street'      => '%n %S',
+                    'municipality'    => '%L',
+                    'province'   => '%A2',
+                    'region' => '%A1',
+                    'nation'  => '%C',
+                    'postal_code'   => '%z',
+                ]),
+            Forms\Components\TextInput::make('street')->label('Via')->required(),
+            Forms\Components\TextInput::make('municipality')->label('Comune')->required(),
+            Forms\Components\TextInput::make('province')->label('Provincia')->required(),
+            Forms\Components\TextInput::make('postal_code')->label('CAP')->required(),
+            Forms\Components\TextInput::make('region')->label('Regione')->required(),
+            Forms\Components\TextInput::make('nation')->label('Nazione')->required(),
+            Forms\Components\Grid::make(2)->schema([
+                Forms\Components\TextInput::make('latitude')->required(),
+                Forms\Components\TextInput::make('longitude')->required(),
+            ]),
+        ])->statePath('formData');
+    }
+
     public function salvaRistorante()
     {
         $data = $this->form->getState();
+        $addressDataFromForm = $this->addressForm->getState();
 
-        Restaurant::create($data);
+        $restaurantData = [
+            'name' => $data['name'],
+            'price_range' => $data['price_range'],
+            'phone_number' => $data['phone_number'],
+            'website' => $data['website'],
+            'email' => $data['email'],
+        ];
+
+        $addressData = [
+            'street' => $addressDataFromForm['street'],
+            'nation' => $addressDataFromForm['nation'],
+            'region' => $addressDataFromForm['region'],
+            'province' => $addressDataFromForm['province'],
+            'municipality' => $addressDataFromForm['municipality'],
+            'postal_code' => $addressDataFromForm['postal_code'],
+            'latitude' => $addressDataFromForm['latitude'],
+            'longitude' => $addressDataFromForm['longitude'],
+        ];
+
+        $restaurant = Restaurant::create($restaurantData);
+        $address = Address::create($addressData);
+
+        $restaurant->addresses()->attach($address->id);
+
         $this->closeCreateModal();
-        $this->form->fill(); // resetta il form
+        $this->form->fill();
+        $this->addressForm->fill();
 
         Notification::make()
             ->title('Ristorante creato con successo')
