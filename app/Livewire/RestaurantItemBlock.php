@@ -20,6 +20,7 @@ class RestaurantItemBlock extends Component
         $query = Restaurant::query();
 
         if ($latitude && $longitude) {
+
             $haversine = "(
                 6371 * acos(
                     cos(radians(?))
