@@ -8,8 +8,6 @@ class RestaurantItemBlock extends Component
 {
     public $restaurants = [];
 
-    protected $listeners = ['filterRestaurants' => 'filterByName'];
-
     public function mount($restaurants = [])
     {
         $search = request()->query('search', '');
@@ -28,10 +26,5 @@ class RestaurantItemBlock extends Component
     public function openModal($restaurantId)
     {
         $this->dispatch('openInviteFriendsModal', params: ['restaurantId' => $restaurantId]);
-    }
-
-    public function filterByName($search)
-    {
-        $this->restaurants = \App\Models\Restaurant::where('name', 'like', "%{$search}%")->get();
     }
 }

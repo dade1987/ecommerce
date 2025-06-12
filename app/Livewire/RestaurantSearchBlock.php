@@ -22,6 +22,7 @@ class RestaurantSearchBlock extends Component implements HasForms
 
     public function mount(): void
     {
+        $this->search = request()->query('search', '');
         $this->form->fill($this->formData);
     }
 
@@ -69,18 +70,11 @@ class RestaurantSearchBlock extends Component implements HasForms
         Restaurant::create($data);
         $this->closeCreateModal();
         $this->form->fill(); // resetta il form
-        $this->dispatch('filterRestaurants', search: $this->search); // aggiorna la lista
 
         Notification::make()
             ->title('Ristorante creato con successo')
             ->success()
             ->send();
-    }
-
-    public function cerca()
-    {
-        $this->js("window.history.replaceState({}, '', '?search=" . urlencode($this->search) . "')");
-        $this->dispatch('filterRestaurants', search: $this->search);
     }
 
     public function openCreateModal()
