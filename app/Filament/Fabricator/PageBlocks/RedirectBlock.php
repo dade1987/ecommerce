@@ -7,6 +7,9 @@ use Filament\Forms\Components\TextInput;
 use Z3d0X\FilamentFabricator\PageBlocks\PageBlock;
 use Illuminate\Contracts\View\View;
 
+/**
+ * @property-read array $data
+ */
 class RedirectBlock extends PageBlock
 {
     public static function getBlockSchema(): Block
@@ -24,6 +27,8 @@ class RedirectBlock extends PageBlock
 
     public function render(): View
     {
-        return view('components.filament-fabricator.page-blocks.redirect-block');
+        return view('components.filament-fabricator.page-blocks.redirect-block', [
+            'redirect_url' => $this->data['redirect_url'],
+        ]);
     }
 } 
