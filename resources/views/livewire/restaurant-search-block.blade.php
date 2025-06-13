@@ -25,30 +25,52 @@
                     <!-- Fascia Oraria -->
                     <div class="md:col-span-2">
                         <label for="time_slot" class="block text-sm font-medium text-gray-700">Fascia Oraria</label>
-                        <select name="time_slot" id="time_slot" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
-                            <optgroup label="Pranzo">
-                                @foreach(['12:00', '12:30', '13:00', '13:30', '14:00', '14:30'] as $time)
-                                    <option value="{{ $time }}" {{ $selectedTime == $time ? 'selected' : '' }}>{{ $time }}</option>
-                                @endforeach
-                            </optgroup>
-                            <optgroup label="Cena">
-                                @foreach(['19:00', '19:30', '20:00', '20:30', '21:00', '21:30', '22:00'] as $time)
-                                    <option value="{{ $time }}" {{ $selectedTime == $time ? 'selected' : '' }}>{{ $time }}</option>
-                                @endforeach
-                            </optgroup>
-                        </select>
+                        <div class="mt-1 relative flex items-center">
+                            <select name="time_slot" id="time_slot" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 pr-10 appearance-none">
+                                <optgroup label="Pranzo">
+                                    @foreach(['12:00', '12:30', '13:00', '13:30', '14:00', '14:30'] as $time)
+                                        <option value="{{ $time }}" {{ $selectedTime == $time ? 'selected' : '' }}>{{ $time }}</option>
+                                    @endforeach
+                                </optgroup>
+                                <optgroup label="Cena">
+                                    @foreach(['19:00', '19:30', '20:00', '20:30', '21:00', '21:30', '22:00'] as $time)
+                                        <option value="{{ $time }}" {{ $selectedTime == $time ? 'selected' : '' }}>{{ $time }}</option>
+                                    @endforeach
+                                </optgroup>
+                            </select>
+                            <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.414-1.414L11 9.586V6z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Ricerca per nome -->
                     <div class="md:col-span-1">
                         <label for="search" class="block text-sm font-medium text-gray-700">Nome Ristorante</label>
-                        <input type="text" name="search" id="search" value="{{ old('search', $search) }}" placeholder="Cerca per nome..." class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                        <div class="mt-1 relative flex items-center">
+                            <input type="text" name="search" id="search" value="{{ old('search', $search) }}" placeholder="Cerca per nome..." class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 pr-10">
+                            <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M6 2v7c0 1.1.9 2 2 2h2a2 2 0 0 0 2-2V2M8 2v20"/>
+                                    <path d="M16 2v20c0 .55.45 1 1 1h1a1 1 0 0 0 1-1V2"/>
+                                </svg>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Ricerca per indirizzo -->
                     <div class="md:col-span-2">
                         <label for="search_address" class="block text-sm font-medium text-gray-700">Indirizzo</label>
-                        <input type="text" name="search_address" id="search_address" value="{{ old('search_address', $search_address) }}" placeholder="Cerca per indirizzo..." class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                        <div class="mt-1 relative flex items-center">
+                            <input type="text" name="search_address" id="search_address" value="{{ old('search_address', $search_address) }}" placeholder="Cerca per indirizzo..." class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 pr-10">
+                            <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                        </div>
                         <input type="hidden" name="latitude" id="latitude" value="{{ old('latitude', $latitude) }}">
                         <input type="hidden" name="longitude" id="longitude" value="{{ old('longitude', $longitude) }}">
                     </div>
@@ -91,7 +113,7 @@
 
     @script
     <script>
-        function initMapAutocomplete() {
+        window.initMapAutocomplete = function() {
             const addressInput = document.getElementById('search_address');
             const form = document.getElementById('restaurant-search-form');
             
@@ -145,7 +167,7 @@
                     console.error("Google Maps script could not be loaded.");
                 };
             } else {
-                initMapAutocomplete();
+                window.initMapAutocomplete();
             }
         }
 
