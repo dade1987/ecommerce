@@ -11,12 +11,10 @@ use Filament\Notifications\Notification;
 class InviteFriendsModal extends Component
 {
     public $phones = [''];
-    public $message = 'Ti invito tramite MySocialTable a prendere parte alla nostra tavolata al ristorante: ';
+    public $message = '';
     public $showModal = false;
     public $restaurantName = '';
     public $userName;
-    public $tableName = '';
-    public $reservationSuccess = false;
     public $date;
     public $time_slot;
 
@@ -31,6 +29,8 @@ class InviteFriendsModal extends Component
     {
         $user = Auth::user();
         $this->userName = $user ? $user->name : '';
+        $this->date = request()->query('date', date('Y-m-d'));
+        $this->time_slot = request()->query('time_slot', '19:00');
     }
 
     public function addPhone()
@@ -49,7 +49,8 @@ class InviteFriendsModal extends Component
         $restaurantId = $params['restaurantId'] ?? null;
         if ($restaurantId) {
             $this->restaurantName = $this->getRestaurantNameById($restaurantId);
-            $this->message .= $this->restaurantName;
+            $formattedDate = date('d/m/Y', strtotime($this->date));
+            $this->message = "Ti invito tramite MySocialTable a prendere parte alla nostra tavolata al ristorante: {$this->restaurantName} il giorno {$formattedDate} alle ore {$this->time_slot}";
         }
         $this->showModal = true;
     }
@@ -86,12 +87,11 @@ class InviteFriendsModal extends Component
         $this->validate([
             'phones.0' => 'required|string',
             'userName' => 'required|string',
-            'tableName' => 'required|string',
-            'date' => 'required|date',
-            'time_slot' => 'required',
         ]);
+
         $starts_at = $this->date . ' ' . $this->time_slot . ':00';
         $ends_at = date('Y-m-d H:i:s', strtotime($starts_at . ' +2 hours'));
+        
         $reservation = Reservation::create([
             'name' => $this->userName,
             'telephone_number' => $this->phones[0],
@@ -100,17 +100,17 @@ class InviteFriendsModal extends Component
             'starts_at' => $starts_at,
             'ends_at' => $ends_at,
         ]);
-        $this->closeModal();
-
+        
         // Invio email
         Mail::raw(
-            "Prenotazione tavolo\nPrenotante: {$this->userName}\nTelefono: {$this->phones[0]}\nNome Tavolo: {$this->tableName}\nData/Ora: {$starts_at} - {$ends_at}",
+            "Prenotazione tavolo\nPrenotante: {$this->userName}\nTelefono: {$this->phones[0]}\nData/Ora: {$starts_at} - {$ends_at}",
             function($message) {
                 $message->to('prenotazioni@cavalliniservice.com')
                         ->subject('Nuova Prenotazione Tavolo');
             }
         );
-        $this->reservationSuccess = true;
+
+        $this->closeModal();
         Notification::make()
             ->title('Prenotazione effettuata con successo!')
             ->success()

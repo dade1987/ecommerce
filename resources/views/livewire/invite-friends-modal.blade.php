@@ -8,7 +8,6 @@
                 <span class="block text-lg font-semibold text-gray-700">Prenotante: {{ $userName }}</span>
             </div>
             <form wire:submit.prevent>
-
                 <div class="mb-4">
                     <label class="block font-semibold mb-1">Numeri di telefono</label>
                     @foreach($phones as $index => $phone)
@@ -23,7 +22,6 @@
                 </div>
                 <div class="mb-4">
                     <label class="block font-semibold mb-1">Messaggio</label>
-
                     <textarea wire:model="message" class="w-full border rounded px-2 py-1" rows="3"></textarea>
                 </div>
                 <div class="mb-4">
@@ -37,26 +35,7 @@
                         @endif
                         @endforeach
 
-
                         @if(!empty($phones[0]))
-                        <div class="mb-2">
-                            <label class="block font-semibold mb-1">Nome Tavolo</label>
-                            <input type="text" wire:model="tableName" class="w-full border rounded px-2 py-1" placeholder="Nome Tavolo" />
-                        </div>
-                        <div class="mb-2">
-                            <label for="date" class="block font-semibold mb-1">Data</label>
-                            <input type="date" id="date" wire:model="date" class="w-full border rounded px-2 py-1">
-                        </div>
-                        <div class="mb-2">
-                            <label for="time_slot" class="block font-semibold mb-1">Orario</label>
-                            <select id="time_slot" wire:model="time_slot" class="w-full border rounded px-2 py-1">
-                                <option value="">Seleziona un orario</option>
-                                @foreach($this->timeSlots as $slot)
-                                    <option value="{{ $slot }}">{{ $slot }}</option>
-                                @endforeach
-                            </select>
-                            <small class="text-gray-500">Durata automatica: 2 ore</small>
-                        </div>
                         <button type="button" wire:click="prenotaTavolo" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition">Prenota Tavolo</button>
                         @endif
                     </div>
