@@ -1,0 +1,3 @@
+<script>
+    window.location.href = "{{ $redirect_url }}";
+</script> 
