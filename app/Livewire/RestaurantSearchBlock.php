@@ -27,6 +27,8 @@ class RestaurantSearchBlock extends Component implements HasForms, HasActions
     public ?float $longitude = null;
     public int $radius = 10; // Raggio di default in km
     public ?string $googleMapsApiKey;
+    public string $date;
+    public string $time_slot;
 
     public function mount(): void
     {
@@ -36,6 +38,8 @@ class RestaurantSearchBlock extends Component implements HasForms, HasActions
         $this->latitude = request()->query('latitude', $this->latitude);
         $this->longitude = request()->query('longitude', $this->longitude);
         $this->radius = request()->query('radius', $this->radius);
+        $this->date = request()->query('date', date('Y-m-d'));
+        $this->time_slot = request()->query('time_slot', '19:00');
     }
 
     public function addRestaurantAction(): Action

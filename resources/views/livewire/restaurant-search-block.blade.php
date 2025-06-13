@@ -1,6 +1,10 @@
 @php
     use Filament\Support\Facades\FilamentView;
     $containerClass = FilamentView::hasSpaMode() ? 'fi-modal-window' : '';
+
+    // Impostiamo i valori di default solo se non ci sono valori precedenti
+    $selectedDate = old('date', $date ?? date('Y-m-d'));
+    $selectedTime = old('time_slot', $time_slot ?? '19:00');
 @endphp
 
 <div>
@@ -11,28 +15,52 @@
         <div class="flex flex-col gap-2 mb-6">
             <form id="restaurant-search-form" method="GET" action="/restaurants" class="p-4 bg-gray-100 rounded-lg shadow-md" data-maps-key="{{ $googleMapsApiKey }}">
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                    
+                    <!-- Data -->
+                    <div class="md:col-span-2">
+                        <label for="date" class="block text-sm font-medium text-gray-700">Data</label>
+                        <input type="date" name="date" id="date" value="{{ $selectedDate }}" min="{{ date('Y-m-d') }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                    </div>
+
+                    <!-- Fascia Oraria -->
+                    <div class="md:col-span-2">
+                        <label for="time_slot" class="block text-sm font-medium text-gray-700">Fascia Oraria</label>
+                        <select name="time_slot" id="time_slot" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                            <optgroup label="Pranzo">
+                                @foreach(['12:00', '12:30', '13:00', '13:30', '14:00', '14:30'] as $time)
+                                    <option value="{{ $time }}" {{ $selectedTime == $time ? 'selected' : '' }}>{{ $time }}</option>
+                                @endforeach
+                            </optgroup>
+                            <optgroup label="Cena">
+                                @foreach(['19:00', '19:30', '20:00', '20:30', '21:00', '21:30', '22:00'] as $time)
+                                    <option value="{{ $time }}" {{ $selectedTime == $time ? 'selected' : '' }}>{{ $time }}</option>
+                                @endforeach
+                            </optgroup>
+                        </select>
+                    </div>
+
                     <!-- Ricerca per nome -->
                     <div class="md:col-span-1">
                         <label for="search" class="block text-sm font-medium text-gray-700">Nome Ristorante</label>
-                        <input type="text" name="search" id="search" value="{{ $search }}" placeholder="Cerca per nome..." class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                        <input type="text" name="search" id="search" value="{{ old('search', $search) }}" placeholder="Cerca per nome..." class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
                     </div>
 
                     <!-- Ricerca per indirizzo -->
                     <div class="md:col-span-2">
                         <label for="search_address" class="block text-sm font-medium text-gray-700">Indirizzo</label>
-                        <input type="text" name="search_address" id="search_address" value="{{ $search_address }}" placeholder="Cerca per indirizzo..." class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
-                        <input type="hidden" name="latitude" id="latitude" value="{{ $latitude }}">
-                        <input type="hidden" name="longitude" id="longitude" value="{{ $longitude }}">
+                        <input type="text" name="search_address" id="search_address" value="{{ old('search_address', $search_address) }}" placeholder="Cerca per indirizzo..." class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                        <input type="hidden" name="latitude" id="latitude" value="{{ old('latitude', $latitude) }}">
+                        <input type="hidden" name="longitude" id="longitude" value="{{ old('longitude', $longitude) }}">
                     </div>
 
                     <!-- Ricerca per raggio -->
                     <div class="md:col-span-1">
                         <label for="radius" class="block text-sm font-medium text-gray-700">Raggio (km)</label>
                         <select name="radius" id="radius" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
-                            <option value="5" @if($radius == 5) selected @endif>5 km</option>
-                            <option value="10" @if($radius == 10) selected @endif>10 km</option>
-                            <option value="20" @if($radius == 20) selected @endif>20 km</option>
-                            <option value="50" @if($radius == 50) selected @endif>50 km</option>
+                            <option value="5" @if(old('radius', $radius) == 5) selected @endif>5 km</option>
+                            <option value="10" @if(old('radius', $radius) == 10) selected @endif>10 km</option>
+                            <option value="20" @if(old('radius', $radius) == 20) selected @endif>20 km</option>
+                            <option value="50" @if(old('radius', $radius) == 50) selected @endif>50 km</option>
                         </select>
                     </div>
                     
