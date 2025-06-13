@@ -20,15 +20,9 @@ class RedirectBlock extends PageBlock
                 TextInput::make('redirect_url')
                     ->label('URL di Redirect')
                     ->required()
-                    ->url()
                     ->columnSpanFull(),
             ]);
     }
 
-    public function render(): View
-    {
-        return view('components.filament-fabricator.page-blocks.redirect-block', [
-            'redirect_url' => $this->data['redirect_url'],
-        ]);
-    }
+    
 } 

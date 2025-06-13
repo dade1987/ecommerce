@@ -1,3 +1,3 @@
 <script>
-    window.location.href = "{{ $redirect_url }}";
+    window.location.href = "{{ $redirectUrl }}";
 </script> 
