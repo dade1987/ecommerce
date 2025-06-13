@@ -7,20 +7,25 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\Reservation;
 use Illuminate\Support\Facades\Mail;
 use Filament\Notifications\Notification;
+use Illuminate\Support\Facades\Bus;
 
 class InviteFriendsModal extends Component
 {
-    public $phones = [''];
     public $message = '';
     public $showModal = false;
     public $restaurantName = '';
-    public $userName;
+    public $restaurantId = null;
+    public $userName = '';
+    public $userPhone = '';
     public $date;
     public $time_slot;
+    public $people_number = 1;
 
     protected $rules = [
-        'phones.*' => 'required|string',
         'message' => 'required|string',
+        'people_number' => 'required|integer|min:1',
+        'userName' => 'required|string|min:2',
+        'userPhone' => 'required|string|min:8'
     ];
 
     protected $listeners = ['openInviteFriendsModal' => 'openModal'];
@@ -28,27 +33,19 @@ class InviteFriendsModal extends Component
     public function mount()
     {
         $user = Auth::user();
-        $this->userName = $user ? $user->name : '';
+        if ($user) {
+            $this->userName = $user->name;
+            $this->userPhone = $user->telephone_number ?? '';
+        }
         $this->date = request()->query('date', date('Y-m-d'));
         $this->time_slot = request()->query('time_slot', '19:00');
     }
 
-    public function addPhone()
-    {
-        $this->phones[] = '';
-    }
-
-    public function removePhone($index)
-    {
-        unset($this->phones[$index]);
-        $this->phones = array_values($this->phones);
-    }
-
     public function openModal($params)
     {
-        $restaurantId = $params['restaurantId'] ?? null;
-        if ($restaurantId) {
-            $this->restaurantName = $this->getRestaurantNameById($restaurantId);
+        $this->restaurantId = $params['restaurantId'] ?? null;
+        if ($this->restaurantId) {
+            $this->restaurantName = $this->getRestaurantNameById($this->restaurantId);
             $formattedDate = date('d/m/Y', strtotime($this->date));
             $this->message = "Ti invito tramite MySocialTable a prendere parte alla nostra tavolata al ristorante: {$this->restaurantName} il giorno {$formattedDate} alle ore {$this->time_slot}";
         }
@@ -60,55 +57,44 @@ class InviteFriendsModal extends Component
         $this->showModal = false;
     }
 
-    public function getWhatsappLinksProperty()
+    public function getShareLink()
     {
-        $links = [];
-        foreach ($this->phones as $phone) {
-            $number = preg_replace('/[^0-9]/', '', $phone);
-            $msg = urlencode($this->message);
-            $links[] = "https://wa.me/$number?text=$msg";
-        }
-        return $links;
-    }
-
-    public function getTimeSlotsProperty()
-    {
-        $slots = [];
-        $start = strtotime('19:00');
-        $end = strtotime('22:00');
-        for ($t = $start; $t <= $end; $t += 1800) {
-            $slots[] = date('H:i', $t);
-        }
-        return $slots;
+        $msg = urlencode($this->message);
+        return "https://wa.me/?text={$msg}";
     }
 
     public function prenotaTavolo()
     {
-        $this->validate([
-            'phones.0' => 'required|string',
-            'userName' => 'required|string',
-        ]);
+        $this->validate();
 
         $starts_at = $this->date . ' ' . $this->time_slot . ':00';
         $ends_at = date('Y-m-d H:i:s', strtotime($starts_at . ' +2 hours'));
         
         $reservation = Reservation::create([
-            'name' => $this->userName,
-            'telephone_number' => $this->phones[0],
-            'people_number' => count($this->phones),
+            'name' => "{$this->userName} - {$this->restaurantName}",
+            'telephone_number' => $this->userPhone,
+            'people_number' => $this->people_number,
             'allergens' => null,
             'starts_at' => $starts_at,
             'ends_at' => $ends_at,
+            'restaurant_id' => $this->restaurantId,
         ]);
-        
-        // Invio email
-        Mail::raw(
-            "Prenotazione tavolo\nPrenotante: {$this->userName}\nTelefono: {$this->phones[0]}\nData/Ora: {$starts_at} - {$ends_at}",
-            function($message) {
-                $message->to('prenotazioni@cavalliniservice.com')
-                        ->subject('Nuova Prenotazione Tavolo');
-            }
-        );
+
+        // Invio email asincrono
+        Bus::dispatch(function () use ($starts_at, $ends_at) {
+            Mail::raw(
+                "Prenotazione tavolo\n" .
+                "Ristorante: {$this->restaurantName}\n" .
+                "Prenotante: {$this->userName}\n" .
+                "Telefono: {$this->userPhone}\n" .
+                "Numero partecipanti: {$this->people_number}\n" .
+                "Data/Ora: {$starts_at} - {$ends_at}",
+                function($message) {
+                    $message->to('d.cavallini@cavalliniservice.com')
+                            ->subject("Nuova Prenotazione - {$this->restaurantName}");
+                }
+            );
+        });
 
         $this->closeModal();
         Notification::make()

@@ -9,37 +9,27 @@
             </div>
             <form wire:submit.prevent>
                 <div class="mb-4">
-                    <label class="block font-semibold mb-1">Numeri di telefono</label>
-                    @foreach($phones as $index => $phone)
-                    <div class="flex mb-2">
-                        <input type="text" wire:model="phones.{{ $index }}" placeholder="+39..." class="flex-1 border rounded px-2 py-1 mr-2" />
-                        @if(count($phones) > 1)
-                        <button type="button" wire:click="removePhone({{ $index }})" class="text-red-500">Rimuovi</button>
-                        @endif
-                    </div>
-                    @endforeach
-                    <button type="button" wire:click="addPhone" class="text-blue-600 hover:underline text-sm">+ Aggiungi numero</button>
+                    <label class="block font-semibold mb-1">Il tuo nome</label>
+                    <input type="text" wire:model="userName" class="w-full border rounded px-2 py-1" placeholder="Inserisci il tuo nome" />
+                </div>
+                <div class="mb-4">
+                    <label class="block font-semibold mb-1">Il tuo numero di telefono</label>
+                    <input type="tel" wire:model="userPhone" class="w-full border rounded px-2 py-1" placeholder="+39..." />
                 </div>
                 <div class="mb-4">
                     <label class="block font-semibold mb-1">Messaggio</label>
                     <textarea wire:model="message" class="w-full border rounded px-2 py-1" rows="3"></textarea>
                 </div>
-                <div class="mb-4">
-                    <label class="block font-semibold mb-1">Link WhatsApp generati:</label>
-                    <div class="space-y-2">
-                        @foreach($this->whatsappLinks as $index => $link)
-                        @if(!empty($phones[$index]))
-                        <a href="{{ $link }}" target="_blank" class="block bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded transition">
-                            Invia a {{ $phones[$index] }}
-                        </a>
-                        @endif
-                        @endforeach
-
-                        @if(!empty($phones[0]))
-                        <button type="button" wire:click="prenotaTavolo" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition">Prenota Tavolo</button>
-                        @endif
-                    </div>
+                <div class="mb-6">
+                    <a href="{{ $this->getShareLink() }}" target="_blank" class="block bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded transition text-center">
+                        Condividi su WhatsApp
+                    </a>
                 </div>
+                <div class="mb-4">
+                    <label class="block font-semibold mb-1">Numero di partecipanti</label>
+                    <input type="number" wire:model="people_number" min="1" class="w-full border rounded px-2 py-1" />
+                </div>
+                <button type="button" wire:click="prenotaTavolo" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition">Prenota Tavolo</button>
             </form>
         </div>
     </div>
