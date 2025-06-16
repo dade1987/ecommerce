@@ -13,5 +13,6 @@ class Extractor extends Model
         'slug',
         'prompt',
         'export_format',
+        'export_class',
     ];
 }

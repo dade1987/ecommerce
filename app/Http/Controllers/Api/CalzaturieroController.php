@@ -122,7 +122,17 @@ class CalzaturieroController extends Controller
 
     // 8. Esporta in base al formato richiesto
     if ($extractor->export_format === 'excel') {
-      return Excel::download(new OrdineExport($orderData['ordine']), 'ordine.xlsx');
+      if (empty($extractor->export_class)) {
+        return response()->json(['error' => 'Classe di esportazione non specificata per questo estrattore.'], 400);
+      }
+
+      $exportClassName = "App\\Exports\\" . $extractor->export_class;
+
+      if (! class_exists($exportClassName)) {
+        return response()->json(['error' => "La classe di esportazione '{$exportClassName}' non esiste."], 500);
+      }
+      
+      return Excel::download(new $exportClassName($orderData['ordine']), 'ordine.xlsx');
     }
 
     return response()->json($orderData);

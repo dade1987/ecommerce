@@ -7,12 +7,15 @@ use App\Filament\Resources\ExtractorResource\RelationManagers;
 use App\Models\Extractor;
 use Filament\Forms;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Form;
+use Filament\Forms\Set;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Facades\File;
 
 class ExtractorResource extends Resource
 {
@@ -33,8 +36,11 @@ class ExtractorResource extends Resource
                         'excel' => 'Excel',
                     ])
                     ->required()
-                    ->default('json'),
-                Forms\Components\Textarea::make('prompt')
+                    ->default('json')
+                    ->live()
+                    ->afterStateUpdated(fn (Set $set, ?string $state) => $state === 'json' ? $set('export_class', null) : null),
+                self::getExportClassSelect(),
+                Textarea::make('prompt')
                     ->required()
                     ->columnSpanFull(),
             ]);
@@ -47,6 +53,8 @@ class ExtractorResource extends Resource
                 Tables\Columns\TextColumn::make('slug')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('export_format')
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('export_class')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
@@ -84,5 +92,25 @@ class ExtractorResource extends Resource
             'create' => Pages\CreateExtractor::route('/create'),
             'edit' => Pages\EditExtractor::route('/{record}/edit'),
         ];
+    }
+
+    /**
+     * Componente Select per scegliere la classe di esportazione.
+     * Visibile solo quando il formato di esportazione è 'excel'.
+     */
+    protected static function getExportClassSelect(): Select
+    {
+        $exportFiles = File::files(app_path('Exports'));
+        $options = [];
+        foreach ($exportFiles as $file) {
+            $className = $file->getBasename('.php');
+            $options[$className] = $className;
+        }
+
+        return Select::make('export_class')
+            ->label('Classe di Esportazione')
+            ->options($options)
+            ->required()
+            ->visible(fn (callable $get) => $get('export_format') === 'excel');
     }
 }

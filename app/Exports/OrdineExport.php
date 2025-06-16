@@ -35,9 +35,16 @@ class OrdineExport implements FromArray, WithTitle, WithStyles
         ];
 
         foreach ($articoli as $articolo) {
+
             $quantita = $articolo['quantita_per_taglia'];
-            $taglie = array_keys($quantita);
-            $quantita_valori = array_values($quantita);
+            $taglie = [];
+            $quantita_valori = [];
+
+            // Gestione della struttura "quantita_per_taglia"
+            foreach ($quantita as $q) {
+                $taglie[] = $q['taglia'];
+                $quantita_valori[] = $q['quantita'];
+            }
 
             $output[] = ['Data Consegna', '', $articolo['data_consegna'] ?? ''];
             $output[] = ['Matricola', '', $articolo['matricola'] ?? '', 'Marcatura', '', $articolo['descrizione'] ?? '', '', '', '', 'Calzata', $articolo['calzata'] ?? ''];
