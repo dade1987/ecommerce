@@ -9,8 +9,8 @@
     <!-- Title -->
     <title>{{ config('app.name', 'Laravel') }}</title>
 
-    <link rel="icon" href="{{ asset('images/logo15.jpeg') }}" type="image/jpeg">
-    <link rel="apple-touch-icon" href="{{ asset('images/logo15.jpeg') }}">
+    <link rel="icon" href="{{ asset('images/logo15.png') }}" type="image/jpeg">
+    <link rel="apple-touch-icon" href="{{ asset('images/logo15.png') }}">
 
     {{-- <!-- Meta Description -->
     <meta name="description" content="@yield('meta-description', config('metatag.default.description'))">
