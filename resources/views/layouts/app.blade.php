@@ -7,7 +7,10 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <!-- Title -->
-    <title>@yield('title', config('metatag.default.title'))</title>
+    <title>{{ config('app.name', 'Laravel') }}</title>
+
+    <link rel="icon" href="{{ asset('images/logo15.jpeg') }}" type="image/jpeg">
+    <link rel="apple-touch-icon" href="{{ asset('images/logo15.jpeg') }}">
 
     {{-- <!-- Meta Description -->
     <meta name="description" content="@yield('meta-description', config('metatag.default.description'))">
