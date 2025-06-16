@@ -6,6 +6,7 @@ use App\Filament\Resources\ExtractorResource\Pages;
 use App\Filament\Resources\ExtractorResource\RelationManagers;
 use App\Models\Extractor;
 use Filament\Forms;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -26,6 +27,13 @@ class ExtractorResource extends Resource
                 Forms\Components\TextInput::make('slug')
                     ->required()
                     ->maxLength(255),
+                Select::make('export_format')
+                    ->options([
+                        'json' => 'JSON',
+                        'excel' => 'Excel',
+                    ])
+                    ->required()
+                    ->default('json'),
                 Forms\Components\Textarea::make('prompt')
                     ->required()
                     ->columnSpanFull(),
@@ -37,6 +45,8 @@ class ExtractorResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('slug')
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('export_format')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()

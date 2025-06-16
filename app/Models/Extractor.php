@@ -11,6 +11,7 @@ class Extractor extends Model
 
     protected $fillable = [
         'slug',
-        'prompt'
+        'prompt',
+        'export_format',
     ];
 }

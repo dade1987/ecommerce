@@ -120,9 +120,11 @@ class CalzaturieroController extends Controller
       return response()->json(['error' => 'Errore di parsing del JSON restituito da Gemini.'], 500);
     }
 
-    return response()->json($orderData);
+    // 8. Esporta in base al formato richiesto
+    if ($extractor->export_format === 'excel') {
+      return Excel::download(new OrdineExport($orderData['ordine']), 'ordine.xlsx');
+    }
 
-    // 8. Esporta in Excel
-    return Excel::download(new OrdineExport($orderData['ordine']), 'ordine.xlsx');
+    return response()->json($orderData);
   }
 }
