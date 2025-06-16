@@ -123,7 +123,7 @@ Route::get('/visit/{uuid}', function ($uuid) {
 // Esempio di domanda curl:
 // curl -X GET "https://cavalliniservice.com/api/faqs?query=la%20tua%20domanda"
 
-Route::post('/calzaturiero/process-order', [CalzaturieroController::class, 'processCustomerOrder']);
+Route::post('/calzaturiero/process-order/{slug}', [CalzaturieroController::class, 'processCustomerOrder']);
 // Per fare una prova in curl, usa il seguente comando:
 // curl -X POST -F "file=@/path/to/your/file.pdf" https://cavalliniservice.com/api/calzaturiero/extract-product-info
 // Assicurati di sostituire "/path/to/your/file.pdf" con il percorso effettivo del file PDF che vuoi caricare.

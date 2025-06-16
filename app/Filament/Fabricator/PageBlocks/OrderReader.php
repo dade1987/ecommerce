@@ -3,6 +3,7 @@
 namespace App\Filament\Fabricator\PageBlocks;
 
 use Filament\Forms\Components\Builder\Block;
+use Filament\Forms\Components\TextInput;
 use Z3d0X\FilamentFabricator\PageBlocks\PageBlock;
 
 class OrderReader extends PageBlock
@@ -11,7 +12,9 @@ class OrderReader extends PageBlock
     {
         return Block::make('order-reader')
             ->schema([
-                //
+                TextInput::make('slug')
+                    ->label('Slug dell\'estrattore')
+                    ->required(),
             ]);
     }
 
