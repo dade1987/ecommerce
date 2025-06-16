@@ -14,9 +14,11 @@ class OrdineExport implements FromArray, WithTitle, WithStyles
 {
     protected $ordine;
 
-    public function __construct(array $ordine)
+    public function __construct(array $orderData)
     {
-        $this->ordine = $ordine;
+        // Rende il costruttore flessibile: usa la chiave 'ordine' se esiste, 
+        // altrimenti assume che i dati passati siano già quelli corretti.
+        $this->ordine = $orderData['ordine'] ?? $orderData;
     }
 
     public function array(): array
