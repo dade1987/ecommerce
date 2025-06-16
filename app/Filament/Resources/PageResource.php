@@ -23,6 +23,11 @@ use Z3d0X\FilamentFabricator\Forms\Components\PageBuilder;
 use Z3d0X\FilamentFabricator\Models\Contracts\Page as PageContract;
 use Z3d0X\FilamentFabricator\Resources\PageResource as ResourcesPageResource;
 use Z3d0X\FilamentFabricator\Resources\PageResource\Pages;
+use Filament\Resources\Resource;
+use Filament\Tables;
+use Filament\Tables\Actions\Action;
+use Illuminate\Database\Eloquent\Model;
+use Z3d0X\FilamentFabricator\Models\Page as PageModel;
 
 class PageResource extends ResourcesPageResource
 {
@@ -117,5 +122,32 @@ class PageResource extends ResourcesPageResource
                     ]),
 
             ]);
+    }
+
+    public static function table(Table $table): Table
+    {
+        // Ottiene la configurazione della tabella dal genitore
+        $parentTable = parent::table($table);
+
+        // Aggiunge la nuova azione "Clona" all'array delle azioni esistenti
+        return $parentTable->actions([
+            Action::make('clone')
+                ->label('Clona')
+                ->icon('heroicon-o-square-2-stack')
+                ->action(function (Model $record) {
+                    $newRecord = $record->replicate();
+                    $newRecord->title = $record->title . ' - Copia';
+                    $newRecord->slug = Str::slug($newRecord->title);
+                    $newRecord->created_at = now();
+                    $newRecord->updated_at = now();
+                    $newRecord->save();
+                }),
+            ...$parentTable->getActions(), // Mantiene le azioni originali (View, Edit, Delete)
+        ])
+        ->bulkActions([
+            Tables\Actions\BulkActionGroup::make([
+                Tables\Actions\DeleteBulkAction::make(),
+            ]),
+        ]);
     }
 }
