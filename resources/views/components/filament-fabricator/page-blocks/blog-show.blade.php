@@ -8,10 +8,10 @@
                 #{{ $tag->slug }} 
             @endforeach
         </p>
-        <h2
+        <h1
             class="block antialiased tracking-normal font-sans text-4xl font-semibold leading-[1.3] text-blue-gray-900 my-4 font-black text-4xl !leading-snug">
             {{ $row->title }}
-        </h2>
+        </h1>
 
         {{-- Data di pubblicazione e autore --}}
         <p class="block antialiased font-sans text-sm font-light leading-normal text-inherit text-gray-600 mb-4">
