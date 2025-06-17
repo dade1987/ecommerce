@@ -103,12 +103,12 @@ class GenerateArticleCommand extends Command
                 // Qui andrebbe la logica per associare i tag, es:
                 // $article->tags()->sync(Tag::whereIn('name', $tags)->pluck('id'));
 
-                // Remove the used keyword from the list
-                $keywordsInFile = file($keywordsPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-                if (($key = array_search($keyword, $keywordsInFile)) !== false) {
-                    unset($keywordsInFile[$key]);
-                }
-                file_put_contents($keywordsPath, implode(PHP_EOL, $keywordsInFile));
+                // The user requested not to delete the keyword from the list
+                // $keywordsInFile = file($keywordsPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+                // if (($key = array_search($keyword, $keywordsInFile)) !== false) {
+                //     unset($keywordsInFile[$key]);
+                // }
+                // file_put_contents($keywordsPath, implode(PHP_EOL, $keywordsInFile));
 
                 $this->info('Article generated successfully for keyword: ' . $keyword);
 
