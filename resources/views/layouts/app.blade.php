@@ -27,9 +27,11 @@
     </script>
 
 
-    {{-- <!-- Meta Description -->
-    <meta name="description" content="@yield('meta-description', config('metatag.default.description'))">
+    <!-- Meta Description -->
+    <meta name="description" content="Cavallini Service, a Noale: soluzioni software su misura, integrazione AI e cybersecurity. Ottimizza flussi di lavoro e proteggi i dati aziendali.">
 
+    
+    {{-- 
     <!-- Meta Robots -->
     <meta name="robots" content="@yield('meta-robots', config('metatag.default.robots'))">
 
