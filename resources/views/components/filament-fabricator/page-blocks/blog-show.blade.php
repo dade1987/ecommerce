@@ -35,7 +35,19 @@
                 .prose table { @apply w-full border-collapse mb-4 }
                 .prose th, .prose td { @apply border border-gray-300 p-2 }
             </style>
-            {!! $row->content !!}
+            <div class="formatted-content">
+                @php
+                    // GPT-generated text might have markdown headings or list items
+                    // immediately following a sentence without a line break.
+                    // This pre-processes the content to add the necessary line breaks
+                    // for correct markdown parsing.
+                    $content = preg_replace('/([.?!])\s*(##+)/', "$1\n\n$2", $row->content);
+                @endphp
+                {!! \Illuminate\Support\Str::markdown($content ?? '', [
+                    'html_input' => 'strip',
+                    'allow_unsafe_links' => false,
+                ]) !!}
+            </div>
         </div>
 
         {{-- Tasto Condividi su Linkedin --}}
