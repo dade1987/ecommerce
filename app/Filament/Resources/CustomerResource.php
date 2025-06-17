@@ -16,6 +16,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use GuzzleHttp\Client;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
@@ -30,6 +31,11 @@ class CustomerResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
     protected static bool $isScopedToTenant = false;
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()->withCount(['feedbacks', 'appointments']);
+    }
 
     public static function form(Form $form): Form
     {
@@ -133,6 +139,12 @@ class CustomerResource extends Resource
                     ->searchable(),
                 Tables\Columns\TextColumn::make('website')
                     ->searchable(),
+                Tables\Columns\TextColumn::make('feedbacks_count')
+                    ->label('Feedback')
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('appointments_count')
+                    ->label('Appuntamenti')
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('customerGroup.name')
                     ->label('Gruppo Cliente')
                     ->sortable()
@@ -149,6 +161,36 @@ class CustomerResource extends Resource
                         'converted'      => 'Convertito',
                         'discarded'      => 'Scartato',
                     ]),
+                Tables\Filters\TernaryFilter::make('has_feedback')
+                    ->label('Ha Feedback')
+                    ->boolean()
+                    ->placeholder('Tutti')
+                    ->trueLabel('Sì')
+                    ->falseLabel('No')
+                    ->query(function (Builder $query, $state): Builder {
+                        if ($state === true) {
+                            return $query->has('feedbacks');
+                        }
+                        if ($state === false) {
+                            return $query->doesntHave('feedbacks');
+                        }
+                        return $query;
+                    }),
+                Tables\Filters\TernaryFilter::make('has_appointments')
+                    ->label('Ha Appuntamenti')
+                    ->boolean()
+                    ->placeholder('Tutti')
+                    ->trueLabel('Sì')
+                    ->falseLabel('No')
+                    ->query(function (Builder $query, $state): Builder {
+                        if ($state === true) {
+                            return $query->has('appointments');
+                        }
+                        if ($state === false) {
+                            return $query->doesntHave('appointments');
+                        }
+                        return $query;
+                    }),
                 Tables\Filters\SelectFilter::make('customer_group_id')
                     ->label('Gruppo Cliente')
                     ->relationship('customerGroup', 'name'),
