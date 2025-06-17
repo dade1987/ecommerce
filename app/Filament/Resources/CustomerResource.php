@@ -6,6 +6,7 @@ use App\Actions\SendBulkEmailAction;
 use App\Actions\SendCustomHtmlEmailAction;
 use App\Actions\SentBulkEmailAction;
 use App\Filament\Resources\CustomerResource\Pages;
+use App\Filament\Resources\CustomerResource\RelationManagers;
 use App\Models\Customer;
 use App\Models\SentMessage;
 use Filament\Forms;
@@ -61,9 +62,6 @@ class CustomerResource extends Resource
                         'converted'      => 'Convertito',
                         'discarded'      => 'Scartato',
                     ]),
-                Forms\Components\DateTimePicker::make('visited_at')
-                    ->label('Data di visita')
-                    ->nullable(),
                 Forms\Components\TextInput::make('uuid')
                     ->label('UUID')
                     ->disabled()
@@ -141,11 +139,6 @@ class CustomerResource extends Resource
                     ->searchable(),
                 Tables\Columns\TextColumn::make('status')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('visited_at')
-                    ->label('Data di visita')
-                    ->dateTime()
-                    ->sortable(),
-
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('status')
@@ -217,7 +210,10 @@ class CustomerResource extends Resource
 
     public static function getRelations(): array
     {
-        return [];
+        return [
+            RelationManagers\FeedbackRelationManager::class,
+            RelationManagers\AppointmentsRelationManager::class,
+        ];
     }
 
     public static function getPages(): array
