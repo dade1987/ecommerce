@@ -2,13 +2,16 @@
 
 namespace App\Filament\Resources\CustomerResource\RelationManagers;
 
+use App\Mail\AppointmentNotification;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Facades\Mail;
 
 class AppointmentsRelationManager extends RelationManager
 {
@@ -49,7 +52,12 @@ class AppointmentsRelationManager extends RelationManager
                 //
             ])
             ->headerActions([
-                Tables\Actions\CreateAction::make(),
+                Tables\Actions\CreateAction::make()
+                    ->after(function (Model $record) {
+                        $record->load('customer');
+                        $recipients = ['d.cavallini@cavalliniservice.com', 'g.florian@cavalliniservice.com'];
+                        Mail::to($recipients)->send(new AppointmentNotification($record));
+                    }),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
