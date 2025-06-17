@@ -37,16 +37,24 @@
             </style>
             <div class="formatted-content">
                 @php
-                    // GPT-generated text might have markdown headings or list items
-                    // immediately following a sentence without a line break.
-                    // This pre-processes the content to add the necessary line breaks
-                    // for correct markdown parsing.
-                    $content = preg_replace('/([.?!])\s*(##+)/', "$1\n\n$2", $row->content);
+                    function isHtml(string $string): bool {
+                        return preg_match('/<[a-z][\s\S]*>/i', $string);
+                    }
+
+                    $content = $row->content;
+                    if (!isHtml($content)) {
+                        // GPT-generated text might have markdown headings or list items
+                        // immediately following a sentence without a line break.
+                        // This pre-processes the content to add the necessary line breaks
+                        // for correct markdown parsing.
+                        $content = preg_replace('/([.?!])\s*(##+)/', "$1\n\n$2", $content);
+                        $content = \Illuminate\Support\Str::markdown($content, [
+                            'html_input' => 'strip',
+                            'allow_unsafe_links' => false,
+                        ]);
+                    }
                 @endphp
-                {!! \Illuminate\Support\Str::markdown($content ?? '', [
-                    'html_input' => 'strip',
-                    'allow_unsafe_links' => false,
-                ]) !!}
+                {!! $content !!}
             </div>
         </div>
 
