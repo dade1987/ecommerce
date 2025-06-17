@@ -34,7 +34,7 @@ class CustomerResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->withCount(['feedbacks', 'appointments']);
+        return parent::getEloquentQuery()->withCount(['feedback', 'appointments']);
     }
 
     public static function form(Form $form): Form
@@ -139,7 +139,7 @@ class CustomerResource extends Resource
                     ->searchable(),
                 Tables\Columns\TextColumn::make('website')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('feedbacks_count')
+                Tables\Columns\TextColumn::make('feedback_count')
                     ->label('Feedback')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('appointments_count')
