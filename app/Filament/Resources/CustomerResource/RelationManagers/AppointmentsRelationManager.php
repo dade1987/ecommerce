@@ -56,16 +56,26 @@ class AppointmentsRelationManager extends RelationManager
                     ->after(function (Model $record) {
                         $record->load('customer');
                         $recipients = ['d.cavallini@cavalliniservice.com', 'g.florian@cavalliniservice.com'];
-                        Mail::to($recipients)->send(new AppointmentNotification($record));
+                        Mail::to($recipients)->send(new AppointmentNotification($record, false));
                     }),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\DeleteAction::make()
+                    ->after(function (Model $record) {
+                        $recipients = ['d.cavallini@cavalliniservice.com', 'g.florian@cavalliniservice.com'];
+                        Mail::to($recipients)->send(new AppointmentNotification($record, true));
+                    }),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\DeleteBulkAction::make()
+                        ->after(function (\Illuminate\Support\Collection $records) {
+                            $recipients = ['d.cavallini@cavalliniservice.com', 'g.florian@cavalliniservice.com'];
+                            foreach ($records as $record) {
+                                Mail::to($recipients)->send(new AppointmentNotification($record, true));
+                            }
+                        }),
                 ]),
             ]);
     }

@@ -1,13 +1,17 @@
-<x-mail::message>
-# Nuovo Appuntamento
+@component('mail::message')
+# {{ $isDeletion ? 'Appuntamento Annullato' : 'Nuovo Appuntamento' }}
 
-Un nuovo appuntamento è stato creato.
+@if($isDeletion)
+Un appuntamento è stato annullato.
+@else
+È stato creato un nuovo appuntamento.
+@endif
 
-**Azienda:** {{ $appointment->customer->name }} <br>
-**Data:** {{ $appointment->appointment_date->format('d/m/Y H:i') }} <br>
-**Con:** {{ $appointment->with_person }} <br>
-**Note:** {{ $appointment->notes }}
+**Cliente:** {{ $customerName }}<br>
+**Data Appuntamento:** {{ $appointmentDate }}<br>
+**Con:** {{ $withPerson }}<br>
+**Telefono Cliente:** {{ $customerPhone }}
 
 Grazie,<br>
 {{ config('app.name') }}
-</x-mail::message>
+@endcomponent

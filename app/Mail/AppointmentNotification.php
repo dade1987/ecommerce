@@ -14,12 +14,15 @@ class AppointmentNotification extends Mailable
 {
     use Queueable, SerializesModels;
 
+    public bool $isDeletion;
+
     /**
      * Create a new message instance.
      */
-    public function __construct(public Appointment $appointment)
+    public function __construct(public Appointment $appointment, bool $isDeletion = false)
     {
-        //
+        $this->isDeletion = $isDeletion;
+        $this->appointment->load('customer');
     }
 
     /**
@@ -27,8 +30,10 @@ class AppointmentNotification extends Mailable
      */
     public function envelope(): Envelope
     {
+        $subject = $this->isDeletion ? 'Appuntamento Annullato' : 'Nuovo Appuntamento Creato';
+
         return new Envelope(
-            subject: 'Nuovo Appuntamento Creato',
+            subject: $subject,
         );
     }
 
@@ -39,6 +44,13 @@ class AppointmentNotification extends Mailable
     {
         return new Content(
             markdown: 'emails.appointments.notification',
+            with: [
+                'customerName' => $this->appointment->customer->name,
+                'appointmentDate' => $this->appointment->appointment_date,
+                'withPerson' => $this->appointment->with_person,
+                'customerPhone' => $this->appointment->customer->phone,
+                'isDeletion' => $this->isDeletion,
+            ],
         );
     }
 
