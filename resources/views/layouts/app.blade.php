@@ -12,6 +12,21 @@
     <link rel="icon" href="{{ asset('images/logo15.png') }}" type="image/jpeg">
     <link rel="apple-touch-icon" href="{{ asset('images/logo15.png') }}">
 
+
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-D7G8J1GF0M"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+
+        function gtag() {
+            dataLayer.push(arguments);
+        }
+        gtag('js', new Date());
+
+        gtag('config', 'G-D7G8J1GF0M');
+    </script>
+
+
     {{-- <!-- Meta Description -->
     <meta name="description" content="@yield('meta-description', config('metatag.default.description'))">
 
@@ -55,11 +70,11 @@
     <livewire:notifications />
     <div class="h-full bg-gray-100">
         @if (isset($header))
-            <header class="bg-white shadow">
-                <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-                    {{ $header }}
-                </div>
-            </header>
+        <header class="bg-white shadow">
+            <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+                {{ $header }}
+            </div>
+        </header>
         @endif
 
         <main class="h-full">
