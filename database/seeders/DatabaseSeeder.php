@@ -20,5 +20,6 @@ class DatabaseSeeder extends Seeder
         // ]);
 
         $this->call(ExtractorSeeder::class);
+        $this->call(ArticleTagSeeder::class);
     }
 }

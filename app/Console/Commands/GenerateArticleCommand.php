@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\Article;
+use App\Models\Tag;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
@@ -92,7 +93,7 @@ class GenerateArticleCommand extends Command
             }
 
             try {
-                Article::create([
+                $article = Article::create([
                     'title' => $title,
                     'content' => $content,
                     'slug' => Str::slug($title),
@@ -100,8 +101,12 @@ class GenerateArticleCommand extends Command
                     // 'featured_image_id' => null, // Gestire l'immagine in evidenza
                 ]);
 
-                // Qui andrebbe la logica per associare i tag, es:
-                // $article->tags()->sync(Tag::whereIn('name', $tags)->pluck('id'));
+                $tag = Tag::firstOrCreate(
+                    ['slug' => 'articolo-smart'],
+                    ['name' => 'Articolo Smart']
+                );
+
+                $article->tags()->attach($tag->id);
 
                 // The user requested not to delete the keyword from the list
                 // $keywordsInFile = file($keywordsPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);

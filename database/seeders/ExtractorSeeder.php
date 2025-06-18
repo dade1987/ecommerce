@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Extractor;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -13,9 +14,9 @@ class ExtractorSeeder extends Seeder
      */
     public function run(): void
     {
-        DB::table('extractors')->insert([
-            'slug' => 'tripodi',
-            'prompt' => "Utilizza il file PDF allegato per estrarre i seguenti dati relativi all'ordine di produzione. Rispondi esclusivamente con un JSON valido e pulito, senza alcuna formattazione markdown o blocchi di codice. Se un'informazione non è presente nel file, imposta il valore a \"N/A\". Segui esattamente questo formato:
+        Extractor::updateOrCreate(
+            ['slug' => 'tripodi'],
+            ['prompt' => "Utilizza il file PDF allegato per estrarre i seguenti dati relativi all'ordine di produzione. Rispondi esclusivamente con un JSON valido e pulito, senza alcuna formattazione markdown o blocchi di codice. Se un'informazione non è presente nel file, imposta il valore a \"N/A\". Segui esattamente questo formato:
 
 {
   \"ordine\": {
@@ -84,9 +85,7 @@ class ExtractorSeeder extends Seeder
 7. **modalita_spedizione**: Se presenti nel documento, altrimenti \"N/A\".
 
 ⚠️ Non aggiungere o indovinare nessuna informazione. Se non trovi un dato, scrivi esattamente `\"N/A\"`.
-",
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+"]
+        );
     }
 }
