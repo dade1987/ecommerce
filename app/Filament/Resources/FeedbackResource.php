@@ -12,6 +12,9 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Filament\Tables\Actions\HeaderAction;
+use Filament\Forms\Components\Textarea;
+use Filament\Actions\Action;
 
 class FeedbackResource extends Resource
 {
@@ -41,6 +44,28 @@ class FeedbackResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->headerActions([
+                Action::make('extract_all_feedback')
+                    ->label('Estrai Feedback per Copia')
+                    ->form([
+                        Textarea::make('all_feedback')
+                            ->label('Feedback Estratti')
+                            ->default(function () {
+                                $feedbacks = Feedback::with('customer')->get();
+                                return $feedbacks->map(function ($feedback) {
+                                    return "Nome: " . ($feedback->customer->name ?? 'N/A') . "\n" .
+                                           "Email: " . ($feedback->customer->email ?? 'N/A') . "\n" .
+                                           "Feedback: " . $feedback->feedback . "\n" .
+                                           "----------------------------------------";
+                                })->implode("\n\n");
+                            })
+                            ->rows(20)
+                            ->readOnly(),
+                    ])
+                    ->modalHeading('Tutti i Feedback')
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel('Chiudi'),
+            ])
             ->columns([
                 Tables\Columns\TextColumn::make('customer.name')
                     ->searchable()
