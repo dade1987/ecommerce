@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Filament\Tables\Actions\HeaderAction;
 use Filament\Forms\Components\Textarea;
-use Filament\Actions\Action;
+use Filament\Tables\Actions\Action;
 
 class FeedbackResource extends Resource
 {
