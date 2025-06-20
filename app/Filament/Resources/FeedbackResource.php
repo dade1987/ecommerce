@@ -55,6 +55,7 @@ class FeedbackResource extends Resource
                                 return $feedbacks->map(function ($feedback) {
                                     return "Nome: " . ($feedback->customer->name ?? 'N/A') . "\n" .
                                            "Email: " . ($feedback->customer->email ?? 'N/A') . "\n" .
+                                           "Data: " . $feedback->created_at->format('d/m/Y H:i') . "\n" .
                                            "Feedback: " . $feedback->feedback . "\n" .
                                            "----------------------------------------";
                                 })->implode("\n\n");
