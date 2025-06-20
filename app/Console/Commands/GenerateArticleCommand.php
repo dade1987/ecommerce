@@ -4,10 +4,13 @@ namespace App\Console\Commands;
 
 use App\Models\Article;
 use App\Models\Tag;
+use Awcodes\Curator\Models\Media;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use OpenAI;
 
 class GenerateArticleCommand extends Command
@@ -17,7 +20,7 @@ class GenerateArticleCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'app:generate-article';
+    protected $signature = 'app:generate-article {--test : Generate only one article for testing}';
 
     /**
      * The console command description.
@@ -43,6 +46,11 @@ class GenerateArticleCommand extends Command
         if (empty($keywords)) {
             $this->info('No more keywords to process.');
             return 0;
+        }
+
+        if ($this->option('test')) {
+            $this->info('Test mode: generating only one article.');
+            $keywords = array_slice($keywords, 0, 1);
         }
 
         $this->info('Starting to process ' . count($keywords) . ' keywords.');
@@ -86,6 +94,30 @@ class GenerateArticleCommand extends Command
                 $title = $aiResponse['title'];
                 $content = $aiResponse['content'];
 
+                $this->info('Generating image with OpenAI DALL-E 3...');
+                $imageResponse = $client->images()->create([
+                    'model' => 'dall-e-3',
+                    'prompt' => "Immagine per un articolo dal titolo '{$title}'. Stile fotorealistico.",
+                    'n' => 1,
+                    'size' => '1024x1024',
+                    'response_format' => 'url',
+                ]);
+
+                $imageUrl = $imageResponse->data[0]->url;
+                $imageContent = Http::get($imageUrl)->body();
+                $imageName = Str::slug($title) . '.png';
+                $imagePath = 'images/' . $imageName;
+                
+                Storage::disk('public')->put($imagePath, $imageContent);
+
+                $media = Media::create([
+                    'name' => $title,
+                    'path' => $imagePath,
+                    'disk' => 'public',
+                    'type' => 'image/png',
+                    'size' => strlen($imageContent),
+                ]);
+
             } catch (\Exception $e) {
                 $this->error('Failed to generate article with AI for keyword: ' . $keyword . ' - ' . $e->getMessage());
                 Log::error('OpenAI API call failed for ' . $keyword . ': ' . $e->getMessage());
@@ -97,8 +129,7 @@ class GenerateArticleCommand extends Command
                     'title' => $title,
                     'content' => $content,
                     'slug' => Str::slug($title),
-                    // 'author_id' => 1, // Assegna un autore di default se necessario
-                    // 'featured_image_id' => null, // Gestire l'immagine in evidenza
+                    'featured_image_id' => $media->id,
                 ]);
 
                 $tag = Tag::firstOrCreate(
