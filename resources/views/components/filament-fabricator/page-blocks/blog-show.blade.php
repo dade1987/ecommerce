@@ -1,6 +1,6 @@
 @aware(['page'])
 <section class="p-8">
-    <div class="mx-auto max-w-screen-md">
+    <div class="mx-auto max-w-screen-xl">
         <x-curator-glider class="mb-4 w-full rounded-xl" :media="$row->featuredImage" />
 
         <p class="block antialiased font-sans text-sm font-light leading-normal text-inherit font-medium !text-blue-500">
