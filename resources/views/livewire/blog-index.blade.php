@@ -28,7 +28,7 @@
                             {{ $row->title }}
                         </a>
                         <p class="text-gray-600 leading-6 mb-6 flex-grow">
-                            {!! Str::limit($row->content, 150) !!}...
+                            {{ Str::limit(strip_tags($row->content), 150) }}
                         </p>
                         <div class="flex justify-between items-center">
                             <div class="flex gap-2">
