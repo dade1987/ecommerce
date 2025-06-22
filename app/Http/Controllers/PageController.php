@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\Str;
 use Z3d0X\FilamentFabricator\Facades\FilamentFabricator;
 use Z3d0X\FilamentFabricator\Http\Controllers\PageController as FabricatorPageController;
@@ -44,6 +45,8 @@ class PageController extends Controller
         $page = $pageModel::query()
             ->where('id', $pageId)
             ->firstOrFail();
+
+        View::share('title', $page->title);
 
         $view = app(FabricatorPageController::class)($page);
 
