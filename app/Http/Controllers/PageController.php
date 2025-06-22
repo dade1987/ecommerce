@@ -46,7 +46,7 @@ class PageController extends Controller
             ->where('id', $pageId)
             ->firstOrFail();
 
-        View::share('title', $page->title);
+        View::share('title', config('app.name') . ' - ' . $page->title);
 
         $view = app(FabricatorPageController::class)($page);
 

@@ -7,7 +7,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <!-- Title -->
-    <title>{{ config('app.name', 'Laravel') }}{{ isset($title) ? ' - ' . $title : '' }}</title>
+    <title>{{ $title ?? config('app.name', 'Laravel') }}</title>
 
     <link rel="icon" href="{{ asset('images/logo15.png') }}" type="image/jpeg">
     <link rel="apple-touch-icon" href="{{ asset('images/logo15.png') }}">

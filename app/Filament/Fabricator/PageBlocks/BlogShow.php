@@ -20,7 +20,7 @@ class BlogShow extends PageBlock
     {
         $data['row'] = Article::where('slug', request()->route('item0'))->first() ?? Article::findOrFail(request()->route('item0'));
 
-        \Illuminate\Support\Facades\View::share('title', $data['row']->title);
+        \Illuminate\Support\Facades\View::share('title', 'Cavallini Service | ' . $data['row']->title);
 
         return $data;
     }
