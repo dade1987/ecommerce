@@ -2,7 +2,7 @@
 <header class="p-4 bg-white text-gray-800">
     <div class="container flex justify-between h-24 mx-auto">
         <a rel="noopener noreferrer" href="#" aria-label="Back to homepage" class="flex items-center p-2">
-            <img class="object-cover h-16 w-auto rounded-full @if($logoBorder===true) border-2 border-blue-700 @endif " src="{{ $logoUrl }}" />
+            <img class="object-cover h-16 w-auto rounded-full @if($logoBorder===true) border-2 border-blue-700 @endif " src="{{ $logoUrl }}" alt="Logo" />
         </a>
         <ul id="menu-links" class="items-stretch hidden space-x-3 lg:flex flex-col lg:flex-row lg:items-center lg:space-x-3 lg:space-y-0 space-y-2 lg:space-y-0">
            

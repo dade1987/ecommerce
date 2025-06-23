@@ -18,9 +18,12 @@ class BlogShow extends PageBlock
 
     public static function mutateData(array $data): array
     {
-        $data['row'] = Article::where('slug', request()->route('item0'))->first() ?? Article::findOrFail(request()->route('item0'));
+        $article = Article::where('slug', request()->route('item0'))->first() ?? Article::findOrFail(request()->route('item0'));
+        $data['row'] = $article;
 
-        \Illuminate\Support\Facades\View::share('pageTitle', 'Cavallini Service - ' . $data['row']->title);
+        \Illuminate\Support\Facades\View::share('pageTitle', 'Cavallini Service - '. $article->title);
+        \Illuminate\Support\Facades\View::share('pageDescription', $article->summary);
+        \Illuminate\Support\Facades\View::share('ogImage', $article->cover);
 
         return $data;
     }

@@ -47,6 +47,8 @@ class PageController extends Controller
             ->firstOrFail();
 
         View::share('pageTitle', config('app.name') . ' - ' . $page->title);
+        View::share('pageDescription', $page->description);
+        View::share('ogImage', asset('images/logo15.png'));
 
         $view = app(FabricatorPageController::class)($page);
 

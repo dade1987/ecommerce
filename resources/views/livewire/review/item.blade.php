@@ -34,9 +34,9 @@
 
         <div class="flex gap-2">
             <img class="h-32 w-20 rounded-lg object-cover"
-                src="https://flowbite.s3.amazonaws.com/blocks/e-commerce/imac-photo-1.jpg" alt="" />
+                src="https://flowbite.s3.amazonaws.com/blocks/e-commerce/imac-photo-1.jpg" alt="Review image 1" />
             <img class="h-32 w-20 rounded-lg object-cover"
-                src="https://flowbite.s3.amazonaws.com/blocks/e-commerce/imac-photo-2.jpg" alt="" />
+                src="https://flowbite.s3.amazonaws.com/blocks/e-commerce/imac-photo-2.jpg" alt="Review image 2" />
         </div>
 
         <div class="flex items-center gap-4">

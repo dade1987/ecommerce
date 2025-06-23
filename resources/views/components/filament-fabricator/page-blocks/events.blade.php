@@ -18,7 +18,7 @@
                     <p
                         class="block antialiased font-sans text-base leading-relaxed text-inherit mb-8 font-normal !text-gray-500">
                         {{ $row->description }}</p>
-                    <div class="flex items-center gap-4"><img src='{{ $logoUrl }}'
+                    <div class="flex items-center gap-4"><img src='{{ $logoUrl }}' alt="Logo"
                             class="inline-block relative object-cover object-center !rounded-full w-12 h-12 rounded-lg" />
                         <div>
 

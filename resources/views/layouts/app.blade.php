@@ -28,29 +28,27 @@
 
 
     <!-- Meta Description -->
-    <meta name="description" content="Cavallini Service, a Noale: soluzioni software su misura, integrazione AI e cybersecurity. Ottimizza flussi di lavoro e proteggi i dati aziendali.">
+    <meta name="description" content="{{ $pageDescription ?? 'Cavallini Service, a Noale: soluzioni software su misura, integrazione AI e cybersecurity. Ottimizza flussi di lavoro e proteggi i dati aziendali.' }}">
 
-    
-    {{-- 
     <!-- Meta Robots -->
-    <meta name="robots" content="@yield('meta-robots', config('metatag.default.robots'))">
+    <meta name="robots" content="index, follow">
 
     <!-- Canonical URL -->
-    <link rel="canonical" href="@yield('canonical', config('metatag.default.canonical'))">
+    <link rel="canonical" href="{{ request()->url() }}">
 
     <!-- Open Graph Tags -->
-    <meta property="og:title" content="@yield('og:title', config('metatag.default.title'))">
-    <meta property="og:description" content="@yield('og:description', config('metatag.default.description'))">
-    <meta property="og:image" content="@yield('og:image', config('metatag.default.image'))">
-    <meta property="og:url" content="@yield('og:url', config('metatag.default.canonical'))">
-    <meta property="og:type" content="@yield('og:type', config('metatag.default.type'))">
+    <meta property="og:title" content="{{ $pageTitle ?? config('app.name', 'Laravel') }}">
+    <meta property="og:description" content="{{ $pageDescription ?? 'Cavallini Service, a Noale: soluzioni software su misura, integrazione AI e cybersecurity. Ottimizza flussi di lavoro e proteggi i dati aziendali.' }}">
+    <meta property="og:image" content="{{ $ogImage ?? asset('images/logo15.png') }}">
+    <meta property="og:url" content="{{ request()->url() }}">
+    <meta property="og:type" content="website">
 
     <!-- Twitter Cards -->
-    <meta name="twitter:card" content="@yield('twitter:card', config('metatag.default.twitter_card'))">
-    <meta name="twitter:title" content="@yield('twitter:title', config('metatag.default.title'))">
-    <meta name="twitter:description" content="@yield('twitter:description', config('metatag.default.description'))">
-    <meta name="twitter:image" content="@yield('twitter:image', config('metatag.default.image'))">
---}}
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{{ $pageTitle ?? config('app.name', 'Laravel') }}">
+    <meta name="twitter:description" content="{{ $pageDescription ?? 'Cavallini Service, a Noale: soluzioni software su misura, integrazione AI e cybersecurity. Ottimizza flussi di lavoro e proteggi i dati aziendali.' }}">
+    <meta name="twitter:image" content="{{ $ogImage ?? asset('images/logo15.png') }}">
+
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
@@ -65,6 +63,17 @@
     @livewireStyles
     @filamentStyles
     @stack('styles')
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "Cavallini Service",
+      "url": "https://cavalliniservice.com",
+      "logo": "{{ asset('images/logo15.png') }}"
+    }
+    </script>
+    @stack('structured-data')
 
 </head>
 

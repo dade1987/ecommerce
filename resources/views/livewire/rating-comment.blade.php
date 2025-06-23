@@ -1,7 +1,7 @@
 <div>
     <article>
         <div class="flex items-center mb-4">
-            <img class="w-10 h-10 me-4 rounded-full" src="/docs/images/people/profile-picture-5.jpg" alt="">
+            <img class="w-10 h-10 me-4 rounded-full" src="/docs/images/people/profile-picture-5.jpg" alt="Jese Leos">
             <div class="font-medium dark:text-white">
                 <p>Jese Leos <time datetime="2014-08-16 19:00"
                         class="block text-sm text-gray-500 dark:text-gray-400">Joined

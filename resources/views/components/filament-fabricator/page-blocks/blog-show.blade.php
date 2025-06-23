@@ -1,7 +1,37 @@
+@push('structured-data')
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "{{ request()->fullUrl() }}"
+  },
+  "headline": "{{ $row->title }}",
+  "image": "{{ Storage::url($row->cover) }}",
+  "datePublished": "{{ $row->created_at->toIso8601String() }}",
+  "dateModified": "{{ $row->updated_at->toIso8601String() }}",
+  "author": {
+    "@type": "Person",
+    "name": "{{ $row->author->name ?? 'Davide Cavallini' }}"
+  },
+   "publisher": {
+    "@type": "Organization",
+    "name": "Cavallini Service",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "{{ asset('images/logo15.png') }}"
+    }
+  },
+  "description": "{{ $row->summary }}"
+}
+</script>
+@endpush
+
 @aware(['page'])
 <section class="p-8">
     <div class="mx-auto max-w-screen-xl">
-        <x-curator-glider class="mb-4 w-full rounded-xl" :media="$row->featuredImage" />
+        <x-curator-glider class="mb-4 w-full rounded-xl" :media="$row->featuredImage" :alt="$row->title" />
 
         <p class="block antialiased font-sans text-sm font-light leading-normal text-inherit font-medium !text-blue-500">
             @foreach ($row->tags as $tag)

@@ -27,7 +27,7 @@
                         </div>
                         <div
                             class="flex flex-col items-center justify-center p-8 rounded-b-lg dark:bg-violet-400 dark:text-gray-900">
-                            <img src="{{ url('images/' . $testimonial['logo']) }}" alt=""
+                            <img src="{{ url('images/' . $testimonial['logo']) }}" alt="{{ $testimonial['subtitle'] }}"
                                 class="w-16 h-16 mb-2 -mt-16 bg-center bg-cover rounded-full dark:bg-gray-500 dark:bg-gray-700">
                             <p class="text-xl font-semibold leadi">{{ $testimonial['subtitle'] }}</p>
                             <p class="text-sm uppercase">{{ $testimonial['subtitle'] }}</p>

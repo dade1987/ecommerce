@@ -1,7 +1,7 @@
 @aware(['page'])
 @if (!isset($_COOKIE['displayed_logo']))
     <div class="bg-black w-full h-full animate-fade fixed z-10 flex items-center justify-center">
-        <img class="h-1/2 w-auto" src="{{ $logoUrl }}" />
+        <img class="h-1/2 w-auto" src="{{ $logoUrl }}" alt="Logo" />
     </div>
 @endif
 
