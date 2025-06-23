@@ -73,7 +73,7 @@ class GenerateArticleCommand extends Command
                     $this->info('Generating article with OpenAI gpt-4...');
 
                     $response = $client->chat()->create([
-                        'model' => 'gpt-4',
+                        'model' => 'gpt-4o',
                         'response_format' => ['type' => 'json_object'],
                         'messages' => [
                             [
