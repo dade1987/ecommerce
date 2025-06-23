@@ -23,7 +23,7 @@ class BlogShow extends PageBlock
 
         \Illuminate\Support\Facades\View::share('pageTitle', 'Cavallini Service - '. $article->title);
         \Illuminate\Support\Facades\View::share('pageDescription', $article->summary);
-        \Illuminate\Support\Facades\View::share('ogImage', $article->cover);
+        \Illuminate\Support\Facades\View::share('ogImage', $article->featuredImage->path);
 
         return $data;
     }

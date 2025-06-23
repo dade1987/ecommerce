@@ -12,7 +12,7 @@ class Article extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['title', 'content', 'slug', 'featured_image_id'];
+    protected $fillable = ['title', 'content', 'slug', 'featured_image_id', 'summary'];
 
     public function tags(): MorphToMany
     {

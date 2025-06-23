@@ -78,7 +78,7 @@ class GenerateArticleCommand extends Command
                         'messages' => [
                             [
                                 'role' => 'system',
-                                'content' => "Sei un esperto di SEO e content creator per CavalliniService. Il tuo compito è scrivere articoli ottimizzati per i motori di ricerca che promuovano i servizi di CavalliniService. Fornisci la risposta in formato JSON con le chiavi \"title\" e \"content\". Il titolo deve essere accattivante e SEO-friendly, includendo la parola chiave e la località. Il contenuto deve essere un articolo completo, ben strutturato in paragrafi, che descrive il servizio offerto da CavalliniService. Non menzionare che è stato generato da un'IA. Assicurati che CavalliniService sia menzionato come il fornitore del servizio.",
+                                'content' => "Sei un esperto di SEO e content creator per CavalliniService. Il tuo compito è scrivere articoli ottimizzati per i motori di ricerca che promuovano i servizi di CavalliniService. Fornisci la risposta in formato JSON con le chiavi \"title\", \"content\" e \"meta_description\". Il titolo deve essere accattivante e SEO-friendly, includendo la parola chiave e la località. Il contenuto deve essere un articolo completo, ben strutturato in paragrafi, che descrive il servizio offerto da CavalliniService. La meta_description deve essere un riassunto conciso e accattivante per i motori di ricerca, di massimo 160 caratteri. Non menzionare che è stato generato da un'IA. Assicurati che CavalliniService sia menzionato come il fornitore del servizio.",
                             ],
                             [
                                 'role' => 'user',
@@ -89,7 +89,7 @@ class GenerateArticleCommand extends Command
 
                     $aiResponse = json_decode($response->choices[0]->message->content, true);
 
-                    if (json_last_error() !== JSON_ERROR_NONE || !isset($aiResponse['title']) || !isset($aiResponse['content'])) {
+                    if (json_last_error() !== JSON_ERROR_NONE || !isset($aiResponse['title']) || !isset($aiResponse['content']) || !isset($aiResponse['meta_description'])) {
                         $this->error('Failed to parse AI response or response format is incorrect for keyword: ' . $fullKeyword);
                         Log::error('AI Response for ' . $fullKeyword . ' was: ' . $response->choices[0]->message->content);
                         continue; // Passa alla prossima keyword
@@ -97,6 +97,7 @@ class GenerateArticleCommand extends Command
 
                     $title = $aiResponse['title'];
                     $content = $aiResponse['content'];
+                    $metaDescription = $aiResponse['meta_description'];
 
                     $this->info('Generating image with OpenAI DALL-E 3...');
                     $imageResponse = $client->images()->create([
@@ -134,6 +135,7 @@ class GenerateArticleCommand extends Command
                         'content' => $content,
                         'slug' => Str::slug($title),
                         'featured_image_id' => $media->id,
+                        'summary' => $metaDescription,
                     ]);
 
                     $tag = Tag::firstOrCreate(

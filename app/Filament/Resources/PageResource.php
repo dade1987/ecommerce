@@ -89,6 +89,10 @@ class PageResource extends ResourcesPageResource
                                     })
                                     ->required(),
 
+                                TextInput::make('description')
+                                    ->label('Description')
+                                    ->maxLength(255),
+
                                 Select::make('layout')
                                     ->label(__('filament-fabricator::page-resource.labels.layout'))
                                     ->options(FilamentFabricator::getLayouts())

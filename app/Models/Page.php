@@ -11,5 +11,14 @@ class Page extends ModelsPage
 {
     use HasFactory;
 
+    protected $fillable = [
+        'title',
+        'slug',
+        'description',
+        'layout',
+        'parent_id',
+        'blocks',
+    ];
+
     use HasTeams;
 }

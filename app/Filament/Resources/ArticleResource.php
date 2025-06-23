@@ -52,6 +52,9 @@ class ArticleResource extends Resource
                     ->afterStateUpdated(fn (Set $set, ?string $state) => $set('slug', Str::slug($state)))
                     ->reactive(),
 
+                Forms\Components\Textarea::make('summary')
+                    ->columnSpanFull(),
+
                 Forms\Components\RichEditor::make('content')
                     ->required()
                     ->columnSpanFull()
