@@ -11,3 +11,4 @@ costi sviluppo software personalizzato
 vantaggi software personalizzato
 data entry automatizzato con AI
 inserimento ordini automatizzato
+inserimento ordini automatico
