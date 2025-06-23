@@ -70,10 +70,10 @@ class GenerateArticleCommand extends Command
                     }
                     $client = OpenAI::client($apiKey);
 
-                    $this->info('Generating article with OpenAI gpt-4o-mini...');
+                    $this->info('Generating article with OpenAI gpt-4...');
 
                     $response = $client->chat()->create([
-                        'model' => 'gpt-4o-mini',
+                        'model' => 'gpt-4',
                         'response_format' => ['type' => 'json_object'],
                         'messages' => [
                             [
@@ -99,9 +99,9 @@ class GenerateArticleCommand extends Command
                     $content = $aiResponse['content'];
                     $metaDescription = $aiResponse['meta_description'];
 
-                    $this->info('Generating image with OpenAI DALL-E 3...');
+                    $this->info('Generating image with OpenAI DALL-E 2...');
                     $imageResponse = $client->images()->create([
-                        'model' => 'dall-e-3',
+                        'model' => 'dall-e-2',
                         'prompt' => "Immagine per un articolo dal titolo '{$title}'. Lo stile deve essere elegante, minimalista e pulito. Evita design confusionari e concentrati su un'estetica moderna e di classe.",
                         'n' => 1,
                         'size' => '1024x1024',
