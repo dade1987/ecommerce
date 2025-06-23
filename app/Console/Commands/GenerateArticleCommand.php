@@ -102,7 +102,7 @@ class GenerateArticleCommand extends Command
                     $this->info('Generating image with OpenAI DALL-E 2...');
                     $imageResponse = $client->images()->create([
                         'model' => 'dall-e-2',
-                        'prompt' => "Immagine per un articolo dal titolo '{$title}'. Lo stile deve essere elegante, minimalista e pulito. Evita design confusionari e concentrati su un'estetica moderna e di classe.",
+                        'prompt' => "Immagine per un articolo dal titolo '{$title}'. Lo stile deve essere elegante, minimalista e pulito. Evita design confusionari e concentrati su un'estetica moderna e di classe. Non includere cavalli nell'immagine.",
                         'n' => 1,
                         'size' => '1024x1024',
                         'response_format' => 'url',
