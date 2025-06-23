@@ -3,6 +3,7 @@
 namespace App\Filament\Fabricator\PageBlocks;
 
 use App\Models\Article;
+use App\Models\Tag;
 use Filament\Forms\Components\Builder\Block;
 use Filament\Forms\Components\TextInput;
 use Z3d0X\FilamentFabricator\PageBlocks\PageBlock;
@@ -13,13 +14,26 @@ class BlogIndex extends PageBlock
     {
         return Block::make('blog-index')
             ->schema([
-                TextInput::make('title'),
+                TextInput::make('title')->default('Blog'),
             ]);
     }
 
     public static function mutateData(array $data): array
     {
-        $data['rows'] = Article::orderBy('created_at', 'desc')->get();
+        $selectedTag = request('tag');
+
+        $query = Article::with('featuredImage', 'tags')
+            ->orderBy('created_at', 'desc');
+
+        if ($selectedTag) {
+            $query->whereHas('tags', function ($q) use ($selectedTag) {
+                $q->where('tags.id', $selectedTag);
+            });
+        }
+
+        $data['rows'] = $query->paginate(9);
+        $data['tags'] = Tag::orderBy('name')->get();
+        $data['selectedTag'] = $selectedTag;
 
         return $data;
     }
