@@ -2,7 +2,6 @@ sviluppo software
 ai service
 azienda di informatica
 applicativi software
-applicativo software
 software personalizzato
 soluzioni software
 software su misura
@@ -10,7 +9,7 @@ sviluppo software su misura
 sviluppo software personalizzato
 sviluppo web app
 azienda di software
-consolenza software
+consulenza software
 app aziendali
 chatbot italiani
 applicativo web
@@ -20,3 +19,5 @@ quanto costa un software personalizzato
 costo sviluppo software
 quanto costa un software gestionale personalizzato
 vantaggi software personalizzato
+inserimento ordini automatizzato
+data entry con ai
