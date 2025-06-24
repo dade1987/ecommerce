@@ -9,13 +9,13 @@
             @endif
         </div>
 
-        <div class="space-y-24">
+        <div class="space-y-16">
             <!-- Riga 1: Immagine Sinistra, Testo Destra -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-                <div class="order-1">
+                <div class="md:order-1">
                     <x-curator-glider :media="$imageOne" class="max-w-full h-auto mx-auto rounded-lg" />
                 </div>
-                <div class="order-2">
+                <div class="md:order-2">
                     <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ $titleOne }}</h3>
                     <p class="mt-4 text-gray-600 dark:text-gray-400">{{ $textOne }}</p>
                 </div>
@@ -23,21 +23,21 @@
 
             <!-- Riga 2: Testo Sinistra, Immagine Destra -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-                <div class="order-2 md:order-1">
+                <div class="md:order-1">
                     <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ $titleTwo }}</h3>
                     <p class="mt-4 text-gray-600 dark:text-gray-400">{{ $textTwo }}</p>
                 </div>
-                <div class="order-1 md:order-2">
+                <div class="md:order-2">
                     <x-curator-glider :media="$imageTwo" class="max-w-full h-auto mx-auto rounded-lg" />
                 </div>
             </div>
 
             <!-- Riga 3: Immagine Sinistra, Testo Destra -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-                <div class="order-1">
+                <div class="md:order-1">
                     <x-curator-glider :media="$imageThree" class="max-w-full h-auto mx-auto rounded-lg" />
                 </div>
-                <div class="order-2">
+                <div class="md:order-2">
                     <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ $titleThree }}</h3>
                     <p class="mt-4 text-gray-600 dark:text-gray-400">{{ $textThree }}</p>
                 </div>
