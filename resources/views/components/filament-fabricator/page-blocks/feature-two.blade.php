@@ -5,11 +5,11 @@
         <div class="text-center mb-16">
             <h2 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">{{ $title }}</h2>
             @if($subtitle)
-                <p class="mt-4 text-lg text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">{{ $subtitle }}</p>
+                <p class="mt-4 text-lg text-gray-600 dark:text-gray-400 mx-auto">{{ $subtitle }}</p>
             @endif
         </div>
 
-        <div class="space-y-16">
+        <div class="space-y-8">
             <!-- Riga 1: Immagine Sinistra, Testo Destra -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
                 <div class="md:order-1">
