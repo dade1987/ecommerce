@@ -12,8 +12,8 @@
         <div class="space-y-8">
             <!-- Riga 1: Immagine Sinistra, Testo Destra -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-                <div class="md:order-1">
-                    <x-curator-glider :media="$imageOne" class="max-w-full h-auto mx-auto rounded-lg" />
+                <div class="md:order-1 flex justify-center">
+                    <x-curator-glider :media="$imageOne" class="max-w-full h-auto rounded-lg" />
                 </div>
                 <div class="md:order-2">
                     <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ $titleOne }}</h3>
@@ -27,15 +27,15 @@
                     <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ $titleTwo }}</h3>
                     <p class="mt-4 text-gray-600 dark:text-gray-400">{{ $textTwo }}</p>
                 </div>
-                <div class="md:order-2">
-                    <x-curator-glider :media="$imageTwo" class="max-w-full h-auto mx-auto rounded-lg" />
+                <div class="md:order-2 flex justify-center">
+                    <x-curator-glider :media="$imageTwo" class="max-w-full h-auto rounded-lg" />
                 </div>
             </div>
 
             <!-- Riga 3: Immagine Sinistra, Testo Destra -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-                <div class="md:order-1">
-                    <x-curator-glider :media="$imageThree" class="max-w-full h-auto mx-auto rounded-lg" />
+                <div class="md:order-1 flex justify-center">
+                    <x-curator-glider :media="$imageThree" class="max-w-full h-auto rounded-lg" />
                 </div>
                 <div class="md:order-2">
                     <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ $titleThree }}</h3>
