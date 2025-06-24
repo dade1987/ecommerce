@@ -1,7 +1,7 @@
 @aware(['page'])
 <section class="py-24 relative">
     <div class="w-full max-w-7xl px-4 md:px-5 lg-6 mx-auto">
-        <h2 class="font-manrope font-bold text-4xl text-black text-center mb-11">Le Persone ci Amano</h2>
+        <h2 class="font-manrope font-bold text-4xl text-black text-center mb-11">Cosa Dicono di Noi</h2>
         <div class="grid grid-cols-12 py-6 border-y border-gray-200 mb-11">
             <div class="col-span-12 lg:col-span-10 ">
                 <h5 class="font-manrope font-semibold text-2xl leading-9 text-black text-center">Recensioni
