@@ -35,7 +35,7 @@
             <!-- Featured Image -->
             @if($row->featuredImage)
                 <div class="flex justify-center mb-8">
-                    <img class="h-auto max-w-full rounded-lg" src="{{ $row->featuredImage->url }}" alt="{{ $row->title }}">
+                    <x-curator-glider class="h-auto max-w-full rounded-lg" :media="$row->featuredImage" :alt="$row->title" />
                 </div>
             @endif
 
