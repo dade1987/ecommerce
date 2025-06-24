@@ -50,7 +50,6 @@ class GenerateArticleCommand extends Command
 
         if ($this->option('test')) {
             $this->info('Test mode: generating only one article.');
-            $keywords = array_slice($keywords, 0, 1);
         }
 
         $this->info('Starting to process ' . count($keywords) . ' keywords.');
@@ -99,12 +98,12 @@ class GenerateArticleCommand extends Command
                     $content = $aiResponse['content'];
                     $metaDescription = $aiResponse['meta_description'];
 
-                    $this->info('Generating image with OpenAI DALL-E 3...');
+                    $this->info('Generating image with OpenAI DALL-E 2...');
                     $imageResponse = $client->images()->create([
-                        'model' => 'dall-e-3',
-                        'prompt' => "Immagine per un articolo dal titolo '{$title}'. Lo stile deve essere elegante, minimalista e pulito. Evita design confusionari e concentrati su un'estetica moderna e di classe.",
+                        'model' => 'dall-e-2',
+                        'prompt' => "Immagine professionale e moderna per un articolo di blog su '{$fullKeyword}'. Lo stile deve essere pulito, elegante e minimalista, adatto a un contesto aziendale e tecnologico. Concentrati su un'estetica di classe, evitando elementi confusionari o letterali.",
                         'n' => 1,
-                        'size' => '1024x1024',
+                        'size' => '512x512',
                         'response_format' => 'url',
                     ]);
 
@@ -158,6 +157,11 @@ class GenerateArticleCommand extends Command
                     $this->error('Failed to create article in DB for keyword: ' . $fullKeyword . ' - ' . $e->getMessage());
                     // Se la creazione fallisce, non rimuovere la keyword per riprovare in seguito
                     continue; // Passa alla prossima keyword
+                }
+
+                if ($this->option('test')) {
+                    $this->info('Test mode complete. One article generated.');
+                    return 0;
                 }
             }
         }

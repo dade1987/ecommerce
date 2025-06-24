@@ -31,7 +31,7 @@ class BlogIndex extends PageBlock
             });
         }
 
-        $data['rows'] = $query->paginate(9);
+        $data['rows'] = $query->paginate(3);
         $data['tags'] = Tag::orderBy('name')->get();
         $data['selectedTag'] = $selectedTag;
 
