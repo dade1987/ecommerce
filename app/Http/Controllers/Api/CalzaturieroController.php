@@ -34,14 +34,38 @@ class CalzaturieroController extends Controller
   {
     $extractor = Extractor::where('slug', $slug)->firstOrFail();
 
-    if (! $request->hasFile('file')) {
-      return response()->json(['error' => 'Nessun file caricato'], 400);
+    if (! $request->hasFile('file') && ! $request->has('file_data_url')) {
+        return response()->json(['error' => 'Nessun file o dato immagine fornito.'], 400);
     }
+    
+    if ($request->hasFile('file')) {
+        // Gestione tradizionale del file caricato
+        $file = $request->file('file');
+        $mimeType = $file->getMimeType();
+        $path = $file->store('uploads', 'public');
+        $fullPath = storage_path("app/public/{$path}");
+    } else {
+        // Gestione del file da data URL (base64)
+        $dataUrl = $request->input('file_data_url');
+        
+        // Estrai il mime type e i dati base64
+        // Esempio: data:image/png;base64,iVBORw0KGgo...
+        if (!preg_match('/^data:(image\/\w+);base64,/', $dataUrl, $type)) {
+            return response()->json(['error' => 'Formato data URL non valido.'], 400);
+        }
+        $mimeType = $type[1];
+        $fileData = base64_decode(substr($dataUrl, strpos($dataUrl, ',') + 1));
 
-    // 1. Salva localmente il PDF e ottieni il percorso completo
-    $file = $request->file('file');
-    $path = $file->store('uploads', 'public');
-    $fullPath = storage_path("app/public/{$path}");
+        if ($fileData === false) {
+            return response()->json(['error' => 'Decodifica base64 fallita.'], 400);
+        }
+
+        // Salva i dati in un file temporaneo
+        $fileName = 'uploads/' . uniqid() . '.' . explode('/', $mimeType)[1];
+        \Illuminate\Support\Facades\Storage::disk('public')->put($fileName, $fileData);
+        $path = $fileName;
+        $fullPath = storage_path("app/public/{$path}");
+    }
 
     // 2. Carica il PDF su Gemini (Files API – upload/v1beta/files) :contentReference[oaicite:0]{index=0}
     //    Usiamo multipart/form-data: il server Gemini restituisce { "file": { "name": "...", "uri": "https://..." } }
@@ -77,7 +101,7 @@ class CalzaturieroController extends Controller
           'parts' => [
             ['text' => $prompt],
             ['fileData' => [
-              'mimeType' => 'application/pdf',
+              'mimeType' => $mimeType,
               'fileUri'  => $fileUri,
             ]],
           ],

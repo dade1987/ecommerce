@@ -158,37 +158,40 @@
                 this.stopCamera();
 
                 canvas.toBlob(blob => {
-                    const formData = new FormData();
-                    formData.append('file', blob, 'order-capture.png');
+                    if (!blob) {
+                        console.error('Impossibile creare il blob dall\'immagine');
+                        alert('Errore nella creazione dell\'immagine. Riprova.');
+                        this.submitting = false;
+                        return;
+                    }
                     
-                    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+                    console.log('Blob creato:', blob.size, 'bytes');
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = this.actionUrl;
+                    form.style.display = 'none';
 
-                    fetch(this.actionUrl, {
-                        method: 'POST',
-                        headers: {
-                            'X-CSRF-TOKEN': csrfToken,
-                            'Accept': 'application/json',
-                        },
-                        body: formData
-                    })
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error('Network response was not ok');
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
-                        console.log('Success:', data);
-                        this.photoTaken = true;
+                    const csrfTokenElement = document.querySelector('#upload-form input[name="_token"]');
+                    if (!csrfTokenElement) {
+                        console.error('CSRF token not found');
+                        alert('Errore: Token di sicurezza non trovato. Ricaricare la pagina.');
                         this.submitting = false;
-                        setTimeout(() => this.setStep('options'), 3000);
-                    })
-                    .catch((error) => {
-                        console.error('Error:', error);
-                        alert('Si è verificato un errore durante l\'invio della foto.');
-                        this.submitting = false;
-                        this.setStep('options');
-                    });
+                        return;
+                    }
+                    const csrfInput = document.createElement('input');
+                    csrfInput.type = 'hidden';
+                    csrfInput.name = '_token';
+                    csrfInput.value = csrfTokenElement.value;
+                    form.appendChild(csrfInput);
+
+                    const dataUrlInput = document.createElement('input');
+                    dataUrlInput.type = 'hidden';
+                    dataUrlInput.name = 'file_data_url';
+                    dataUrlInput.value = this.photoUrl;
+                    form.appendChild(dataUrlInput);
+
+                    document.body.appendChild(form);
+                    form.submit();
                 }, 'image/png');
             }
         }
