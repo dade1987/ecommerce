@@ -23,12 +23,12 @@
 
             <!-- Riga 2: Testo Sinistra, Immagine Destra -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+                <div class="md:order-2 flex justify-center">
+                    <x-curator-glider :media="$imageTwo" class="max-w-full h-auto rounded-lg" />
+                </div>
                 <div class="md:order-1">
                     <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ $titleTwo }}</h3>
                     <p class="mt-4 text-gray-600 dark:text-gray-400">{{ $textTwo }}</p>
-                </div>
-                <div class="md:order-2 flex justify-center">
-                    <x-curator-glider :media="$imageTwo" class="max-w-full h-auto rounded-lg" />
                 </div>
             </div>
 
