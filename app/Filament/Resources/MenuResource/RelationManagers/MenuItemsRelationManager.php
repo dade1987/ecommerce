@@ -53,6 +53,8 @@ class MenuItemsRelationManager extends RelationManager
             ])
             ->emptyStateActions([
                 Tables\Actions\CreateAction::make(),
-            ]);
+            ])
+            ->reorderable('sort')
+            ->defaultSort('sort');
     }
 }

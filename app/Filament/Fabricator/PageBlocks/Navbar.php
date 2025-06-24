@@ -25,7 +25,7 @@ class Navbar extends PageBlock
     {
         $data['logo_url'] = url('images/'.$data['logo_url']);
 
-        $data['items'] = Menu::firstWhere('name', $data['name'])->items;
+        $data['items'] = Menu::firstWhere('name', $data['name'])->items()->orderBy('sort')->get();
 
         return $data;
     }
