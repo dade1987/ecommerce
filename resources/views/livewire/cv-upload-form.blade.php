@@ -48,9 +48,9 @@
                     <input id="privacy_consent" wire:model.defer="privacy_consent" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-orange-600 focus:ring-orange-500">
                 </div>
                 <div class="ml-3 text-sm">
-                    <div class="font-medium text-gray-700 dark:text-gray-300 prose dark:prose-invert max-w-none">
-                        <label for="privacy_consent">{!! $privacy_policy_text !!}</label>
-                    </div>
+                    <label for="privacy_consent" class="font-medium text-gray-700 dark:text-gray-300 prose dark:prose-invert max-w-none">
+                        {!! $this->cleanedPrivacyPolicyText !!}
+                    </label>
                     @error('privacy_consent') <p class="text-sm text-red-600">{{ $message }}</p> @enderror
                 </div>
             </div>

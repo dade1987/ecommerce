@@ -46,6 +46,18 @@ class CvUploadForm extends Component
         $this->reset(['name', 'email', 'cv', 'privacy_consent']);
     }
 
+    public function getCleanedPrivacyPolicyTextProperty(): string
+    {
+        $text = $this->privacy_policy_text;
+
+        // Rimuove i tag <p> di apertura e chiusura se avvolgono l'intera stringa.
+        if (str_starts_with($text, '<p>') && str_ends_with($text, '</p>')) {
+            return substr($text, 3, -4);
+        }
+
+        return $text;
+    }
+
     public function render()
     {
         return view('livewire.cv-upload-form');
