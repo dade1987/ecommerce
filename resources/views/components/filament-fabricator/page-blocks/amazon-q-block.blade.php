@@ -9,7 +9,7 @@
 'button_two_link',
 ])
 
-<section class="bg-white dark:bg-gray-900">
+<section class="bg-gray-100 dark:bg-gray-800">
     <div class="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
         <div class="grid grid-cols-1 items-center gap-12 md:grid-cols-2">
 
