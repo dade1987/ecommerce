@@ -7,10 +7,12 @@ use Livewire\Component;
 class OpenCalendarButton extends Component
 {
     public string $style;
+    public string $text;
 
-    public function mount(string $style = 'primary')
+    public function mount(string $style = 'primary', string $text = 'Richiedi una Demo')
     {
         $this->style = $style;
+        $this->text = $text;
     }
 
     public function open()
