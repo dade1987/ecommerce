@@ -93,7 +93,6 @@
         </main>
     </div>
 
-    @livewire('calendar-slideover')
     @filamentScripts
     @livewireScriptConfig
     @stack('scripts')
