@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use Filament\Forms\Form;
 use App\Models\Reservation;
 use Illuminate\Database\Eloquent\Model;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\DateTimePicker;
 use Saade\FilamentFullCalendar\Actions\CreateAction;
@@ -79,6 +80,8 @@ class CalendarWidget extends FullCalendarWidget
             TextInput::make('telephone_number')
                 ->label('Telephone Number')
                 ->required(),
+            Textarea::make('request_notes')
+                ->label('La tua richiesta (opzionale)'),
             DateTimePicker::make('starts_at')->readOnly(),
             DateTimePicker::make('ends_at')->readOnly(),
         ];

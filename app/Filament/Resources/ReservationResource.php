@@ -39,6 +39,8 @@ class ReservationResource extends Resource
                     ->tel()
                     ->required()
                     ->maxLength(255),
+                Forms\Components\Textarea::make('request_notes')
+                    ->columnSpanFull(),
                 Forms\Components\TextInput::make('allergens')
                     ->maxLength(255),
                 Forms\Components\TextInput::make('user_id')
@@ -70,6 +72,9 @@ class ReservationResource extends Resource
                     ->dateTime(),
                 Tables\Columns\TextColumn::make('telephone_number')
                     ->searchable(),
+                Tables\Columns\TextColumn::make('request_notes')
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('allergens')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('user_id')

@@ -11,7 +11,7 @@ class Reservation extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'people_number', 'starts_at', 'ends_at', 'telephone_number', 'allergens'];
+    protected $fillable = ['name', 'people_number', 'starts_at', 'ends_at', 'telephone_number', 'allergens', 'request_notes'];
 
     protected static function booted()
     {
@@ -22,6 +22,8 @@ class Reservation extends Model
                 'name' => $event->name,
                 'starts_at' => $event->starts_at,
                 'ends_at' => $event->ends_at,
+                'telephone_number' => $event->telephone_number,
+                'request_notes' => $event->request_notes,
             ];
             $emails = ['d.cavallini@cavalliniservice.com', 'g.florian@cavalliniservice.com'];
             foreach ($emails as $email) {
@@ -37,6 +39,8 @@ class Reservation extends Model
                 'name' => $event->name,
                 'starts_at' => $event->starts_at,
                 'ends_at' => $event->ends_at,
+                'telephone_number' => $event->telephone_number,
+                'request_notes' => $event->request_notes,
             ];
             $emails = ['d.cavallini@cavalliniservice.com', 'g.florian@cavalliniservice.com'];
             foreach ($emails as $email) {
