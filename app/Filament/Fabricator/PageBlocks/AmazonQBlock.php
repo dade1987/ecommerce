@@ -27,10 +27,6 @@ class AmazonQBlock extends PageBlock
                     ->label('Testo Pulsante 1'),
                 TextInput::make('button_one_link')
                     ->label('Link Pulsante 1'),
-                TextInput::make('button_two_text')
-                    ->label('Testo Pulsante 2'),
-                TextInput::make('button_two_link')
-                    ->label('Link Pulsante 2'),
             ]);
     }
 

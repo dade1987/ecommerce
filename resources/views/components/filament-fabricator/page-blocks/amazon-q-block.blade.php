@@ -5,8 +5,6 @@
 'image',
 'button_one_text',
 'button_one_link',
-'button_two_text',
-'button_two_link',
 ])
 
 <section class="bg-gray-100 dark:bg-gray-800">
@@ -35,12 +33,7 @@
                         </a>
                     @endif
 
-                    @if($button_two_link && $button_two_text)
-                        <a href="{{ $button_two_link }}"
-                           class="inline-block rounded-lg bg-gray-200 px-8 py-3 text-lg font-medium text-gray-700 transition hover:bg-gray-300 focus:outline-none focus:ring-4 focus:ring-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 dark:focus:ring-gray-800">
-                            {{ $button_two_text }}
-                        </a>
-                    @endif
+                    @livewire('open-calendar-button', ['style' => 'secondary'])
                 </div>
             </div>
 
