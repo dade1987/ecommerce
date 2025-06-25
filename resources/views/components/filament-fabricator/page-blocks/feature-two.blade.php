@@ -1,4 +1,20 @@
 @aware(['page'])
+@props([
+    'title',
+    'subtitle',
+    'imageOne',
+    'titleOne',
+    'textOne',
+    'showButtonOne',
+    'imageTwo',
+    'titleTwo',
+    'textTwo',
+    'showButtonTwo',
+    'imageThree',
+    'titleThree',
+    'textThree',
+    'showButtonThree',
+])
 <section class="bg-white dark:bg-gray-900 py-16">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         
@@ -18,9 +34,11 @@
                 <div>
                     <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ $titleOne }}</h3>
                     <div class="prose dark:prose-invert mt-4 text-gray-600 dark:text-gray-400">{!! $textOne !!}</div>
-                    <div class="mt-6">
-                        @livewire('open-calendar-button')
-                    </div>
+                    @if($showButtonOne)
+                        <div class="mt-6">
+                            @livewire('open-calendar-button')
+                        </div>
+                    @endif
                 </div>
             </div>
 
@@ -29,9 +47,11 @@
                 <div>
                     <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ $titleTwo }}</h3>
                     <div class="prose dark:prose-invert mt-4 text-gray-600 dark:text-gray-400">{!! $textTwo !!}</div>
-                    <div class="mt-6">
-                        @livewire('open-calendar-button')
-                    </div>
+                    @if($showButtonTwo)
+                        <div class="mt-6">
+                            @livewire('open-calendar-button')
+                        </div>
+                    @endif
                 </div>
                 <div class="order-first md:order-last flex justify-center">
                     <x-curator-glider :media="$imageTwo" class="max-w-full h-auto bg-white dark:bg-gray-900" />
@@ -46,9 +66,11 @@
                 <div>
                     <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ $titleThree }}</h3>
                     <div class="prose dark:prose-invert mt-4 text-gray-600 dark:text-gray-400">{!! $textThree !!}</div>
-                    <div class="mt-6">
-                        @livewire('open-calendar-button')
-                    </div>
+                    @if($showButtonThree)
+                        <div class="mt-6">
+                            @livewire('open-calendar-button')
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>
