@@ -28,7 +28,7 @@
                 <div class="mt-8 flex flex-wrap justify-start gap-4">
                     @if($button_one_link && $button_one_text)
                         <a href="{{ $button_one_link }}"
-                           class="inline-block rounded-lg bg-blue-600 px-8 py-3 text-lg font-medium text-white transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-800">
+                           class="inline-flex items-center justify-center rounded-lg bg-orange-600 px-5 py-3 text-center text-base font-medium text-white hover:bg-orange-700 focus:ring-4 focus:ring-orange-300 dark:focus:ring-orange-800">
                             {{ $button_one_text }}
                         </a>
                     @endif
