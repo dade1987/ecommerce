@@ -6,7 +6,7 @@
         }, 300)
     "
 >
-    <x-filament::modal id="reservation-calendar" slide-over width="screen">
+    <x-filament::modal id="reservation-calendar" slide-over class="w-[95vw] max-w-[95vw]">
         <x-slot name="heading">
             Effettua una prenotazione
         </x-slot>
