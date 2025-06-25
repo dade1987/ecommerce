@@ -6,6 +6,7 @@ use Filament\Forms\Components\Builder\Block;
 use Filament\Forms\Components\TextInput;
 use Z3d0X\FilamentFabricator\PageBlocks\PageBlock;
 use Awcodes\Curator\Components\Forms\CuratorPicker;
+use Filament\Forms\Components\RichEditor;
 
 class AmazonQBlock extends PageBlock
 {
@@ -17,7 +18,7 @@ class AmazonQBlock extends PageBlock
                 TextInput::make('title')
                     ->label('Titolo')
                     ->required(),
-                TextInput::make('subtitle')
+                RichEditor::make('subtitle')
                     ->label('Sottotitolo')
                     ->required(),
                 CuratorPicker::make('image')

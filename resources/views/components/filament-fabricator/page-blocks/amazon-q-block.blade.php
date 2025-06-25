@@ -20,9 +20,9 @@
                 @endif
 
                 @if($subtitle)
-                    <h2 class="mt-4 text-xl text-gray-600 dark:text-gray-300 md:text-2xl">
-                        {{ $subtitle }}
-                    </h2>
+                    <div class="prose prose-xl dark:prose-invert mt-4 text-gray-600 dark:text-gray-300 md:text-2xl">
+                        {!! $subtitle !!}
+                    </div>
                 @endif
 
                 <div class="mt-8 flex flex-wrap justify-start gap-4">
