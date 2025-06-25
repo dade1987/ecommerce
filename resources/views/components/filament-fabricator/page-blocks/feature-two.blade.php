@@ -19,11 +19,7 @@
                     <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ $titleOne }}</h3>
                     <div class="prose dark:prose-invert mt-4 text-gray-600 dark:text-gray-400">{!! $textOne !!}</div>
                     <div class="mt-6">
-                        <x-filament::button
-                            x-on:click="Livewire.dispatch('open-calendar-slideover')"
-                        >
-                            Prenota Demo
-                        </x-filament::button>
+                        @livewire('open-calendar-button')
                     </div>
                 </div>
             </div>
@@ -34,11 +30,7 @@
                     <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ $titleTwo }}</h3>
                     <div class="prose dark:prose-invert mt-4 text-gray-600 dark:text-gray-400">{!! $textTwo !!}</div>
                     <div class="mt-6">
-                        <x-filament::button
-                            x-on:click="Livewire.dispatch('open-calendar-slideover')"
-                        >
-                            Prenota Demo
-                        </x-filament::button>
+                        @livewire('open-calendar-button')
                     </div>
                 </div>
                 <div class="order-first md:order-last flex justify-center">
@@ -55,11 +47,7 @@
                     <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ $titleThree }}</h3>
                     <div class="prose dark:prose-invert mt-4 text-gray-600 dark:text-gray-400">{!! $textThree !!}</div>
                     <div class="mt-6">
-                        <x-filament::button
-                            x-on:click="Livewire.dispatch('open-calendar-slideover')"
-                        >
-                            Prenota Demo
-                        </x-filament::button>
+                        @livewire('open-calendar-button')
                     </div>
                 </div>
             </div>
