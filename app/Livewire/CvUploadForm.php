@@ -48,14 +48,13 @@ class CvUploadForm extends Component
 
     public function getCleanedPrivacyPolicyTextProperty(): string
     {
-        $text = $this->privacy_policy_text;
+        // Decodifica le entità HTML (es. &lt;p&gt; -> <p>)
+        $decodedText = html_entity_decode($this->privacy_policy_text);
+        
+        // Rimuove tutti i tag HTML
+        $strippedText = strip_tags($decodedText);
 
-        // Rimuove i tag <p> di apertura e chiusura se avvolgono l'intera stringa.
-        if (str_starts_with($text, '<p>') && str_ends_with($text, '</p>')) {
-            return substr($text, 3, -4);
-        }
-
-        return $text;
+        return $strippedText;
     }
 
     public function render()
