@@ -11,6 +11,8 @@
         'center' => 'text-center',
         'right' => 'text-right',
     ];
+
+    dd($style);
 @endphp
 
 <section class="px-4 py-8">
