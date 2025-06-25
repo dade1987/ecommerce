@@ -15,7 +15,7 @@ class OpenCalendarButton extends Component
 
     public function open()
     {
-        $this->dispatch('open-calendar');
+        $this->dispatch('open-calendar-slideover');
     }
 
     public function render()
