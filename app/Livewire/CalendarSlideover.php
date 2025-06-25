@@ -13,6 +13,7 @@ class CalendarSlideover extends Component
     {
         Log::info('open-calendar-slideover event received. Dispatching open-modal.');
         $this->dispatch('open-modal', id: 'reservation-calendar');
+        $this->dispatch('calendar-opened');
     }
 
     public function render()
