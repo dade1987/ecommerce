@@ -16,6 +16,35 @@ use Saade\FilamentFullCalendar\Widgets\FullCalendarWidget;
 class CalendarWidget extends FullCalendarWidget
 {
 
+    public function getConfig(): array
+    {
+        return [
+            'initialView' => 'timeGridWeek',
+            'headerToolbar' => [
+                'left' => 'prev,next',
+                'center' => 'title',
+                'right' => 'timeGridWeek,timeGridDay',
+            ],
+            'views' => [
+                'timeGridWeek' => [
+                    'dayHeaderFormat' => [
+                        'weekday' => 'short',
+                        'month' => 'numeric',
+                        'day' => 'numeric',
+                        'omitCommas' => true,
+                    ],
+                ],
+            ],
+            'windowResize' => "
+                function(arg) {
+                    if (arg.view.type === 'timeGridWeek' && window.innerWidth < 640) {
+                        this.changeView('timeGridDay');
+                    }
+                }
+            ",
+        ];
+    }
+
     public Model|string|null $model = Reservation::class;
 
     public bool $selectable = true;
