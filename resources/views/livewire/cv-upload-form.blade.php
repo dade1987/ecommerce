@@ -49,7 +49,14 @@
                 </div>
                 <div class="ml-3 text-sm">
                     <div class="font-medium text-gray-700 dark:text-gray-300 prose dark:prose-invert max-w-none">
+                        <div style="padding:1rem; background: #f0f0f0; border:1px solid #ccc; margin-bottom:1rem; color: #333;">
+                            <p style="font-weight: bold; margin:0;">DEBUG:</p>
+                            <p style="margin:0;"><b>Raw:</b> <code>{{ $privacy_policy_text }}</code></p>
+                            <p style="margin:0;"><b>Cleaned:</b> <code>{{ $this->cleanedPrivacyPolicyText }}</code></p>
                         </div>
+
+                        {!! $this->cleanedPrivacyPolicyText !!}
+                    </div>
                     @error('privacy_consent') <p class="text-sm text-red-600">{{ $message }}</p> @enderror
                 </div>
             </div>
