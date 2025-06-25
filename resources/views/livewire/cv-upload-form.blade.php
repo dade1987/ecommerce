@@ -49,8 +49,7 @@
                 </div>
                 <div class="ml-3 text-sm">
                     <div class="font-medium text-gray-700 dark:text-gray-300 prose dark:prose-invert max-w-none">
-                        {!! $this->cleanedPrivacyPolicyText !!}
-                    </div>
+                        </div>
                     @error('privacy_consent') <p class="text-sm text-red-600">{{ $message }}</p> @enderror
                 </div>
             </div>
