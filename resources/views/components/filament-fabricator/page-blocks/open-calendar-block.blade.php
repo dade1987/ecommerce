@@ -20,4 +20,6 @@
             'style' => $style,
         ])
     </div>
-</section> 
+</section>
+
+@livewire('calendar-slideover') 
