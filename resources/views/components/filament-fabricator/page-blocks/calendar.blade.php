@@ -1,19 +1,13 @@
 @aware(['page'])
-<a name="reservation-calendar"></a>
-<div class="px-4 py-4 md:py-8">
-    <div class="max-w-6xl mx-auto">
-        {{--@livewire(App\Filament\Widgets\CalendarWidget::class)--}}
-        <div class="grid md:grid-cols-1 gap-16 items-center relative overflow-hidden p-4 sm:p-10 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.3)] rounded-3xl max-w-6xl mx-auto bg-white text-[#333] my-6 font-[sans-serif]">
-            <div>
-                <h2 class="text-3xl font-extrabold">{{$title}}</h2>
-                <p class="text-sm text-gray-400 mt-3">Clicchi sopra ad un orario per effettuare una prenotazione</p>
-                
-                @livewire(App\Filament\Resources\ReservationResource\Widgets\CalendarWidget::class)
-          
-            </div>
-            
-           
-        </div>
-        
+
+<x-filament::slide-over id="reservation-calendar">
+    <x-slot name="heading">
+        {{ $title ?? 'Effettua una prenotazione' }}
+    </x-slot>
+
+    <div class="p-4">
+        <p class="text-sm text-gray-500 mb-4">Clicchi sopra ad un orario per effettuare una prenotazione.</p>
+
+        @livewire(App\Filament\Resources\ReservationResource\Widgets\CalendarWidget::class)
     </div>
-</div>
+</x-filament::slide-over>
