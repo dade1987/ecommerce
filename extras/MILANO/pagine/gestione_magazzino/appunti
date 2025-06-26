@@ -1,0 +1,40 @@
+calcolo rimanenze
+
+raggruppa per codice i prodotti
+
+esempio
+carico 10 prodotti 60cent unitari 1 pubblico tot 6 euro unitari 10 euro pubblico 
+scarico 9 prodotti 60cent unitari 1 pubblico tot 5,4 eu unitari 9 euro pubblico
+carico 2 prodotti  60cent unitari 1 pubblico tot 1,2 eu unitari 2 euro pubblico 
+
+
+conto
+
+scorri riga per riga la tabella dell'elenco dei movimenti
+
+while($row = $risultato->fetch_row())
+{
+$query="SELECT * from movimenti LIMIT 1
+$row=fetch_row();
+$array[$i]['barcode']=$row[4];
+.$query=" AND barcode!=$array[$i]['barcode']"
+);
+i++;
+}
+
+.$query=";";
+
+
+
+
+
+
+prendi il codice a barre una sola volta e lo memorizzi in un array
+cerchi gli id degli altri codici a barre uguali
+prendi i prezzi (unitari, pubblico, tot_unitario, tot_pubblico, usi questi valori come indice dell'array e memorizzi i dati dei prezzi dentro)
+se il cliente sei tu fai +, se sei il fornitore fai - sulla quantità
+se il cliente sei tu fai -, se sei il fornitore fai + sul prezzo
+stampi a schermo quel codice con tutti i dati, ma i prezzi conteggiati
+
+scorri alla prossima riga e prendi il prossimo codice a barre
+
