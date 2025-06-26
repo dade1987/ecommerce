@@ -88,6 +88,40 @@ class CalzaturieroController extends Controller
     }
 
     $fileInfo = $multipartResponse->json('file');
+
+    // Polling per verificare lo stato del file
+    $fileNameOnGoogle = $fileInfo['name'];
+    $maxAttempts = 15; // 30 secondi max
+    $attempt = 0;
+    $fileIsActive = false;
+
+    do {
+        $fileStatusResponse = Http::withHeaders([
+            'x-goog-api-key' => $this->apiKey,
+        ])->get("https://generativelanguage.googleapis.com/v1beta/{$fileNameOnGoogle}");
+        
+        if ($fileStatusResponse->successful()) {
+            $status = $fileStatusResponse->json('state');
+            if ($status === 'ACTIVE') {
+                $fileIsActive = true;
+                break;
+            }
+            if ($status === 'FAILED') {
+                 Log::error('Upload del file fallito sul servizio AI', ['response' => $fileStatusResponse->body()]);
+                return response()->json(['error' => 'Il processing del file è fallito.'], 500);
+            }
+        }
+        
+        $attempt++;
+        if ($attempt < $maxAttempts) {
+            sleep(2); // Aspetta 2 secondi prima di riprovare
+        }
+    } while ($attempt < $maxAttempts);
+
+    if (! $fileIsActive) {
+        return response()->json(['error' => 'Timeout: Il file non è diventato attivo in tempo.'], 500);
+    }
+
     // $fileInfo['name'] e $fileInfo['uri'] sono disponibili
     $fileUri = $fileInfo['uri'];
 
