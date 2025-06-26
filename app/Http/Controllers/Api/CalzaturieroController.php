@@ -145,7 +145,7 @@ class CalzaturieroController extends Controller
     }
 
     // 8. Esporta in base al formato richiesto
-    if ($extractor->export_format === 'excel') {
+    if (in_array($extractor->export_format, ['excel', 'csv'])) {
       if (empty($extractor->export_class)) {
         return response()->json(['error' => 'Classe di esportazione non specificata per questo estrattore.'], 400);
       }
@@ -157,9 +157,10 @@ class CalzaturieroController extends Controller
       }
       
       try {
-        return Excel::download(new $exportClassName($orderData), 'ordine.xlsx');
+        $fileName = 'ordine.' . ($extractor->export_format === 'csv' ? 'csv' : 'xlsx');
+        return Excel::download(new $exportClassName($orderData), $fileName);
       } catch (\Exception $e) {
-        Log::error("Errore durante l'esportazione Excel: " . $e->getMessage(), ['data' => $orderData]);
+        Log::error("Errore durante l'esportazione " . strtoupper($extractor->export_format) . ": " . $e->getMessage(), ['data' => $orderData]);
         return response()->json([
             'error' => "Errore durante l'esportazione del file.",
             'message' => $e->getMessage()

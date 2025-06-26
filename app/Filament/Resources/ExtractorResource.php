@@ -34,6 +34,7 @@ class ExtractorResource extends Resource
                     ->options([
                         'json' => 'JSON',
                         'excel' => 'Excel',
+                        'csv' => 'CSV',
                     ])
                     ->required()
                     ->default('json')
@@ -111,6 +112,6 @@ class ExtractorResource extends Resource
             ->label('Classe di Esportazione')
             ->options($options)
             ->required()
-            ->visible(fn (callable $get) => $get('export_format') === 'excel');
+            ->visible(fn (callable $get) => in_array($get('export_format'), ['excel', 'csv']));
     }
 }
