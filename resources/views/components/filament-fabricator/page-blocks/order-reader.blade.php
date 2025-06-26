@@ -168,6 +168,21 @@
             recordingTime: 0,
             recordingTimer: null,
 
+            _findSupportedMimeType() {
+                const mimeTypes = [
+                    'audio/ogg; codecs=opus',
+                    'audio/wav',
+                    'audio/ogg',
+                    'audio/webm', // Fallback
+                ];
+                for (const mimeType of mimeTypes) {
+                    if (MediaRecorder.isTypeSupported(mimeType)) {
+                        return mimeType;
+                    }
+                }
+                return ''; // Fallback to browser default
+            },
+
             init() {
                 const form = document.getElementById('upload-form');
                 if(form) {
@@ -271,7 +286,11 @@
                 this.resetRecording();
                 try {
                     const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    this.mediaRecorder = new MediaRecorder(audioStream);
+
+                    const supportedMimeType = this._findSupportedMimeType();
+                    const options = supportedMimeType ? { mimeType: supportedMimeType } : {};
+
+                    this.mediaRecorder = new MediaRecorder(audioStream, options);
                     this.isRecording = true;
 
                     this.recordingTimer = setInterval(() => {
@@ -283,7 +302,8 @@
                     };
 
                     this.mediaRecorder.onstop = () => {
-                        this.audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
+                        const blobMimeType = this.mediaRecorder.mimeType || 'audio/webm';
+                        this.audioBlob = new Blob(this.audioChunks, { type: blobMimeType });
                         this.audioUrl = URL.createObjectURL(this.audioBlob);
                         this.isRecording = false;
                         clearInterval(this.recordingTimer);
