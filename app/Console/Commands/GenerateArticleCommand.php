@@ -77,7 +77,16 @@ class GenerateArticleCommand extends Command
                         'messages' => [
                             [
                                 'role' => 'system',
-                                'content' => "Sei un esperto di SEO e content creator per CavalliniService. Il tuo compito è scrivere articoli ottimizzati per i motori di ricerca che promuovano i servizi di CavalliniService. Fornisci la risposta in formato JSON con le chiavi \"title\", \"content\" e \"meta_description\". Il titolo deve essere accattivante e SEO-friendly, includendo la parola chiave e la località. Il contenuto deve essere un articolo completo, ben strutturato in paragrafi, che descrive il servizio offerto da CavalliniService. La meta_description deve essere un riassunto conciso e accattivante per i motori di ricerca, di massimo 160 caratteri. Non menzionare che è stato generato da un'IA. Assicurati che CavalliniService sia menzionato come il fornitore del servizio.",
+                                'content' => "Sei un esperto di SEO e content creator per CavalliniService. 
+                                Il tuo compito è scrivere articoli ottimizzati per i motori di ricerca che 
+                                promuovano i servizi di CavalliniService. Fornisci la risposta in formato JSON con 
+                                le chiavi \"title\", \"content\" e \"meta_description\". Il titolo deve essere accattivante 
+                                e SEO-friendly, includendo la parola chiave e la località. Il contenuto deve essere un articolo completo, 
+                                ben strutturato in paragrafi, che descrive il vantaggio del servizio offerto da CavalliniService. La meta_description 
+                                deve essere un riassunto conciso e accattivante per i motori di ricerca, di massimo 160 caratteri. 
+                                Non menzionare che è stato generato da un'IA. Assicurati che CavalliniService sia menzionato come il 
+                                fornitore del servizio. Scrivi che siamo in ambito business. Alla fine invita alla call to action che 
+                                nello specifico è cliccare il tasto 'Prenota una Call' sotto.",
                             ],
                             [
                                 'role' => 'user',
@@ -101,7 +110,11 @@ class GenerateArticleCommand extends Command
                     $this->info('Generating image with OpenAI DALL-E 2...');
                     $imageResponse = $client->images()->create([
                         'model' => 'dall-e-2',
-                        'prompt' => "Immagine professionale e moderna di successo rivolta a imprenditori, EDP Manager, developer e ricercatori per un articolo di blog su '{$fullKeyword}'. Lo stile deve essere pulito, elegante e minimalista, adatto a un contesto aziendale e tecnologico. Concentrati su un'estetica di classe, evitando elementi confusionari o letterali.",
+                        'prompt' => "Immagine professionale e moderna di successo rivolta a imprenditori, 
+                        industrie manifatturiere, EDP Manager, developer e ricercatori per un articolo di 
+                        blog su '{$fullKeyword}'. 
+                        Lo stile deve essere pulito, elegante e minimalista, adatto a un contesto aziendale 
+                        e tecnologico. Concentrati su un'estetica di classe, evitando elementi confusionari o letterali.",
                         'n' => 1,
                         'size' => '512x512',
                         'response_format' => 'url',
