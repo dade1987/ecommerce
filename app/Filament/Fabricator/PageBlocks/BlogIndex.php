@@ -21,6 +21,7 @@ class BlogIndex extends PageBlock
     public static function mutateData(array $data): array
     {
         $selectedTag = request('tag');
+        $searchQuery = request('search');
 
         $query = Article::with('featuredImage', 'tags')
             ->orderBy('created_at', 'desc');
@@ -29,6 +30,10 @@ class BlogIndex extends PageBlock
             $query->whereHas('tags', function ($q) use ($selectedTag) {
                 $q->where('tags.id', $selectedTag);
             });
+        }
+
+        if ($searchQuery) {
+            $query->where('title', 'like', '%' . $searchQuery . '%');
         }
 
         $data['rows'] = $query->paginate(3);
