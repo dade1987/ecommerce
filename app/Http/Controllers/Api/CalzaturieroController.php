@@ -156,7 +156,12 @@ class CalzaturieroController extends Controller
         return response()->json(['error' => "La classe di esportazione '{$exportClassName}' non esiste."], 500);
       }
       
-      return Excel::download(new $exportClassName($orderData), 'ordine.xlsx');
+      try {
+        return Excel::download(new $exportClassName($orderData), 'ordine.xlsx');
+      } catch (\Exception $e) {
+        Log::error("Errore durante l'esportazione Excel: " . $e->getMessage(), ['data' => $orderData]);
+        dd($orderData);
+      }
     }
 
     return response()->json($orderData);
