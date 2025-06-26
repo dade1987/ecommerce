@@ -80,11 +80,11 @@ class CalzaturieroController extends Controller
     );
 
     if ($multipartResponse->failed()) {
-      Log::error('Errore upload PDF su Gemini', [
+      Log::error('Errore upload file su Servizio AI', [
         'status' => $multipartResponse->status(),
         'body'   => $multipartResponse->body(),
       ]);
-      return response()->json(['error' => 'Impossibile caricare il PDF su Gemini.'], 500);
+      return response()->json(['error' => 'Impossibile caricare il file sul servizio AI.'], 500);
     }
 
     $fileInfo = $multipartResponse->json('file');
@@ -112,36 +112,38 @@ class CalzaturieroController extends Controller
       ],
     ];
 
+    $model = str_starts_with($mimeType, 'audio/') ? 'gemini-1.5-flash-latest' : 'gemini-2.5-flash-preview-05-20';
+
     $geminiResponse = Http::withHeaders([
       'x-goog-api-key' => $this->apiKey,
       'Content-Type'   => 'application/json',
     ])->post(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key={$this->apiKey}",
+      "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$this->apiKey}",
       $generatePayload
     );
 
     if ($geminiResponse->failed()) {
-      Log::error('Errore durante il generateContent di Gemini', [
+      Log::error('Errore durante la generazione dei contenuti dal Servizio AI', [
         'status' => $geminiResponse->status(),
         'body'   => $geminiResponse->body(),
       ]);
       return response()->json([
-        'error' => 'Impossibile generare il JSON da Gemini. Controlla i log per dettagli.'
+        'error' => 'Impossibile generare il risultato dal servizio AI. Controlla i log per dettagli.'
       ], 500);
     }
 
     // 6. Estrai il JSON restituito
     $candidates = $geminiResponse->json('candidates', []);
     if (! isset($candidates[0]['content']['parts'][0]['text'])) {
-      return response()->json(['error' => 'Risposta Gemini non formattata come JSON.'], 500);
+      return response()->json(['error' => 'Risposta dal servizio AI non formattata correttamente.'], 500);
     }
     $jsonText = $candidates[0]['content']['parts'][0]['text'];
 
     // 7. Decodifica il JSON in un array PHP
     $orderData = json_decode($jsonText, true);
     if (json_last_error() !== JSON_ERROR_NONE) {
-      Log::error('JSON non valido da Gemini', ['jsonText' => $jsonText]);
-      return response()->json(['error' => 'Errore di parsing del JSON restituito da Gemini.'], 500);
+      Log::error('JSON non valido dal Servizio AI', ['jsonText' => $jsonText]);
+      return response()->json(['error' => 'Errore di parsing del JSON restituito dal servizio AI.'], 500);
     }
 
     // 8. Esporta in base al formato richiesto
