@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use OpenAI;
 use App\Models\Page;
+use App\Models\Menu;
 
 class GenerateArticleCommand extends Command
 {
@@ -57,10 +58,13 @@ class GenerateArticleCommand extends Command
 
         $locations = ['Noale', 'Mestre', 'Venezia', 'Treviso', 'Padova'];
 
-        $pages = Page::all(['title', 'slug']);
-        $internalLinksList = $pages->map(function ($page) {
-            return "- {$page->title}: /{$page->slug}";
-        })->implode("\n");
+        $internalLinksList = '';
+        $navbar = Menu::with('items')->where('name', 'Navbar')->first();
+        if ($navbar) {
+            $internalLinksList = $navbar->items->map(function ($item) {
+                return "- {$item->name}: {$item->href}";
+            })->implode("\n");
+        }
 
         foreach ($keywords as $keyword) {
             foreach ($locations as $location) {
