@@ -160,7 +160,10 @@ class CalzaturieroController extends Controller
         return Excel::download(new $exportClassName($orderData), 'ordine.xlsx');
       } catch (\Exception $e) {
         Log::error("Errore durante l'esportazione Excel: " . $e->getMessage(), ['data' => $orderData]);
-        dd($e->getMessage(), $orderData);
+        return response()->json([
+            'error' => "Errore durante l'esportazione del file.",
+            'message' => $e->getMessage()
+        ], 500);
       }
     }
 

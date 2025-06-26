@@ -19,12 +19,10 @@ class OrdineExport implements FromArray, WithTitle, WithStyles
 
     public function array(): array
     {
-        dd($this->datiOrdine);
-
         $fornitore = $this->datiOrdine['fornitore'];
         $cliente = $this->datiOrdine['cliente'];
         $ordine = $this->datiOrdine['ordine'];
-        $articoli = $ordine['articoli'];
+        $articoli = $this->datiOrdine['articoli'];
 
         $output = [
             ['Fornitore', $fornitore['nome']],
