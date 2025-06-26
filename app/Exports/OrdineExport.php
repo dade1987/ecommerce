@@ -111,30 +111,34 @@ class OrdineExport implements FromArray, WithTitle, WithStyles
     {
         $rows = [];
 
+        $nomeCliente = data_get($row, 'cliente.nome', 'N/A');
+        $cognomeCliente = data_get($row, 'cliente.cognome', '');
+        
         // Main order details
         $mainDetails = [
-            'numero_ordine' => $row['numero_ordine'] ?? 'N/A',
-            'data_ordine' => $row['data_ordine'] ?? 'N/A',
-            'cliente' => ($row['cliente']['nome'] ?? 'N/A') . ' ' . ($row['cliente']['cognome'] ?? ''),
-            'indirizzo_spedizione' => $row['cliente']['indirizzo_spedizione'] ?? 'N/A',
+            'numero_ordine' => data_get($row, 'numero_ordine', 'N/A'),
+            'data_ordine' => data_get($row, 'data_ordine', 'N/A'),
+            'cliente' => trim($nomeCliente . ' ' . $cognomeCliente),
+            'indirizzo_spedizione' => data_get($row, 'cliente.indirizzo_spedizione', 'N/A'),
             'codice_prodotto' => '',
             'descrizione_prodotto' => '',
             'quantita' => '',
             'prezzo_unitario' => '',
             'subtotale' => '',
-            'totale_ordine' => $row['totale_ordine'] ?? 'N/A',
+            'totale_ordine' => data_get($row, 'totale_ordine', 'N/A'),
         ];
 
-        if (empty($row['prodotti'])) {
+        $prodotti = data_get($row, 'prodotti', []);
+        if (empty($prodotti)) {
             $rows[] = $mainDetails;
         } else {
-            foreach ($row['prodotti'] as $prodotto) {
+            foreach ($prodotti as $prodotto) {
                 $productDetails = $mainDetails; // Start with main details
-                $productDetails['codice_prodotto'] = $prodotto['codice'] ?? 'N/A';
-                $productDetails['descrizione_prodotto'] = $prodotto['descrizione'] ?? 'N/A';
-                $productDetails['quantita'] = $prodotto['quantita'] ?? 'N/A';
-                $productDetails['prezzo_unitario'] = $prodotto['prezzo_unitario'] ?? 'N/A';
-                $productDetails['subtotale'] = $prodotto['subtotale'] ?? 'N/A';
+                $productDetails['codice_prodotto'] = data_get($prodotto, 'codice', 'N/A');
+                $productDetails['descrizione_prodotto'] = data_get($prodotto, 'descrizione', 'N/A');
+                $productDetails['quantita'] = data_get($prodotto, 'quantita', 'N/A');
+                $productDetails['prezzo_unitario'] = data_get($prodotto, 'prezzo_unitario', 'N/A');
+                $productDetails['subtotale'] = data_get($prodotto, 'subtotale', 'N/A');
                 $rows[] = $productDetails;
             }
         }
