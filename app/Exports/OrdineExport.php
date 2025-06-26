@@ -2,79 +2,102 @@
 
 namespace App\Exports;
 
-use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\FromArray;
-use Maatwebsite\Excel\Concerns\FromCollection;
-use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\WithTitle;
+use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 class OrdineExport implements FromArray, WithTitle, WithStyles
 {
-    protected $ordine;
+    protected $datiOrdine;
 
-    public function __construct(array $orderData)
+    public function __construct(array $datiOrdine)
     {
-        // Rende il costruttore flessibile: usa la chiave 'ordine' se esiste, 
-        // altrimenti assume che i dati passati siano già quelli corretti.
-        $this->ordine = $orderData['ordine'] ?? $orderData;
+        $this->datiOrdine = $datiOrdine;
     }
 
     public function array(): array
     {
-        $cliente = $this->ordine['cliente'];
-        $dest = $this->ordine['destinazione_merce'];
-        $articoli = $this->ordine['dettagli_articoli'];
+        $fornitore = $this->datiOrdine['fornitore'];
+        $cliente = $this->datiOrdine['cliente'];
+        $ordine = $this->datiOrdine['ordine'];
+        $articoli = $ordine['articoli'];
+
         $output = [
-            ['Nome Cliente', '', $cliente['nome']],
-            ['Destinazione', '', $dest['indirizzo']],
-            ['Data Ordine', '', $this->ordine['data_ordine']],
-            ['Numero Ordine', '', str_replace('/', ' ', $this->ordine['numero_ordine'])],
-            ['Persona Contatto', '', $dest['referente']],
-            [''],
-            [''],
+            ['Fornitore', $fornitore['nome']],
+            ['Indirizzo Fornitore', $fornitore['indirizzo']],
+            ['Contatti Fornitore', ($fornitore['contatti']['email'] ?? '') . ' - ' . ($fornitore['contatti']['telefono'] ?? '')],
+            [], // Riga vuota
+            ['Cliente', $cliente['nome']],
+            ['Indirizzo Consegna', $cliente['indirizzo']],
+            [], // Riga vuota
+            ['Data Ordine', $ordine['data_ordine']],
+            ['Numero Ordine', $ordine['numero_ordine']],
+            ['Termini di Consegna', $ordine['termini_consegna']],
+            [], // Riga vuota
+            // Intestazioni per la tabella degli articoli
+            ['Codice Articolo', 'Descrizione', 'Quantità', 'Prezzo Unitario (€)', 'Totale (€)'],
         ];
 
         foreach ($articoli as $articolo) {
-
-            $quantita = $articolo['quantita_per_taglia'];
-            $taglie = [];
-            $quantita_valori = [];
-
-            // Gestione della struttura "quantita_per_taglia"
-            foreach ($quantita as $q) {
-                $taglie[] = $q['taglia'];
-                $quantita_valori[] = $q['quantita'];
-            }
-
-            $output[] = ['Data Consegna', '', $articolo['data_consegna'] ?? ''];
-            $output[] = ['Matricola', '', $articolo['matricola'] ?? '', 'Marcatura', '', $articolo['descrizione'] ?? '', '', '', '', 'Calzata', $articolo['calzata'] ?? ''];
-            $output[] = ['Taglie',  ...$taglie];
-            $output[] = ['Quantità', ...$quantita_valori];
-            $output[] = ['Note di produzione', ($articolo['note_di_produzione'] === 'N/A') ? '' : ($articolo['note_di_produzione'] ?? '')];
-            $output[] = [''];
+            $output[] = [
+                $articolo['codice'],
+                $articolo['descrizione'],
+                $articolo['quantita'],
+                $articolo['prezzo_unitario'],
+                $articolo['totale'],
+            ];
         }
 
-        return $output;
+        // Riga vuota prima del totale
+        $output[] = [];
+        // Riga del totale ordine
+        $output[] = ['', '', '', 'Totale Ordine', $ordine['totale_ordine']];
 
+        return $output;
     }
 
     public function styles(Worksheet $sheet)
     {
-        // Ottieni l'intervallo di celle utilizzate nel foglio
+        // Trova l'indice dell'ultima riga
         $lastRow = $sheet->getHighestRow();
-        $lastColumn = $sheet->getHighestColumn();
+        
+        // Indice della riga di intestazione della tabella articoli (è fissa)
+        $headerRowIndex = 12;
 
-        // Applica il grassetto alla prima colonna di tutte le righe
-        for ($row = 1; $row <= $lastRow; $row++) {
+        // Applica il grassetto alla prima colonna delle informazioni di testata
+        for ($row = 1; $row < $headerRowIndex; $row++) {
             $sheet->getStyle('A'.$row)->getFont()->setBold(true);
         }
+        
+        // Grassetto per l'intera riga di intestazione della tabella articoli
+        $sheet->getStyle('A'.$headerRowIndex.':E'.$headerRowIndex)->getFont()->setBold(true);
 
-        // Imposta la larghezza delle colonne per una migliore leggibilità
+        // Grassetto per l'etichetta del totale ordine
+        $sheet->getStyle('D'.$lastRow)->getFont()->setBold(true);
+
+        // Imposta larghezza colonne per migliore leggibilità
         $sheet->getColumnDimension('A')->setWidth(20);
-        $sheet->getColumnDimension('B')->setWidth(10);
-        $sheet->getColumnDimension('C')->setWidth(20);
+        $sheet->getColumnDimension('B')->setWidth(45);
+        $sheet->getColumnDimension('C')->setWidth(15);
+        $sheet->getColumnDimension('D')->setWidth(20);
+        $sheet->getColumnDimension('E')->setWidth(15);
+
+        // Formattazione valuta per le colonne di prezzo e totale degli articoli
+        $firstArticleRow = $headerRowIndex + 1;
+        $lastArticleRow = $lastRow - 2; // Sottrai la riga vuota e la riga del totale
+
+        if ($lastArticleRow >= $firstArticleRow) {
+            $sheet->getStyle('D'.$firstArticleRow.':E'.$lastArticleRow)
+                ->getNumberFormat()
+                ->setFormatCode(NumberFormat::FORMAT_CURRENCY_EUR_SIMPLE);
+        }
+
+        // Formato valuta per il totale generale dell'ordine
+        $sheet->getStyle('E'.$lastRow)
+            ->getNumberFormat()
+            ->setFormatCode(NumberFormat::FORMAT_CURRENCY_EUR_SIMPLE);
 
         return [];
     }
