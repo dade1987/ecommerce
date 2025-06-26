@@ -2,104 +2,63 @@
 
 namespace App\Exports;
 
-use Maatwebsite\Excel\Concerns\FromArray;
-use Maatwebsite\Excel\Concerns\WithStyles;
+use Maatwebsite\Excel\Concerns\Exportable;
+use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithTitle;
-use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
-use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
+use Illuminate\Support\Collection;
 
-class OrdineExport implements FromArray, WithTitle, WithStyles
+class OrdineExport implements FromCollection, WithHeadings, WithMapping, WithTitle
 {
-    protected $datiOrdine;
+    use Exportable;
 
-    public function __construct(array $datiOrdine)
+    protected array $data;
+    protected array $headings = [];
+    protected array $processedData = [];
+
+    public function __construct(array $exportData)
     {
-        $this->datiOrdine = $datiOrdine;
+        $this->data = $this->processInputData($exportData);
+        $this->buildDynamicHeadings();
     }
 
-    public function array(): array
+    private function processInputData(array $input): array
     {
-        $fornitore = $this->datiOrdine['fornitore'];
-        $cliente = $this->datiOrdine['cliente'];
-        $ordine = $this->datiOrdine['ordine'];
-        $articoli = $this->datiOrdine['articoli'];
+        $processed = [];
+        $prodotti = data_get($input, 'prodotti', []);
 
-        $output = [
-            ['Fornitore', $fornitore['nome']],
-            ['Indirizzo Fornitore', $fornitore['indirizzo']],
-            ['Contatti Fornitore', ($fornitore['contatti']['email'] ?? '') . ' - ' . ($fornitore['contatti']['telefono'] ?? '')],
-            [], // Riga vuota
-            ['Cliente', $cliente['nome']],
-            ['Indirizzo Consegna', $cliente['indirizzo']],
-            [], // Riga vuota
-            ['Data Ordine', $ordine['data_ordine']],
-            ['Numero Ordine', $ordine['numero_ordine']],
-            ['Termini di Consegna', $ordine['termini_consegna']],
-            [], // Riga vuota
-            // Intestazioni per la tabella degli articoli
-            ['Codice Articolo', 'Descrizione', 'Quantità', 'Prezzo Unitario (€)', 'Totale (€)'],
-        ];
-
-        foreach ($articoli as $articolo) {
-            $output[] = [
-                $articolo['codice'],
-                $articolo['descrizione'],
-                $articolo['quantita'],
-                $articolo['prezzo_unitario'],
-                $articolo['totale'],
-            ];
+        if (empty($prodotti)) {
+            $processed[] = $input;
+            return $processed;
         }
 
-        // Riga vuota prima del totale
-        $output[] = [];
-        // Riga del totale ordine
-        $output[] = ['', '', '', 'Totale Ordine', $ordine['totale_ordine']];
-
-        return $output;
+        foreach ($prodotti as $prodotto) {
+            $row = $input;
+            unset($row['prodotti']); // Rimuovo l'array prodotti per evitare duplicazioni
+            $row['prodotto'] = $prodotto;
+            $processed[] = $row;
+        }
+        return $processed;
     }
 
-    public function styles(Worksheet $sheet)
+    public function collection(): Collection
     {
-        // Trova l'indice dell'ultima riga
-        $lastRow = $sheet->getHighestRow();
-        
-        // Indice della riga di intestazione della tabella articoli (è fissa)
-        $headerRowIndex = 12;
+        return new Collection($this->data);
+    }
 
-        // Applica il grassetto alla prima colonna delle informazioni di testata
-        for ($row = 1; $row < $headerRowIndex; $row++) {
-            $sheet->getStyle('A'.$row)->getFont()->setBold(true);
+    public function headings(): array
+    {
+        return array_map('ucfirst', str_replace(['_', '.'], ' ', $this->headings));
+    }
+
+    public function map($row): array
+    {
+        $mappedRow = [];
+        foreach ($this->headings as $heading) {
+            $mappedRow[] = data_get($row, str_replace('_', '.', $heading), 'N/A');
         }
-        
-        // Grassetto per l'intera riga di intestazione della tabella articoli
-        $sheet->getStyle('A'.$headerRowIndex.':E'.$headerRowIndex)->getFont()->setBold(true);
-
-        // Grassetto per l'etichetta del totale ordine
-        $sheet->getStyle('D'.$lastRow)->getFont()->setBold(true);
-
-        // Imposta larghezza colonne per migliore leggibilità
-        $sheet->getColumnDimension('A')->setWidth(20);
-        $sheet->getColumnDimension('B')->setWidth(45);
-        $sheet->getColumnDimension('C')->setWidth(15);
-        $sheet->getColumnDimension('D')->setWidth(20);
-        $sheet->getColumnDimension('E')->setWidth(15);
-
-        // Formattazione valuta per le colonne di prezzo e totale degli articoli
-        $firstArticleRow = $headerRowIndex + 1;
-        $lastArticleRow = $lastRow - 2; // Sottrai la riga vuota e la riga del totale
-
-        if ($lastArticleRow >= $firstArticleRow) {
-            $sheet->getStyle('D'.$firstArticleRow.':E'.$lastArticleRow)
-                ->getNumberFormat()
-                ->setFormatCode(NumberFormat::FORMAT_CURRENCY_EUR_SIMPLE);
-        }
-
-        // Formato valuta per il totale generale dell'ordine
-        $sheet->getStyle('E'.$lastRow)
-            ->getNumberFormat()
-            ->setFormatCode(NumberFormat::FORMAT_CURRENCY_EUR_SIMPLE);
-
-        return [];
+        return $mappedRow;
     }
 
     public function title(): string
@@ -107,58 +66,24 @@ class OrdineExport implements FromArray, WithTitle, WithStyles
         return 'Ordine';
     }
 
-    public function map($row): array
+    private function buildDynamicHeadings(): void
     {
-        $rows = [];
-
-        $nomeCliente = data_get($row, 'cliente.nome', 'N/A');
-        $cognomeCliente = data_get($row, 'cliente.cognome', '');
-        
-        // Main order details
-        $mainDetails = [
-            'numero_ordine' => data_get($row, 'numero_ordine', 'N/A'),
-            'data_ordine' => data_get($row, 'data_ordine', 'N/A'),
-            'cliente' => trim($nomeCliente . ' ' . $cognomeCliente),
-            'indirizzo_spedizione' => data_get($row, 'cliente.indirizzo_spedizione', 'N/A'),
-            'codice_prodotto' => '',
-            'descrizione_prodotto' => '',
-            'quantita' => '',
-            'prezzo_unitario' => '',
-            'subtotale' => '',
-            'totale_ordine' => data_get($row, 'totale_ordine', 'N/A'),
-        ];
-
-        $prodotti = data_get($row, 'prodotti', []);
-        if (empty($prodotti)) {
-            $rows[] = $mainDetails;
-        } else {
-            foreach ($prodotti as $prodotto) {
-                $productDetails = $mainDetails; // Start with main details
-                $productDetails['codice_prodotto'] = data_get($prodotto, 'codice', 'N/A');
-                $productDetails['descrizione_prodotto'] = data_get($prodotto, 'descrizione', 'N/A');
-                $productDetails['quantita'] = data_get($prodotto, 'quantita', 'N/A');
-                $productDetails['prezzo_unitario'] = data_get($prodotto, 'prezzo_unitario', 'N/A');
-                $productDetails['subtotale'] = data_get($prodotto, 'subtotale', 'N/A');
-                $rows[] = $productDetails;
-            }
+        if (!empty($this->data[0])) {
+            $this->headings = array_keys($this->flatten_array($this->data[0]));
         }
-
-        return $rows;
     }
 
-    public function headings(): array
+    private function flatten_array(array $array, string $prefix = ''): array
     {
-        return [
-            'Numero Ordine',
-            'Data Ordine',
-            'Cliente',
-            'Indirizzo Spedizione',
-            'Codice Prodotto',
-            'Descrizione Prodotto',
-            'Quantità',
-            'Prezzo Unitario',
-            'Subtotale',
-            'Totale Ordine',
-        ];
+        $result = [];
+        foreach ($array as $key => $value) {
+            $newKey = $prefix ? $prefix . '_' . $key : $key;
+            if (is_array($value) && !empty($value)) {
+                $result = array_merge($result, $this->flatten_array($value, $newKey));
+            } else {
+                $result[$newKey] = $value;
+            }
+        }
+        return $result;
     }
 }
