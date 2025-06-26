@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use OpenAI;
+use App\Models\Page;
 
 class GenerateArticleCommand extends Command
 {
@@ -56,6 +57,11 @@ class GenerateArticleCommand extends Command
 
         $locations = ['Noale', 'Mestre', 'Venezia', 'Treviso', 'Padova'];
 
+        $pages = Page::all(['title', 'slug']);
+        $internalLinksList = $pages->map(function ($page) {
+            return "- {$page->title}: /{$page->slug}";
+        })->implode("\n");
+
         foreach ($keywords as $keyword) {
             foreach ($locations as $location) {
                 $fullKeyword = "{$keyword} a {$location}";
@@ -86,7 +92,9 @@ class GenerateArticleCommand extends Command
                                 deve essere un riassunto conciso e accattivante per i motori di ricerca, di massimo 160 caratteri. 
                                 Non menzionare che è stato generato da un'IA. Assicurati che CavalliniService sia menzionato come il 
                                 fornitore del servizio. Scrivi che siamo in ambito business. Alla fine invita alla call to action che 
-                                nello specifico è cliccare il tasto 'Prenota una Call' sotto.",
+                                nello specifico è cliccare il tasto 'Prenota una Call' sotto. Inserisci in modo naturale e pertinente 
+                                all'interno del contenuto 1 o 2 link interni alle pagine del sito, usando la seguente lista. 
+                                I link devono essere in formato markdown, ad esempio [testo del link](/slug-pagina).\n\nLista Pagine:\n{$internalLinksList}",
                             ],
                             [
                                 'role' => 'user',
