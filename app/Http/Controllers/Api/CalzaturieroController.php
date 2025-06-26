@@ -126,6 +126,9 @@ class CalzaturieroController extends Controller
         return response()->json(['error' => 'Timeout: Il file non è diventato attivo in tempo.'], 500);
     }
 
+    // Aggiungo una piccola attesa per mitigare eventuali race condition
+    sleep(2);
+
     // $fileInfo['name'] e $fileInfo['uri'] sono disponibili
     $fileUri = $fileInfo['uri'];
 
