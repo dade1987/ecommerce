@@ -2,63 +2,71 @@
 
 namespace App\Exports;
 
-use Maatwebsite\Excel\Concerns\Exportable;
-use Maatwebsite\Excel\Concerns\FromCollection;
-use Maatwebsite\Excel\Concerns\WithHeadings;
-use Maatwebsite\Excel\Concerns\WithMapping;
+use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Concerns\WithTitle;
-use Illuminate\Support\Collection;
+use Maatwebsite\Excel\Concerns\WithStyles;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
+use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 
-class OrdineExport implements FromCollection, WithHeadings, WithMapping, WithTitle
+class OrdineExport implements FromArray, WithTitle, WithStyles
 {
-    use Exportable;
-
-    protected array $data;
-    protected array $headings = [];
-    protected array $processedData = [];
+    protected array $dati;
 
     public function __construct(array $exportData)
     {
-        $this->data = $this->processInputData($exportData);
-        $this->buildDynamicHeadings();
+        $this->dati = $exportData;
     }
 
-    private function processInputData(array $input): array
+    public function array(): array
     {
-        $processed = [];
-        $prodotti = data_get($input, 'prodotti', []);
+        $fornitoreNome = data_get($this->dati, 'fornitore.nome', 'N/A');
+        $fornitoreIndirizzo = data_get($this->dati, 'fornitore.indirizzo', 'N/A');
+        $fornitoreEmail = data_get($this->dati, 'fornitore.contatti.email', '');
+        $fornitoreTel = data_get($this->dati, 'fornitore.contatti.telefono', '');
+        $fornitoreContatti = trim("{$fornitoreEmail} " . ($fornitoreEmail && $fornitoreTel ? '- ' : '') . "{$fornitoreTel}");
+        if (empty($fornitoreContatti)) $fornitoreContatti = 'N/A';
+        
+        $clienteNome = data_get($this->dati, 'cliente.nome', 'N/A');
+        $clienteIndirizzo = data_get($this->dati, 'cliente.indirizzo_consegna', 'N/A');
+        
+        $ordineData = data_get($this->dati, 'ordine.data_ordine', 'N/A');
+        $ordineNumero = data_get($this->dati, 'ordine.numero_ordine', 'N/A');
+        $ordineTermini = data_get($this->dati, 'ordine.termini_consegna', 'N/A');
+        
+        $articoli = data_get($this->dati, 'articoli', []);
+        $ordineTotale = data_get($this->dati, 'ordine.totale_ordine', 'N/A');
+        
+        $output = [];
 
-        if (empty($prodotti)) {
-            $processed[] = $input;
-            return $processed;
+        // Sezione Intestazione
+        $output[] = ['Fornitore', $fornitoreNome];
+        $output[] = ['Indirizzo Fornitore', $fornitoreIndirizzo];
+        $output[] = ['Contatti Fornitore', $fornitoreContatti];
+        $output[] = ['Cliente', $clienteNome];
+        $output[] = ['Indirizzo Consegna', $clienteIndirizzo];
+        $output[] = ['Data Ordine', $ordineData];
+        $output[] = ['Numero Ordine', $ordineNumero];
+        $output[] = ['Termini di Consegna', $ordineTermini];
+        $output[] = []; // Riga vuota di spaziatura
+
+        // Intestazioni Tabella Articoli
+        $output[] = ['Codice Articolo', 'Descrizione', 'Quantità', 'Prezzo Unitario (€)', 'Totale (€)'];
+
+        // Righe Articoli
+        foreach ($articoli as $articolo) {
+            $output[] = [
+                data_get($articolo, 'codice', 'N/A'),
+                data_get($articolo, 'descrizione', 'N/A'),
+                data_get($articolo, 'quantita', 'N/A'),
+                data_get($articolo, 'prezzo_unitario', 'N/A'),
+                data_get($articolo, 'totale', 'N/A'),
+            ];
         }
 
-        foreach ($prodotti as $prodotto) {
-            $row = $input;
-            unset($row['prodotti']); // Rimuovo l'array prodotti per evitare duplicazioni
-            $row['prodotto'] = $prodotto;
-            $processed[] = $row;
-        }
-        return $processed;
-    }
-
-    public function collection(): Collection
-    {
-        return new Collection($this->data);
-    }
-
-    public function headings(): array
-    {
-        return array_map('ucfirst', str_replace(['_', '.'], ' ', $this->headings));
-    }
-
-    public function map($row): array
-    {
-        $mappedRow = [];
-        foreach ($this->headings as $heading) {
-            $mappedRow[] = data_get($row, str_replace('_', '.', $heading), 'N/A');
-        }
-        return $mappedRow;
+        // Riga Totale
+        $output[] = ['', '', '', 'Totale Ordine', $ordineTotale];
+        
+        return $output;
     }
 
     public function title(): string
@@ -66,24 +74,44 @@ class OrdineExport implements FromCollection, WithHeadings, WithMapping, WithTit
         return 'Ordine';
     }
 
-    private function buildDynamicHeadings(): void
+    public function styles(Worksheet $sheet)
     {
-        if (!empty($this->data[0])) {
-            $this->headings = array_keys($this->flatten_array($this->data[0]));
-        }
-    }
+        $lastRow = $sheet->getHighestRow();
+        $headerInfoRows = 8;
+        $articleHeaderRow = $headerInfoRows + 2;
 
-    private function flatten_array(array $array, string $prefix = ''): array
-    {
-        $result = [];
-        foreach ($array as $key => $value) {
-            $newKey = $prefix ? $prefix . '_' . $key : $key;
-            if (is_array($value) && !empty($value)) {
-                $result = array_merge($result, $this->flatten_array($value, $newKey));
-            } else {
-                $result[$newKey] = $value;
-            }
+        // Grassetto per le etichette di intestazione
+        for ($i = 1; $i <= $headerInfoRows; $i++) {
+            $sheet->getStyle('A' . $i)->getFont()->setBold(true);
         }
-        return $result;
+        
+        // Grassetto per l'intestazione della tabella articoli
+        $sheet->getStyle('A' . $articleHeaderRow . ':E' . $articleHeaderRow)->getFont()->setBold(true);
+        
+        // Grassetto per l'etichetta del totale
+        $sheet->getStyle('D' . $lastRow)->getFont()->setBold(true);
+
+        // Larghezza colonne
+        $sheet->getColumnDimension('A')->setWidth(25);
+        $sheet->getColumnDimension('B')->setWidth(45);
+        $sheet->getColumnDimension('C')->setWidth(15);
+        $sheet->getColumnDimension('D')->setWidth(20);
+        $sheet->getColumnDimension('E')->setWidth(15);
+
+        // Formato valuta per le colonne dei prezzi
+        $firstArticleDataRow = $articleHeaderRow + 1;
+        $lastPriceCell = $lastRow -1;
+        if ($lastPriceCell >= $firstArticleDataRow) {
+             $sheet->getStyle("D{$firstArticleDataRow}:E{$lastPriceCell}")
+                ->getNumberFormat()
+                ->setFormatCode(NumberFormat::FORMAT_CURRENCY_EUR_SIMPLE);
+        }
+
+        // Formato valuta per il totale finale
+         $sheet->getStyle('E' . $lastRow)
+            ->getNumberFormat()
+            ->setFormatCode(NumberFormat::FORMAT_CURRENCY_EUR_SIMPLE);
+
+        return [];
     }
 }
