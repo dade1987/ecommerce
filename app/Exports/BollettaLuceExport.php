@@ -36,14 +36,34 @@ class BollettaLuceExport implements FromCollection, WithHeadings, WithMapping, W
      */
     public function map($row): array
     {
-        $mappedRow = $this->flatten_array($row);
-
-        $outputRow = [];
-        foreach ($this->headings as $heading) {
-            $outputRow[] = $mappedRow[$heading] ?? '';
-        }
-
-        return $outputRow;
+        return [
+            $row['fornitore'] ?? 'N/A',
+            $row['numero_documento'] ?? 'N/A',
+            $row['periodo_riferimento'] ?? 'N/A',
+            $row['nome_cliente'] ?? 'N/A',
+            $row['indirizzo_fornitura'] ?? 'N/A',
+            $row['codice_fiscale'] ?? 'N/A',
+            $row['codice_cliente'] ?? 'N/A',
+            $row['codice_pod'] ?? 'N/A',
+            $row['tipologia_contratto'] ?? 'N/A',
+            $row['potenza_disponibile'] ?? 'N/A',
+            $row['livello_tensione'] ?? 'N/A',
+            $row['data_emissione'] ?? 'N/A',
+            $row['data_scadenza'] ?? 'N/A',
+            $row['importo_totale'] ?? 'N/A',
+            $row['consumo_energia_kwh'] ?? 'N/A',
+            $row['costo_medio_unitario_kwh'] ?? 'N/A',
+            $row['dettaglio_costi']['energia'] ?? 'N/A',
+            $row['dettaglio_costi']['trasporto_gestione_contatore'] ?? 'N/A',
+            $row['dettaglio_costi']['oneri_sistema'] ?? 'N/A',
+            $row['dettaglio_costi']['imposte_iva'] ?? 'N/A',
+            $row['letture']['precedente'] ?? 'N/A',
+            $row['letture']['attuale'] ?? 'N/A',
+            $row['informazioni_tecniche']['distributore_competente'] ?? 'N/A',
+            $row['modalita_pagamento'] ?? 'N/A',
+            $row['contatti_servizio_clienti']['telefono'] ?? 'N/A',
+            $row['contatti_servizio_clienti']['sito_web'] ?? 'N/A',
+        ];
     }
 
     public function styles(Worksheet $sheet)

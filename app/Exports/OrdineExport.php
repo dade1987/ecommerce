@@ -106,4 +106,55 @@ class OrdineExport implements FromArray, WithTitle, WithStyles
     {
         return 'Ordine';
     }
+
+    public function map($row): array
+    {
+        $rows = [];
+
+        // Main order details
+        $mainDetails = [
+            'numero_ordine' => $row['numero_ordine'] ?? 'N/A',
+            'data_ordine' => $row['data_ordine'] ?? 'N/A',
+            'cliente' => ($row['cliente']['nome'] ?? 'N/A') . ' ' . ($row['cliente']['cognome'] ?? ''),
+            'indirizzo_spedizione' => $row['cliente']['indirizzo_spedizione'] ?? 'N/A',
+            'codice_prodotto' => '',
+            'descrizione_prodotto' => '',
+            'quantita' => '',
+            'prezzo_unitario' => '',
+            'subtotale' => '',
+            'totale_ordine' => $row['totale_ordine'] ?? 'N/A',
+        ];
+
+        if (empty($row['prodotti'])) {
+            $rows[] = $mainDetails;
+        } else {
+            foreach ($row['prodotti'] as $prodotto) {
+                $productDetails = $mainDetails; // Start with main details
+                $productDetails['codice_prodotto'] = $prodotto['codice'] ?? 'N/A';
+                $productDetails['descrizione_prodotto'] = $prodotto['descrizione'] ?? 'N/A';
+                $productDetails['quantita'] = $prodotto['quantita'] ?? 'N/A';
+                $productDetails['prezzo_unitario'] = $prodotto['prezzo_unitario'] ?? 'N/A';
+                $productDetails['subtotale'] = $prodotto['subtotale'] ?? 'N/A';
+                $rows[] = $productDetails;
+            }
+        }
+
+        return $rows;
+    }
+
+    public function headings(): array
+    {
+        return [
+            'Numero Ordine',
+            'Data Ordine',
+            'Cliente',
+            'Indirizzo Spedizione',
+            'Codice Prodotto',
+            'Descrizione Prodotto',
+            'Quantità',
+            'Prezzo Unitario',
+            'Subtotale',
+            'Totale Ordine',
+        ];
+    }
 }
