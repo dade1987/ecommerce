@@ -50,7 +50,7 @@ class CalzaturieroController extends Controller
         
         // Estrai il mime type e i dati base64
         // Esempio: data:image/png;base64,iVBORw0KGgo...
-        if (!preg_match('/^data:(image\/\w+);base64,/', $dataUrl, $type)) {
+        if (!preg_match('/^data:((?:image|audio)\/\w+);base64,/', $dataUrl, $type)) {
             return response()->json(['error' => 'Formato data URL non valido.'], 400);
         }
         $mimeType = $type[1];

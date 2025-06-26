@@ -325,30 +325,42 @@
                 if (!this.audioBlob || this.submitting) return;
                 this.submitting = true;
 
-                const formData = new FormData();
-                formData.append('file', this.audioBlob, 'registrazione-ordine.webm');
-                
-                const csrfTokenElement = document.querySelector('#upload-form input[name="_token"]');
-                 if (!csrfTokenElement) {
-                    console.error('CSRF token not found');
-                    alert('Errore: Token di sicurezza non trovato. Ricaricare la pagina.');
-                    this.submitting = false;
-                    return;
-                }
-                formData.append('_token', csrfTokenElement.value);
+                const reader = new FileReader();
+                reader.readAsDataURL(this.audioBlob);
 
-                fetch(this.actionUrl, { method: 'POST', body: formData })
-                    .then(response => {
-                        // This will just submit, and the browser will handle the response (e.g. download or page redirect)
-                        window.location.href = response.url;
-                    })
-                    .catch(error => {
-                        console.error('Errore invio audio:', error);
-                        alert('Si è verificato un errore durante l\'invio.');
-                    })
-                    .finally(() => {
+                reader.onloadend = () => {
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = this.actionUrl;
+                    form.style.display = 'none';
+
+                    const csrfTokenElement = document.querySelector('#upload-form input[name="_token"]');
+                    if (!csrfTokenElement) {
+                        console.error('CSRF token not found');
+                        alert('Errore: Token di sicurezza non trovato. Ricaricare la pagina.');
                         this.submitting = false;
-                    });
+                        return;
+                    }
+                    const csrfInput = document.createElement('input');
+                    csrfInput.type = 'hidden';
+                    csrfInput.name = '_token';
+                    csrfInput.value = csrfTokenElement.value;
+                    form.appendChild(csrfInput);
+
+                    const dataUrlInput = document.createElement('input');
+                    dataUrlInput.type = 'hidden';
+                    dataUrlInput.name = 'file_data_url';
+                    dataUrlInput.value = reader.result;
+                    form.appendChild(dataUrlInput);
+
+                    document.body.appendChild(form);
+                    form.submit();
+                };
+
+                reader.onerror = () => {
+                    alert('Errore nella conversione del file audio.');
+                    this.submitting = false;
+                };
             },
             
             submitForm(event) {
