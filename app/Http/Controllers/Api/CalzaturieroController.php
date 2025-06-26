@@ -49,11 +49,15 @@ class CalzaturieroController extends Controller
         $dataUrl = $request->input('file_data_url');
         
         // Estrai il mime type e i dati base64
-        // Esempio: data:image/png;base64,iVBORw0KGgo...
-        if (!preg_match('/^data:((?:image|audio)\/\w+);base64,/', $dataUrl, $type)) {
+        if (!preg_match('/^data:(.+);base64,/', $dataUrl, $type)) {
             return response()->json(['error' => 'Formato data URL non valido.'], 400);
         }
         $mimeType = $type[1];
+
+        if (!str_starts_with($mimeType, 'image/') && !str_starts_with($mimeType, 'audio/')) {
+            return response()->json(['error' => 'Tipo di file non supportato. Invia solo immagini o audio.'], 400);
+        }
+
         $fileData = base64_decode(substr($dataUrl, strpos($dataUrl, ',') + 1));
 
         if ($fileData === false) {
