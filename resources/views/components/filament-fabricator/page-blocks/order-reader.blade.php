@@ -42,9 +42,8 @@
                 <!-- Option 3: Record Audio -->
                 <div @click="setStep('audio')" class="relative p-6 bg-white dark:bg-gray-800 rounded-xl shadow-lg cursor-pointer transform hover:scale-105 transition-transform duration-300">
                     <div class="flex flex-col items-center justify-center">
-                        <svg class="w-16 h-16 text-red-500 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 18.75a6 6 0 006-6v-1.5a6 6 0 00-12 0v1.5a6 6 0 006 6z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5v1.5a7.5 7.5 0 11-15 0v-1.5a7.5 7.5 0 0115 0z" />
+                        <svg class="w-16 h-16 text-blue-500 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                           <path stroke-linecap="round" stroke-linejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 016 0v8.25a3 3 0 01-3 3z" />
                         </svg>
                         <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Registra Audio</h2>
                         <p class="text-gray-500 dark:text-gray-400 mt-1">Registra un vocale con i dettagli dell'ordine.</p>
