@@ -55,6 +55,8 @@ class FeedbackResource extends Resource
                                 return $feedbacks->map(function ($feedback) {
                                     return "Nome: " . ($feedback->customer->name ?? 'N/A') . "\n" .
                                            "Email: " . ($feedback->customer->email ?? 'N/A') . "\n" .
+                                           "Autore: " . ($feedback->author_name ?? 'N/A') . "\n" .
+                                           "Ruolo Autore: " . ($feedback->author_role ?? 'N/A') . "\n" .
                                            "Data: " . $feedback->created_at->format('d/m/Y H:i') . "\n" .
                                            "Feedback: " . $feedback->feedback . "\n" .
                                            "----------------------------------------";
@@ -69,6 +71,14 @@ class FeedbackResource extends Resource
             ])
             ->columns([
                 Tables\Columns\TextColumn::make('customer.name')
+                    ->searchable()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('author_name')
+                    ->label('Autore')
+                    ->searchable()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('author_role')
+                    ->label('Ruolo Autore')
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('feedback')
