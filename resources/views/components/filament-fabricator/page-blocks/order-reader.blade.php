@@ -17,7 +17,7 @@
 
             <p class="text-lg text-gray-500 dark:text-gray-400 mb-8">Scegli come fornire i dati</p>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <!-- Option 1: Upload File -->
                 <div @click="setStep('upload')" class="relative p-6 bg-white dark:bg-gray-800 rounded-xl shadow-lg cursor-pointer transform hover:scale-105 transition-transform duration-300">
                     <div class="flex flex-col items-center justify-center">
@@ -36,6 +36,18 @@
                         </svg>
                         <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Scatta Foto</h2>
                         <p class="text-gray-500 dark:text-gray-400 mt-1">Usa la fotocamera per un'acquisizione rapida.</p>
+                    </div>
+                </div>
+
+                <!-- Option 3: Record Audio -->
+                <div @click="setStep('audio')" class="relative p-6 bg-white dark:bg-gray-800 rounded-xl shadow-lg cursor-pointer transform hover:scale-105 transition-transform duration-300">
+                    <div class="flex flex-col items-center justify-center">
+                        <svg class="w-16 h-16 text-red-500 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 18.75a6 6 0 006-6v-1.5a6 6 0 00-12 0v1.5a6 6 0 006 6z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5v1.5a7.5 7.5 0 11-15 0v-1.5a7.5 7.5 0 0115 0z" />
+                        </svg>
+                        <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Registra Audio</h2>
+                        <p class="text-gray-500 dark:text-gray-400 mt-1">Registra un vocale con i dettagli dell'ordine.</p>
                     </div>
                 </div>
             </div>
@@ -92,6 +104,48 @@
              </div>
         </div>
 
+        <!-- Step 4: Audio Recording -->
+        <div x-show="step === 'audio'"
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0 transform scale-90"
+             x-transition:enter-end="opacity-100 transform scale-100">
+
+            <button @click="setStep('options')" class="absolute top-4 left-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white z-10">
+                &larr; Indietro
+            </button>
+
+            <h2 class="mb-4 text-2xl font-bold text-center text-gray-800 dark:text-white">Registra Ordine Audio</h2>
+            <div class="mt-8 text-center bg-white dark:bg-gray-800 shadow-md rounded-lg p-6">
+                <div x-show="!isRecording && !audioBlob">
+                    <button @click="startRecording()" class="inline-flex items-center justify-center px-5 py-3 text-base font-medium text-center text-white bg-red-700 rounded-lg hover:bg-red-800 focus:ring-4 focus:ring-red-300 dark:focus:ring-red-900">
+                        Inizia Registrazione
+                    </button>
+                </div>
+                <div x-show="isRecording">
+                    <p class="text-lg text-gray-700 dark:text-gray-300">Registrazione in corso...</p>
+                    <div class="mt-4 flex justify-center items-center space-x-2">
+                        <span class="relative flex h-3 w-3">
+                          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                          <span class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                        </span>
+                        <span x-text="recordingTime + 's'"></span>
+                    </div>
+                    <button @click="stopRecording()" class="px-4 py-2 mt-4 bg-gray-600 text-white font-semibold rounded-md hover:bg-gray-700">Ferma</button>
+                </div>
+                <div x-show="audioBlob">
+                     <p class="text-lg text-gray-700 dark:text-gray-300 mb-4">Registrazione completata.</p>
+                     <audio :src="audioUrl" controls class="w-full"></audio>
+                     <div class="flex justify-center space-x-4 mt-4">
+                        <button @click="sendAudio" :disabled="submitting" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 disabled:bg-blue-400">
+                            <span x-show="!submitting">Invia Audio</span>
+                            <span x-show="submitting">Invio...</span>
+                        </button>
+                         <button @click="resetRecording" class="px-4 py-2 bg-gray-300 text-gray-700 font-semibold rounded-md hover:bg-gray-400">Registra di nuovo</button>
+                     </div>
+                </div>
+            </div>
+        </div>
+
     </div>
 </div>
 
@@ -99,12 +153,20 @@
 <script>
     function orderReader() {
         return {
-            step: 'options', // 'options', 'upload', 'photo'
+            step: 'options', // 'options', 'upload', 'photo', 'audio'
             photoTaken: false,
             photoUrl: '',
             stream: null,
             submitting: false,
             actionUrl: '',
+            // Audio properties
+            isRecording: false,
+            mediaRecorder: null,
+            audioChunks: [],
+            audioBlob: null,
+            audioUrl: '',
+            recordingTime: 0,
+            recordingTimer: null,
 
             init() {
                 const form = document.getElementById('upload-form');
@@ -117,9 +179,15 @@
                 if (this.step === 'photo') {
                     this.stopCamera();
                 }
+                if (this.step === 'audio') {
+                    this.stopRecording(true); // Stop without processing if user navigates away
+                }
                 this.step = newStep;
                 if (newStep === 'photo') {
                     this.startCamera();
+                }
+                if (newStep === 'audio') {
+                    // Audio permissions are requested on button click
                 }
             },
             
@@ -193,6 +261,105 @@
                     document.body.appendChild(form);
                     form.submit();
                 }, 'image/png');
+            },
+            
+            async startRecording() {
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    alert('Il tuo browser non supporta la registrazione audio.');
+                    return;
+                }
+                this.resetRecording();
+                try {
+                    const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    this.mediaRecorder = new MediaRecorder(audioStream);
+                    this.isRecording = true;
+
+                    this.recordingTimer = setInterval(() => {
+                        this.recordingTime++;
+                    }, 1000);
+
+                    this.mediaRecorder.ondataavailable = event => {
+                        this.audioChunks.push(event.data);
+                    };
+
+                    this.mediaRecorder.onstop = () => {
+                        this.audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
+                        this.audioUrl = URL.createObjectURL(this.audioBlob);
+                        this.isRecording = false;
+                        clearInterval(this.recordingTimer);
+                        this.recordingTime = 0;
+                        // Stop microphone stream
+                        audioStream.getTracks().forEach(track => track.stop());
+                    };
+
+                    this.mediaRecorder.start();
+                } catch (err) {
+                    console.error('Errore accesso microfono:', err);
+                    alert('Impossibile accedere al microfono. Assicurati di aver dato i permessi.');
+                    this.isRecording = false;
+                }
+            },
+
+            stopRecording(force = false) {
+                if (this.mediaRecorder && this.isRecording) {
+                    this.mediaRecorder.stop();
+                    if (force) {
+                         this.resetRecording();
+                    }
+                }
+                 clearInterval(this.recordingTimer);
+            },
+
+            resetRecording() {
+                this.isRecording = false;
+                this.audioBlob = null;
+                this.audioUrl = '';
+                this.audioChunks = [];
+                this.recordingTime = 0;
+                if (this.recordingTimer) {
+                    clearInterval(this.recordingTimer);
+                }
+            },
+
+            sendAudio() {
+                if (!this.audioBlob || this.submitting) return;
+                this.submitting = true;
+
+                const formData = new FormData();
+                formData.append('file', this.audioBlob, 'registrazione-ordine.webm');
+                
+                const csrfTokenElement = document.querySelector('#upload-form input[name="_token"]');
+                 if (!csrfTokenElement) {
+                    console.error('CSRF token not found');
+                    alert('Errore: Token di sicurezza non trovato. Ricaricare la pagina.');
+                    this.submitting = false;
+                    return;
+                }
+                formData.append('_token', csrfTokenElement.value);
+
+                fetch(this.actionUrl, { method: 'POST', body: formData })
+                    .then(response => {
+                        // This will just submit, and the browser will handle the response (e.g. download or page redirect)
+                        window.location.href = response.url;
+                    })
+                    .catch(error => {
+                        console.error('Errore invio audio:', error);
+                        alert('Si è verificato un errore durante l\'invio.');
+                    })
+                    .finally(() => {
+                        this.submitting = false;
+                    });
+            },
+            
+            submitForm(event) {
+                const form = event.target;
+                if (form.elements.file.files.length === 0) {
+                    event.preventDefault();
+                    alert('Per favore, seleziona un file prima di inviare.');
+                    return;
+                }
+                
+                // Allow native form submission to handle the response
             }
         }
     }
