@@ -140,7 +140,7 @@ class CalzaturieroController extends Controller
             ['text' => $prompt],
             ['fileData' => [
               'mimeType' => $mimeType,
-              'fileUri'  => $fileInfo['name'],
+              'fileUri'  => $fileUri,
             ]],
           ],
         ],
