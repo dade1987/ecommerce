@@ -32,7 +32,7 @@ class ProcessedFileResource extends Resource
         return $form
             ->schema([
                 Select::make('extractor_id')
-                    ->relationship('extractor', 'name')
+                    ->relationship('extractor', 'slug')
                     ->disabled(),
                 TextInput::make('original_filename')
                     ->disabled(),
@@ -55,7 +55,7 @@ class ProcessedFileResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('id')->sortable(),
-                TextColumn::make('extractor.name')->sortable()->searchable(),
+                TextColumn::make('extractor.slug')->sortable()->searchable(),
                 TextColumn::make('original_filename')->searchable(),
                 TextColumn::make('status')
                     ->badge()
