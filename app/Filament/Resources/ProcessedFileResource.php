@@ -5,9 +5,6 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\ProcessedFileResource\Pages;
 use App\Filament\Resources\ProcessedFileResource\RelationManagers;
 use App\Models\ProcessedFile;
-use Filament\Forms;
-use Filament\Forms\Components\DateTimePicker;
-use Filament\Forms\Components\JsonEditor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -20,6 +17,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Facades\Storage;
+use InvadersXX\FilamentJsoneditor\Forms\JSONEditor;
 
 class ProcessedFileResource extends Resource
 {
@@ -42,7 +40,7 @@ class ProcessedFileResource extends Resource
                     ->disabled(),
                 TextInput::make('status')
                     ->disabled(),
-                JsonEditor::make('gemini_response')
+                JSONEditor::make('gemini_response')
                     ->columnSpanFull()
                     ->disabled(),
                 Textarea::make('error_message')
