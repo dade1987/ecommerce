@@ -46,7 +46,7 @@ class PageController extends Controller
             ->where('id', $pageId)
             ->firstOrFail();
 
-        View::share('pageTitle', config('app.name') . ' - ' . $page->title);
+        View::share('pageTitle', $page->title . ' - Cavallini Service');
         View::share('pageDescription', $page->description);
         View::share('ogImage', asset('images/logo15.png'));
 

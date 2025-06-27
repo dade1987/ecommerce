@@ -21,7 +21,7 @@ class BlogShow extends PageBlock
         $article = Article::where('slug', request()->route('item0'))->first() ?? Article::findOrFail(request()->route('item0'));
         $data['row'] = $article;
 
-        \Illuminate\Support\Facades\View::share('pageTitle', 'Cavallini Service - '. $article->title);
+        \Illuminate\Support\Facades\View::share('pageTitle', $article->title . ' - Cavallini Service' );
         \Illuminate\Support\Facades\View::share('pageDescription', $article->summary);
         \Illuminate\Support\Facades\View::share('ogImage', $article->featuredImage->path);
 
