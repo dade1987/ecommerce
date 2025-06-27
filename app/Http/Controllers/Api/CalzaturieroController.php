@@ -5,11 +5,14 @@ namespace App\Http\Controllers\Api;
 use App\Exports\OrdineExport;
 use App\Http\Controllers\Controller;
 use App\Models\Extractor;
+use App\Models\ProcessedFile;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Facades\Excel;
 use function Safe\json_decode;
+use Throwable;
 
 class CalzaturieroController extends Controller
 {
@@ -26,34 +29,69 @@ class CalzaturieroController extends Controller
 
   /**
    * Processa l'ordine del cliente:
-   * - Carica il file PDF su Gemini con il Files API.
-   * - Chiede a Gemini di estrarre i dati in un JSON pulito.
-   * - Converte il JSON in array PHP e lo esporta in Excel.
+   * - Salva il file e crea un record `ProcessedFile`.
+   * - Carica il file su Gemini (inline per audio, Files API per altro).
+   * - Chiama Gemini per l'estrazione dei dati.
+   * - Aggiorna `ProcessedFile` con successo o fallimento.
+   * - Esporta i dati o restituisce il JSON.
    */
   public function processCustomerOrder(Request $request, $slug)
   {
     $extractor = Extractor::where('slug', $slug)->firstOrFail();
+    $processedFile = null;
 
-    if (! $request->hasFile('file') && ! $request->input('file_data_url')) {
-        return response()->json(['error' => 'Nessun file o dato immagine fornito.'], 400);
-    }
-    
-    $prompt = $extractor->prompt;
-    $generatePayload = [];
-    // Imposta il modello predefinito. Verrà sovrascritto per l'audio.
-    $model = 'gemini-2.5-flash-preview-05-20';
-    
-    $isInlineAudio = false;
-    // Controlla se è un data URL audio e gestiscilo inline
-    if ($request->has('file_data_url')) {
-        $dataUrl = $request->input('file_data_url');
-        // La regex rileva 'audio/*' e cattura il mime type completo
-        if (preg_match('/^data:(audio\/.+?);base64,/', $dataUrl, $type)) {
-            $isInlineAudio = true;
-            $mimeType = $type[1];
-            $base64Data = substr($dataUrl, strpos($dataUrl, ',') + 1);
-            
-            $generatePayload = [
+    try {
+        if (! $request->hasFile('file') && ! $request->input('file_data_url')) {
+            return response()->json(['error' => 'Nessun file o dato immagine fornito.'], 400);
+        }
+
+        $prompt = $extractor->prompt;
+        $model = 'gemini-2.5-flash-preview-05-20';
+        $path = '';
+        $originalFilename = null;
+        $mimeType = '';
+        $fullPath = '';
+        $base64Data = null;
+
+        if ($request->hasFile('file')) {
+            $file = $request->file('file');
+            $originalFilename = $file->getClientOriginalName();
+            $mimeType = $file->getMimeType();
+            $path = $file->store('uploads', 'public');
+            $fullPath = storage_path("app/public/{$path}");
+        } elseif ($request->has('file_data_url')) {
+            $dataUrl = $request->input('file_data_url');
+            if (preg_match('/^data:(image\/.+?|audio\/.+?);base64,/', $dataUrl, $type)) {
+                $mimeType = $type[1];
+                $base64Data = substr($dataUrl, strpos($dataUrl, ',') + 1);
+                $fileData = base64_decode($base64Data);
+
+                if ($fileData === false) throw new \Exception('Decodifica base64 fallita.');
+
+                $extension = explode(';', explode('/', $mimeType)[1])[0] ?? 'bin';
+                $fileName = 'uploads/' . uniqid() . '.' . $extension;
+                Storage::disk('public')->put($fileName, $fileData);
+                $path = $fileName;
+                $fullPath = storage_path("app/public/{$path}");
+                $originalFilename = basename($path);
+            } else {
+                 return response()->json(['error' => 'Formato data URL non valido o tipo file non supportato (solo immagini o audio).'], 400);
+            }
+        }
+
+        $processedFile = ProcessedFile::create([
+            'extractor_id'      => $extractor->id,
+            'original_filename' => $originalFilename,
+            'file_path'         => $path,
+            'mime_type'         => $mimeType,
+            'status'            => 'processing',
+        ]);
+
+        $generatePayload = [];
+        $isAudio = str_starts_with($mimeType, 'audio/');
+
+        if ($isAudio && $base64Data) {
+             $generatePayload = [
                 'contents' => [[
                     'parts' => [
                         ['text' => $prompt],
@@ -65,152 +103,98 @@ class CalzaturieroController extends Controller
                 ]],
                 'generation_config' => ['response_mime_type' => 'application/json'],
             ];
-        }
-    }
-    
-    // Se non è audio inline, usa il vecchio metodo con l'API Files
-    if (! $isInlineAudio) {
-        $fullPath = '';
-        $mimeType = '';
-        
-        if ($request->hasFile('file')) {
-            $file = $request->file('file');
-            $mimeType = $file->getMimeType();
-            $path = $file->store('uploads', 'public');
-            $fullPath = storage_path("app/public/{$path}");
-        } else { // Altrimenti, deve essere un'immagine da data URL
-            $dataUrl = $request->input('file_data_url');
-            if (!preg_match('/^data:(image\/.+?);base64,/', $dataUrl, $type)) {
-                return response()->json(['error' => 'Formato data URL non valido o tipo file non supportato (solo immagini o audio).'], 400);
-            }
-            $mimeType = $type[1];
-            $fileData = base64_decode(substr($dataUrl, strpos($dataUrl, ',') + 1));
+        } else {
+            $multipartResponse = Http::withHeaders(['x-goog-api-key' => $this->apiKey])
+              ->attach('file', fopen($fullPath, 'r'), basename($fullPath))
+              ->post("https://generativelanguage.googleapis.com/upload/v1beta/files?key={$this->apiKey}");
 
-            if ($fileData === false) {
-                return response()->json(['error' => 'Decodifica base64 fallita.'], 400);
+            if ($multipartResponse->failed()) {
+                throw new \Exception('Impossibile caricare il file sul servizio AI: ' . $multipartResponse->body());
             }
-            
-            // Estrai l'estensione in modo sicuro dal mime type
-            $extension = explode(';', explode('/', $mimeType)[1])[0];
-            $fileName = 'uploads/' . uniqid() . '.' . $extension;
-            \Illuminate\Support\Facades\Storage::disk('public')->put($fileName, $fileData);
-            $fullPath = storage_path("app/public/{$fileName}");
+            $fileInfo = $multipartResponse->json('file');
+
+            $fileNameOnGoogle = $fileInfo['name'];
+            $maxAttempts = 15;
+            $attempt = 0;
+            $fileIsActive = false;
+            do {
+                $fileStatusResponse = Http::withHeaders(['x-goog-api-key' => $this->apiKey])->get("https://generativelanguage.googleapis.com/v1beta/{$fileNameOnGoogle}");
+                if ($fileStatusResponse->successful()) {
+                    $status = $fileStatusResponse->json('state');
+                    if ($status === 'ACTIVE') { $fileIsActive = true; break; }
+                    if ($status === 'FAILED') throw new \Exception('Upload del file fallito sul servizio AI: ' . $fileStatusResponse->body());
+                }
+                $attempt++;
+                if ($attempt < $maxAttempts) sleep(2);
+            } while ($attempt < $maxAttempts);
+
+            if (!$fileIsActive) throw new \Exception('Timeout: Il file non è diventato attivo in tempo.');
+            sleep(2);
+
+            $generatePayload = [
+                'contents' => [[
+                    'parts' => [
+                        ['text' => $prompt],
+                        ['fileData' => ['mimeType' => $mimeType, 'fileUri' => $fileInfo['uri']]],
+                    ],
+                ]],
+                'generation_config' => ['response_mime_type' => 'application/json'],
+            ];
         }
-        
-        // Carica il file sull'API di Google
-        $multipartResponse = Http::withHeaders([
+
+        $geminiResponse = Http::withHeaders([
           'x-goog-api-key' => $this->apiKey,
-        ])->attach('file', fopen($fullPath, 'r'), basename($fullPath))
-          ->post("https://generativelanguage.googleapis.com/upload/v1beta/files?key={$this->apiKey}");
+          'Content-Type'   => 'application/json',
+        ])->post("https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$this->apiKey}", $generatePayload);
 
-        if ($multipartResponse->failed()) {
-          Log::error('Errore upload file su Servizio AI', ['status' => $multipartResponse->status(), 'body'   => $multipartResponse->body()]);
-          return response()->json(['error' => 'Impossibile caricare il file sul servizio AI.'], 500);
+        if ($geminiResponse->failed()) {
+          throw new \Exception('Impossibile generare il risultato dal servizio AI: ' . $geminiResponse->body());
         }
 
-        $fileInfo = $multipartResponse->json('file');
-        
-        // Polling per verificare che il file sia attivo
-        $fileNameOnGoogle = $fileInfo['name'];
-        $maxAttempts = 15;
-        $attempt = 0;
-        $fileIsActive = false;
-
-        do {
-            $fileStatusResponse = Http::withHeaders(['x-goog-api-key' => $this->apiKey])->get("https://generativelanguage.googleapis.com/v1beta/{$fileNameOnGoogle}");
-            
-            if ($fileStatusResponse->successful()) {
-                $status = $fileStatusResponse->json('state');
-                if ($status === 'ACTIVE') {
-                    $fileIsActive = true;
-                    break;
-                }
-                if ($status === 'FAILED') {
-                     Log::error('Upload del file fallito sul servizio AI', ['response' => $fileStatusResponse->body()]);
-                    return response()->json(['error' => 'Il processing del file è fallito.'], 500);
-                }
-            }
-            
-            $attempt++;
-            if ($attempt < $maxAttempts) sleep(2);
-        } while ($attempt < $maxAttempts);
-
-        if (!$fileIsActive) {
-            return response()->json(['error' => 'Timeout: Il file non è diventato attivo in tempo.'], 500);
+        $candidates = $geminiResponse->json('candidates', []);
+        $jsonText = $candidates[0]['content']['parts'][0]['text'] ?? null;
+        if (! $jsonText) {
+          throw new \Exception('Risposta dal servizio AI non formattata correttamente o vuota.');
         }
-        
-        sleep(2); // Pausa per mitigare race condition
-        
-        $fileUri = $fileInfo['uri'];
-        
-        $generatePayload = [
-            'contents' => [[
-                'parts' => [
-                    ['text' => $prompt],
-                    ['fileData' => [
-                        'mimeType' => $mimeType,
-                        'fileUri'  => $fileUri,
-                    ]],
-                ],
-            ]],
-            'generation_config' => ['response_mime_type' => 'application/json'],
-        ];
-    }
-    
-    // Esegui la chiamata a generateContent e gestisci la risposta
-    $geminiResponse = Http::withHeaders([
-      'x-goog-api-key' => $this->apiKey,
-      'Content-Type'   => 'application/json',
-    ])->post(
-      "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$this->apiKey}",
-      $generatePayload
-    );
 
-    if ($geminiResponse->failed()) {
-      Log::error('Errore durante la generazione dei contenuti dal Servizio AI', [
-        'status' => $geminiResponse->status(),
-        'body'   => $geminiResponse->body(),
-      ]);
-      return response()->json([
-        'error' => 'Impossibile generare il risultato dal servizio AI. Controlla i log per dettagli.'
-      ], 500);
-    }
+        $orderData = json_decode($jsonText, true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            $processedFile->update([
+                'status' => 'failed',
+                'error_message' => 'JSON non valido dal Servizio AI.',
+                'gemini_response' => ['raw_response' => $jsonText],
+            ]);
+            return response()->json(['error' => 'Errore di parsing del JSON restituito dal servizio AI.', 'data' => $jsonText], 500);
+        }
 
-    $candidates = $geminiResponse->json('candidates', []);
-    if (! isset($candidates[0]['content']['parts'][0]['text'])) {
-      return response()->json(['error' => 'Risposta dal servizio AI non formattata correttamente.'], 500);
-    }
-    $jsonText = $candidates[0]['content']['parts'][0]['text'];
+        $processedFile->update(['status' => 'success', 'gemini_response' => $orderData]);
 
-    $orderData = json_decode($jsonText, true);
-    if (json_last_error() !== JSON_ERROR_NONE) {
-      Log::error('JSON non valido dal Servizio AI', ['jsonText' => $jsonText]);
-      return response()->json(['error' => 'Errore di parsing del JSON restituito dal servizio AI.'], 500);
-    }
+        if (in_array($extractor->export_format, ['excel', 'csv'])) {
+          if (empty($extractor->export_class)) {
+            throw new \Exception('Classe di esportazione non specificata per questo estrattore.');
+          }
+          $exportClassName = "App\\Exports\\" . $extractor->export_class;
+          if (! class_exists($exportClassName)) {
+            throw new \Exception("La classe di esportazione '{$exportClassName}' non esiste.");
+          }
+          $fileName = 'ordine.' . ($extractor->export_format === 'csv' ? 'csv' : 'xlsx');
+          return Excel::download(new $exportClassName($orderData), $fileName);
+        }
 
-    if (in_array($extractor->export_format, ['excel', 'csv'])) {
-      if (empty($extractor->export_class)) {
-        return response()->json(['error' => 'Classe di esportazione non specificata per questo estrattore.'], 400);
-      }
+        return response()->json($orderData);
 
-      $exportClassName = "App\\Exports\\" . $extractor->export_class;
-
-      if (! class_exists($exportClassName)) {
-        return response()->json(['error' => "La classe di esportazione '{$exportClassName}' non esiste."], 500);
-      }
-      
-      try {
-        $fileName = 'ordine.' . ($extractor->export_format === 'csv' ? 'csv' : 'xlsx');
-        return Excel::download(new $exportClassName($orderData), $fileName);
-      } catch (\Exception $e) {
-        Log::error("Errore durante l'esportazione " . strtoupper($extractor->export_format) . ": " . $e->getMessage(), ['data' => $orderData]);
+    } catch (Throwable $e) {
+        Log::error('Errore in processCustomerOrder: ' . $e->getMessage(), ['exception' => $e]);
+        if ($processedFile) {
+            $processedFile->update([
+                'status'        => 'failed',
+                'error_message' => $e->getMessage(),
+            ]);
+        }
         return response()->json([
-            'error' => "Errore durante l'esportazione del file.",
+            'error'   => 'Si è verificato un errore durante l\'elaborazione.',
             'message' => $e->getMessage()
         ], 500);
-      }
     }
-
-    return response()->json($orderData);
   }
 }
