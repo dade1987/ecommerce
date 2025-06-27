@@ -7,7 +7,7 @@ use App\Filament\Resources\ProcessedFileResource\RelationManagers;
 use App\Models\ProcessedFile;
 use Filament\Forms;
 use Filament\Forms\Components\DateTimePicker;
-use Filament\Forms\Components\KeyValue;
+use Filament\Forms\Components\JsonEditor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -42,7 +42,8 @@ class ProcessedFileResource extends Resource
                     ->disabled(),
                 TextInput::make('status')
                     ->disabled(),
-                KeyValue::make('gemini_response')
+                JsonEditor::make('gemini_response')
+                    ->columnSpanFull()
                     ->disabled(),
                 Textarea::make('error_message')
                     ->columnSpanFull()
