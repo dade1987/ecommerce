@@ -40,19 +40,6 @@ class GenerateSitemap extends Command
                 ->setLastModificationDate(Carbon::yesterday())
                 ->setChangeFrequency(Url::CHANGE_FREQUENCY_YEARLY)
                 ->setPriority(0.1)
-                ->addImage(config('app.url') . '/images/home.jpg', 'Immagine della home page')
-                ->addVideo(
-                    config('app.url') . '/videos/thumbnail.jpg',
-                    'Titolo del video',
-                    'Descrizione del video',
-                    config('app.url') . '/videos/source.mp4',
-                    config('app.url') . '/video/123',
-                    [
-                        'family_friendly' => Video::OPTION_YES,
-                        'live' => Video::OPTION_NO
-                    ]
-                )
-                ->addAlternate('/en', 'en_US')
         );
 
         // Aggiungo tutti gli articoli alla sitemap
@@ -64,7 +51,7 @@ class GenerateSitemap extends Command
                     ->setChangeFrequency(Url::CHANGE_FREQUENCY_WEEKLY)
                     ->setPriority(0.9)
             );
-        }
+ <       }
 
         $sitemap->writeToFile(public_path('sitemap.xml'));
 
