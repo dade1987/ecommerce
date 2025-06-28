@@ -2,12 +2,10 @@
 
 namespace App\Console\Commands;
 
-use App\Models\Article;
-use Carbon\Carbon;
 use Illuminate\Console\Command;
-use Spatie\Sitemap\Sitemap;
+use Spatie\Sitemap\SitemapGenerator;
 use Spatie\Sitemap\Tags\Url;
-use Spatie\Sitemap\Tags\Video;
+use Carbon\Carbon;
 
 class GenerateSitemap extends Command
 {
@@ -32,29 +30,25 @@ class GenerateSitemap extends Command
      */
     public function handle()
     {
-        $sitemap = Sitemap::create();
+        // modify this to your own needs
+        SitemapGenerator::create(config('app.url'))
+            ->hasCrawled(function (Url $url) {
+                if ($url->path() === '/') {
+                    $url->setPriority(1.0);
+                } else {
+                    $url->setPriority(0.8);
+                }
 
-        // Esempio di aggiunta della homepage con tutte le proprietà
-        $sitemap->add(
-            Url::create(config('app.url'))
-                ->setLastModificationDate(Carbon::yesterday())
-                ->setChangeFrequency(Url::CHANGE_FREQUENCY_YEARLY)
-                ->setPriority(0.1)
-        );
+                $url->setLastModificationDate(Carbon::now());
+                
+                if (str_contains($url->path(), '/blog')) {
+                    $url->setChangeFrequency(Url::CHANGE_FREQUENCY_DAILY);
+                } else {
+                    $url->setChangeFrequency(Url::CHANGE_FREQUENCY_WEEKLY);
+                }
 
-        // Aggiungo tutti gli articoli alla sitemap
-        $articles = Article::all();
-        foreach ($articles as $article) {
-            $sitemap->add(
-                Url::create($article->slug)
-                    ->setLastModificationDate($article->updated_at)
-                    ->setChangeFrequency(Url::CHANGE_FREQUENCY_WEEKLY)
-                    ->setPriority(0.9)
-            );
-        }
-
-        $sitemap->writeToFile(public_path('sitemap.xml'));
-
-        $this->info('Sitemap generated successfully.');
+                return $url;
+            })
+            ->writeToFile(public_path('sitemap.xml'));
     }
 }
