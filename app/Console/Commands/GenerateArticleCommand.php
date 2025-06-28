@@ -45,6 +45,9 @@ class GenerateArticleCommand extends Command
         if ($this->option('test')) {
             $keywords = [array_shift($keywords)];
             $this->info('Test mode: generating only one article.');
+        } else {
+            shuffle($keywords);
+            $keywords = array_slice($keywords, 0, 3);
         }
 
         $this->info('Dispatching jobs for ' . count($keywords) . ' keywords.');
