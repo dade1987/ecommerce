@@ -8,11 +8,11 @@
                 @php
                     $address = $row->addresses->first();
                 @endphp
-                <article class="flex items-start space-x-6 p-4 hover:bg-gray-50 transition-colors duration-200">
+                <article class="flex items-center space-x-8 py-6 px-2 hover:bg-gray-50 transition-colors duration-200">
                     
                     <!-- Image -->
                     <div class="flex-shrink-0">
-                        <div class="h-24 w-24 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
+                        <div class="h-24 w-24 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center shadow">
                             @if(isset($row->featuredImage))
                                 <x-curator-glider :media="$row->featuredImage" class="h-full w-full object-cover" />
                             @else
@@ -28,31 +28,29 @@
                         <a href="#">
                             <h2 class="text-xl font-bold text-slate-800 truncate">{{ $row->name }}</h2>
                         </a>
-                        <div class="mt-2 space-y-1.5 text-base text-slate-600">
+                        <div class="mt-3 text-sm text-slate-600">
                             @if($address)
-                                <div class="grid grid-cols-3 gap-x-4">
-                                    <div class="col-span-2">
-                                        <p class="truncate"><span class="font-semibold">Via:</span> {{ $address->street ?? '-' }}</p>
-                                        <p class="truncate"><span class="font-semibold">Comune:</span> {{ $address->municipality ?? '-' }}</p>
+                                <div class="grid grid-cols-2 gap-x-6">
+                                    <div class="space-y-1">
+                                        <p class="truncate"><span class="font-semibold inline-block w-16">Via:</span> {{ $address->street ?? '-' }}</p>
+                                        <p class="truncate"><span class="font-semibold inline-block w-16">Comune:</span> {{ $address->municipality ?? '-' }}</p>
+                                        <p class="truncate"><span class="font-semibold inline-block w-16">Nazione:</span> {{ $address->nation ?? '-' }}</p>
                                     </div>
-                                    <div class="col-span-1">
-                                        <p class="truncate"><span class="font-semibold">Prov:</span> {{ $address->province ?? '-' }}</p>
-                                        <p class="truncate"><span class="font-semibold">CAP:</span> {{ $address->postal_code ?? '-' }}</p>
-                                    </div>
-                                    <div class="col-span-3">
-                                        <p class="truncate"><span class="font-semibold">Nazione:</span> {{ $address->nation ?? '-' }}</p>
+                                    <div class="space-y-1">
+                                        <p class="truncate"><span class="font-semibold inline-block w-12">Prov:</span> {{ $address->province ?? '-' }}</p>
+                                        <p class="truncate"><span class="font-semibold inline-block w-12">CAP:</span> {{ $address->postal_code ?? '-' }}</p>
                                     </div>
                                 </div>
                             @else
-                                <p>Indirizzo non disponibile</p>
+                                <p class="pt-2">Indirizzo non disponibile</p>
                             @endif
                         </div>
                     </div>
 
                     <!-- Invite Button and Price -->
-                    <div class="flex-shrink-0 text-right">
-                        <button wire:click="openModal({{ $row->id }})" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-full transition">Invita</button>
-                        <div class="mt-4 text-lg font-semibold text-slate-700">
+                    <div class="flex-shrink-0 flex flex-col items-end space-y-4">
+                        <button wire:click="openModal({{ $row->id }})" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-full transition whitespace-nowrap">Invita</button>
+                        <div class="text-md font-semibold text-slate-700">
                            <span class="font-semibold">Prezzo:</span> {{ $row->price_range ?? '-' }}
                         </div>
                     </div>
