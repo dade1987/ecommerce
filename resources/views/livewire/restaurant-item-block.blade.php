@@ -28,7 +28,7 @@
                         <div class="mt-2 space-y-1.5 text-sm text-slate-600">
                             <p class="flex items-start">
                                 <span class="font-semibold inline-block w-20 shrink-0">Indirizzo:</span>
-                                <span class="truncate">{{ $row->address ?? '-' }}</span>
+                                <span class="truncate">{{ $row->addresses->first() ?? '-' }}</span>
                             </p>
                             <p class="flex items-start">
                                 <span class="font-semibold inline-block w-20 shrink-0">Tel:</span>
