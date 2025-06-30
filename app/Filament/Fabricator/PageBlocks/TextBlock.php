@@ -30,6 +30,7 @@ class TextBlock extends PageBlock
                         'alignLeft',
                         'alignCenter',
                         'alignRight',
+                        'source',
                     ])
                     ->columnSpanFull(),
             ]);
