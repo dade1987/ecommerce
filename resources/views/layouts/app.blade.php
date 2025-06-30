@@ -115,7 +115,19 @@ In your html page, add the snippet and call gtag_report_conversion when someone 
     @filamentScripts
     @livewireScriptConfig
     @stack('scripts')
-
+    @livewireScripts
+    <script>
+        document.addEventListener('livewire:initialized', () => {
+            Livewire.on('gtag_report_conversion', (event) => {
+                if (typeof gtag_report_conversion === 'function') {
+                    gtag_report_conversion();
+                    console.log('gtag_report_conversion called via app.blade.php');
+                } else {
+                    console.error('gtag_report_conversion function not found');
+                }
+            });
+        });
+    </script>
 </body>
 
 </html>
