@@ -17,21 +17,6 @@ class TextBlock extends PageBlock
                 RichEditor::make('content')
                     ->label('Contenuto')
                     ->required()
-                    ->toolbarButtons([
-                        'bold',
-                        'italic',
-                        'underline',
-                        'strike',
-                        'link',
-                        'orderedList',
-                        'unorderedList',
-                        'h2',
-                        'h3',
-                        'alignLeft',
-                        'alignCenter',
-                        'alignRight',
-                        'source',
-                    ])
                     ->columnSpanFull(),
             ]);
     }
