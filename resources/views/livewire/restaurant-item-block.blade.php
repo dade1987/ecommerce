@@ -1,37 +1,34 @@
 @aware(['page'])
 
 <!-- Restaurant List -->
-<section class="bg-emerald-50">
-    <div class="mx-auto grid max-w-6xl grid-cols-1 gap-6 p-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-        @foreach ($restaurants as $row)
-            <article class="rounded-xl bg-white p-3 shadow-lg hover:shadow-xl hover:transform hover:scale-105 duration-300">
-                <a href="#">
-                    <div class="relative flex items-end overflow-hidden rounded-xl">
-                        @if(isset($row->featuredImage))
-                            <x-curator-glider :media="$row->featuredImage" />
-                        @else
-                            <div class="w-full h-40 bg-gray-200 flex items-center justify-center text-gray-400">Nessuna immagine</div>
-                        @endif
+<section class="bg-white">
+    <div class="mx-auto max-w-3xl">
+        <div class="divide-y divide-gray-200">
+            @foreach ($restaurants as $row)
+                <article class="flex items-center space-x-4 p-4 hover:bg-gray-50 transition-colors duration-200">
+                    <a href="#" class="flex flex-1 items-center space-x-4 min-w-0">
+                        <div class="flex-shrink-0">
+                            <div class="h-14 w-14 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
+                                @if(isset($row->featuredImage))
+                                    <x-curator-glider :media="$row->featuredImage" class="h-full w-full object-cover" />
+                                @else
+                                    <svg class="h-8 w-8 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                    </svg>
+                                @endif
+                            </div>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <h2 class="text-lg font-bold text-slate-800 truncate">{{ $row->name }}</h2>
+                            <p class="text-sm text-slate-500 truncate">{{ $row->phone_number ?? 'Telefono non disponibile' }}</p>
+                        </div>
+                    </a>
+                    <div class="flex-shrink-0">
+                        <button wire:click="openModal({{ $row->id }})" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-full transition">Invita</button>
                     </div>
-                    <div class="mt-1 p-2">
-                        <h2 class="text-slate-700 text-xl font-bold">{{ $row->name }}</h2>
-                        <p class="mt-1 text-sm text-slate-400"><span class="font-semibold">Fascia prezzo:</span> {{ $row->price_range ?? '-' }}</p>
-                        <p class="mt-1 text-sm text-slate-400"><span class="font-semibold">Telefono:</span> {{ $row->phone_number ?? '-' }}</p>
-                        <p class="mt-1 text-sm text-slate-400"><span class="font-semibold">Email:</span> {{ $row->email ?? '-' }}</p>
-                        <p class="mt-1 text-sm text-slate-400"><span class="font-semibold">Sito web:</span> 
-                            @if($row->website)
-                                <a href="{{ $row->website }}" class="text-blue-500 underline" target="_blank">{{ $row->website }}</a>
-                            @else
-                                -
-                            @endif
-                        </p>
-                    </div>
-                </a>
-                <div class="mt-4 flex justify-center">
-                    <button wire:click="openModal({{ $row->id }})" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded transition">Invita amici su WhatsApp</button>
-                </div>
-            </article>
-        @endforeach
+                </article>
+            @endforeach
+        </div>
     </div>
     @livewire('invite-friends-modal')
 </section>
