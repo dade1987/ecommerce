@@ -62,7 +62,7 @@
 
                     <!-- Ricerca per indirizzo -->
                     <div class="md:col-span-2">
-                        <label for="search_address" class="block text-sm font-medium text-gray-700">Indirizzo</label>
+                        <label for="search_address" class="block text-sm font-medium text-gray-700">Indirizzo di Partenza</label>
                         <div class="mt-1 relative flex items-center">
                             <input type="text" name="search_address" id="search_address" value="{{ old('search_address', $search_address) }}" placeholder="Cerca per indirizzo..." class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 pr-10">
                             <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
