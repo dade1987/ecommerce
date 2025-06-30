@@ -8,6 +8,8 @@
     "devDependencies": {
         "@tailwindcss/forms": "^0.5.7",
         "@tailwindcss/typography": "^0.5.13",
+        "@tiptap/extension-color": "^2.23.0",
+        "@tiptap/extension-text-style": "^2.23.0",
         "alpinejs": "^3.4.2",
         "autoprefixer": "^10.4.19",
         "axios": "^1.1.2",

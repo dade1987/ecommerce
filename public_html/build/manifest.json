@@ -1,6 +1,6 @@
 {
   "resources/css/app.css": {
-    "file": "assets/app-011dee05.css",
+    "file": "assets/app-568db96b.css",
     "isEntry": true,
     "src": "resources/css/app.css"
   },
@@ -13,5 +13,10 @@
     "file": "assets/app-9df2accc.js",
     "isEntry": true,
     "src": "resources/js/app.js"
+  },
+  "resources/js/filament/rich-editor-plugins/color.js": {
+    "file": "assets/color-a96ee692.js",
+    "isEntry": true,
+    "src": "resources/js/filament/rich-editor-plugins/color.js"
   }
 }
