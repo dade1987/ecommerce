@@ -8,6 +8,7 @@ use Z3d0X\FilamentFabricator\PageBlocks\PageBlock;
 use Illuminate\Contracts\View\View;
 use Filament\Forms\Components\Actions\Action;
 use Filament\Forms\Components\ColorPicker;
+use Filament\Forms\Components\Grid;
 
 class TextBlock extends PageBlock
 {
@@ -16,6 +17,27 @@ class TextBlock extends PageBlock
         return Block::make('text-block')
             ->label('Blocco di Testo')
             ->schema([
+                Grid::make(2)->schema([
+                    ColorPicker::make('textColor')
+                        ->label('Colore del Testo')
+                        ->reactive()
+                        ->afterStateUpdated(static function ($state, $livewire, $get, $set) {
+                            // Questo serve per far aggiornare il componente, ma la logica è in Alpine
+                        })
+                        ->extraAttributes([
+                            'x-on:change' => '
+                                const richEditor = document.getElementById(\'content\').closest(\'.fi-fo-rich-editor\').__x;
+                                richEditor.execute(
+                                    (view) => {
+                                        view.dispatch(view.state.tr.setSelection(view.state.selection))
+                                    },
+                                    (view) => {
+                                        view.chain().focus().setColor($event.target.value).run()
+                                    }
+                                );
+                            ',
+                        ]),
+                ]),
                 RichEditor::make('content')
                     ->label('Contenuto')
                     ->required()
@@ -33,21 +55,8 @@ class TextBlock extends PageBlock
                         'alignCenter',
                         'alignRight',
                     ])
-                    ->extraInputAttributes(['style' => 'min-height: 250px;'])
-                    ->columnSpanFull()
-                    ->extraAlpineAttributes([
-                        'x-data' => '{ color: \'#000000\' }',
-                    ])
-                    ->suffixAction(
-                        Action::make('color')
-                            ->icon('heroicon-o-paint-brush')
-                            ->label(__('Colore Testo'))
-                            ->modalHeading(__('Scegli un colore per il testo'))
-                            ->modalSubmitAction(false)
-                            ->modalCancelAction(false)
-                            ->modalContent(view('forms.components.color-picker-content'))
-                            ->modalWidth('sm')
-                    ),
+                    ->extraInputAttributes(['style' => 'min-height: 250px;', 'id' => 'content'])
+                    ->columnSpanFull(),
             ]);
     }
 
