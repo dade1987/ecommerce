@@ -5,8 +5,8 @@
     <div class="mx-auto max-w-6xl p-6">
         <div class="divide-y divide-gray-200">
             @foreach ($restaurants as $row)
-                <article class="flex items-start space-x-4 p-4 hover:bg-gray-50 transition-colors duration-200">
-                    <a href="#" class="flex flex-1 items-start space-x-4 min-w-0">
+                <article class="flex items-center space-x-4 p-4 hover:bg-gray-50 transition-colors duration-200">
+                    <a href="#" class="flex flex-1 items-center space-x-4 min-w-0">
                         <div class="flex-shrink-0">
                             <div class="h-14 w-14 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
                                 @if(isset($row->featuredImage))
@@ -20,16 +20,18 @@
                         </div>
                         <div class="flex-1 min-w-0">
                             <h2 class="text-lg font-bold text-slate-800 truncate">{{ $row->name }}</h2>
-                            <p class="text-sm text-slate-500 truncate"><span class="font-semibold">Tel:</span> {{ $row->phone_number ?? '-' }}</p>
-                            <p class="text-sm text-slate-500 truncate"><span class="font-semibold">Email:</span> {{ $row->email ?? '-' }}</p>
-                             <p class="text-sm text-slate-500 truncate"><span class="font-semibold">Web:</span> 
-                                @if($row->website)
-                                    <a href="{{ $row->website }}" class="text-blue-500 underline" target="_blank">{{ $row->website }}</a>
-                                @else
-                                    -
-                                @endif
-                            </p>
-                            <p class="text-sm text-slate-500 truncate"><span class="font-semibold">Prezzo:</span> {{ $row->price_range ?? '-' }}</p>
+                            <div class="mt-1 text-sm text-slate-500">
+                                <p class="truncate"><span class="font-semibold inline-block w-14">Tel:</span> {{ $row->phone_number ?? '-' }}</p>
+                                <p class="truncate"><span class="font-semibold inline-block w-14">Email:</span> {{ $row->email ?? '-' }}</p>
+                                <p class="truncate"><span class="font-semibold inline-block w-14">Web:</span>
+                                    @if($row->website)
+                                        <a href="{{ $row->website }}" class="text-blue-500 underline" target="_blank">{{ Illuminate\Support\Str::limit($row->website, 30) }}</a>
+                                    @else
+                                        -
+                                    @endif
+                                </p>
+                                <p class="truncate"><span class="font-semibold inline-block w-14">Prezzo:</span> {{ $row->price_range ?? '-' }}</p>
+                            </div>
                         </div>
                     </a>
                     <div class="flex-shrink-0">
