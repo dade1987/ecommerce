@@ -18,13 +18,13 @@
                     
                     <!-- Data -->
                     <div class="md:col-span-2">
-                        <label for="date" class="block text-xs font-medium text-gray-700">Data</label>
+                        <label for="date" class="block text-[11px] font-medium text-gray-700">Data</label>
                         <input type="date" name="date" id="date" value="{{ $selectedDate }}" min="{{ date('Y-m-d') }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
                     </div>
 
                     <!-- Fascia Oraria -->
                     <div class="md:col-span-2">
-                        <label for="time_slot" class="block text-xs font-medium text-gray-700">Fascia Oraria</label>
+                        <label for="time_slot" class="block text-[11px] font-medium text-gray-700">Fascia Oraria</label>
                         <div class="mt-1 relative flex items-center">
                             <select name="time_slot" id="time_slot" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 pr-10 appearance-none">
                                 <optgroup label="Pranzo">
@@ -48,7 +48,7 @@
 
                     <!-- Ricerca per indirizzo -->
                     <div class="md:col-span-2">
-                        <label for="search_address" class="block text-xs font-medium text-gray-700">Indirizzo di Partenza</label>
+                        <label for="search_address" class="block text-[11px] font-medium text-gray-700">Indirizzo di Partenza</label>
                         <div class="mt-1 relative flex items-center">
                             <input type="text" name="search_address" id="search_address" value="{{ old('search_address', $search_address) }}" placeholder="Cerca per indirizzo..." class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 pr-10">
                             <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
@@ -63,7 +63,7 @@
 
                     <!-- Ricerca per raggio -->
                     <div class="md:col-span-1">
-                        <label for="radius" class="block text-xs font-medium text-gray-700">Raggio (km)</label>
+                        <label for="radius" class="block text-[11px] font-medium text-gray-700">Raggio (km)</label>
                         <select name="radius" id="radius" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
                             <option value="5" @if(old('radius', $radius) == 5) selected @endif>5 km</option>
                             <option value="10" @if(old('radius', $radius) == 10) selected @endif>10 km</option>
@@ -74,7 +74,7 @@
 
                     <!-- Ricerca per nome -->
                     <div class="md:col-span-1">
-                        <label for="search" class="block text-xs font-medium text-gray-700">Nome Ristorante</label>
+                        <label for="search" class="block text-[11px] font-medium text-gray-700">Nome Ristorante</label>
                         <div class="mt-1 relative flex items-center">
                             <input type="text" name="search" id="search" value="{{ old('search', $search) }}" placeholder="Cerca per nome..." class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 pr-10">
                             <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
