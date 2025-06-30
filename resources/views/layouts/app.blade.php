@@ -26,6 +26,25 @@
         gtag('config', 'G-D7G8J1GF0M');
     </script>
 
+    <!-- Event snippet for Lead da chiamata conversion page
+In your html page, add the snippet and call gtag_report_conversion when someone clicks on the chosen link or button. -->
+    <script>
+        function gtag_report_conversion(url) {
+
+            console.log('gtag_report_conversion');
+
+            var callback = function() {
+                if (typeof(url) != 'undefined') {
+                    window.location = url;
+                }
+            };
+            gtag('event', 'conversion', {
+                'send_to': 'AW-1001130032/DjJfCITk1N0aELCQsN0D',
+                'event_callback': callback
+            });
+            return false;
+        }
+    </script>
 
     <!-- Meta Description -->
     <meta name="description" content="{{ $pageDescription ?? 'Cavallini Service, a Noale: soluzioni software su misura, integrazione AI e cybersecurity. Ottimizza flussi di lavoro e proteggi i dati aziendali.' }}">
@@ -65,13 +84,13 @@
     @stack('styles')
 
     <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "Organization",
-      "name": "Cavallini Service",
-      "url": "https://cavalliniservice.com",
-      "logo": "{{ asset('images/logo15.png') }}"
-    }
+        {
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            "name": "Cavallini Service",
+            "url": "https://cavalliniservice.com",
+            "logo": "{{ asset('images/logo15.png') }}"
+        }
     </script>
     @stack('structured-data')
 

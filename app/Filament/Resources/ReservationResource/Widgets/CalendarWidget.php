@@ -64,6 +64,9 @@ class CalendarWidget extends FullCalendarWidget
                         ]);
                     }
                 )
+                ->after(function () {
+                    $this->dispatch('gtag_report_conversion');
+                })
         ];
     }
 
