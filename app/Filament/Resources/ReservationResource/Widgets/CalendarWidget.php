@@ -23,7 +23,7 @@ class CalendarWidget extends FullCalendarWidget
             'headerToolbar' => [
                 'left' => 'prev,next',
                 'center' => 'title',
-                'right' => 'timeGridWeek,timeGridDay',
+                'right' => '',
             ],
             'views' => [
                 'timeGridWeek' => [
@@ -35,6 +35,7 @@ class CalendarWidget extends FullCalendarWidget
                     ],
                 ],
             ],
+            'height' => 'auto',
             'windowResize' => "
                 function(arg) {
                     if (arg.view.type === 'timeGridWeek' && window.innerWidth < 640) {
@@ -52,7 +53,12 @@ class CalendarWidget extends FullCalendarWidget
     protected function headerActions(): array
     {
         //tutti possono creare eventi
+        return [];
+    }
 
+
+    protected function modalActions(): array
+    {
         return [
             CreateAction::make()
                 ->mountUsing(
@@ -75,12 +81,6 @@ class CalendarWidget extends FullCalendarWidget
                     $this->dispatch('gtag_report_conversion');
                 })
         ];
-    }
-
-
-    protected function modalActions(): array
-    {
-        return [];
     }
 
 
