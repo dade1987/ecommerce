@@ -58,9 +58,16 @@ class CalendarWidget extends FullCalendarWidget
                 ->mountUsing(
                     function (Form $form, array $arguments) {
 
+                        $start = $arguments['start'] ?? null;
+                        $end = $arguments['end'] ?? null;
+
+                        if ($start && is_null($end)) {
+                            $end = Carbon::parse($start)->addHour();
+                        }
+
                         $form->fill([
-                            'starts_at' => $arguments['start'] ?? null,
-                            'ends_at' => $arguments['end'] ?? null
+                            'starts_at' => $start,
+                            'ends_at' => $end
                         ]);
                     }
                 )
