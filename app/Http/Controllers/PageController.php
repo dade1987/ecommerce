@@ -9,6 +9,7 @@ use Z3d0X\FilamentFabricator\Http\Controllers\PageController as FabricatorPageCo
 
 class PageController extends Controller
 {
+    
     /**
      * Display a listing of the resource.
      */

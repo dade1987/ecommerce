@@ -39,4 +39,4 @@ Route::middleware('auth')->group(function () {
 //Route::resource('articles', ArticleController::class);
 //Route::resource('tags', TagController::class);
 
-Route::resource('{container0}/{item0?}/{container1?}/{item1?}/{container2?}/{item2?}', PageController::class);
+Route::get('{container0}/{item0?}/{container1?}/{item1?}/{container2?}/{item2?}', [PageController::class, 'index']);
