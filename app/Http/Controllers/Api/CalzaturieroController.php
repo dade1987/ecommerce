@@ -12,6 +12,9 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Facades\Excel;
 use function Safe\json_decode;
+use function Safe\preg_match;
+use function Safe\base64_decode;
+use function Safe\fopen;
 use Throwable;
 
 class CalzaturieroController extends Controller

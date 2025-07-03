@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Storage;
 use OpenAI;
 use App\Models\Page;
 use App\Models\Menu;
+use function Safe\json_decode;
 
 class GenerateArticleJob implements ShouldQueue
 {

@@ -6,6 +6,8 @@ use App\Jobs\GenerateArticleJob;
 use App\Models\Menu;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
+use function Safe\file;
+use function Safe\shuffle;
 
 class GenerateArticleCommand extends Command
 {
@@ -56,8 +58,10 @@ class GenerateArticleCommand extends Command
 
         $internalLinksList = '';
         $navbar = Menu::with('items')->where('name', 'Navbar')->first();
-        if ($navbar) {
-            $internalLinksList = $navbar->items->map(function ($item) {
+        if ($navbar && $navbar->relationLoaded('items')) {
+            /** @var \Illuminate\Database\Eloquent\Collection $items */
+            $items = $navbar->getRelation('items');
+            $internalLinksList = $items->map(function ($item) {
                 return "- {$item->name}: {$item->href}";
             })->implode("\n");
         }

@@ -14,7 +14,7 @@
             @endforeach
             
             <!-- Language Selector Widget -->
-            <li class="flex items-center space-x-2 ml-4">
+            {{--<li class="flex items-center space-x-2 ml-4">
                 <div class="language-selector flex items-center space-x-2">
                     <button class="language-btn flex items-center p-2 rounded-md hover:bg-gray-100 transition-colors" data-lang="it">
                         <svg class="w-6 h-6" viewBox="0 0 640 480" xmlns="http://www.w3.org/2000/svg">
@@ -52,7 +52,7 @@
                         <span class="ml-1 text-sm font-medium">ES</span>
                     </button>
                 </div>
-            </li>
+            </li>--}}
         </ul>
         <div class="items-center flex-shrink-0 hidden lg:flex">
             {{--@guest

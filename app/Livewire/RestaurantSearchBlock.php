@@ -15,6 +15,7 @@ use Filament\Notifications\Notification;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Cheesegrits\FilamentGoogleMaps\Fields\Geocomplete;
+use function Safe\date;
 
 class RestaurantSearchBlock extends Component implements HasForms, HasActions
 {
