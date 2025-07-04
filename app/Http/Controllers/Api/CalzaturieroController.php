@@ -111,12 +111,14 @@ class CalzaturieroController extends Controller
                 // Handle DOCX file: convert to text using PhpOffice/PhpWord
                 $phpWord = IOFactory::load($fullPath);
                 
-                $tempTextFilePath = tempnam(sys_get_temp_dir(), 'docx_text_');
-                $textWriter = IOFactory::createWriter($phpWord, 'Text');
-                $textWriter->save($tempTextFilePath);
+                $extractedText = '';
                 
-                $extractedText = file_get_contents($tempTextFilePath);
-                unlink($tempTextFilePath); // Clean up the temporary file
+                // Iterate through sections and extract text
+                foreach ($phpWord->getSections() as $section) {
+                    foreach ($section->getElements() as $element) {
+                        $extractedText .= $this->extractTextFromElement($element);
+                    }
+                }
 
                 // Remove the original temporary DOCX file after extraction
                 Storage::disk('public')->delete($path);
@@ -228,5 +230,34 @@ class CalzaturieroController extends Controller
                 'message' => $e->getMessage()
             ], 500);
         }
+    }
+
+    private function extractTextFromElement($element)
+    {
+        $extractedText = '';
+
+        // Handle specific PhpOffice\PhpWord element types
+        if ($element instanceof \PhpOffice\PhpWord\Element\Text) {
+            $extractedText .= $element->getText() . "\n";
+        } elseif ($element instanceof \PhpOffice\PhpWord\Element\TextRun) {
+            foreach ($element->getElements() as $textElement) {
+                if ($textElement instanceof \PhpOffice\PhpWord\Element\Text) {
+                    $extractedText .= $textElement->getText();
+                }
+            }
+            $extractedText .= "\n";
+        } elseif ($element instanceof \PhpOffice\PhpWord\Element\Table) {
+            foreach ($element->getRows() as $row) {
+                foreach ($row->getCells() as $cell) {
+                    foreach ($cell->getElements() as $cellElement) {
+                        $extractedText .= $this->extractTextFromElement($cellElement);
+                    }
+                }
+            }
+        } elseif ($element instanceof \PhpOffice\PhpWord\Element\ListItem) {
+            $extractedText .= $element->getText() . "\n";
+        }
+
+        return $extractedText;
     }
 }
