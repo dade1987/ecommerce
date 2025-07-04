@@ -64,7 +64,7 @@ class CalzaturieroController extends Controller
             $fullPath = storage_path("app/public/{$path}");
         } elseif ($request->has('file_data_url')) {
             $dataUrl = $request->input('file_data_url');
-            if (preg_match('/^data:(image\/.+?|audio\/.+?);base64,/', $dataUrl, $type)) {
+            if (preg_match('/^data:(image\/.+?|audio\/.+?|application\/vnd\.openxmlformats-officedocument\.wordprocessingml\.document);base64,/', $dataUrl, $type)) {
                 $mimeType = $type[1];
                 $base64Data = substr($dataUrl, strpos($dataUrl, ',') + 1);
                 $fileData = base64_decode($base64Data);
