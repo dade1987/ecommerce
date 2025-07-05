@@ -11,6 +11,8 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\DateTimePicker;
 use Saade\FilamentFullCalendar\Actions\CreateAction;
 use Saade\FilamentFullCalendar\Widgets\FullCalendarWidget;
+use Illuminate\Support\Facades\Auth;
+use App\Filament\Resources\ReservationResource;
 
 
 class CalendarWidget extends FullCalendarWidget
@@ -124,6 +126,26 @@ class CalendarWidget extends FullCalendarWidget
             DateTimePicker::make('starts_at')->readOnly(),
             DateTimePicker::make('ends_at')->readOnly(),
         ];
+    }
+
+    public function onEventClick(array $event): void
+    {
+        $reservation = Reservation::find($event['id']);
+
+        if (!$reservation) {
+            return;
+        }
+
+        $user = Auth::user();
+
+        if (!$user || $user->id !== $reservation->user_id) {
+            // Prevent opening the event if user is not logged in or not the owner
+            return;
+        }
+
+        // If authorized, open the event for editing.
+        // This will redirect to the edit page of the ReservationResource.
+        $this->redirect(ReservationResource::getUrl('edit', ['record' => $reservation->id]));
     }
 
     public static function canView(): bool
