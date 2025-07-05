@@ -89,7 +89,7 @@
             @endforeach
             
             <!-- Language Selector Widget - Mobile -->
-            <li class="w-full pt-2 border-t border-gray-300">
+            {{--<li class="w-full pt-2 border-t border-gray-300">
                 <div class="language-selector flex justify-center items-center space-x-3">
                     <button class="language-btn flex items-center p-2 rounded-md hover:bg-gray-200 transition-colors" data-lang="it">
                         <svg class="w-6 h-6" viewBox="0 0 640 480" xmlns="http://www.w3.org/2000/svg">
@@ -127,7 +127,7 @@
                         <span class="ml-1 text-sm font-medium">ES</span>
                     </button>
                 </div>
-            </li>
+            </li>--}}
         </ul>
     </div>
 </header>
