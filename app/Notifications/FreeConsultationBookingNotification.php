@@ -42,15 +42,15 @@ class FreeConsultationBookingNotification extends Notification
     public function toMail($notifiable)
     {
         $mailMessage = new MailMessage();
-        $mailMessage->subject($this->details['subject'])
-            ->line($this->details['message'])
-            ->line('Nome: ' . $this->details['name'])
-            ->line('Telefono: ' . $this->details['telephone_number'])
-            ->line('Inizio: ' . $this->details['starts_at'])
-            ->line('Fine: ' . $this->details['ends_at']);
+        $mailMessage->subject($this->details['subject'] ?? 'ND')
+            ->line($this->details['message'] ?? 'ND')
+            ->line('Nome: ' . ($this->details['name'] ?? 'ND'))
+            ->line('Telefono: ' . ($this->details['telephone_number'] ?? 'ND'))
+            ->line('Inizio: ' . ($this->details['starts_at'] ?? 'ND'))
+            ->line('Fine: ' . ($this->details['ends_at'] ?? 'ND'));
 
         if (!empty($this->details['request_notes'])) {
-            $mailMessage->line('Note sulla richiesta: ' . $this->details['request_notes']);
+            $mailMessage->line('Note sulla richiesta: ' . ($this->details['request_notes'] ?? 'ND'));
         }
 
         $mailMessage->line('Grazie per aver utilizzato il nostro servizio!');
