@@ -180,7 +180,7 @@ class CalzaturieroController extends Controller
             $geminiResponse = Http::withHeaders([
                 'x-goog-api-key' => $this->apiKey,
                 'Content-Type'   => 'application/json',
-            ])->post("https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$this->apiKey}", $generatePayload);
+            ])->timeout(60)->post("https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$this->apiKey}", $generatePayload);
 
             if ($geminiResponse->failed()) {
                 throw new \Exception('Impossibile generare il risultato dal servizio AI: ' . $geminiResponse->body());
