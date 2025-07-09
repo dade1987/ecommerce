@@ -134,7 +134,7 @@ class ProductPolicy
      */
     public function replicate(User $user, Product $product): bool
     {
-        return $user->can('replicate_product');
+        return $user->can('replicate_product') && ! $user->hasRole('tripodi');
     }
 
     /**
@@ -145,7 +145,7 @@ class ProductPolicy
      */
     public function reorder(User $user): bool
     {
-        return $user->can('reorder_product');
+        return $user->can('reorder_product') && ! $user->hasRole('tripodi');
     }
 
 }
