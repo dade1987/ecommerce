@@ -148,14 +148,10 @@ class TripodiExport implements FromCollection, WithHeadings
             
             if (is_array($value) && !empty($value)) {
                 if ($this->isNumericArrayOfObjects($value)) {
-                    // Debug: log what we're flattening
-                    error_log("Flattening numeric array: $key with " . count($value) . " items");
-                    
                     // For nested arrays like quantita_per_taglia, flatten them with indices
                     foreach ($value as $index => $item) {
                         if (is_array($item)) {
                             $flattenedSubItem = $this->flattenData($item, $newKey . '_' . $index);
-                            error_log("Flattened sub-item $index: " . json_encode($flattenedSubItem));
                             $result = array_merge($result, $flattenedSubItem);
                         } else {
                             $result[$newKey . '_' . $index] = $item;
@@ -170,7 +166,6 @@ class TripodiExport implements FromCollection, WithHeadings
             }
         }
         
-        error_log("Final flattened result for prefix '$prefix': " . json_encode($result));
         return $result;
     }
 
@@ -179,8 +174,6 @@ class TripodiExport implements FromCollection, WithHeadings
      */
     private function makeKeyReadable(string $key): string
     {
-        error_log("Making key readable: '$key'");
-        
         // Remove redundant prefixes (e.g., "ordine.numero_ordine" becomes "numero_ordine")
         $parts = explode('.', $key);
         
@@ -201,9 +194,6 @@ class TripodiExport implements FromCollection, WithHeadings
         
         // Convert snake_case to Title Case
         $readableKey = str_replace('_', ' ', $key);
-        $result = ucwords($readableKey);
-        
-        error_log("Key '$key' became '$result'");
-        return $result;
+        return ucwords($readableKey);
     }
 } 

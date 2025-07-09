@@ -130,7 +130,7 @@ class AdminPanelProvider extends PanelProvider
                                 ->isActiveWhen(fn (): bool => request()->routeIs('filament.pages.dashboard')),
                         ];
 
-                        foreach ($panel->getResources() as $resource) {
+                        foreach (Filament::getResources() as $resource) {
                             $navigationItems = array_merge($navigationItems, $resource::getNavigationItems());
                         }
 
