@@ -71,7 +71,12 @@ class ExtractorPolicy
             return true;
         }
 
-        // Deny 'tripodi' role from updating Extractor
+        // Allow 'tripodi' role to update Extractor ONLY if its slug is 'tripodi'
+        if ($user->hasRole('tripodi')) {
+            return $extractor->slug === 'tripodi';
+        }
+
+        // Deny all other roles
         return false;
     }
 
