@@ -18,6 +18,11 @@ class QuoterPolicy
      */
     public function viewAny(User $user): bool
     {
+        // Allow super_admin full access
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
+        
         return $user->can('view_any_quoter') || $user->hasRole('tripodi');
     }
 
@@ -30,6 +35,11 @@ class QuoterPolicy
      */
     public function view(User $user, Quoter $quoter): bool
     {
+        // Allow super_admin full access
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
+        
         return $user->can('view_quoter') || $user->hasRole('tripodi');
     }
 
@@ -41,6 +51,11 @@ class QuoterPolicy
      */
     public function create(User $user): bool
     {
+        // Allow super_admin full access
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
+        
         return $user->can('create_quoter') && ! $user->hasRole('tripodi');
     }
 
@@ -53,6 +68,11 @@ class QuoterPolicy
      */
     public function update(User $user, Quoter $quoter): bool
     {
+        // Allow super_admin full access
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
+        
         return $user->can('update_quoter') && ! $user->hasRole('tripodi');
     }
 
@@ -65,6 +85,11 @@ class QuoterPolicy
      */
     public function delete(User $user, Quoter $quoter): bool
     {
+        // Allow super_admin full access
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
+        
         return $user->can('delete_quoter') && ! $user->hasRole('tripodi');
     }
 

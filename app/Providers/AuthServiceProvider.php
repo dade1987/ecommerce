@@ -7,11 +7,13 @@ namespace App\Providers;
 use App\Models\Product;
 use App\Models\Category;
 use App\Models\Article;
+use App\Models\Quoter;
 use App\Policies\PagePolicy;
 use App\Policies\MediaPolicy;
 use App\Policies\ProductPolicy;
 use App\Policies\CategoryPolicy;
 use App\Policies\ArticlePolicy;
+use App\Policies\QuoterPolicy;
 use Awcodes\Curator\Models\Media;
 use Z3d0X\FilamentFabricator\Models\Page;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
@@ -32,6 +34,7 @@ class AuthServiceProvider extends ServiceProvider
         Media::class => MediaPolicy::class,
         Page::class => PagePolicy::class,
         Product::class => ProductPolicy::class,
+        Quoter::class => QuoterPolicy::class,
     ];
 
     /**

@@ -82,9 +82,4 @@ class QuoterResource extends Resource
             'edit' => Pages\EditQuoter::route('/{record}/edit'),
         ];
     }
-
-    public static function canViewAny(): bool
-    {
-        return auth()->user()->hasRole('super_admin');
-    }
 }
