@@ -130,7 +130,7 @@ class AdminPanelProvider extends PanelProvider
                             \Filament\Navigation\NavigationItem::make('Dashboard')
                                 ->icon('heroicon-o-home')
                                 ->url(fn (): string => Pages\Dashboard::getUrl())
-                                ->activeUrl(fn (): string => Pages\Dashboard::getUrl()),
+                                ->activeUrl(fn (): bool => request()->routeIs('filament.pages.dashboard'));
                         ];
 
                         foreach ($resources as $resource) {
@@ -138,7 +138,7 @@ class AdminPanelProvider extends PanelProvider
                                 $navigationItems[] = \Filament\Navigation\NavigationItem::make($resource::getNavigationLabel())
                                     ->icon($resource::getNavigationIcon())
                                     ->url(fn (): string => $resource::getUrl('index'))
-                                    ->activeUrl(fn (): string => $resource::getUrl('index'));
+                                    ->activeUrl(fn (): bool => request()->routeIs($resource::getRouteBaseName() . '.*'));
                             }
                         }
                         return $navigationItems;
@@ -152,7 +152,7 @@ class AdminPanelProvider extends PanelProvider
                                     \Filament\Navigation\NavigationItem::make('Extractors')
                                         ->icon('heroicon-o-rectangle-stack')
                                         ->url(fn (): string => \App\Filament\Resources\ExtractorResource::getUrl('index'))
-                                        ->activeUrl(fn (): string => \App\Filament\Resources\ExtractorResource::getUrl('index'))
+                                        ->activeUrl(fn (): bool => request()->fullUrlIs(\App\Filament\Resources\ExtractorResource::getUrl('index')))
                                         ->visible(true),
                                 ]),
                         ];
