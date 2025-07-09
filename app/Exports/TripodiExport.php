@@ -57,15 +57,22 @@ class TripodiExport implements FromCollection, WithHeadings
             $workingData = reset($data);
         }
         
-        // Find the first repeating array (numeric array with objects)
+        // Find the first repeating array (numeric array with objects) at the top level
         $repeatingArray = null;
         $repeatingKey = null;
         $baseData = [];
 
         foreach ($workingData as $key => $value) {
             if (is_array($value) && $this->isNumericArrayOfObjects($value)) {
-                $repeatingArray = $value;
-                $repeatingKey = $key;
+                // Only consider it as main repeating array if we haven't found one yet
+                // This ensures we take the first one at the top level
+                if ($repeatingArray === null) {
+                    $repeatingArray = $value;
+                    $repeatingKey = $key;
+                } else {
+                    // If we already found a main repeating array, treat this as base data to be flattened
+                    $baseData[$key] = $value;
+                }
             } else {
                 $baseData[$key] = $value;
             }
@@ -140,12 +147,18 @@ class TripodiExport implements FromCollection, WithHeadings
             $newKey = $prefix === '' ? $key : $prefix . '.' . $key;
             
             if (is_array($value) && !empty($value)) {
-                // If it's an associative array, recurse
-                if (!$this->isNumericArrayOfObjects($value)) {
-                    $result = array_merge($result, $this->flattenData($value, $newKey));
+                if ($this->isNumericArrayOfObjects($value)) {
+                    // For nested arrays like quantita_per_taglia, flatten them with indices
+                    foreach ($value as $index => $item) {
+                        if (is_array($item)) {
+                            $result = array_merge($result, $this->flattenData($item, $newKey . '_' . $index));
+                        } else {
+                            $result[$newKey . '_' . $index] = $item;
+                        }
+                    }
                 } else {
-                    // Skip arrays that should become separate rows
-                    continue;
+                    // Regular associative array, recurse normally
+                    $result = array_merge($result, $this->flattenData($value, $newKey));
                 }
             } else {
                 $result[$newKey] = $value;
