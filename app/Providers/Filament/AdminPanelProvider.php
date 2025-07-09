@@ -69,7 +69,7 @@ class AdminPanelProvider extends PanelProvider
                 [
                     ColorPlugin::make(),
                     FilamentFabricatorPlugin::make(),
-                    //FilamentShieldPlugin::make(),
+                    FilamentShieldPlugin::make(),
                     CuratorPlugin::make(),
 
                     FilamentFullCalendarPlugin::make()
@@ -134,26 +134,22 @@ class AdminPanelProvider extends PanelProvider
                         ];
 
                         foreach ($resources as $resource) {
-                            if ($resource::canViewAny($user)) {
-                                $navigationItems[] = \Filament\Navigation\NavigationItem::make($resource::getNavigationLabel())
-                                    ->icon($resource::getNavigationIcon())
-                                    ->url(fn (): string => $resource::getUrl('index'))
-                                    ->isActiveWhen(fn (): bool => request()->routeIs($resource::getRouteBaseName() . '.*'));
-                            }
+                            $navigationItems = array_merge($navigationItems, $resource::getNavigationItems());
                         }
+
                         return $navigationItems;
 
                     }
 
                     if ($user->hasRole('tripodi')) {
+                        dd('Debug: Utente Tripodi, logica di navigazione in esecuzione.');
                         return [
                             \Filament\Navigation\NavigationGroup::make('Gestione Extractor')
                                 ->items([
                                     \Filament\Navigation\NavigationItem::make('Extractors')
                                         ->icon('heroicon-o-rectangle-stack')
                                         ->url(fn (): string => \App\Filament\Resources\ExtractorResource::getUrl('index'))
-                                        ->isActiveWhen(fn (): bool => request()->fullUrlIs(\App\Filament\Resources\ExtractorResource::getUrl('index')))
-                                        ->visible(true),
+                                        ->isActiveWhen(fn (): bool => request()->fullUrlIs(\App\Filament\Resources\ExtractorResource::getUrl('index'))),
                                 ]),
                         ];
                     }
