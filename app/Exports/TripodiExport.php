@@ -9,6 +9,7 @@ use Maatwebsite\Excel\Concerns\WithHeadings;
 class TripodiExport implements FromCollection, WithHeadings
 {
     protected array $data;
+    protected array $generatedHeaders = [];
 
     public function __construct(array $data)
     {
@@ -18,7 +19,7 @@ class TripodiExport implements FromCollection, WithHeadings
     /**
      * @return \Illuminate\Support\Collection
      */
-    public function collection()
+    public function collection(): Collection
     {
         $rows = new Collection();
 
@@ -26,19 +27,25 @@ class TripodiExport implements FromCollection, WithHeadings
             return $rows;
         }
 
-        // Determina se il dato di input è un array di elementi (molte righe) o un singolo elemento (una riga).
-        // Se le chiavi sono numeriche e consecutive, assumiamo che sia un array di righe.
-        $isCollectionOfItems = array_keys($this->data) === range(0, count($this->data) - 1);
+        $this->generatedHeaders = [];
 
-        if ($isCollectionOfItems) {
+        // Check if the top-level data itself is a collection of items (e.g., array of records)
+        $isTopLevelCollection = array_keys($this->data) === range(0, count($this->data) - 1) && !empty($this->data) && is_array($this->data[array_key_first($this->data)]);
+
+        if ($isTopLevelCollection) {
             foreach ($this->data as $item) {
-                if (is_array($item)) {
-                    $rows->push($this->flattenArrayRecursive($item));
+                // For each top-level item, try to find a deeper repeating array
+                $outputRowsFromItem = $this->processSingleItemForRepeatingArrays($item, '');
+                foreach ($outputRowsFromItem as $row) {
+                    $rows->push($row);
                 }
             }
         } else {
-            // Se non è una collezione di elementi, trattiamo l'intero array come una singola riga
-            $rows->push($this->flattenArrayRecursive($this->data));
+            // If it's a single top-level object, process it
+            $outputRowsFromItem = $this->processSingleItemForRepeatingArrays($this->data, '');
+            foreach ($outputRowsFromItem as $row) {
+                $rows->push($row);
+            }
         }
 
         return $rows;
@@ -49,14 +56,60 @@ class TripodiExport implements FromCollection, WithHeadings
      */
     public function headings(): array
     {
-        // Ottengo la prima riga dalla collezione per derivare le intestazioni
-        $firstRow = $this->collection()->first();
+        // Ensure collection() is called first to populate generatedHeaders
+        $this->collection(); // This will populate $this->generatedHeaders
+        return array_keys($this->generatedHeaders);
+    }
 
-        if (empty($firstRow)) {
-            return [];
+    /**
+     * Processes a single item (which could be the entire top-level data or an item from a top-level collection)
+     * to find a repeating array and generate rows.
+     *
+     * @param array $itemData The data for the current item.
+     * @param string $prefix The current prefix for keys.
+     * @return array An array of flattened rows.
+     */
+    private function processSingleItemForRepeatingArrays(array $itemData, string $prefix = ''): array
+    {
+        $outputRows = [];
+        $repeatingArrayKey = null;
+        $nonRepeatingParts = [];
+
+        // Identify the first repeating array within this item
+        foreach ($itemData as $key => $value) {
+            if (is_array($value) && array_keys($value) === range(0, count($value) - 1) && !empty($value) && is_array($value[array_key_first($value)])) {
+                $repeatingArrayKey = $key;
+                break;
+            } else {
+                $nonRepeatingParts[$key] = $value;
+            }
         }
 
-        return array_keys($firstRow);
+        $flattenedNonRepeatingParts = $this->flattenArrayRecursive($nonRepeatingParts, $prefix);
+
+        if ($repeatingArrayKey !== null && !empty($itemData[$repeatingArrayKey])) {
+            foreach ($itemData[$repeatingArrayKey] as $index => $subItem) {
+                $subItemPrefix = ($prefix ? $prefix . '.' : '') . $repeatingArrayKey . '.' . $index;
+                $flattenedSubItem = $this->flattenArrayRecursive($subItem, $subItemPrefix);
+
+                $combinedRow = array_merge($flattenedNonRepeatingParts, $flattenedSubItem);
+                $outputRows[] = $combinedRow;
+
+                // Collect headers
+                foreach ($combinedRow as $header => $val) {
+                    $this->generatedHeaders[$header] = true;
+                }
+            }
+        } else {
+            // No repeating array found at this level, so this item forms a single row.
+            $outputRows[] = $flattenedNonRepeatingParts;
+
+            // Collect headers
+            foreach ($flattenedNonRepeatingParts as $header => $val) {
+                $this->generatedHeaders[$header] = true;
+            }
+        }
+        return $outputRows;
     }
 
     /**
