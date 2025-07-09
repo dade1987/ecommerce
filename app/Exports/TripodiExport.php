@@ -9,7 +9,6 @@ use Maatwebsite\Excel\Concerns\WithHeadings;
 class TripodiExport implements FromCollection, WithHeadings
 {
     protected array $data;
-    protected array $allHeaders = [];
 
     public function __construct(array $data)
     {
@@ -27,7 +26,6 @@ class TripodiExport implements FromCollection, WithHeadings
             return $rows;
         }
 
-        $this->allHeaders = [];
         $processedRows = $this->processDataToRows($this->data);
 
         foreach ($processedRows as $row) {
@@ -42,9 +40,8 @@ class TripodiExport implements FromCollection, WithHeadings
      */
     public function headings(): array
     {
-        // Ensure collection() is called first to populate headers
-        $this->collection();
-        return array_keys($this->allHeaders);
+        // Return empty array since we'll handle headers within the data
+        return [];
     }
 
     /**
@@ -68,31 +65,32 @@ class TripodiExport implements FromCollection, WithHeadings
             }
         }
 
-        // Flatten the base data (non-repeating parts)
+        // First, add rows for base data (vertical layout)
         $flattenedBaseData = $this->flattenData($baseData);
+        foreach ($flattenedBaseData as $key => $value) {
+            $readableKey = $this->makeKeyReadable($key);
+            $rows[] = [$readableKey, $value];
+        }
 
-        if ($repeatingArray !== null) {
-            // Create a row for each item in the repeating array
+        // Then, add header row for repeating data if it exists
+        if ($repeatingArray !== null && !empty($repeatingArray)) {
+            // Add empty row as separator
+            $rows[] = ['', ''];
+            
+            // Get headers from first item of repeating array
+            $firstItem = $repeatingArray[0];
+            $flattenedFirstItem = $this->flattenData($firstItem);
+            $headers = array_keys($flattenedFirstItem);
+            $readableHeaders = array_map([$this, 'makeKeyReadable'], $headers);
+            
+            // Add header row for articles
+            $rows[] = $readableHeaders;
+            
+            // Add data rows for each item in repeating array
             foreach ($repeatingArray as $item) {
                 $flattenedItem = $this->flattenData($item);
-                $combinedRow = array_merge($flattenedBaseData, $flattenedItem);
-                
-                // Convert keys to readable format
-                $readableRow = $this->makeKeysReadable($combinedRow);
-                $rows[] = $readableRow;
-                
-                // Collect all headers
-                foreach ($readableRow as $header => $value) {
-                    $this->allHeaders[$header] = true;
-                }
-            }
-        } else {
-            // No repeating array found, create single row
-            $readableRow = $this->makeKeysReadable($flattenedBaseData);
-            $rows[] = $readableRow;
-            
-            foreach ($readableRow as $header => $value) {
-                $this->allHeaders[$header] = true;
+                $values = array_values($flattenedItem);
+                $rows[] = $values;
             }
         }
 
@@ -119,7 +117,7 @@ class TripodiExport implements FromCollection, WithHeadings
     }
 
     /**
-     * Flattens nested arrays using dot notation
+     * Flattens nested arrays using dot notation, but removes redundant prefixes
      */
     private function flattenData(array $data, string $prefix = ''): array
     {
@@ -133,9 +131,8 @@ class TripodiExport implements FromCollection, WithHeadings
                 if (!$this->isNumericArrayOfObjects($value)) {
                     $result = array_merge($result, $this->flattenData($value, $newKey));
                 } else {
-                    // For arrays that should become rows, we don't flatten them here
-                    // This prevents creating multiple columns for array elements
-                    $result[$newKey] = json_encode($value); // Store as JSON for now
+                    // Skip arrays that should become separate rows
+                    continue;
                 }
             } else {
                 $result[$newKey] = $value;
@@ -146,20 +143,30 @@ class TripodiExport implements FromCollection, WithHeadings
     }
 
     /**
-     * Convert snake_case and dot notation keys to readable format
+     * Convert snake_case and dot notation keys to readable format, removing redundant prefixes
      */
-    private function makeKeysReadable(array $data): array
+    private function makeKeyReadable(string $key): string
     {
-        $readable = [];
+        // Remove redundant prefixes (e.g., "ordine.numero_ordine" becomes "numero_ordine")
+        $parts = explode('.', $key);
         
-        foreach ($data as $key => $value) {
-            // Convert snake_case to Title Case and replace dots with spaces
-            $readableKey = str_replace(['_', '.'], ' ', $key);
-            $readableKey = ucwords($readableKey);
+        // If we have nested keys, check for redundancy
+        if (count($parts) > 1) {
+            $lastPart = end($parts);
+            $secondLastPart = count($parts) > 1 ? $parts[count($parts) - 2] : '';
             
-            $readable[$readableKey] = $value;
+            // If the last part contains the second-to-last part, use only the last part
+            if (strpos($lastPart, $secondLastPart) !== false || 
+                strpos($secondLastPart, $lastPart) !== false) {
+                $key = $lastPart;
+            } else {
+                // Otherwise, use the last two parts
+                $key = implode('_', array_slice($parts, -2));
+            }
         }
         
-        return $readable;
+        // Convert snake_case to Title Case
+        $readableKey = str_replace('_', ' ', $key);
+        return ucwords($readableKey);
     }
 } 
