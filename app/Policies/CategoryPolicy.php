@@ -18,6 +18,11 @@ class CategoryPolicy
      */
     public function viewAny(User $user): bool
     {
+        // Allow super_admin full access
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
+        
         return $user->can('view_any_category') || $user->hasRole('tripodi');
     }
 
@@ -30,6 +35,11 @@ class CategoryPolicy
      */
     public function view(User $user, Category $category): bool
     {
+        // Allow super_admin full access
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
+        
         return $user->can('view_category') || $user->hasRole('tripodi');
     }
 
@@ -41,6 +51,11 @@ class CategoryPolicy
      */
     public function create(User $user): bool
     {
+        // Allow super_admin full access
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
+        
         return $user->can('create_category') && ! $user->hasRole('tripodi');
     }
 
@@ -53,6 +68,11 @@ class CategoryPolicy
      */
     public function update(User $user, Category $category): bool
     {
+        // Allow super_admin full access
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
+        
         return $user->can('update_category') && ! $user->hasRole('tripodi');
     }
 
@@ -65,6 +85,11 @@ class CategoryPolicy
      */
     public function delete(User $user, Category $category): bool
     {
+        // Allow super_admin full access
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
+        
         return $user->can('delete_category') && ! $user->hasRole('tripodi');
     }
 

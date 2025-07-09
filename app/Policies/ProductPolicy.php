@@ -18,6 +18,10 @@ class ProductPolicy
      */
     public function viewAny(User $user): bool
     {
+        // Allow super_admin full access
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
         return $user->can('view_any_product') || $user->hasRole('tripodi');
     }
 
@@ -30,6 +34,10 @@ class ProductPolicy
      */
     public function view(User $user, Product $product): bool
     {
+        // Allow super_admin full access
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
         return $user->can('view_product') || $user->hasRole('tripodi');
     }
 
@@ -41,6 +49,10 @@ class ProductPolicy
      */
     public function create(User $user): bool
     {
+        // Allow super_admin full access
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
         return $user->can('create_product') && ! $user->hasRole('tripodi');
     }
 
@@ -53,6 +65,10 @@ class ProductPolicy
      */
     public function update(User $user, Product $product): bool
     {
+        // Allow super_admin full access
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
         return $user->can('update_product') && ! $user->hasRole('tripodi');
     }
 
@@ -65,6 +81,10 @@ class ProductPolicy
      */
     public function delete(User $user, Product $product): bool
     {
+        // Allow super_admin full access
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
         return $user->can('delete_product') && ! $user->hasRole('tripodi');
     }
 
@@ -76,6 +96,10 @@ class ProductPolicy
      */
     public function deleteAny(User $user): bool
     {
+        // Allow super_admin full access
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
         return $user->can('delete_any_product') && ! $user->hasRole('tripodi');
     }
 
@@ -88,6 +112,10 @@ class ProductPolicy
      */
     public function restore(User $user, Product $product): bool
     {
+        // Allow super_admin full access
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
         return $user->can('restore_product') && ! $user->hasRole('tripodi');
     }
 
@@ -100,6 +128,10 @@ class ProductPolicy
      */
     public function forceDelete(User $user, Product $product): bool
     {
+        // Allow super_admin full access
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
         return $user->can('force_delete_product') && ! $user->hasRole('tripodi');
     }
 
@@ -111,6 +143,10 @@ class ProductPolicy
      */
     public function restoreAny(User $user): bool
     {
+        // Allow super_admin full access
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
         return $user->can('restore_any_product') && ! $user->hasRole('tripodi');
     }
 
@@ -122,6 +158,10 @@ class ProductPolicy
      */
     public function forceDeleteAny(User $user): bool
     {
+        // Allow super_admin full access
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
         return $user->can('force_delete_any_product') && ! $user->hasRole('tripodi');
     }
 
@@ -134,6 +174,10 @@ class ProductPolicy
      */
     public function replicate(User $user, Product $product): bool
     {
+        // Allow super_admin full access
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
         return $user->can('replicate_product') && ! $user->hasRole('tripodi');
     }
 
@@ -145,6 +189,10 @@ class ProductPolicy
      */
     public function reorder(User $user): bool
     {
+        // Allow super_admin full access
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
         return $user->can('reorder_product') && ! $user->hasRole('tripodi');
     }
 

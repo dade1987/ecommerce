@@ -18,6 +18,11 @@ class ArticlePolicy
      */
     public function viewAny(User $user): bool
     {
+        // Allow super_admin full access
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
+        
         return $user->can('view_any_article') || $user->hasRole('tripodi');
     }
 
@@ -30,6 +35,11 @@ class ArticlePolicy
      */
     public function view(User $user, Article $article): bool
     {
+        // Allow super_admin full access
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
+        
         return $user->can('view_article') || $user->hasRole('tripodi');
     }
 
@@ -41,6 +51,11 @@ class ArticlePolicy
      */
     public function create(User $user): bool
     {
+        // Allow super_admin full access
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
+        
         return $user->can('create_article') && ! $user->hasRole('tripodi');
     }
 
@@ -53,6 +68,11 @@ class ArticlePolicy
      */
     public function update(User $user, Article $article): bool
     {
+        // Allow super_admin full access
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
+        
         return $user->can('update_article') && ! $user->hasRole('tripodi');
     }
 
@@ -65,6 +85,11 @@ class ArticlePolicy
      */
     public function delete(User $user, Article $article): bool
     {
+        // Allow super_admin full access
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
+        
         return $user->can('delete_article') && ! $user->hasRole('tripodi');
     }
 

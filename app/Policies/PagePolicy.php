@@ -18,6 +18,10 @@ class PagePolicy
      */
     public function viewAny(User $user): bool
     {
+        // Allow super_admin full access
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
         return $user->can('view_any_page') || $user->hasRole('tripodi');
     }
 
@@ -30,6 +34,10 @@ class PagePolicy
      */
     public function view(User $user, Page $page): bool
     {
+        // Allow super_admin full access
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
         return $user->can('view_page') || $user->hasRole('tripodi');
     }
 
@@ -41,6 +49,10 @@ class PagePolicy
      */
     public function create(User $user): bool
     {
+        // Allow super_admin full access
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
         return $user->can('create_page') && ! $user->hasRole('tripodi');
     }
 
@@ -53,6 +65,10 @@ class PagePolicy
      */
     public function update(User $user, Page $page): bool
     {
+        // Allow super_admin full access
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
         return $user->can('update_page') && ! $user->hasRole('tripodi');
     }
 
@@ -65,6 +81,10 @@ class PagePolicy
      */
     public function delete(User $user, Page $page): bool
     {
+        // Allow super_admin full access
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
         return $user->can('delete_page') && ! $user->hasRole('tripodi');
     }
 
@@ -76,6 +96,10 @@ class PagePolicy
      */
     public function deleteAny(User $user): bool
     {
+        // Allow super_admin full access
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
         return $user->can('delete_any_page') && ! $user->hasRole('tripodi');
     }
 
@@ -88,6 +112,10 @@ class PagePolicy
      */
     public function restore(User $user, Page $page): bool
     {
+        // Allow super_admin full access
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
         return $user->can('restore_page') && ! $user->hasRole('tripodi');
     }
 
@@ -100,6 +128,10 @@ class PagePolicy
      */
     public function forceDelete(User $user, Page $page): bool
     {
+        // Allow super_admin full access
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
         return $user->can('force_delete_page') && ! $user->hasRole('tripodi');
     }
 
@@ -111,6 +143,10 @@ class PagePolicy
      */
     public function restoreAny(User $user): bool
     {
+        // Allow super_admin full access
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
         return $user->can('restore_any_page') && ! $user->hasRole('tripodi');
     }
 
@@ -122,6 +158,10 @@ class PagePolicy
      */
     public function forceDeleteAny(User $user): bool
     {
+        // Allow super_admin full access
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
         return $user->can('force_delete_any_page') && ! $user->hasRole('tripodi');
     }
 
@@ -134,6 +174,10 @@ class PagePolicy
      */
     public function replicate(User $user, Page $page): bool
     {
+        // Allow super_admin full access
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
         return $user->can('replicate_page');
     }
 
@@ -145,6 +189,10 @@ class PagePolicy
      */
     public function reorder(User $user): bool
     {
+        // Allow super_admin full access
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
         return $user->can('reorder_page');
     }
 
