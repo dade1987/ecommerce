@@ -13,6 +13,8 @@ class TripodiExport implements FromCollection, WithHeadings
     public function __construct(array $data)
     {
         $this->data = $data;
+
+        dd($data);
     }
 
     /**
