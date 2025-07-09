@@ -51,12 +51,18 @@ class TripodiExport implements FromCollection, WithHeadings
     {
         $rows = [];
         
+        // Handle nested structure - if there's a single top-level key, dive into it
+        $workingData = $data;
+        if (count($data) === 1 && is_array(reset($data))) {
+            $workingData = reset($data);
+        }
+        
         // Find the first repeating array (numeric array with objects)
         $repeatingArray = null;
         $repeatingKey = null;
         $baseData = [];
 
-        foreach ($data as $key => $value) {
+        foreach ($workingData as $key => $value) {
             if (is_array($value) && $this->isNumericArrayOfObjects($value)) {
                 $repeatingArray = $value;
                 $repeatingKey = $key;
@@ -74,6 +80,13 @@ class TripodiExport implements FromCollection, WithHeadings
 
         // Then, add header row for repeating data if it exists
         if ($repeatingArray !== null && !empty($repeatingArray)) {
+            // Add empty row as separator
+            $rows[] = ['', ''];
+            
+            // Add section header
+            $sectionTitle = $this->makeKeyReadable($repeatingKey);
+            $rows[] = [$sectionTitle, ''];
+            
             // Add empty row as separator
             $rows[] = ['', ''];
             
