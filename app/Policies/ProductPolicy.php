@@ -18,7 +18,7 @@ class ProductPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->can('view_any_product');
+        return $user->can('view_any_product') || $user->hasRole('tripodi');
     }
 
     /**
@@ -30,7 +30,7 @@ class ProductPolicy
      */
     public function view(User $user, Product $product): bool
     {
-        return $user->can('view_product');
+        return $user->can('view_product') || $user->hasRole('tripodi');
     }
 
     /**
@@ -41,7 +41,7 @@ class ProductPolicy
      */
     public function create(User $user): bool
     {
-        return $user->can('create_product');
+        return $user->can('create_product') && ! $user->hasRole('tripodi');
     }
 
     /**
@@ -53,7 +53,7 @@ class ProductPolicy
      */
     public function update(User $user, Product $product): bool
     {
-        return $user->can('update_product');
+        return $user->can('update_product') && ! $user->hasRole('tripodi');
     }
 
     /**
@@ -65,7 +65,7 @@ class ProductPolicy
      */
     public function delete(User $user, Product $product): bool
     {
-        return $user->can('delete_product');
+        return $user->can('delete_product') && ! $user->hasRole('tripodi');
     }
 
     /**
@@ -76,34 +76,11 @@ class ProductPolicy
      */
     public function deleteAny(User $user): bool
     {
-        return $user->can('delete_any_product');
+        return $user->can('delete_any_product') && ! $user->hasRole('tripodi');
     }
 
     /**
-     * Determine whether the user can permanently delete.
-     *
-     * @param  \App\Models\User  $user
-     * @param  \App\Models\Product  $product
-     * @return \Illuminate\Auth\Access\Response|bool
-     */
-    public function forceDelete(User $user, Product $product): bool
-    {
-        return $user->can('force_delete_product');
-    }
-
-    /**
-     * Determine whether the user can permanently bulk delete.
-     *
-     * @param  \App\Models\User  $user
-     * @return \Illuminate\Auth\Access\Response|bool
-     */
-    public function forceDeleteAny(User $user): bool
-    {
-        return $user->can('force_delete_any_product');
-    }
-
-    /**
-     * Determine whether the user can restore.
+     * Determine whether the user can restore the model.
      *
      * @param  \App\Models\User  $user
      * @param  \App\Models\Product  $product
@@ -111,7 +88,19 @@ class ProductPolicy
      */
     public function restore(User $user, Product $product): bool
     {
-        return $user->can('restore_product');
+        return $user->can('restore_product') && ! $user->hasRole('tripodi');
+    }
+
+    /**
+     * Determine whether the user can permanently delete the model.
+     *
+     * @param  \App\Models\User  $user
+     * @param  \App\Models\Product  $product
+     * @return \Illuminate\Auth\Access\Response|bool
+     */
+    public function forceDelete(User $user, Product $product): bool
+    {
+        return $user->can('force_delete_product') && ! $user->hasRole('tripodi');
     }
 
     /**
@@ -122,7 +111,18 @@ class ProductPolicy
      */
     public function restoreAny(User $user): bool
     {
-        return $user->can('restore_any_product');
+        return $user->can('restore_any_product') && ! $user->hasRole('tripodi');
+    }
+
+    /**
+     * Determine whether the user can bulk permanently delete.
+     *
+     * @param  \App\Models\User  $user
+     * @return \Illuminate\Auth\Access\Response|bool
+     */
+    public function forceDeleteAny(User $user): bool
+    {
+        return $user->can('force_delete_any_product') && ! $user->hasRole('tripodi');
     }
 
     /**

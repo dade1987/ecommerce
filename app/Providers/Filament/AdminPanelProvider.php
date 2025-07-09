@@ -138,16 +138,21 @@ class AdminPanelProvider extends PanelProvider
 
                     }
 
+                    // For the 'tripodi' role, display all resources in the navigation.
+                    // Permissions for actions (create, update, delete) will be handled by policies.
                     if ($user->hasRole('tripodi')) {
-                        return $builder->groups([
-                            \Filament\Navigation\NavigationGroup::make('Gestione Extractor')
-                                ->items([
-                                    \Filament\Navigation\NavigationItem::make('Extractors')
-                                        ->icon('heroicon-o-rectangle-stack')
-                                        ->url(fn (): string => \App\Filament\Resources\ExtractorResource::getUrl('index'))
-                                        ->isActiveWhen(fn (): bool => request()->fullUrlIs(\App\Filament\Resources\ExtractorResource::getUrl('index'))),
-                                ]),
-                        ]);
+                        $navigationItems = [
+                            \Filament\Navigation\NavigationItem::make('Dashboard')
+                                ->icon('heroicon-o-home')
+                                ->url(fn (): string => Pages\Dashboard::getUrl())
+                                ->isActiveWhen(fn (): bool => request()->routeIs('filament.pages.dashboard')),
+                        ];
+
+                        foreach ($panel->getResources() as $resource) {
+                            $navigationItems = array_merge($navigationItems, $resource::getNavigationItems());
+                        }
+
+                        return $builder->items($navigationItems);
                     }
 
                     return $builder->items([]);

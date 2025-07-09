@@ -18,7 +18,7 @@ class MediaPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->can('view_any_media');
+        return $user->can('view_any_media') || $user->hasRole('tripodi');
     }
 
     /**
@@ -30,7 +30,7 @@ class MediaPolicy
      */
     public function view(User $user, Media $media): bool
     {
-        return $user->can('view_media');
+        return $user->can('view_media') || $user->hasRole('tripodi');
     }
 
     /**
@@ -41,7 +41,7 @@ class MediaPolicy
      */
     public function create(User $user): bool
     {
-        return $user->can('create_media');
+        return $user->can('create_media') && ! $user->hasRole('tripodi');
     }
 
     /**
@@ -53,7 +53,7 @@ class MediaPolicy
      */
     public function update(User $user, Media $media): bool
     {
-        return $user->can('update_media');
+        return $user->can('update_media') && ! $user->hasRole('tripodi');
     }
 
     /**
@@ -65,7 +65,7 @@ class MediaPolicy
      */
     public function delete(User $user, Media $media): bool
     {
-        return $user->can('delete_media');
+        return $user->can('delete_media') && ! $user->hasRole('tripodi');
     }
 
     /**
@@ -76,34 +76,11 @@ class MediaPolicy
      */
     public function deleteAny(User $user): bool
     {
-        return $user->can('delete_any_media');
+        return $user->can('delete_any_media') && ! $user->hasRole('tripodi');
     }
 
     /**
-     * Determine whether the user can permanently delete.
-     *
-     * @param  \App\Models\User  $user
-     * @param  \Awcodes\Curator\Models\Media  $media
-     * @return \Illuminate\Auth\Access\Response|bool
-     */
-    public function forceDelete(User $user, Media $media): bool
-    {
-        return $user->can('force_delete_media');
-    }
-
-    /**
-     * Determine whether the user can permanently bulk delete.
-     *
-     * @param  \App\Models\User  $user
-     * @return \Illuminate\Auth\Access\Response|bool
-     */
-    public function forceDeleteAny(User $user): bool
-    {
-        return $user->can('force_delete_any_media');
-    }
-
-    /**
-     * Determine whether the user can restore.
+     * Determine whether the user can restore the model.
      *
      * @param  \App\Models\User  $user
      * @param  \Awcodes\Curator\Models\Media  $media
@@ -111,7 +88,19 @@ class MediaPolicy
      */
     public function restore(User $user, Media $media): bool
     {
-        return $user->can('restore_media');
+        return $user->can('restore_media') && ! $user->hasRole('tripodi');
+    }
+
+    /**
+     * Determine whether the user can permanently delete the model.
+     *
+     * @param  \App\Models\User  $user
+     * @param  \Awcodes\Curator\Models\Media  $media
+     * @return \Illuminate\Auth\Access\Response|bool
+     */
+    public function forceDelete(User $user, Media $media): bool
+    {
+        return $user->can('force_delete_media') && ! $user->hasRole('tripodi');
     }
 
     /**
@@ -122,7 +111,18 @@ class MediaPolicy
      */
     public function restoreAny(User $user): bool
     {
-        return $user->can('restore_any_media');
+        return $user->can('restore_any_media') && ! $user->hasRole('tripodi');
+    }
+
+    /**
+     * Determine whether the user can bulk permanently delete.
+     *
+     * @param  \App\Models\User  $user
+     * @return \Illuminate\Auth\Access\Response|bool
+     */
+    public function forceDeleteAny(User $user): bool
+    {
+        return $user->can('force_delete_any_media') && ! $user->hasRole('tripodi');
     }
 
     /**

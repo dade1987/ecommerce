@@ -18,7 +18,7 @@ class UserPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->can('view_any_user');
+        return $user->can('view_any_user') || $user->hasRole('tripodi');
     }
 
     /**
@@ -29,7 +29,7 @@ class UserPolicy
      */
     public function view(User $user): bool
     {
-        return $user->can('view_user');
+        return $user->can('view_user') || $user->hasRole('tripodi');
     }
 
     /**
@@ -40,7 +40,7 @@ class UserPolicy
      */
     public function create(User $user): bool
     {
-        return $user->can('create_user');
+        return $user->can('create_user') && ! $user->hasRole('tripodi');
     }
 
     /**
@@ -51,7 +51,7 @@ class UserPolicy
      */
     public function update(User $user): bool
     {
-        return $user->can('update_user');
+        return $user->can('update_user') && ! $user->hasRole('tripodi');
     }
 
     /**
@@ -62,7 +62,7 @@ class UserPolicy
      */
     public function delete(User $user): bool
     {
-        return $user->can('delete_user');
+        return $user->can('delete_user') && ! $user->hasRole('tripodi');
     }
 
     /**
@@ -73,40 +73,29 @@ class UserPolicy
      */
     public function deleteAny(User $user): bool
     {
-        return $user->can('delete_any_user');
+        return $user->can('delete_any_user') && ! $user->hasRole('tripodi');
     }
 
     /**
-     * Determine whether the user can permanently delete.
-     *
-     * @param  \App\Models\User  $user
-     * @return \Illuminate\Auth\Access\Response|bool
-     */
-    public function forceDelete(User $user): bool
-    {
-        return $user->can('force_delete_user');
-    }
-
-    /**
-     * Determine whether the user can permanently bulk delete.
-     *
-     * @param  \App\Models\User  $user
-     * @return \Illuminate\Auth\Access\Response|bool
-     */
-    public function forceDeleteAny(User $user): bool
-    {
-        return $user->can('force_delete_any_user');
-    }
-
-    /**
-     * Determine whether the user can restore.
+     * Determine whether the user can restore the model.
      *
      * @param  \App\Models\User  $user
      * @return \Illuminate\Auth\Access\Response|bool
      */
     public function restore(User $user): bool
     {
-        return $user->can('restore_user');
+        return $user->can('restore_user') && ! $user->hasRole('tripodi');
+    }
+
+    /**
+     * Determine whether the user can permanently delete the model.
+     *
+     * @param  \App\Models\User  $user
+     * @return \Illuminate\Auth\Access\Response|bool
+     */
+    public function forceDelete(User $user): bool
+    {
+        return $user->can('force_delete_user') && ! $user->hasRole('tripodi');
     }
 
     /**
@@ -117,11 +106,22 @@ class UserPolicy
      */
     public function restoreAny(User $user): bool
     {
-        return $user->can('restore_any_user');
+        return $user->can('restore_any_user') && ! $user->hasRole('tripodi');
     }
 
     /**
-     * Determine whether the user can bulk restore.
+     * Determine whether the user can bulk permanently delete.
+     *
+     * @param  \App\Models\User  $user
+     * @return \Illuminate\Auth\Access\Response|bool
+     */
+    public function forceDeleteAny(User $user): bool
+    {
+        return $user->can('force_delete_any_user') && ! $user->hasRole('tripodi');
+    }
+
+    /**
+     * Determine whether the user can replicate.
      *
      * @param  \App\Models\User  $user
      * @return \Illuminate\Auth\Access\Response|bool

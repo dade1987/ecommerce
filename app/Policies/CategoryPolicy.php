@@ -18,7 +18,7 @@ class CategoryPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->can('view_any_category');
+        return $user->can('view_any_category') || $user->hasRole('tripodi');
     }
 
     /**
@@ -30,7 +30,7 @@ class CategoryPolicy
      */
     public function view(User $user, Category $category): bool
     {
-        return $user->can('view_category');
+        return $user->can('view_category') || $user->hasRole('tripodi');
     }
 
     /**
@@ -41,7 +41,7 @@ class CategoryPolicy
      */
     public function create(User $user): bool
     {
-        return $user->can('create_category');
+        return $user->can('create_category') && ! $user->hasRole('tripodi');
     }
 
     /**
@@ -53,7 +53,7 @@ class CategoryPolicy
      */
     public function update(User $user, Category $category): bool
     {
-        return $user->can('update_category');
+        return $user->can('update_category') && ! $user->hasRole('tripodi');
     }
 
     /**
@@ -65,7 +65,7 @@ class CategoryPolicy
      */
     public function delete(User $user, Category $category): bool
     {
-        return $user->can('delete_category');
+        return $user->can('delete_category') && ! $user->hasRole('tripodi');
     }
 
     /**
@@ -76,34 +76,11 @@ class CategoryPolicy
      */
     public function deleteAny(User $user): bool
     {
-        return $user->can('delete_any_category');
+        return $user->can('delete_any_category') && ! $user->hasRole('tripodi');
     }
 
     /**
-     * Determine whether the user can permanently delete.
-     *
-     * @param  \App\Models\User  $user
-     * @param  \App\Models\Category  $category
-     * @return \Illuminate\Auth\Access\Response|bool
-     */
-    public function forceDelete(User $user, Category $category): bool
-    {
-        return $user->can('force_delete_category');
-    }
-
-    /**
-     * Determine whether the user can permanently bulk delete.
-     *
-     * @param  \App\Models\User  $user
-     * @return \Illuminate\Auth\Access\Response|bool
-     */
-    public function forceDeleteAny(User $user): bool
-    {
-        return $user->can('force_delete_any_category');
-    }
-
-    /**
-     * Determine whether the user can restore.
+     * Determine whether the user can restore the model.
      *
      * @param  \App\Models\User  $user
      * @param  \App\Models\Category  $category
@@ -111,7 +88,19 @@ class CategoryPolicy
      */
     public function restore(User $user, Category $category): bool
     {
-        return $user->can('restore_category');
+        return $user->can('restore_category') && ! $user->hasRole('tripodi');
+    }
+
+    /**
+     * Determine whether the user can permanently delete the model.
+     *
+     * @param  \App\Models\User  $user
+     * @param  \App\Models\Category  $category
+     * @return \Illuminate\Auth\Access\Response|bool
+     */
+    public function forceDelete(User $user, Category $category): bool
+    {
+        return $user->can('force_delete_category') && ! $user->hasRole('tripodi');
     }
 
     /**
@@ -122,7 +111,18 @@ class CategoryPolicy
      */
     public function restoreAny(User $user): bool
     {
-        return $user->can('restore_any_category');
+        return $user->can('restore_any_category') && ! $user->hasRole('tripodi');
+    }
+
+    /**
+     * Determine whether the user can bulk permanently delete.
+     *
+     * @param  \App\Models\User  $user
+     * @return \Illuminate\Auth\Access\Response|bool
+     */
+    public function forceDeleteAny(User $user): bool
+    {
+        return $user->can('force_delete_any_category') && ! $user->hasRole('tripodi');
     }
 
     /**
