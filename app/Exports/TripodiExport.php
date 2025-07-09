@@ -9,7 +9,7 @@ use Maatwebsite\Excel\Concerns\WithHeadings;
 class TripodiExport implements FromCollection, WithHeadings
 {
     protected array $data;
-    protected array $generatedHeaders = [];
+    protected array $allHeaders = [];
 
     public function __construct(array $data)
     {
@@ -27,25 +27,11 @@ class TripodiExport implements FromCollection, WithHeadings
             return $rows;
         }
 
-        $this->generatedHeaders = [];
+        $this->allHeaders = [];
+        $processedRows = $this->processDataToRows($this->data);
 
-        // Check if the top-level data itself is a collection of items (e.g., array of records)
-        $isTopLevelCollection = array_keys($this->data) === range(0, count($this->data) - 1) && !empty($this->data) && is_array($this->data[array_key_first($this->data)]);
-
-        if ($isTopLevelCollection) {
-            foreach ($this->data as $item) {
-                // For each top-level item, try to find a deeper repeating array
-                $outputRowsFromItem = $this->processSingleItemForRepeatingArrays($item, '');
-                foreach ($outputRowsFromItem as $row) {
-                    $rows->push($row);
-                }
-            }
-        } else {
-            // If it's a single top-level object, process it
-            $outputRowsFromItem = $this->processSingleItemForRepeatingArrays($this->data, '');
-            foreach ($outputRowsFromItem as $row) {
-                $rows->push($row);
-            }
+        foreach ($processedRows as $row) {
+            $rows->push($row);
         }
 
         return $rows;
@@ -56,92 +42,124 @@ class TripodiExport implements FromCollection, WithHeadings
      */
     public function headings(): array
     {
-        // Ensure collection() is called first to populate generatedHeaders
-        $this->collection(); // This will populate $this->generatedHeaders
-        return array_keys($this->generatedHeaders);
+        // Ensure collection() is called first to populate headers
+        $this->collection();
+        return array_keys($this->allHeaders);
     }
 
     /**
-     * Processes a single item (which could be the entire top-level data or an item from a top-level collection)
-     * to find a repeating array and generate rows.
-     *
-     * @param array $itemData The data for the current item.
-     * @param string $prefix The current prefix for keys.
-     * @return array An array of flattened rows.
+     * Processes the input data to generate rows for export
      */
-    private function processSingleItemForRepeatingArrays(array $itemData, string $prefix = ''): array
+    private function processDataToRows(array $data): array
     {
-        $outputRows = [];
-        $repeatingArrayKey = null;
-        $nonRepeatingParts = [];
+        $rows = [];
+        
+        // Find the first repeating array (numeric array with objects)
+        $repeatingArray = null;
+        $repeatingKey = null;
+        $baseData = [];
 
-        // Identify the first repeating array within this item
-        foreach ($itemData as $key => $value) {
-            if (is_array($value) && array_keys($value) === range(0, count($value) - 1) && !empty($value) && is_array($value[array_key_first($value)])) {
-                $repeatingArrayKey = $key;
-                break;
+        foreach ($data as $key => $value) {
+            if (is_array($value) && $this->isNumericArrayOfObjects($value)) {
+                $repeatingArray = $value;
+                $repeatingKey = $key;
             } else {
-                $nonRepeatingParts[$key] = $value;
+                $baseData[$key] = $value;
             }
         }
 
-        $flattenedNonRepeatingParts = $this->flattenArrayRecursive($nonRepeatingParts, $prefix);
+        // Flatten the base data (non-repeating parts)
+        $flattenedBaseData = $this->flattenData($baseData);
 
-        if ($repeatingArrayKey !== null && !empty($itemData[$repeatingArrayKey])) {
-            foreach ($itemData[$repeatingArrayKey] as $index => $subItem) {
-                $subItemPrefix = ($prefix ? $prefix . '.' : '') . $repeatingArrayKey . '.' . $index;
-                $flattenedSubItem = $this->flattenArrayRecursive($subItem, $subItemPrefix);
-
-                $combinedRow = array_merge($flattenedNonRepeatingParts, $flattenedSubItem);
-                $outputRows[] = $combinedRow;
-
-                // Collect headers
-                foreach ($combinedRow as $header => $val) {
-                    $this->generatedHeaders[$header] = true;
+        if ($repeatingArray !== null) {
+            // Create a row for each item in the repeating array
+            foreach ($repeatingArray as $item) {
+                $flattenedItem = $this->flattenData($item);
+                $combinedRow = array_merge($flattenedBaseData, $flattenedItem);
+                
+                // Convert keys to readable format
+                $readableRow = $this->makeKeysReadable($combinedRow);
+                $rows[] = $readableRow;
+                
+                // Collect all headers
+                foreach ($readableRow as $header => $value) {
+                    $this->allHeaders[$header] = true;
                 }
             }
         } else {
-            // No repeating array found at this level, so this item forms a single row.
-            $outputRows[] = $flattenedNonRepeatingParts;
-
-            // Collect headers
-            foreach ($flattenedNonRepeatingParts as $header => $val) {
-                $this->generatedHeaders[$header] = true;
+            // No repeating array found, create single row
+            $readableRow = $this->makeKeysReadable($flattenedBaseData);
+            $rows[] = $readableRow;
+            
+            foreach ($readableRow as $header => $value) {
+                $this->allHeaders[$header] = true;
             }
         }
-        return $outputRows;
+
+        return $rows;
     }
 
     /**
-     * Recursively flattens an array, prepending keys with a prefix.
-     *
-     * @param array $array The array to flatten.
-     * @param string $prefix The prefix to use for keys.
-     * @return array The flattened array.
+     * Check if an array is a numeric array containing objects (arrays)
      */
-    private function flattenArrayRecursive(array $array, string $prefix = ''): array
+    private function isNumericArrayOfObjects(array $array): bool
+    {
+        if (empty($array)) {
+            return false;
+        }
+        
+        // Check if keys are numeric and consecutive
+        $keys = array_keys($array);
+        if ($keys !== range(0, count($array) - 1)) {
+            return false;
+        }
+        
+        // Check if first element is an array (object)
+        return is_array($array[0]);
+    }
+
+    /**
+     * Flattens nested arrays using dot notation
+     */
+    private function flattenData(array $data, string $prefix = ''): array
     {
         $result = [];
-        foreach ($array as $key => $value) {
+        
+        foreach ($data as $key => $value) {
             $newKey = $prefix === '' ? $key : $prefix . '.' . $key;
+            
             if (is_array($value) && !empty($value)) {
                 // If it's an associative array, recurse
-                if (array_keys($value) !== range(0, count($value) - 1)) { // Check if associative
-                    $result = array_merge($result, $this->flattenArrayRecursive($value, $newKey));
+                if (!$this->isNumericArrayOfObjects($value)) {
+                    $result = array_merge($result, $this->flattenData($value, $newKey));
                 } else {
-                    // If it's a numeric array (list), flatten each item with its index
-                    foreach ($value as $idx => $item) {
-                        if (is_array($item)) {
-                            $result = array_merge($result, $this->flattenArrayRecursive($item, $newKey . '.' . $idx));
-                        } else {
-                            $result[$newKey . '.' . $idx] = $item; // For simple lists like [1,2,3]
-                        }
-                    }
+                    // For arrays that should become rows, we don't flatten them here
+                    // This prevents creating multiple columns for array elements
+                    $result[$newKey] = json_encode($value); // Store as JSON for now
                 }
             } else {
                 $result[$newKey] = $value;
             }
         }
+        
         return $result;
+    }
+
+    /**
+     * Convert snake_case and dot notation keys to readable format
+     */
+    private function makeKeysReadable(array $data): array
+    {
+        $readable = [];
+        
+        foreach ($data as $key => $value) {
+            // Convert snake_case to Title Case and replace dots with spaces
+            $readableKey = str_replace(['_', '.'], ' ', $key);
+            $readableKey = ucwords($readableKey);
+            
+            $readable[$readableKey] = $value;
+        }
+        
+        return $readable;
     }
 } 
