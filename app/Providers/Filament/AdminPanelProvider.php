@@ -69,7 +69,7 @@ class AdminPanelProvider extends PanelProvider
                 [
                     ColorPlugin::make(),
                     FilamentFabricatorPlugin::make(),
-                    FilamentShieldPlugin::make(),
+                    //FilamentShieldPlugin::make(),
                     CuratorPlugin::make(),
 
                     FilamentFullCalendarPlugin::make()
