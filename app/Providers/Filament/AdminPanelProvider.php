@@ -41,7 +41,31 @@ class AdminPanelProvider extends PanelProvider
             ->colors([
                 'primary' => Color::Amber,
             ])
-            ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
+            ->discoverResources(
+                app_path('Filament/Resources'),
+                'App\\Filament\\Resources',
+                function (string $resource): bool {
+                    /** @var \App\Models\User $user */
+                    $user = auth()->user();
+
+                    if (! $user) {
+                        return false;
+                    }
+
+                    // Allow super_admin to see all resources
+                    if ($user->hasRole('super_admin')) {
+                        return true;
+                    }
+
+                    // If the user has the 'tripodi' role, only show ExtractorResource
+                    if ($user->hasRole('tripodi')) {
+                        return $resource === \App\Filament\Resources\ExtractorResource::class;
+                    }
+
+                    // For any other role, do not show any resources by default unless explicitly allowed
+                    return false;
+                }
+            )
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
                 Pages\Dashboard::class,

@@ -64,7 +64,7 @@ class User extends Authenticatable implements FilamentUser, HasTenants
         //FUNZIONA
         //return $this->hasRole('super_admin');
 
-        return true;
+        return $this->hasRole('super_admin') || $this->hasRole('tripodi');
     }
 
     public function teams(): MorphToMany

@@ -13,6 +13,8 @@ use App\Policies\CategoryPolicy;
 use Awcodes\Curator\Models\Media;
 use Z3d0X\FilamentFabricator\Models\Page;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
+use App\Models\Extractor;
+use App\Policies\ExtractorPolicy;
 
 class AuthServiceProvider extends ServiceProvider
 {
@@ -22,6 +24,7 @@ class AuthServiceProvider extends ServiceProvider
      * @var array<class-string, class-string>
      */
     protected $policies = [
+        Extractor::class => ExtractorPolicy::class,
     ];
 
     /**
