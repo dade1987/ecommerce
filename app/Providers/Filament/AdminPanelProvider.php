@@ -41,31 +41,7 @@ class AdminPanelProvider extends PanelProvider
             ->colors([
                 'primary' => Color::Amber,
             ])
-            ->discoverResources(
-                app_path('Filament/Resources'),
-                'App\\Filament\\Resources',
-                function (string $resource): bool {
-                    /** @var \App\Models\User $user */
-                    $user = auth()->user();
-
-                    if (! $user) {
-                        return false;
-                    }
-
-                    // Allow super_admin to see all resources
-                    if ($user->hasRole('super_admin')) {
-                        return true;
-                    }
-
-                    // If the user has the 'tripodi' role, only show ExtractorResource
-                    if ($user->hasRole('tripodi')) {
-                        return $resource === \App\Filament\Resources\ExtractorResource::class;
-                    }
-
-                    // For any other role, do not show any resources by default unless explicitly allowed
-                    return false;
-                }
-            )
+            ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
                 Pages\Dashboard::class,
@@ -136,7 +112,54 @@ class AdminPanelProvider extends PanelProvider
             )
             //->tenant(Team::class, ownershipRelationship: 'team', slugAttribute: 'slug')
             ->tenantRegistration(page: RegisterTeam::class)
-            ->tenantProfile(EditTeamProfile::class);
+            ->tenantProfile(EditTeamProfile::class)
+            ->navigation(
+                function (Panel $panel): array {
+                    /** @var \App\Models\User $user */
+                    $user = auth()->user();
 
+                    if (! $user) {
+                        return [];
+                    }
+
+                    if ($user->hasRole('super_admin')) {
+                        // Get all resources registered with Filament
+                        $resources = $panel->getResources();
+
+                        $navigationItems = [
+                            \Filament\Navigation\NavigationItem::make('Dashboard')
+                                ->icon('heroicon-o-home')
+                                ->url(fn (): string => Pages\Dashboard::getUrl())
+                                ->activeUrl(fn (): string => Pages\Dashboard::getUrl()),
+                        ];
+
+                        foreach ($resources as $resource) {
+                            if ($resource::canViewAny($user)) {
+                                $navigationItems[] = \Filament\Navigation\NavigationItem::make($resource::getNavigationLabel())
+                                    ->icon($resource::getNavigationIcon())
+                                    ->url(fn (): string => $resource::getUrl('index'))
+                                    ->activeUrl(fn (): string => $resource::getUrl('index'));
+                            }
+                        }
+                        return $navigationItems;
+
+                    }
+
+                    if ($user->hasRole('tripodi')) {
+                        return [
+                            \Filament\Navigation\NavigationGroup::make('Gestione Extractor')
+                                ->items([
+                                    \Filament\Navigation\NavigationItem::make('Extractors')
+                                        ->icon('heroicon-o-rectangle-stack')
+                                        ->url(fn (): string => \App\Filament\Resources\ExtractorResource::getUrl('index'))
+                                        ->activeUrl(fn (): string => \App\Filament\Resources\ExtractorResource::getUrl('index'))
+                                        ->visible(true),
+                                ]),
+                        ];
+                    }
+
+                    return [];
+                }
+            );
     }
 }
