@@ -142,7 +142,6 @@ class AdminPanelProvider extends PanelProvider
                     }
 
                     if ($user->hasRole('tripodi')) {
-                        dd('Debug: Utente Tripodi, logica di navigazione in esecuzione.');
                         return [
                             \Filament\Navigation\NavigationGroup::make('Gestione Extractor')
                                 ->items([
