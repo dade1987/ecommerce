@@ -114,18 +114,15 @@ class AdminPanelProvider extends PanelProvider
             ->tenantRegistration(page: RegisterTeam::class)
             ->tenantProfile(EditTeamProfile::class)
             ->navigation(
-                function (Panel $panel): array {
+                function (Panel $panel, \Filament\Navigation\NavigationBuilder $builder): \Filament\Navigation\NavigationBuilder {
                     /** @var \App\Models\User $user */
                     $user = auth()->user();
 
                     if (! $user) {
-                        return [];
+                        return $builder->items([]);
                     }
 
                     if ($user->hasRole('super_admin')) {
-                        // Get all resources registered with Filament
-                        $resources = $panel->getResources();
-
                         $navigationItems = [
                             \Filament\Navigation\NavigationItem::make('Dashboard')
                                 ->icon('heroicon-o-home')
@@ -133,16 +130,16 @@ class AdminPanelProvider extends PanelProvider
                                 ->isActiveWhen(fn (): bool => request()->routeIs('filament.pages.dashboard')),
                         ];
 
-                        foreach ($resources as $resource) {
+                        foreach ($panel->getResources() as $resource) {
                             $navigationItems = array_merge($navigationItems, $resource::getNavigationItems());
                         }
 
-                        return $navigationItems;
+                        return $builder->items($navigationItems);
 
                     }
 
                     if ($user->hasRole('tripodi')) {
-                        return [
+                        return $builder->groups([
                             \Filament\Navigation\NavigationGroup::make('Gestione Extractor')
                                 ->items([
                                     \Filament\Navigation\NavigationItem::make('Extractors')
@@ -150,10 +147,10 @@ class AdminPanelProvider extends PanelProvider
                                         ->url(fn (): string => \App\Filament\Resources\ExtractorResource::getUrl('index'))
                                         ->isActiveWhen(fn (): bool => request()->fullUrlIs(\App\Filament\Resources\ExtractorResource::getUrl('index'))),
                                 ]),
-                        ];
+                        ]);
                     }
 
-                    return [];
+                    return $builder->items([]);
                 }
             );
     }
