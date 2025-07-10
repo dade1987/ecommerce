@@ -193,18 +193,20 @@ class ImagesOptimize extends Command
         $qualities = [60, 50, 40, 30, 25, 20];
         
         foreach ($qualities as $quality) {
+            $currentPath = $path; // Inizializza il percorso corrente
+            
             if (in_array($extension, ['jpg', 'jpeg'])) {
-                $img->save($path, $quality);
+                $img->save($currentPath, $quality);
             } elseif ($extension === 'png') {
                 // Per PNG, converti in JPG per una compressione migliore
                 $newPath = substr($path, 0, strrpos($path, '.')) . '.jpg';
                 $img->fill('#ffffff')->save($newPath, $quality);
                 File::delete($path);
-                $path = $newPath;
+                $currentPath = $newPath;
             }
             
-            clearstatcache(true, $path);
-            $currentSizeKB = round(filesize($path) / 1024);
+            clearstatcache(true, $currentPath);
+            $currentSizeKB = round(filesize($currentPath) / 1024);
             
             if ($currentSizeKB <= $targetSizeKB) {
                 $this->line("<comment>Raggiunto target:</comment> {$relativePath} - {$currentSizeKB} KB (qualità: {$quality})");
