@@ -15,15 +15,19 @@ class ImagesOptimize extends Command
      * @var string
      */
     protected $signature = 'images:optimize
-                            {--restore : Ripristina le immagini originali dai backup.}
-                            {--quality=75 : La qualità di compressione per i file JPG (1-100).}';
+                            {--restore : Ripristina tutte le immagini originali dai backup.}
+                            {--restore-folder= : Ripristina solo i file di una cartella specifica (es: media).}
+                            {--quality=75 : La qualità di compressione per i file JPG (1-100).}
+                            {--media-only : Processa solo le immagini nella cartella media/.}
+                            {--target-size=50 : Dimensione target in KB per le immagini (default: 50).}
+                            {--force : Forza la ri-ottimizzazione anche se esiste già un backup.}';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Ottimizza le immagini in-place mantenendo il formato originale, con backup automatico.';
+    protected $description = 'Ottimizza le immagini con backup automatico. Usa --media-only per processare solo la cartella media.';
 
     /**
      * The path to the backup directory.
@@ -33,17 +37,17 @@ class ImagesOptimize extends Command
     protected $backupPath;
 
     /**
-     * The path to the public_html directory.
+     * The path to the public storage directory.
      *
      * @var string
      */
-    protected $publicHtmlPath;
+    protected $publicStoragePath;
 
     public function __construct()
     {
         parent::__construct();
         $this->backupPath = storage_path('app/image-backups');
-        $this->publicHtmlPath = storage_path('app/public');
+        $this->publicStoragePath = storage_path('app/public');
     }
 
     public function handle()
@@ -52,18 +56,31 @@ class ImagesOptimize extends Command
             return $this->restoreImages();
         }
 
+        if ($this->option('restore-folder')) {
+            return $this->restoreFolder($this->option('restore-folder'));
+        }
+
         return $this->optimizeImages();
     }
 
     protected function optimizeImages()
     {
         $quality = (int) $this->option('quality');
+        $mediaOnly = $this->option('media-only');
+        $targetSizeKB = (int) $this->option('target-size');
+        $force = $this->option('force');
 
         $this->info('--- INIZIO OTTIMIZZAZIONE IN-PLACE ---');
-        $this->info("Cercando immagini in: {$this->publicHtmlPath}");
+        $this->info("Cercando immagini in: {$this->publicStoragePath}");
+        
+        if ($mediaOnly) {
+            $this->info("Modalità MEDIA-ONLY attiva - processando solo storage/app/public/media/");
+            $this->info("Obiettivo dimensione: {$targetSizeKB} KB");
+        }
+        
         File::ensureDirectoryExists($this->backupPath);
 
-        $images = $this->getImages();
+        $images = $this->getImages($mediaOnly);
         if ($images->isEmpty()) {
             $this->info('Nessuna immagine trovata da ottimizzare.');
             return 0;
@@ -72,51 +89,48 @@ class ImagesOptimize extends Command
         $this->info("Trovate {$images->count()} immagini da processare...");
         $totalReduction = 0;
         $processedCount = 0;
+        $skippedCount = 0;
 
         foreach ($images as $image) {
             $path = $image->getRealPath();
             $relativePath = $image->getRelativePathname();
             
             try {
-                // 1. Backup
+                // 1. Controlla se esiste già un backup
                 $backupFilePath = $this->backupPath . '/' . $relativePath;
+                
+                if (File::exists($backupFilePath) && !$force) {
+                    $skippedCount++;
+                    $this->line("<comment>Saltato (backup esistente):</comment> {$relativePath}");
+                    continue;
+                }
+
+                // 2. Crea backup se non esiste
                 if (!File::exists($backupFilePath)) {
                     File::ensureDirectoryExists(dirname($backupFilePath));
                     File::copy($path, $backupFilePath);
+                    $this->line("<comment>Backup creato:</comment> {$relativePath}");
                 }
 
-                // 2. Ottimizzazione mantenendo il formato originale
+                // 3. Ottimizzazione aggressiva se media-only
                 clearstatcache(true, $path);
                 $originalSize = filesize($path);
+                $originalSizeKB = round($originalSize / 1024);
 
-                $img = Image::make($path);
-                $extension = strtolower($image->getExtension());
-                $actionTaken = 'Nessuna';
-
-                if (in_array($extension, ['jpg', 'jpeg'])) {
-                    $img->save($path, $quality);
-                    $actionTaken = 'Compresso JPG';
-                } elseif ($extension === 'png') {
-                    // Compressione PNG mantenendo la trasparenza
-                    $img->save($path, 9); // Livello di compressione 9 per PNG (lossless)
-                    $actionTaken = 'Compresso PNG';
-                } elseif ($extension === 'gif') {
-                    $img->save($path);
-                    $actionTaken = 'Processato GIF';
-                } elseif ($extension === 'webp') {
-                    $img->save($path, $quality);
-                    $actionTaken = 'Compresso WEBP';
+                if ($mediaOnly && $originalSizeKB > $targetSizeKB) {
+                    $this->optimizeToTargetSize($path, $targetSizeKB, $relativePath);
                 } else {
-                    $img->save($path);
-                    $actionTaken = 'Processato';
+                    // Ottimizzazione normale
+                    $this->standardOptimization($path, $quality);
                 }
 
                 clearstatcache(true, $path);
                 $newSize = filesize($path);
+                $newSizeKB = round($newSize / 1024);
                 $reduction = $originalSize - $newSize;
 
-                if ($reduction > 1024) { // Mostra solo se il risparmio è significativo
-                    $this->line("<info>Processato:</info> {$relativePath} | <comment>Risparmio:</comment> " . round($reduction / 1024) . " KB | <comment>Azione:</comment> {$actionTaken}");
+                if ($reduction > 1024) {
+                    $this->line("<info>Processato:</info> {$relativePath} | <comment>Prima:</comment> {$originalSizeKB} KB | <comment>Dopo:</comment> {$newSizeKB} KB | <comment>Risparmio:</comment> " . round($reduction / 1024) . " KB");
                     $totalReduction += $reduction;
                 }
                 $processedCount++;
@@ -129,15 +143,62 @@ class ImagesOptimize extends Command
         $this->newLine();
         $this->info("Ottimizzazione completata.");
         $this->info("Immagini processate: {$processedCount}");
+        $this->info("Immagini saltate (backup esistente): {$skippedCount}");
         $this->info("Riduzione totale dello spazio: " . round($totalReduction / 1024 / 1024, 2) . " MB.");
-        $this->comment('I backup sono in: storage/app/image-backups. Per ripristinare, usa --restore.');
+        $this->comment('I backup sono in: storage/app/image-backups. Per ripristinare, usa --restore o --restore-folder=nomecartella.');
+        if ($skippedCount > 0) {
+            $this->comment('Per ri-ottimizzare i file saltati, usa --force.');
+        }
 
         return 0;
     }
 
+    protected function optimizeToTargetSize($path, $targetSizeKB, $relativePath)
+    {
+        $img = Image::make($path);
+        $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+        
+        // Prova con qualità decrescente fino a raggiungere la dimensione target
+        $qualities = [60, 50, 40, 30, 25, 20];
+        
+        foreach ($qualities as $quality) {
+            if (in_array($extension, ['jpg', 'jpeg'])) {
+                $img->save($path, $quality);
+            } elseif ($extension === 'png') {
+                // Per PNG, converti in JPG per una compressione migliore
+                $newPath = substr($path, 0, strrpos($path, '.')) . '.jpg';
+                $img->fill('#ffffff')->save($newPath, $quality);
+                File::delete($path);
+                $path = $newPath;
+            }
+            
+            clearstatcache(true, $path);
+            $currentSizeKB = round(filesize($path) / 1024);
+            
+            if ($currentSizeKB <= $targetSizeKB) {
+                $this->line("<comment>Raggiunto target:</comment> {$relativePath} - {$currentSizeKB} KB (qualità: {$quality})");
+                break;
+            }
+        }
+    }
+
+    protected function standardOptimization($path, $quality)
+    {
+        $img = Image::make($path);
+        $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+
+        if (in_array($extension, ['jpg', 'jpeg'])) {
+            $img->save($path, $quality);
+        } elseif ($extension === 'png') {
+            $img->save($path, 9);
+        } else {
+            $img->save($path);
+        }
+    }
+
     protected function restoreImages()
     {
-        $this->info('--- INIZIO RIPRISTINO IMMAGINI DAI BACKUP ---');
+        $this->info('--- INIZIO RIPRISTINO TUTTE LE IMMAGINI DAI BACKUP ---');
         if (!File::isDirectory($this->backupPath)) {
             $this->error('Cartella di backup non trovata.');
             return 1;
@@ -154,7 +215,7 @@ class ImagesOptimize extends Command
 
         foreach ($backupFiles as $backupFile) {
             $relativePath = $backupFile->getRelativePathname();
-            $originalPath = $this->publicHtmlPath . '/' . $relativePath;
+            $originalPath = $this->publicStoragePath . '/' . $relativePath;
             
             File::ensureDirectoryExists(dirname($originalPath));
             File::copy($backupFile->getRealPath(), $originalPath);
@@ -168,9 +229,55 @@ class ImagesOptimize extends Command
         return 0;
     }
 
-    protected function getImages()
+    protected function restoreFolder($folderName)
     {
-        return collect(File::allFiles($this->publicHtmlPath))->filter(function (SplFileInfo $file) {
+        $this->info("--- INIZIO RIPRISTINO CARTELLA: {$folderName} ---");
+        
+        if (!File::isDirectory($this->backupPath)) {
+            $this->error('Cartella di backup non trovata.');
+            return 1;
+        }
+        
+        $folderBackupPath = $this->backupPath . '/' . $folderName;
+        if (!File::isDirectory($folderBackupPath)) {
+            $this->error("Cartella di backup '{$folderName}' non trovata.");
+            return 1;
+        }
+        
+        $backupFiles = collect(File::allFiles($folderBackupPath));
+        if ($backupFiles->isEmpty()) {
+            $this->info("Nessun backup trovato nella cartella '{$folderName}'.");
+            return 0;
+        }
+
+        $progressBar = $this->output->createProgressBar($backupFiles->count());
+        $progressBar->start();
+
+        foreach ($backupFiles as $backupFile) {
+            $relativePath = $folderName . '/' . $backupFile->getRelativePathname();
+            $originalPath = $this->publicStoragePath . '/' . $relativePath;
+            
+            File::ensureDirectoryExists(dirname($originalPath));
+            File::copy($backupFile->getRealPath(), $originalPath);
+            
+            $progressBar->advance();
+        }
+
+        $progressBar->finish();
+        $this->newLine(2);
+        $this->info("Ripristino completato per {$backupFiles->count()} immagini nella cartella '{$folderName}'.");
+        return 0;
+    }
+
+    protected function getImages($mediaOnly = false)
+    {
+        $searchPath = $mediaOnly ? $this->publicStoragePath . '/media' : $this->publicStoragePath;
+        
+        if ($mediaOnly && !File::isDirectory($searchPath)) {
+            return collect([]);
+        }
+        
+        return collect(File::allFiles($searchPath))->filter(function (SplFileInfo $file) {
             return in_array(strtolower($file->getExtension()), ['jpg', 'jpeg', 'png', 'gif', 'webp']);
         });
     }
