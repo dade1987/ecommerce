@@ -10,8 +10,8 @@ class ImageController extends Controller
 {
     public function show($path)
     {
-        // Usiamo percorsi del filesystem reali dentro la cartella pubblica
-        $originalPath = public_path('storage/' . $path);
+        // Il path ora è il percorso completo dal web root, es. "curator/media/foo.jpeg"
+        $originalPath = public_path($path);
         $optimizedPath = public_path('storage/optimized/' . $path);
 
         // Verifichiamo se l'immagine originale esiste
@@ -26,7 +26,7 @@ class ImageController extends Controller
             // Assicuriamoci che la directory di destinazione esista
             $directory = dirname($optimizedPath);
             if (!File::isDirectory($directory)) {
-                File::makeDirectory($directory, 0755, true);
+                File::makeDirectory($directory, 0755, true, true);
             }
 
             // Usiamo Intervention Image per processare l'immagine
