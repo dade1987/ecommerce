@@ -37,11 +37,6 @@ Route::middleware('auth')->group(function () {
 
 });
 
-// Rotta per l'ottimizzazione delle immagini (deve precedere le rotte generiche)
-Route::get('/{path}', [ImageController::class, 'show'])
-    ->where('path', '.+\.(?:jpg|jpeg|png|gif|webp)$')
-    ->name('image.optimizer');
-
 //Route::resource('articles', ArticleController::class);
 //Route::resource('tags', TagController::class);
 
