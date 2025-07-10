@@ -16,15 +16,14 @@ class ImagesOptimize extends Command
      */
     protected $signature = 'images:optimize
                             {--restore : Ripristina le immagini originali dai backup.}
-                            {--quality=75 : La qualità di compressione per i file JPG (1-100).}
-                            {--convert-png : Converte i PNG di grandi dimensioni (>500KB) in JPG per una riduzione massima.}';
+                            {--quality=75 : La qualità di compressione per i file JPG (1-100).}';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Ottimizza le immagini in-place, con backup. Include opzione per convertire PNG di grandi dimensioni.';
+    protected $description = 'Ottimizza le immagini in-place mantenendo il formato originale, con backup automatico.';
 
     /**
      * The path to the backup directory.
@@ -33,10 +32,18 @@ class ImagesOptimize extends Command
      */
     protected $backupPath;
 
+    /**
+     * The path to the public_html directory.
+     *
+     * @var string
+     */
+    protected $publicHtmlPath;
+
     public function __construct()
     {
         parent::__construct();
         $this->backupPath = storage_path('app/image-backups');
+        $this->publicHtmlPath = storage_path('app/public');
     }
 
     public function handle()
@@ -51,9 +58,9 @@ class ImagesOptimize extends Command
     protected function optimizeImages()
     {
         $quality = (int) $this->option('quality');
-        $convertPng = $this->option('convert-png');
 
         $this->info('--- INIZIO OTTIMIZZAZIONE IN-PLACE ---');
+        $this->info("Cercando immagini in: {$this->publicHtmlPath}");
         File::ensureDirectoryExists($this->backupPath);
 
         $images = $this->getImages();
@@ -65,7 +72,6 @@ class ImagesOptimize extends Command
         $this->info("Trovate {$images->count()} immagini da processare...");
         $totalReduction = 0;
         $processedCount = 0;
-        $convertedCount = 0;
 
         foreach ($images as $image) {
             $path = $image->getRealPath();
@@ -79,7 +85,7 @@ class ImagesOptimize extends Command
                     File::copy($path, $backupFilePath);
                 }
 
-                // 2. Ottimizzazione
+                // 2. Ottimizzazione mantenendo il formato originale
                 clearstatcache(true, $path);
                 $originalSize = filesize($path);
 
@@ -91,25 +97,18 @@ class ImagesOptimize extends Command
                     $img->save($path, $quality);
                     $actionTaken = 'Compresso JPG';
                 } elseif ($extension === 'png') {
-                    // Se l'opzione è attiva e il file è grande, converti.
-                    if ($convertPng && $originalSize > 500 * 1024) { // Soglia 500KB
-                        $newPath = substr($path, 0, strrpos($path, '.')) . '.jpg';
-                        
-                        // Il backup dell'originale .png è già stato fatto.
-                        $img->fill('#ffffff')->save($newPath, $quality);
-                        File::delete($path); // Rimuovi il vecchio .png
-                        
-                        $path = $newPath; // Aggiorna il path per il controllo dimensione
-                        $actionTaken = 'Convertito PNG > JPG';
-                        $convertedCount++;
-                    } else {
-                        // Altrimenti, compressione lossless standard per i PNG
-                        $img->save($path, 9);
-                        $actionTaken = 'Compresso PNG (Lossless)';
-                    }
+                    // Compressione PNG mantenendo la trasparenza
+                    $img->save($path, 9); // Livello di compressione 9 per PNG (lossless)
+                    $actionTaken = 'Compresso PNG';
+                } elseif ($extension === 'gif') {
+                    $img->save($path);
+                    $actionTaken = 'Processato GIF';
+                } elseif ($extension === 'webp') {
+                    $img->save($path, $quality);
+                    $actionTaken = 'Compresso WEBP';
                 } else {
-                    $img->save($path); // Altri formati
-                    $actionTaken = 'Salvato';
+                    $img->save($path);
+                    $actionTaken = 'Processato';
                 }
 
                 clearstatcache(true, $path);
@@ -130,9 +129,6 @@ class ImagesOptimize extends Command
         $this->newLine();
         $this->info("Ottimizzazione completata.");
         $this->info("Immagini processate: {$processedCount}");
-        if ($convertedCount > 0) {
-            $this->info("Immagini convertite da PNG a JPG: {$convertedCount}");
-        }
         $this->info("Riduzione totale dello spazio: " . round($totalReduction / 1024 / 1024, 2) . " MB.");
         $this->comment('I backup sono in: storage/app/image-backups. Per ripristinare, usa --restore.');
 
@@ -158,7 +154,7 @@ class ImagesOptimize extends Command
 
         foreach ($backupFiles as $backupFile) {
             $relativePath = $backupFile->getRelativePathname();
-            $originalPath = public_path($relativePath);
+            $originalPath = $this->publicHtmlPath . '/' . $relativePath;
             
             File::ensureDirectoryExists(dirname($originalPath));
             File::copy($backupFile->getRealPath(), $originalPath);
@@ -174,7 +170,7 @@ class ImagesOptimize extends Command
 
     protected function getImages()
     {
-        return collect(File::allFiles(public_path()))->filter(function (SplFileInfo $file) {
+        return collect(File::allFiles($this->publicHtmlPath))->filter(function (SplFileInfo $file) {
             return in_array(strtolower($file->getExtension()), ['jpg', 'jpeg', 'png', 'gif', 'webp']);
         });
     }
