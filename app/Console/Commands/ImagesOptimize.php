@@ -73,20 +73,47 @@ class ImagesOptimize extends Command
         $this->info('--- INIZIO OTTIMIZZAZIONE IN-PLACE ---');
         $this->info("Cercando immagini in: {$this->publicStoragePath}");
         
+        $searchPath = $this->publicStoragePath;
+        
         if ($mediaOnly) {
-            $this->info("Modalità MEDIA-ONLY attiva - processando solo storage/app/public/media/");
+            $searchPath = $this->publicStoragePath . '/media';
+            $this->info("Modalità MEDIA-ONLY attiva - cercando in: {$searchPath}");
             $this->info("Obiettivo dimensione: {$targetSizeKB} KB");
+            
+            // Debug: verifica se la cartella esiste
+            if (!File::isDirectory($searchPath)) {
+                $this->error("ERRORE: La cartella {$searchPath} non esiste!");
+                $this->info("Cartelle disponibili in {$this->publicStoragePath}:");
+                if (File::isDirectory($this->publicStoragePath)) {
+                    foreach (File::directories($this->publicStoragePath) as $dir) {
+                        $this->line("  - " . basename($dir));
+                    }
+                } else {
+                    $this->error("Anche {$this->publicStoragePath} non esiste!");
+                }
+                return 1;
+            }
         }
         
         File::ensureDirectoryExists($this->backupPath);
 
         $images = $this->getImages($mediaOnly);
+        
+        // Debug: mostra cosa ha trovato
+        $this->info("Trovate {$images->count()} immagini totali");
+        if ($images->count() > 0 && $images->count() <= 5) {
+            $this->info("File trovati:");
+            foreach ($images as $image) {
+                $this->line("  - " . $image->getRelativePathname() . " (" . round(filesize($image->getRealPath()) / 1024) . " KB)");
+            }
+        }
+        
         if ($images->isEmpty()) {
             $this->info('Nessuna immagine trovata da ottimizzare.');
             return 0;
         }
 
-        $this->info("Trovate {$images->count()} immagini da processare...");
+        $this->info("Iniziando processamento...");
         $totalReduction = 0;
         $processedCount = 0;
         $skippedCount = 0;
@@ -117,6 +144,8 @@ class ImagesOptimize extends Command
                 $originalSize = filesize($path);
                 $originalSizeKB = round($originalSize / 1024);
 
+                $this->line("<info>Processando:</info> {$relativePath} ({$originalSizeKB} KB)");
+
                 if ($mediaOnly && $originalSizeKB > $targetSizeKB) {
                     $this->optimizeToTargetSize($path, $targetSizeKB, $relativePath);
                 } else {
@@ -130,8 +159,10 @@ class ImagesOptimize extends Command
                 $reduction = $originalSize - $newSize;
 
                 if ($reduction > 1024) {
-                    $this->line("<info>Processato:</info> {$relativePath} | <comment>Prima:</comment> {$originalSizeKB} KB | <comment>Dopo:</comment> {$newSizeKB} KB | <comment>Risparmio:</comment> " . round($reduction / 1024) . " KB");
+                    $this->line("<info>Completato:</info> {$relativePath} | <comment>Prima:</comment> {$originalSizeKB} KB | <comment>Dopo:</comment> {$newSizeKB} KB | <comment>Risparmio:</comment> " . round($reduction / 1024) . " KB");
                     $totalReduction += $reduction;
+                } else {
+                    $this->line("<comment>Nessun risparmio significativo per:</comment> {$relativePath}");
                 }
                 $processedCount++;
 
