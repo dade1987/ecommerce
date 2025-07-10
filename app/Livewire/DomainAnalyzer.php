@@ -34,7 +34,11 @@ class DomainAnalyzer extends Component
             $this->result = $analysisService->analyze($this->domain);
 
             if (isset($this->result['error'])) {
-                $this->error = $this->result['error'];
+                // Logghiamo l'errore proveniente dal servizio di analisi per il debug
+                $errorMessage = is_array($this->result['error']) ? json_encode($this->result['error']) : $this->result['error'];
+                Log::error("Errore ricevuto dal servizio di analisi per {$this->domain}: " . $errorMessage);
+                // Impostiamo lo stato di errore per la vista (che mostrerà un messaggio generico)
+                $this->error = true;
             } else {
                 // Se esiste una scansione precedente e l'analisi attuale è andata a buon fine,
                 // sovrascriviamo la percentuale di rischio con quella già salvata.
@@ -46,7 +50,12 @@ class DomainAnalyzer extends Component
                 $this->saveAnalysisResult();
             }
         } catch (\Exception $e) {
-            $this->error = "Si è verificato un errore imprevisto durante l'analisi: " . $e->getMessage();
+            // Logghiamo l'eccezione imprevista con lo stack trace per un debug completo
+            Log::error("Eccezione imprevista durante l'analisi per {$this->domain}: " . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+            ]);
+            // Impostiamo lo stato di errore per la vista (che mostrerà un messaggio generico)
+            $this->error = true;
         } finally {
             $this->analysing = false;
         }
