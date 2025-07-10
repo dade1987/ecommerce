@@ -54,7 +54,7 @@
                     </p>
                 </div>
 
-                @if ($result['risk_percentage'] > 30)
+                @if ($result['risk_percentage'] > 40)
                     <div class="p-4 my-6 text-center text-yellow-800 bg-yellow-100 border-l-4 border-yellow-500 rounded-md">
                         <p class="font-bold">Il suo livello di rischio risulta elevato</p>
                         <p class="text-sm">Si consiglia di pianificare una consulenza professionale per implementare le misure di sicurezza appropriate e mitigare i rischi identificati.</p>
