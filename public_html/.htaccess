@@ -5,6 +5,15 @@
 
     RewriteEngine On
 
+    # Ottimizzazione Immagini On-the-fly
+    # Se la richiesta è per un'immagine e non esiste una versione ottimizzata...
+    RewriteCond %{REQUEST_URI} \.(jpg|jpeg|png|gif|webp)$ [NC]
+    RewriteCond %{DOCUMENT_ROOT}/storage/optimized%{REQUEST_URI} !-f
+    # ...e l'immagine originale esiste...
+    RewriteCond %{REQUEST_FILENAME} -f
+    # ...allora passa la richiesta a Laravel.
+    RewriteRule (.*) index.php [L]
+
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
@@ -14,7 +23,7 @@
     RewriteCond %{REQUEST_URI} (.+)/$
     RewriteRule ^ %1 [L,R=301]
 
-    # Send Requests To Front Controller...
+    # Handle Front Controller...
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [L]

@@ -19,6 +19,7 @@
         "filament/filament": "^3.2",
         "filament/forms": "^3.2",
         "guzzlehttp/guzzle": "^7.2",
+        "intervention/image": "^2.7",
         "invaders-xx/filament-jsoneditor": "^5.0",
         "label305/docx-extractor": "^0.2.3",
         "laravel/framework": "^10.10",

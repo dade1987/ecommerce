@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ArticleController;
+use App\Http\Controllers\ImageController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TagController;
@@ -40,3 +41,5 @@ Route::middleware('auth')->group(function () {
 //Route::resource('tags', TagController::class);
 
 Route::get('{container0}/{item0?}/{container1?}/{item1?}/{container2?}/{item2?}', [PageController::class, 'index']);
+
+Route::get('/storage/{path}', [ImageController::class, 'show'])->where('path', '.*')->name('image.optimizer');
