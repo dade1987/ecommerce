@@ -39,7 +39,7 @@ class ImageController extends Controller
             });
 
             // Codifichiamo e salviamo
-            $image->save($optimizedPath, 75, 'jpg');
+            $image->save($optimizedPath, 60, 'jpg');
             
             // Restituiamo l'immagine appena creata
             return $image->response();
