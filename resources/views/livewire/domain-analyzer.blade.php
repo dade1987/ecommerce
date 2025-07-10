@@ -39,10 +39,7 @@
         @if ($error)
             <div class="p-4 mt-6 text-red-700 bg-red-100 border border-red-200 rounded-md">
                 <h3 class="text-lg font-semibold">Errore durante l'Analisi</h3>
-                <p>{{ $error }}</p>
-                @if(isset($result['details']))
-                    <pre class="mt-2 text-sm whitespace-pre-wrap">{{ json_encode($result['details'], JSON_PRETTY_PRINT) }}</pre>
-                @endif
+                <p>Si è verificato un errore durante l'analisi. Riprova più tardi.</p>
             </div>
         @endif
 
