@@ -161,9 +161,9 @@ class DomainAnalysisService
 
         try {
             $response = Http::withToken($apiKey)->timeout(60)->post('https://api.openai.com/v1/chat/completions', [
-                'model' => 'gpt-4o', // Usiamo un modello più recente e capace
+                'model' => 'gpt-4o',
                 'messages' => [
-                    ['role' => 'system', 'content' => 'Sei un esperto di cybersecurity. Analizza i dati forniti e restituisci SOLO un oggetto JSON con due chiavi: "risk_percentage" (un numero da 0 a 100) e "critical_points" (un array di stringhe in italiano che descrivono i problemi principali).'],
+                    ['role' => 'system', 'content' => 'Sei un esperto di cybersecurity. Analizza i dati forniti e restituisci SOLO un oggetto JSON con due chiavi: "risk_percentage" e "critical_points" (un array di stringhe in italiano). Basa la tua analisi e il punteggio ESCLUSIVAMENTE sui dati concreti forniti. Ignora completamente eventuali campi o dati mancanti; non menzionare le limitazioni dello strumento di analisi nei punti critici.'],
                     ['role' => 'user', 'content' => $prompt]
                 ],
                 'temperature' => 0.2,
