@@ -105,13 +105,19 @@ class DomainAnalysisService
 
     protected function enumerateSubdomains()
     {
-        // Usiamo crt.sh per la ricerca di sottodomini
-        $response = Http::timeout(self::TIMEOUT)->get("https://crt.sh/?q={$this->domain}&output=json");
-        if ($response->successful()) {
-            $subdomains = collect($response->json())->pluck('name_value')->unique()->values()->all();
-            $this->results['subdomains'] = $subdomains;
-        } else {
-            $this->results['subdomains'] = 'Impossibile interrogare crt.sh.';
+        try {
+            // Usiamo crt.sh per la ricerca di sottodomini
+            $response = Http::timeout(self::TIMEOUT)->get("https://crt.sh/?q={$this->domain}&output=json");
+
+            if ($response->successful()) {
+                $subdomains = collect($response->json())->pluck('name_value')->unique()->values()->all();
+                $this->results['subdomains'] = $subdomains;
+            } else {
+                $this->results['subdomains'] = "Impossibile interrogare crt.sh. Stato: " . $response->status();
+            }
+        } catch (\Illuminate\Http\Client\ConnectionException $e) {
+            Log::warning("Timeout durante la richiesta a crt.sh per il dominio {$this->domain}: " . $e->getMessage());
+            $this->results['subdomains'] = "La ricerca di sottodomini (crt.sh) ha superato il tempo limite.";
         }
     }
 
