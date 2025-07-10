@@ -27,11 +27,22 @@ class DomainAnalyzer extends Component
         try {
             // Aggiungiamo un timeout generale per sicurezza
             set_time_limit(40); // 30s per l'analisi + 10s di margine
+
+            // Cerca una scansione precedente per questo dominio per preservare la % di rischio
+            $existingScan = ScannedWebsite::where('domain', $this->domain)->first();
+
             $this->result = $analysisService->analyze($this->domain);
+
             if (isset($this->result['error'])) {
                 $this->error = $this->result['error'];
             } else {
-                // Salviamo i dati nel database solo se l'analisi è riuscita
+                // Se esiste una scansione precedente e l'analisi attuale è andata a buon fine,
+                // sovrascriviamo la percentuale di rischio con quella già salvata.
+                if ($existingScan && isset($this->result['risk_percentage'])) {
+                    $this->result['risk_percentage'] = $existingScan->risk_percentage;
+                }
+                
+                // Salviamo i dati nel database (aggiornando o creando)
                 $this->saveAnalysisResult();
             }
         } catch (\Exception $e) {
@@ -47,14 +58,16 @@ class DomainAnalyzer extends Component
             // Otteniamo l'IP del dominio
             $ipAddress = gethostbyname($this->domain);
             
-            ScannedWebsite::create([
-                'domain' => $this->domain,
-                'risk_percentage' => $this->result['risk_percentage'],
-                'critical_points' => $this->result['critical_points'] ?? [],
-                'raw_data' => $this->result['raw_data'] ?? [],
-                'ip_address' => $ipAddress !== $this->domain ? $ipAddress : null,
-                'scanned_at' => now(),
-            ]);
+            ScannedWebsite::updateOrCreate(
+                ['domain' => $this->domain], // Criterio per la ricerca
+                [ // Valori da aggiornare o creare
+                    'risk_percentage' => $this->result['risk_percentage'],
+                    'critical_points' => $this->result['critical_points'] ?? [],
+                    'raw_data' => $this->result['raw_data'] ?? [],
+                    'ip_address' => $ipAddress !== $this->domain ? $ipAddress : null,
+                    'scanned_at' => now(),
+                ]
+            );
         } catch (\Exception $e) {
             // Log dell'errore ma non interrompiamo il flusso
             Log::error("Errore nel salvataggio dei dati di scansione per {$this->domain}: " . $e->getMessage());
