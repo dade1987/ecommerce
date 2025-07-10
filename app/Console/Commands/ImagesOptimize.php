@@ -14,9 +14,11 @@ class ImagesOptimize extends Command
      *
      * @var string
      */
-    protected $signature = 'images:optimize 
+    protected $signature = 'images:optimize
                             {--restore : Ripristina le immagini originali dai backup.}
-                            {--quality=60 : La qualità della compressione dell\'immagine (1-100).}
+                            {--quality=75 : La qualità della compressione per i JPG (1-100).}
+                            {--convert-large-pngs : Converte i PNG di grandi dimensioni in JPG.}
+                            {--conversion-threshold=500 : La soglia in KB per considerare un PNG "grande" (default: 500).}
                             {--dry-run : Esegue una simulazione senza modificare i file.}';
 
     /**
@@ -24,7 +26,7 @@ class ImagesOptimize extends Command
      *
      * @var string
      */
-    protected $description = 'Ottimizza le immagini nella cartella public e gestisce i backup.';
+    protected $description = 'Ottimizza le immagini (JPG, PNG) nella cartella public, con backup e opzione di conversione.';
 
     /**
      * Percorso della cartella di backup.
@@ -36,7 +38,6 @@ class ImagesOptimize extends Command
     public function __construct()
     {
         parent::__construct();
-        // Definiamo il percorso di backup nello storage, non accessibile pubblicamente.
         $this->backupPath = storage_path('app/image-backups');
     }
 
@@ -56,6 +57,8 @@ class ImagesOptimize extends Command
     {
         $quality = (int) $this->option('quality');
         $dryRun = $this->option('dry-run');
+        $convertPngs = $this->option('convert-large-pngs');
+        $conversionThreshold = (int) $this->option('conversion-threshold') * 1024; // in bytes
 
         if ($quality <= 0 || $quality > 100) {
             $this->error('La qualità deve essere un numero tra 1 e 100.');
@@ -78,34 +81,66 @@ class ImagesOptimize extends Command
 
         $totalReduction = 0;
         $processedCount = 0;
+        $convertedCount = 0;
 
         foreach ($images as $image) {
             $originalPath = $image->getRealPath();
             $relativePath = str_replace(public_path() . '/', '', $originalPath);
+            $extension = strtolower($image->getExtension());
+            
+            // Crea il backup se non esiste già
             $currentBackupPath = $this->backupPath . '/' . $relativePath;
-
-            // Creiamo il backup se non esiste già
             if (!File::exists($currentBackupPath)) {
                 File::ensureDirectoryExists(dirname($currentBackupPath));
                 File::copy($originalPath, $currentBackupPath);
             }
 
             $originalSize = File::size($originalPath);
+            $newSize = $originalSize;
 
             if (!$dryRun) {
                 try {
-                    Image::make($originalPath)->save($originalPath, $quality);
+                    $img = Image::make($originalPath);
+                    
+                    if ($extension === 'jpg' || $extension === 'jpeg') {
+                        $img->save($originalPath, $quality);
+                        $newSize = File::size($originalPath);
+                    } elseif ($extension === 'png') {
+                        // Prima ottimizzazione lossless per PNG
+                        $img->save($originalPath, 9); // Compression level 9 for PNG
+                        $newSize = File::size($originalPath);
+
+                        // Conversione opzionale se il file è ancora grande
+                        if ($convertPngs && $newSize > $conversionThreshold) {
+                            $newPathJpg = substr($originalPath, 0, strlen($originalPath) - 3) . 'jpg';
+                            
+                            // Aggiunge uno sfondo bianco per evitare nero su trasparenza
+                            $img->fill('#ffffff');
+                            
+                            $img->save($newPathJpg, $quality);
+                            $newSize = File::size($newPathJpg);
+                            
+                            // Elimina il vecchio file PNG dopo la conversione
+                            File::delete($originalPath);
+                            
+                            $this->line("\n<comment>Convertito:</comment> {$relativePath} -> " . basename($newPathJpg) . " (Risparmio: " . round(($originalSize - $newSize) / 1024) . " KB)");
+                            $convertedCount++;
+                        }
+                    }
+                    
+                    $processedCount++;
                 } catch (\Exception $e) {
-                    $this->error("Errore durante l'ottimizzazione di {$relativePath}: " . $e->getMessage());
-                    continue;
+                    $this->error("\nErrore durante l'ottimizzazione di {$relativePath}: " . $e->getMessage());
                 }
+            } else {
+                // Simulazione per dry-run
+                if ($extension === 'jpg' || $extension === 'jpeg') {
+                    $newSize = $originalSize * ($quality / 100);
+                }
+                $processedCount++;
             }
 
-            $newSize = $dryRun ? $originalSize * ($quality / 100) : File::size($originalPath); // Stima grossolana per il dry-run
-            $reduction = $originalSize - $newSize;
-            $totalReduction += $reduction;
-            $processedCount++;
-
+            $totalReduction += ($originalSize - $newSize);
             $progressBar->advance();
         }
 
@@ -114,6 +149,9 @@ class ImagesOptimize extends Command
 
         if ($processedCount > 0) {
             $this->info("Ottimizzazione completata per {$processedCount} immagini.");
+            if ($convertedCount > 0) {
+                $this->info("Immagini PNG convertite in JPG: {$convertedCount}.");
+            }
             $this->info("Riduzione totale dello spazio: " . round($totalReduction / 1024 / 1024, 2) . " MB.");
         } else {
             $this->info("Nessuna nuova immagine da processare.");
@@ -157,13 +195,14 @@ class ImagesOptimize extends Command
         $this->newLine(2);
         $this->info("Ripristino completato per {$backupFiles->count()} immagini.");
         $this->comment('I file di backup sono stati conservati. Puoi eliminarli manualmente dalla cartella storage/app/image-backups se non servono più.');
+        $this->comment('Nota: Se avevi convertito dei PNG in JPG, i file JPG generati non vengono rimossi automaticamente.');
         $this->info('--- FINE RIPRISTINO ---');
 
         return 0;
     }
 
     /**
-     * Trova tutte le immagini nella cartella public.
+     * Trova tutte le immagini nella cartella public (JPG, JPEG, PNG).
      *
      * @return \Illuminate\Support\Collection
      */
@@ -172,7 +211,8 @@ class ImagesOptimize extends Command
         $files = collect(File::allFiles(public_path()));
 
         return $files->filter(function (SplFileInfo $file) {
-            $supportedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+            // Ottimizziamo solo JPG e PNG per ora
+            $supportedExtensions = ['jpg', 'jpeg', 'png'];
             return in_array(strtolower($file->getExtension()), $supportedExtensions);
         });
     }
