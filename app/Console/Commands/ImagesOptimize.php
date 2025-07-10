@@ -139,7 +139,7 @@ class ImagesOptimize extends Command
                     $this->line("<comment>Backup creato:</comment> {$relativePath}");
                 }
 
-                // 3. Ottimizzazione aggressiva se media-only
+                // 3. Ottimizzazione
                 clearstatcache(true, $path);
                 $originalSize = filesize($path);
                 $originalSizeKB = round($originalSize / 1024);
@@ -147,9 +147,8 @@ class ImagesOptimize extends Command
                 $this->line("<info>Processando:</info> {$relativePath} ({$originalSizeKB} KB)");
 
                 if ($mediaOnly && $originalSizeKB > $targetSizeKB) {
-                    $this->optimizeToTargetSize($path, $targetSizeKB, $relativePath);
+                    $path = $this->optimizeToTargetSize($path, $targetSizeKB, $relativePath);
                 } else {
-                    // Ottimizzazione normale
                     $this->standardOptimization($path, $quality);
                 }
 
@@ -188,31 +187,34 @@ class ImagesOptimize extends Command
     {
         $img = Image::make($path);
         $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
-        
-        // Prova con qualità decrescente fino a raggiungere la dimensione target
-        $qualities = [60, 50, 40, 30, 25, 20];
+
+        $currentPath = $path; // Usa una variabile che può essere modificata e restituita
+
+        // Se è un PNG, convertilo in JPG prima, perché è l'unico modo per ridurlo drasticamente.
+        if ($extension === 'png') {
+            $newPath = substr($path, 0, strrpos($path, '.')) . '.jpg';
+            $img->fill('#ffffff')->save($newPath, 80); // Inizia con qualità alta
+            File::delete($path);
+            $currentPath = $newPath;
+        }
+
+        // Ora, ottimizza il file JPG (originale o appena convertito) in modo iterativo.
+        $qualities = [75, 60, 50, 40, 30];
         
         foreach ($qualities as $quality) {
-            $currentPath = $path; // Inizializza il percorso corrente
-            
-            if (in_array($extension, ['jpg', 'jpeg'])) {
-                $img->save($currentPath, $quality);
-            } elseif ($extension === 'png') {
-                // Per PNG, converti in JPG per una compressione migliore
-                $newPath = substr($path, 0, strrpos($path, '.')) . '.jpg';
-                $img->fill('#ffffff')->save($newPath, $quality);
-                File::delete($path);
-                $currentPath = $newPath;
-            }
+            Image::make($currentPath)->save($currentPath, $quality);
             
             clearstatcache(true, $currentPath);
             $currentSizeKB = round(filesize($currentPath) / 1024);
             
             if ($currentSizeKB <= $targetSizeKB) {
-                $this->line("<comment>Raggiunto target:</comment> {$relativePath} - {$currentSizeKB} KB (qualità: {$quality})");
-                break;
+                $this->line("<comment>Raggiunto target:</comment> {$relativePath} -> " . basename($currentPath) . " - {$currentSizeKB} KB (qualità: {$quality})");
+                return $currentPath; // Esce e restituisce il nuovo percorso
             }
         }
+        
+        // Se non raggiunge il target, viene lasciato alla qualità più bassa
+        return $currentPath;
     }
 
     protected function standardOptimization($path, $quality)
