@@ -6,13 +6,14 @@
     RewriteEngine On
 
     # Ottimizzazione Immagini On-the-fly
-    # Se la richiesta è per un'immagine e non esiste una versione ottimizzata...
-    RewriteCond %{REQUEST_URI} \.(jpg|jpeg|png|gif|webp)$ [NC]
-    RewriteCond %{DOCUMENT_ROOT}/storage/optimized%{REQUEST_URI} !-f
-    # ...e l'immagine originale esiste...
+    # Se la richiesta è per un'immagine dentro /storage/...
+    RewriteCond %{REQUEST_URI} ^/storage/(.+\.(?:jpg|jpeg|png|gif|webp))$ [NC]
+    # E la versione ottimizzata NON esiste...
+    RewriteCond %{DOCUMENT_ROOT}/storage/optimized/%1 !-f
+    # E l'immagine originale ESISTE...
     RewriteCond %{REQUEST_FILENAME} -f
-    # ...allora passa la richiesta a Laravel.
-    RewriteRule (.*) index.php [L]
+    # Allora passa la richiesta a Laravel per l'ottimizzazione.
+    RewriteRule . index.php [L]
 
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
