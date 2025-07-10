@@ -49,12 +49,12 @@ class GenerateArticleCommand extends Command
             $this->info('Test mode: generating only one article.');
         } else {
             shuffle($keywords);
-            $keywords = array_slice($keywords, 0, 3);
+            //$keywords = array_slice($keywords, 0, 3);
         }
 
         $this->info('Dispatching jobs for ' . count($keywords) . ' keywords.');
 
-        $locations = ['Noale', 'Mestre', 'Venezia', 'Treviso', 'Padova'];
+        $locations = ['Milano'];
 
         $internalLinksList = '';
         $navbar = Menu::with('items')->where('name', 'Navbar')->first();
