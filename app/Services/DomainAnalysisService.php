@@ -11,7 +11,7 @@ class DomainAnalysisService
 {
     protected string $domain;
     protected array $results = [];
-    protected const TIMEOUT = 15; // Secondi per ogni processo
+    protected const TIMEOUT = 20; // Secondi per ogni processo
 
     public function analyze(string $domain): array
     {
@@ -61,23 +61,23 @@ class DomainAnalysisService
     protected function getHttpHeaders()
     {
         $output = $this->runProcess(['curl', '-I', '--location', '--connect-timeout', '5', $this->domain]);
-        $this->results['http_headers'] = $output ? $output : 'Impossibile recuperare gli header HTTP.';
+        $this->results['http_headers'] = $output ?: null;
     }
 
     protected function checkRobotsAndSitemap()
     {
         $robotsOutput = $this->runProcess(['curl', '--location', '--connect-timeout', '5', "https://{$this->domain}/robots.txt"]);
-        $this->results['robots_txt'] = $robotsOutput ? $robotsOutput : 'File robots.txt non trovato o irraggiungibile.';
+        $this->results['robots_txt'] = $robotsOutput ?: null;
 
         $sitemapOutput = $this->runProcess(['curl', '--location', '--connect-timeout', '5', "https://{$this->domain}/sitemap.xml"]);
-        $this->results['sitemap_xml'] = $sitemapOutput ? $sitemapOutput : 'File sitemap.xml non trovato o irraggiungibile.';
+        $this->results['sitemap_xml'] = $sitemapOutput ?: null;
     }
 
     protected function analyzeSourceCode()
     {
         $html = $this->runProcess(['curl', '--location', '--connect-timeout', '5', "https://{$this->domain}"]);
         if (!$html) {
-            $this->results['source_analysis'] = 'Impossibile scaricare il sorgente della pagina.';
+            $this->results['source_analysis'] = null;
             return;
         }
 
@@ -95,12 +95,12 @@ class DomainAnalysisService
     {
         $html = $this->runProcess(['curl', '--location', '--connect-timeout', '5', "https://{$this->domain}"]);
         if (!$html) {
-            $this->results['internal_links'] = 'Impossibile scaricare il sorgente della pagina.';
+            $this->results['internal_links'] = [];
             return;
         }
 
         preg_match_all('/<a\s+(?:[^>]*?\s+)?href="((?:https?:\/\/' . preg_quote($this->domain) . '|(?!\/\/|\#))[^"]*)"/i', $html, $matches);
-        $this->results['internal_links'] = array_unique($matches[1]);
+        $this->results['internal_links'] = !empty($matches[1]) ? array_unique($matches[1]) : [];
     }
 
     protected function enumerateSubdomains()
@@ -109,15 +109,15 @@ class DomainAnalysisService
             // Usiamo crt.sh per la ricerca di sottodomini
             $response = Http::timeout(self::TIMEOUT)->get("https://crt.sh/?q={$this->domain}&output=json");
 
-            if ($response->successful()) {
+            if ($response->successful() && $response->json()) {
                 $subdomains = collect($response->json())->pluck('name_value')->unique()->values()->all();
                 $this->results['subdomains'] = $subdomains;
             } else {
-                $this->results['subdomains'] = "Impossibile interrogare crt.sh. Stato: " . $response->status();
+                $this->results['subdomains'] = [];
             }
         } catch (\Illuminate\Http\Client\ConnectionException $e) {
             Log::warning("Timeout durante la richiesta a crt.sh per il dominio {$this->domain}: " . $e->getMessage());
-            $this->results['subdomains'] = "La ricerca di sottodomini (crt.sh) ha superato il tempo limite.";
+            $this->results['subdomains'] = [];
         }
     }
 
@@ -127,7 +127,7 @@ class DomainAnalysisService
         $dnsResults = [];
         foreach ($dnsTypes as $type) {
             $output = $this->runProcess(['dig', '+short', $this->domain, $type]);
-            $dnsResults[$type] = $output ? explode("\n", trim($output)) : 'Nessun record trovato.';
+            $dnsResults[$type] = $output ? explode("\n", trim($output)) : [];
         }
         $this->results['dns_records'] = $dnsResults;
     }
@@ -137,21 +137,21 @@ class DomainAnalysisService
         // Questo è un controllo molto basilare, non sostituisce un'analisi completa.
         $command = "echo | openssl s_client -servername {$this->domain} -connect {$this->domain}:443 2>/dev/null | openssl x509 -noout -text";
         $output = $this->runProcess(['bash', '-c', $command]);
-        $this->results['ssl_tls'] = $output ? $output : 'Impossibile recuperare informazioni SSL/TLS.';
+        $this->results['ssl_tls'] = $output ?: null;
     }
 
     protected function queryThreatIntelligence()
     {
         // Placeholder per Shodan, Censys, AlienVault
         // Queste richiederebbero chiavi API configurate in config/services.php
-        $this->results['threat_intelligence'] = 'Le integrazioni con Shodan, Censys, AlienVault non sono ancora implementate.';
+        $this->results['threat_intelligence'] = null;
     }
 
     protected function checkForLeaks()
     {
         // Placeholder per HaveIBeenPwned, GitHub
         // Richiedono chiavi API
-        $this->results['leaks_breaches'] = 'Le integrazioni con HaveIBeenPwned e GitHub non sono ancora implementate.';
+        $this->results['leaks_breaches'] = null;
     }
 
     protected function getRiskScore(): array
