@@ -16,6 +16,7 @@ class DebugMediaController extends BaseMediaController
 {
     public function show(Request $request, $path)
     {
+        dd('eccomi');
         Log::debug('-------------------- Inizio richiesta MediaController --------------------');
         Log::debug('Request Path: ' . $path);
         Log::debug('Request Data: ', $request->all());
