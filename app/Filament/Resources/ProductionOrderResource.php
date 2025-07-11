@@ -94,7 +94,7 @@ class ProductionOrderResource extends Resource
             ])
             ->headerActions([
                 Action::make('importFromFile')
-                    ->label('Importa da File')
+                    ->label('Importa con AI')
                     ->icon('heroicon-o-document-arrow-up')
                     ->form([
                         Forms\Components\FileUpload::make('order_file')
