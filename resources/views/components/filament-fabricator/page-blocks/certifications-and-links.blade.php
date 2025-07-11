@@ -49,8 +49,6 @@
                             </div>
                         @endforeach
                     </div>
-                    <button aria-label="Previous" class="glider-prev">«</button>
-                    <button aria-label="Next" class="glider-next">»</button>
                     <div role="tablist" class="dots"></div>
                 </div>
             </div>
@@ -84,10 +82,6 @@
                 slidesToScroll: 1,
                 draggable: true,
                 dots: '.dots',
-                arrows: {
-                    prev: '.glider-prev',
-                    next: '.glider-next'
-                },
                 responsive: [
                     {
                         breakpoint: 640,
@@ -109,22 +103,6 @@
     });
 </script>
 <style>
-.glider-prev, .glider-next {
-    background: rgba(0,0,0,0.5);
-    color: white;
-    border-radius: 9999px;
-    padding: 0.5rem 1rem;
-    top: 45%;
-    transform: translateY(-50%);
-    position: absolute;
-    z-index: 10;
-}
-.glider-prev {
-    left: -2.5rem;
-}
-.glider-next {
-    right: -2.5rem;
-}
 .glider-contain {
     position: relative;
 }
