@@ -33,6 +33,15 @@ class ScannedWebsiteResource extends Resource
                     ->label('Dominio')
                     ->required()
                     ->maxLength(255),
+                Forms\Components\TextInput::make('email')
+                    ->label('Email')
+                    ->email()
+                    ->required()
+                    ->maxLength(255),
+                Forms\Components\TextInput::make('phone_number')
+                    ->label('Telefono')
+                    ->tel()
+                    ->maxLength(255),
                 Forms\Components\TextInput::make('risk_percentage')
                     ->label('Percentuale di Rischio')
                     ->required()
@@ -60,6 +69,14 @@ class ScannedWebsiteResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('domain')
                     ->label('Dominio')
+                    ->searchable()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('email')
+                    ->label('Email')
+                    ->searchable()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('phone_number')
+                    ->label('Telefono')
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('risk_percentage')
