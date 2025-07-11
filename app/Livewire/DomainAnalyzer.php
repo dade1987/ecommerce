@@ -15,6 +15,7 @@ class DomainAnalyzer extends Component
     public ?array $result = null;
     public bool $analysing = false;
     public ?string $error = null;
+    public string $statusMessage = '';
 
     public function analyze(DomainAnalysisService $analysisService)
     {
@@ -27,15 +28,20 @@ class DomainAnalyzer extends Component
         $this->analysing = true;
         $this->result = null;
         $this->error = null;
+        $this->statusMessage = 'Inizializzazione scansione...';
 
         try {
             // Aggiungiamo un timeout generale per sicurezza
-            set_time_limit(40); // 30s per l'analisi + 10s di margine
+            set_time_limit(120); // Aumentato a 2 minuti per analisi complessa
+
+            $statusCallback = function(string $message) {
+                $this->statusMessage = $message;
+            };
 
             // Cerca una scansione precedente per questo dominio per preservare la % di rischio
             $existingScan = ScannedWebsite::where('domain', $this->domain)->first();
 
-            $this->result = $analysisService->analyze($this->domain);
+            $this->result = $analysisService->analyze($this->domain, $statusCallback);
 
             if (isset($this->result['error'])) {
                 // Logghiamo l'errore proveniente dal servizio di analisi per il debug

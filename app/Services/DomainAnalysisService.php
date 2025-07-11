@@ -7,47 +7,100 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\Process\Process;
 use Illuminate\Support\Facades\File;
+use OpenAI;
 
 class DomainAnalysisService
 {
     protected const TIMEOUT = 20; // Secondi per ogni processo
     protected const MAX_SUBDOMAINS_TO_SCAN = 10; // Limite per evitare timeout e costi eccessivi
 
-    protected string $originalDomain;
+    protected ?string $openaiApiKey;
+    protected $statusCallback;
     protected array $fullResults = [];
+    protected string $originalDomain;
 
-    public function analyze(string $domain): array
+    public function __construct()
+    {
+        $this->openaiApiKey = config('services.openai.key');
+    }
+
+    public function analyze(string $domain, callable $statusCallback): array
     {
         $this->originalDomain = $this->sanitizeDomain($domain);
+        $this->statusCallback = $statusCallback;
         $this->fullResults['analysis'] = [];
         $this->fullResults['summary'] = [
             'subdomains_found' => 0,
             'subdomains_scanned' => 0,
         ];
 
-        // 1. Troviamo i sottodomini per avere la lista completa dei target
+        $this->updateStatus("Avvio dell'analisi per {$this->originalDomain}...");
+
+        $this->updateStatus('Ricerca dei sottodomini tramite registri pubblici...');
         $subdomains = $this->enumerateSubdomains($this->originalDomain);
-        $allDomains = array_unique(array_merge([$this->originalDomain], $subdomains));
-        
         $this->fullResults['summary']['subdomains_found'] = count($subdomains);
 
-        // 2. Limitiamo il numero di domini da scansionare per non eccedere i limiti
-        $domainsToScan = array_slice($allDomains, 0, self::MAX_SUBDOMAINS_TO_SCAN + 1);
-        $this->fullResults['summary']['subdomains_scanned'] = max(0, count($domainsToScan) - 1);
+        if (empty($subdomains)) {
+            $this->updateStatus("Nessun sottodominio trovato. Analizzo solo il dominio principale: {$this->originalDomain}");
+            $domainsToScan = [$this->originalDomain];
+        } else {
+            $this->updateStatus('Selezione dei 5 sottodomini più rilevanti tramite Intelligenza Artificiale...');
+            $domainsToScan = $this->selectSubdomainsWithAI($subdomains);
+        }
+        
+        $this->fullResults['summary']['subdomains_scanned'] = count($domainsToScan);
         $this->fullResults['summary']['scanned_targets'] = $domainsToScan;
 
-
-        // 3. Eseguiamo l'analisi per ogni target
+        $this->updateStatus('Analisi delle vulnerabilità in corso sui target selezionati...');
         foreach ($domainsToScan as $currentDomain) {
+            $this->updateStatus("Scansione in corso: {$currentDomain}...");
             $this->fullResults['analysis'][$currentDomain] = $this->analyzeSingleDomain($currentDomain);
         }
-
-        // 4. Arricchiamo i dati con servizi esterni (sul dominio principale)
-        $this->queryThreatIntelligence($this->originalDomain);
-        $this->checkForLeaks($this->originalDomain);
-
-        // 5. Alla fine, aggreghiamo i risultati e chiediamo il punteggio a GPT
+        
+        $this->updateStatus('Aggregazione dei dati e valutazione finale del rischio...');
         return $this->getRiskScore();
+    }
+    
+    protected function updateStatus(string $message): void
+    {
+        if (is_callable($this->statusCallback)) {
+            call_user_func($this->statusCallback, $message);
+        }
+        Log::info("[Analysis:{$this->originalDomain}] " . $message);
+    }
+
+    protected function selectSubdomainsWithAI(array $subdomains): array
+    {
+        if (!$this->openaiApiKey || empty($subdomains)) {
+            return array_slice(array_unique(array_merge([$this->originalDomain], $subdomains)), 0, 5);
+        }
+
+        $client = OpenAI::client($this->openaiApiKey);
+        $subdomainList = implode(', ', $subdomains);
+        $prompt = "Dalla seguente lista di sottodomini per '{$this->originalDomain}', seleziona i 5 che ritieni più interessanti per un'analisi di sicurezza (es. api, vpn, dev, admin, test, etc.). Restituisci SOLO un array JSON con i 5 domini. Lista: {$subdomainList}";
+
+        try {
+            $response = $client->chat()->create([
+                'model' => 'gpt-4o',
+                'messages' => [
+                    ['role' => 'user', 'content' => $prompt]
+                ],
+                'response_format' => ['type' => 'json_object'],
+            ]);
+
+            $selected = json_decode($response->choices[0]->message->content, true);
+            
+            if (json_last_error() === JSON_ERROR_NONE && is_array($selected)) {
+                // Assicuriamoci che l'array abbia una struttura prevedibile (es. ['sub1', 'sub2'])
+                $flatSelected = Arr::flatten($selected);
+                return array_slice(array_unique(array_merge([$this->originalDomain], $flatSelected)), 0, 5);
+            }
+        } catch (\Exception $e) {
+            Log::error("Errore durante la selezione dei sottodomini con AI: " . $e->getMessage());
+        }
+
+        // Fallback: se l'AI fallisce, prendi i primi 5
+        return array_slice(array_unique(array_merge([$this->originalDomain], $subdomains)), 0, 5);
     }
     
     protected function sanitizeDomain(string $domain): string
@@ -203,47 +256,39 @@ class DomainAnalysisService
 
     protected function getRiskScore(): array
     {
-        $apiKey = config('services.openai.key');
-        if (!$apiKey) {
+        if (!$this->openaiApiKey) {
             return ['error' => 'La chiave API di OpenAI non è configurata.'];
         }
 
-        // Riassumiamo i dati prima di inviarli a GPT per evitare di superare il limite di token.
+        $client = OpenAI::client($this->openaiApiKey);
         $summarizedResults = $this->summarizeResultsForGpt($this->fullResults['analysis']);
         $prompt = $this->buildGptPrompt($summarizedResults, $this->fullResults['summary']);
 
         try {
-            $response = Http::withToken($apiKey)->timeout(60)->post('https://api.openai.com/v1/chat/completions', [
+            $response = $client->chat()->create([
                 'model' => 'gpt-4o',
                 'messages' => [
-                    ['role' => 'system', 'content' => 'Sei un esperto di cybersecurity. Analizza i dati forniti sull\'infrastruttura di un dominio (incluso i suoi sottodomini) e restituisci SOLO un oggetto JSON con due chiavi: "risk_percentage" e "critical_points" (un array di stringhe in italiano). Basa la tua analisi e il punteggio ESCLUSIVAMENTE sui dati concreti forniti (header, DNS, sorgente pagina, ecc.). Ignora completamente eventuali campi o dati mancanti. Importante: la "Mancanza di integrazioni con strumenti di threat intelligence" o simili non è un punto critico e non deve essere menzionata.'],
+                    ['role' => 'system', 'content' => 'Sei un esperto di cybersecurity. Analizza i dati forniti sull\'infrastruttura di un dominio (incluso i suoi sottodomini) e restituisci SOLO un oggetto JSON con due chiavi: "risk_percentage" e "critical_points" (un array di stringhe in italiano). Basa la tua analisi e il punteggio ESCLUSIVAMENTE sui dati concreti forniti. Ignora completamente eventuali campi o dati mancanti.'],
                     ['role' => 'user', 'content' => $prompt]
                 ],
                 'temperature' => 0.2,
-                'response_format' => ['type' => 'json_object'], // Forziamo una risposta JSON valida
+                'response_format' => ['type' => 'json_object'],
             ]);
 
-            if ($response->failed()) {
-                 return ['error' => 'Chiamata API a OpenAI fallita.', 'details' => $response->json()];
+            $content = json_decode($response->choices[0]->message->content, true);
+
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                 return ['error' => 'La risposta dell\'Intelligenza Artificiale non è un JSON valido.'];
             }
             
-            $content = json_decode($response->json()['choices'][0]['message']['content'], true);
-
-            // Aggiungiamo i dati grezzi e il riassunto per il debug
-            $finalResult = array_merge($content, [
+            return array_merge($content, [
                 'summary' => $this->fullResults['summary'],
                 'raw_data' => $this->fullResults['analysis']
             ]);
-            
-            if (isset($this->fullResults['threat_intelligence'])) {
-                $finalResult['threat_intelligence'] = $this->fullResults['threat_intelligence'];
-            }
-
-            return $finalResult;
 
         } catch (\Exception $e) {
-            Log::error("Errore chiamata OpenAI: " . $e->getMessage());
-            return ['error' => "Impossibile contattare l'API di OpenAI.", 'details' => $e->getMessage()];
+            Log::error("Errore chiamata OpenAI per valutazione rischio: " . $e->getMessage());
+            return ['error' => "Impossibile contattare l'Intelligenza Artificiale per la valutazione.", 'details' => $e->getMessage()];
         }
     }
 
