@@ -18,18 +18,37 @@ class TripodiUserSeeder extends Seeder
         // Create the 'tripodi' role if it doesn't exist
         $tripodiRole = Role::firstOrCreate(['name' => 'tripodi', 'guard_name' => 'web']);
 
-        // Create the user for 'tripodi' role
-        $user = User::firstOrCreate(
-            ['email' => 'tripodi@example.com'],
+        $usersToCreate = [
             [
-                'name' => 'Utente Tripodi',
-                'password' => Hash::make('password'), // You should change this to a strong password in production
-            ]
-        );
+                'email' => 'amministrazione@formificiostf.it',
+                'name' => 'Amministrazione',
+                'password' => 'Amm.STF.2024!',
+            ],
+            [
+                'email' => 'andrea.tripodi@formificiostf.it',
+                'name' => 'Andrea Tripodi',
+                'password' => 'Andrea.Tripodi.2024!',
+            ],
+            [
+                'email' => 'robertogatto99@gmail.com',
+                'name' => 'Roberto Gatto',
+                'password' => 'Roberto.Gatto.2024!',
+            ],
+        ];
 
-        // Assign the 'tripodi' role to the user
-        $user->assignRole($tripodiRole);
+        foreach ($usersToCreate as $userData) {
+            $user = User::firstOrCreate(
+                ['email' => $userData['email']],
+                [
+                    'name' => $userData['name'],
+                    'password' => Hash::make($userData['password']),
+                ]
+            );
 
-        $this->command->info('Utente Tripodi creato e ruolo assegnato con successo!');
+            // Assign the 'tripodi' role to the user
+            $user->assignRole($tripodiRole);
+        }
+
+        $this->command->info('3 utenti Tripodi creati e ruolo assegnato con successo!');
     }
 } 
