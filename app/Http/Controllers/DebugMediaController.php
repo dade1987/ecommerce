@@ -94,7 +94,15 @@ class DebugMediaController extends BaseMediaController
 
         $sourcePath = $server->getSourcePath($path);
         Log::debug('Percorso che Glide proverà a risolvere (relativo al suo disco): ' . $sourcePath);
-        Log::debug('Esistenza del file per Glide: ' . ($source->exists($sourcePath) ? 'Sì' : 'No'));
+
+        $glideFileExists = 'sconosciuta (metodo non trovato)';
+        if (method_exists($source, 'fileExists')) { // For Flysystem 2.x/3.x
+            $glideFileExists = $source->fileExists($sourcePath) ? 'Sì' : 'No';
+        } elseif (method_exists($source, 'has')) { // For Flysystem 1.x
+            $glideFileExists = $source->has($sourcePath) ? 'Sì' : 'No';
+        }
+
+        Log::debug('Esistenza del file per Glide: ' . $glideFileExists);
         
         Log::debug('Chiamata a getImageResponse di Glide con path: ' . $path);
         Log::debug('-------------------- Fine richiesta MediaController --------------------');
