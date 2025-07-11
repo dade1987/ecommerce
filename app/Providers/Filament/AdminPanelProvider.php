@@ -113,21 +113,59 @@ class AdminPanelProvider extends PanelProvider
             //->tenant(Team::class, ownershipRelationship: 'team', slugAttribute: 'slug')
             ->tenantRegistration(page: RegisterTeam::class)
             ->tenantProfile(EditTeamProfile::class)
-            ->navigation(function (Panel $panel, \Filament\Navigation\NavigationBuilder $builder): \Filament\Navigation\NavigationBuilder {
-                /** @var \App\Models\User $user */
-                $user = auth()->user();
+            ->navigation(
+                function (Panel $panel, \Filament\Navigation\NavigationBuilder $builder): \Filament\Navigation\NavigationBuilder {
+                    /** @var \App\Models\User $user */
+                    $user = auth()->user();
 
-                if (!$user) {
-                    return $builder;
+                    if (! $user) {
+                        return $builder->items([]);
+                    }
+
+                    if ($user->hasRole(['super_admin', 'tripodi'])) {
+                        $navigationItems = [];
+                        $navigationGroups = [];
+
+                        // Dashboard first
+                        $navigationItems[] = \Filament\Navigation\NavigationItem::make('Dashboard')
+                            ->icon('heroicon-o-home')
+                            ->url(fn (): string => Pages\Dashboard::getUrl())
+                            ->isActiveWhen(fn (): bool => request()->routeIs('filament.pages.dashboard'));
+
+                        // Temporary array to hold grouped items
+                        $groupedItemArrays = [];
+
+                        // Iterate through all resources like the original code did
+                        foreach (Filament::getResources() as $resource) {
+                            $group = $resource::getNavigationGroup();
+                            $items = $resource::getNavigationItems();
+
+                            if ($group) {
+                                if (!isset($groupedItemArrays[$group])) {
+                                    $groupedItemArrays[$group] = [];
+                                }
+                                $groupedItemArrays[$group] = array_merge($groupedItemArrays[$group], $items);
+                            } else {
+                                // It's an ungrouped resource
+                                $navigationItems = array_merge($navigationItems, $items);
+                            }
+                        }
+                        
+                        // Now create the NavigationGroup objects from the temporary array
+                        foreach($groupedItemArrays as $groupLabel => $items) {
+                            $navigationGroups[] = \Filament\Navigation\NavigationGroup::make($groupLabel)
+                                ->label($groupLabel)
+                                ->items($items);
+                        }
+                        
+                        // Finally, build the navigation
+                        return $builder
+                            ->items($navigationItems) // Ungrouped items first
+                            ->groups($navigationGroups); // Then grouped items
+                    }
+
+                    return $builder->items([]);
                 }
-
-                if ($user->hasRole(['super_admin', 'tripodi'])) {
-                    return $builder->groups(
-                        Filament::getNavigationGroups()
-                    );
-                }
-
-                return $builder;
-            });
+            );
     }
 }
