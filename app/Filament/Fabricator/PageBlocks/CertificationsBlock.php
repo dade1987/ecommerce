@@ -13,8 +13,8 @@ class CertificationsBlock extends PageBlock
 {
     public static function getBlockSchema(): Block
     {
-        return Block::make('certifications')
-            ->label('Certificazioni')
+        return Block::make('certifications-and-links')
+            ->label('Certificazioni e Link')
             ->schema([
                 Repeater::make('certifications')
                     ->label('Certificazioni')
@@ -41,11 +41,23 @@ class CertificationsBlock extends PageBlock
                             ->url()
                             ->columnSpan(2),
                     ])->columns(3),
+                
+                Repeater::make('important_links')
+                    ->label('Link Importanti')
+                    ->schema([
+                        TextInput::make('link_title')
+                            ->label('Titolo Link')
+                            ->required(),
+                        TextInput::make('link_url')
+                            ->label('URL')
+                            ->url()
+                            ->required(),
+                    ])
             ]);
     }
 
     public function render(): View
     {
-        return view('components.filament-fabricator.page-blocks.certifications-block');
+        return view('components.filament-fabricator.page-blocks.certifications-and-links');
     }
 } 
