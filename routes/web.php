@@ -7,6 +7,9 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TagController;
 use Illuminate\Support\Facades\Route;
 
+use App\Http\Controllers\DebugMediaController;
+
+
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -24,6 +27,11 @@ require __DIR__.'/auth.php';
     return view('welcome');
 })->name('home');*/
 
+Route::prefix(config('curator.glide.route_path', 'curator'))
+    ->get('/{path}', [DebugMediaController::class, 'show'])
+    ->where('path', '.*')
+    ->name('curator.media.debug');
+    
 Route::redirect('/', '/home')->name('home');
 
 Route::get('/dashboard', function () {
@@ -43,3 +51,4 @@ Route::middleware('auth')->group(function () {
 Route::get('{container0}/{item0?}/{container1?}/{item1?}/{container2?}/{item2?}', [PageController::class, 'index']);
 
 //Route::get('/storage/{path}', [ImageController::class, 'show'])->where('path', '.*')->name('image.optimizer');
+
