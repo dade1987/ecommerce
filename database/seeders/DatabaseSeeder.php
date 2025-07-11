@@ -19,7 +19,8 @@ class DatabaseSeeder extends Seeder
         //     'email' => 'test@example.com',
         // ]);
 
-        $this->call(ExtractorSeeder::class);
-        $this->call(ArticleTagSeeder::class);
+        $this->call([
+            BomSeeder::class,
+        ]);
     }
 }
