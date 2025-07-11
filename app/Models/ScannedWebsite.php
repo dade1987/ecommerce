@@ -11,6 +11,8 @@ class ScannedWebsite extends Model
 
     protected $fillable = [
         'domain',
+        'email',
+        'phone_number',
         'risk_percentage',
         'critical_points',
         'raw_data',

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\Process\Process;
@@ -9,39 +10,68 @@ use Illuminate\Support\Facades\File;
 
 class DomainAnalysisService
 {
-    protected string $domain;
-    protected array $results = [];
     protected const TIMEOUT = 20; // Secondi per ogni processo
+    protected const MAX_SUBDOMAINS_TO_SCAN = 100; // Limite per evitare timeout e costi eccessivi
+
+    protected string $originalDomain;
+    protected array $fullResults = [];
 
     public function analyze(string $domain): array
     {
-        // Sanitize the domain to remove scheme, path, and www.
+        $this->originalDomain = $this->sanitizeDomain($domain);
+        $this->fullResults['analysis'] = [];
+        $this->fullResults['summary'] = [
+            'subdomains_found' => 0,
+            'subdomains_scanned' => 0,
+        ];
+
+        // 1. Troviamo i sottodomini per avere la lista completa dei target
+        $subdomains = $this->enumerateSubdomains($this->originalDomain);
+        $allDomains = array_unique(array_merge([$this->originalDomain], $subdomains));
+        
+        $this->fullResults['summary']['subdomains_found'] = count($subdomains);
+
+        // 2. Limitiamo il numero di domini da scansionare per non eccedere i limiti
+        $domainsToScan = array_slice($allDomains, 0, self::MAX_SUBDOMAINS_TO_SCAN + 1);
+        $this->fullResults['summary']['subdomains_scanned'] = max(0, count($domainsToScan) - 1);
+        $this->fullResults['summary']['scanned_targets'] = $domainsToScan;
+
+
+        // 3. Eseguiamo l'analisi per ogni target
+        foreach ($domainsToScan as $currentDomain) {
+            $this->fullResults['analysis'][$currentDomain] = $this->analyzeSingleDomain($currentDomain);
+        }
+
+        // 4. Arricchiamo i dati con servizi esterni (sul dominio principale)
+        $this->queryThreatIntelligence($this->originalDomain);
+        $this->checkForLeaks($this->originalDomain);
+
+        // 5. Alla fine, aggreghiamo i risultati e chiediamo il punteggio a GPT
+        return $this->getRiskScore();
+    }
+    
+    protected function sanitizeDomain(string $domain): string
+    {
         $host = parse_url($domain, PHP_URL_HOST);
         if (empty($host)) {
             // Fallback for domains without scheme like 'example.com'
             $host = explode('/', $domain, 2)[0];
         }
         // Remove 'www.' prefix if present
-        $this->domain = preg_replace('/^www\./', '', $host);
+        return preg_replace('/^www\./', '', $host);
+    }
 
-        $this->results = [];
-
-        // Eseguiamo tutte le analisi.
-        // In un'implementazione reale e robusta, useremmo job e code,
-        // ma per rispettare il limite di 30s, eseguiamo tutto qui.
-        // Per velocizzare, alcune chiamate andrebbero fatte in parallelo.
-        $this->getHttpHeaders();
-        $this->checkRobotsAndSitemap();
-        $this->analyzeSourceCode();
-        $this->mapInternalLinks();
-        $this->enumerateSubdomains();
-        $this->checkDnsRecords();
-        $this->checkSslTls();
-        $this->queryThreatIntelligence();
-        $this->checkForLeaks();
-        
-        // Alla fine, aggreghiamo i risultati e chiediamo il punteggio a GPT
-        return $this->getRiskScore();
+    protected function analyzeSingleDomain(string $domain): array
+    {
+        $results = [];
+        $results['http_headers'] = $this->getHttpHeaders($domain);
+        $results['robots_txt'] = $this->checkRobotsTxt($domain);
+        $results['sitemap_xml'] = $this->checkSitemapXml($domain);
+        $results['source_analysis'] = $this->analyzeSourceCode($domain);
+        $results['internal_links'] = $this->mapInternalLinks($domain);
+        $results['dns_records'] = $this->checkDnsRecords($domain);
+        $results['ssl_tls'] = $this->checkSslTls($domain);
+        return $results;
     }
 
     protected function runProcess(array $command): ?string
@@ -53,105 +83,122 @@ class DomainAnalysisService
             $process->mustRun();
             return $process->getOutput();
         } catch (\Exception $e) {
-            Log::error("Errore durante l'esecuzione del processo per {$this->domain}: " . $e->getMessage());
+            Log::error("Errore durante l'esecuzione del processo: " . $e->getMessage());
             return null;
         }
     }
 
-    protected function getHttpHeaders()
+    protected function getHttpHeaders(string $domain): ?string
     {
-        $output = $this->runProcess(['curl', '-I', '--location', '--connect-timeout', '5', $this->domain]);
-        $this->results['http_headers'] = $output ?: null;
+        $output = $this->runProcess(['curl', '-I', '--location', '--connect-timeout', '5', $domain]);
+        return $output ?: null;
     }
 
-    protected function checkRobotsAndSitemap()
+    protected function checkRobotsTxt(string $domain): ?string
     {
-        $robotsOutput = $this->runProcess(['curl', '--location', '--connect-timeout', '5', "https://{$this->domain}/robots.txt"]);
-        $this->results['robots_txt'] = $robotsOutput ?: null;
-
-        $sitemapOutput = $this->runProcess(['curl', '--location', '--connect-timeout', '5', "https://{$this->domain}/sitemap.xml"]);
-        $this->results['sitemap_xml'] = $sitemapOutput ?: null;
+        $output = $this->runProcess(['curl', '--location', '--connect-timeout', '5', "https://{$domain}/robots.txt"]);
+        return $output ?: null;
     }
 
-    protected function analyzeSourceCode()
+    protected function checkSitemapXml(string $domain): ?string
     {
-        $html = $this->runProcess(['curl', '--location', '--connect-timeout', '5', "https://{$this->domain}"]);
+        $output = $this->runProcess(['curl', '--location', '--connect-timeout', '5', "https://{$domain}/sitemap.xml"]);
+        return $output ?: null;
+    }
+
+    protected function analyzeSourceCode(string $domain): ?array
+    {
+        $html = $this->runProcess(['curl', '--location', '--connect-timeout', '5', "https://{$domain}"]);
         if (!$html) {
-            $this->results['source_analysis'] = null;
-            return;
+            return null;
         }
 
         // Cerchiamo commenti e librerie comuni
         preg_match_all('/<!--(.*?)-->/s', $html, $comments);
         preg_match_all('/(jquery|react|vue|angular|bootstrap)[\-\.]?([0-9\.]+)/i', $html, $libs);
 
-        $this->results['source_analysis'] = [
+        return [
             'comments' => $comments[1] ?? [],
             'libraries' => array_unique($libs[0]) ?? [],
         ];
     }
 
-    protected function mapInternalLinks()
+    protected function mapInternalLinks(string $domain): array
     {
-        $html = $this->runProcess(['curl', '--location', '--connect-timeout', '5', "https://{$this->domain}"]);
+        $html = $this->runProcess(['curl', '--location', '--connect-timeout', '5', "https://{$domain}"]);
         if (!$html) {
-            $this->results['internal_links'] = [];
-            return;
+            return [];
         }
 
-        preg_match_all('/<a\s+(?:[^>]*?\s+)?href="((?:https?:\/\/' . preg_quote($this->domain) . '|(?!\/\/|\#))[^"]*)"/i', $html, $matches);
-        $this->results['internal_links'] = !empty($matches[1]) ? array_unique($matches[1]) : [];
+        preg_match_all('/<a\s+(?:[^>]*?\s+)?href="((?:https?:\/\/' . preg_quote($domain) . '|(?!\/\/|\#))[^"]*)"/i', $html, $matches);
+        return !empty($matches[1]) ? array_unique($matches[1]) : [];
     }
 
-    protected function enumerateSubdomains()
+    protected function enumerateSubdomains(string $domain): array
     {
         try {
-            // Usiamo crt.sh per la ricerca di sottodomini
-            $response = Http::timeout(self::TIMEOUT)->get("https://crt.sh/?q={$this->domain}&output=json");
+            $response = Http::timeout(self::TIMEOUT)->get("https://crt.sh/?q={$domain}&output=json");
 
             if ($response->successful() && $response->json()) {
-                $subdomains = collect($response->json())->pluck('name_value')->unique()->values()->all();
-                $this->results['subdomains'] = $subdomains;
-            } else {
-                $this->results['subdomains'] = [];
+                $subdomains = collect($response->json())
+                    ->pluck('name_value')
+                    ->flatMap(fn($name) => explode("\n", $name))
+                    ->map(fn($name) => trim($name, '*. '))
+                    ->filter(fn($name) => $name !== $domain && str_ends_with($name, '.' . $domain))
+                    ->unique()
+                    ->values()
+                    ->all();
+                return $subdomains;
             }
+            return [];
         } catch (\Illuminate\Http\Client\ConnectionException $e) {
-            Log::warning("Timeout durante la richiesta a crt.sh per il dominio {$this->domain}: " . $e->getMessage());
-            $this->results['subdomains'] = [];
+            Log::warning("Timeout durante la richiesta a crt.sh per il dominio {$domain}: " . $e->getMessage());
+            return [];
         }
     }
 
-    protected function checkDnsRecords()
+    protected function checkDnsRecords(string $domain): array
     {
         $dnsTypes = ['A', 'MX', 'TXT', 'NS'];
         $dnsResults = [];
         foreach ($dnsTypes as $type) {
-            $output = $this->runProcess(['dig', '+short', $this->domain, $type]);
+            $output = $this->runProcess(['dig', '+short', $domain, $type]);
             $dnsResults[$type] = $output ? explode("\n", trim($output)) : [];
         }
-        $this->results['dns_records'] = $dnsResults;
+        return $dnsResults;
     }
 
-    protected function checkSslTls()
+    protected function checkSslTls(string $domain): ?string
     {
         // Questo è un controllo molto basilare, non sostituisce un'analisi completa.
-        $command = "echo | openssl s_client -servername {$this->domain} -connect {$this->domain}:443 2>/dev/null | openssl x509 -noout -text";
+        $command = "echo | openssl s_client -servername {$domain} -connect {$domain}:443 2>/dev/null | openssl x509 -noout -text";
         $output = $this->runProcess(['bash', '-c', $command]);
-        $this->results['ssl_tls'] = $output ?: null;
+        return $output ?: null;
     }
 
-    protected function queryThreatIntelligence()
+    protected function queryThreatIntelligence(string $domain)
     {
-        // Placeholder per Shodan, Censys, AlienVault
-        // Queste richiederebbero chiavi API configurate in config/services.php
-        $this->results['threat_intelligence'] = null;
+        // Integrazione con Shodan
+        $shodanApiKey = config('services.shodan.key');
+        if ($shodanApiKey) {
+            try {
+                $response = Http::timeout(self::TIMEOUT)->get("https://api.shodan.io/dns/domain/{$domain}?key={$shodanApiKey}");
+                if ($response->successful()) {
+                    $this->fullResults['threat_intelligence']['shodan'] = $response->json();
+                }
+            } catch (\Exception $e) {
+                Log::warning("Chiamata a Shodan fallita per {$domain}: " . $e->getMessage());
+            }
+        }
+        // Placeholder per Censys, AlienVault
+        $this->fullResults['threat_intelligence'] = $this->fullResults['threat_intelligence'] ?? null;
     }
 
-    protected function checkForLeaks()
+    protected function checkForLeaks(string $domain)
     {
         // Placeholder per HaveIBeenPwned, GitHub
         // Richiedono chiavi API
-        $this->results['leaks_breaches'] = null;
+        $this->fullResults['leaks_breaches'] = null;
     }
 
     protected function getRiskScore(): array
@@ -162,14 +209,14 @@ class DomainAnalysisService
         }
 
         // Riassumiamo i dati prima di inviarli a GPT per evitare di superare il limite di token.
-        $summarizedResults = $this->summarizeResultsForGpt($this->results);
-        $prompt = $this->buildGptPrompt($summarizedResults);
+        $summarizedResults = $this->summarizeResultsForGpt($this->fullResults['analysis']);
+        $prompt = $this->buildGptPrompt($summarizedResults, $this->fullResults['summary']);
 
         try {
             $response = Http::withToken($apiKey)->timeout(60)->post('https://api.openai.com/v1/chat/completions', [
                 'model' => 'gpt-4o',
                 'messages' => [
-                    ['role' => 'system', 'content' => 'Sei un esperto di cybersecurity. Analizza i dati forniti e restituisci SOLO un oggetto JSON con due chiavi: "risk_percentage" e "critical_points" (un array di stringhe in italiano). Basa la tua analisi e il punteggio ESCLUSIVAMENTE sui dati concreti forniti (header, DNS, sorgente pagina). Ignora completamente eventuali campi o dati mancanti. Importante: la "Mancanza di integrazioni con strumenti di threat intelligence" o simili non è un punto critico e non deve essere menzionata.'],
+                    ['role' => 'system', 'content' => 'Sei un esperto di cybersecurity. Analizza i dati forniti sull\'infrastruttura di un dominio (incluso i suoi sottodomini) e restituisci SOLO un oggetto JSON con due chiavi: "risk_percentage" e "critical_points" (un array di stringhe in italiano). Basa la tua analisi e il punteggio ESCLUSIVAMENTE sui dati concreti forniti (header, DNS, sorgente pagina, ecc.). Ignora completamente eventuali campi o dati mancanti. Importante: la "Mancanza di integrazioni con strumenti di threat intelligence" o simili non è un punto critico e non deve essere menzionata.'],
                     ['role' => 'user', 'content' => $prompt]
                 ],
                 'temperature' => 0.2,
@@ -182,11 +229,17 @@ class DomainAnalysisService
             
             $content = json_decode($response->json()['choices'][0]['message']['content'], true);
 
-            return [
-                'risk_percentage' => $content['risk_percentage'] ?? 'N/A',
-                'critical_points' => $content['critical_points'] ?? ['Analisi non riuscita.'],
-                'raw_data' => $this->results, // Manteniamo i dati grezzi per il debug
-            ];
+            // Aggiungiamo i dati grezzi e il riassunto per il debug
+            $finalResult = array_merge($content, [
+                'summary' => $this->fullResults['summary'],
+                'raw_data' => $this->fullResults['analysis']
+            ]);
+            
+            if (isset($this->fullResults['threat_intelligence'])) {
+                $finalResult['threat_intelligence'] = $this->fullResults['threat_intelligence'];
+            }
+
+            return $finalResult;
 
         } catch (\Exception $e) {
             Log::error("Errore chiamata OpenAI: " . $e->getMessage());
@@ -194,14 +247,19 @@ class DomainAnalysisService
         }
     }
 
-    protected function buildGptPrompt(array $summarizedData): string
+    protected function buildGptPrompt(array $summarizedData, array $summary): string
     {
         $dataString = json_encode($summarizedData, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
-        return <<<PROMPT
-Sulla base di questa analisi passiva puntuale per il dominio {$this->domain}, fornisci una stima percentuale del rischio di compromissione entro i prossimi 3 mesi.
-Evidenzia i punti più critici trovati.
+        $summaryString = "Analisi eseguita sul dominio principale {$this->originalDomain}. ";
+        $summaryString .= "Trovati {$summary['subdomains_found']} sottodomini, di cui {$summary['subdomains_scanned']} sono stati scansionati.";
 
-Ecco i dati raccolti (in forma riassunta):
+        return <<<PROMPT
+Sulla base di questa analisi passiva per il dominio {$this->originalDomain} e i suoi sottodomini, fornisci una stima percentuale del rischio di compromissione entro i prossimi 3 mesi.
+Evidenzia i punti più critici trovati nell'intera infrastruttura.
+
+{$summaryString}
+
+Ecco i dati raccolti (in forma riassunta per ogni target):
 {$dataString}
 
 Fornisci la risposta esclusivamente in formato JSON, con le chiavi "risk_percentage" e "critical_points".
@@ -210,16 +268,16 @@ PROMPT;
 
     protected function summarizeResultsForGpt(array $results): array
     {
-        $summary = $results;
-
-        // Riassumi i sottodomini
-        if (isset($summary['subdomains']) && is_array($summary['subdomains'])) {
-            $count = count($summary['subdomains']);
-            $summary['subdomains'] = [
-                'count' => $count,
-                'sample' => array_slice($summary['subdomains'], 0, 15)
-            ];
+        $masterSummary = [];
+        foreach ($results as $domain => $domainData) {
+            $masterSummary[$domain] = $this->summarizeSingleDomainResults($domainData);
         }
+        return $masterSummary;
+    }
+    
+    protected function summarizeSingleDomainResults(array $data): array
+    {
+        $summary = $data;
 
         // Riassumi i link interni
         if (isset($summary['internal_links']) && is_array($summary['internal_links'])) {

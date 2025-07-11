@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Log;
 class DomainAnalyzer extends Component
 {
     public ?string $domain = null;
+    public ?string $email = null;
+    public ?string $phone = null;
     public ?array $result = null;
     public bool $analysing = false;
     public ?string $error = null;
@@ -18,6 +20,8 @@ class DomainAnalyzer extends Component
     {
         $this->validate([
             'domain' => 'required|string|min:3',
+            'email' => 'required|email',
+            'phone' => 'nullable|string',
         ]);
 
         $this->analysing = true;
@@ -70,6 +74,8 @@ class DomainAnalyzer extends Component
             ScannedWebsite::updateOrCreate(
                 ['domain' => $this->domain], // Criterio per la ricerca
                 [ // Valori da aggiornare o creare
+                    'email' => $this->email,
+                    'phone_number' => $this->phone,
                     'risk_percentage' => $this->result['risk_percentage'],
                     'critical_points' => $this->result['critical_points'] ?? [],
                     'raw_data' => $this->result['raw_data'] ?? [],
