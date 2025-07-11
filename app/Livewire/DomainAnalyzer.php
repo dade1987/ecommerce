@@ -25,9 +25,11 @@ class DomainAnalyzer extends Component
         ];
     }
 
-    public function updateStatus($payload)
+    public function updateStatus($payload = null)
     {
-        $this->statusMessage = $payload['message'];
+        if (isset($payload['message'])) {
+            $this->statusMessage = $payload['message'];
+        }
     }
 
     public function analyze(DomainAnalysisService $analysisService)
