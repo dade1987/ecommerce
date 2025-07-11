@@ -1,7 +1,7 @@
 <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16">
     <div class="p-4 border rounded-lg shadow-sm bg-white dark:bg-gray-800">
         <form wire:submit.prevent="analyze">
-            <div class="flex items-center space-x-4">
+            <div class="flex flex-col space-y-4 md:flex-row md:space-y-0 md:space-x-4 md:items-end">
                 <div class="flex-grow">
                     <label for="domain" class="block text-sm font-medium text-gray-700 dark:text-gray-200">Dominio da Analizzare</label>
                     <input wire:model.defer="domain" id="domain" type="text" placeholder="esempio.com"
@@ -22,7 +22,7 @@
                            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                     @error('phone') <span class="text-sm text-red-500">{{ $message }}</span> @enderror
                 </div>
-                <div class="pt-5">
+                <div>
                     <button type="submit"
                             wire:loading.attr="disabled"
                             wire:target="analyze"
