@@ -13,13 +13,11 @@
                             <div class="mx-2">
                                 <div class="flex flex-col items-start p-6 bg-white border border-gray-200 rounded-lg shadow-sm dark:bg-gray-800 dark:border-gray-700 h-full">
                                     @if($certification['image'])
-                                        @php
-                                            $media = \App\Models\Media::find($certification['image']);
-                                        @endphp
                                         <div class="flex-shrink-0 mb-4">
-                                            @if($media)
-                                            <img class="w-16 h-16 rounded-full" src="{{ $media->getUrl() }}" alt="{{ $certification['issuer'] }} logo">
-                                            @endif
+                                            <x-curator-glider
+                                                class="w-16 h-16 rounded-full"
+                                                :media="$certification['image']"
+                                            />
                                         </div>
                                     @endif
                                     <div class="flex-grow">
