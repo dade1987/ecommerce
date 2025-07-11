@@ -8,7 +8,7 @@ use App\Filament\Resources\ProductionOrderResource\Pages;
 use App\Filament\Resources\ProductionOrderResource\RelationManagers\ProductionPhasesRelationManager;
 use App\Models\ProductionOrder;
 use App\Services\OrderParsingService;
-use Filament\Actions\Action;
+use Filament\Tables\Actions\Action;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Notifications\Actions\Action as NotificationAction;
@@ -100,34 +100,41 @@ class ProductionOrderResource extends Resource
                             ->required(),
                     ])
                     ->action(function (array $data, OrderParsingService $parsingService) {
-                        $file = $data['order_file'];
+                        try {
+                            $file = $data['order_file'];
 
-                        $result = $parsingService->parseOrderFromFile($file);
+                            $result = $parsingService->parseOrderFromFile($file);
 
-                        if ($result) {
-                            // Corrispondenza trovata! Reindirizza al form di creazione con dati pre-compilati.
-                            $bom = $result['bom'];
-                            $customer = $result['customer'];
-                            $url = ProductionOrderResource::getUrl('create', [
-                                'customer' => $customer,
-                                'bom_id' => $bom->id,
-                                'ownerRecord' => 0 // Parametro fittizio per forzare il re-rendering
-                            ]);
-                            return redirect($url);
-                        } else {
-                            // Nessuna corrispondenza. Notifica all'utente.
+                            if ($result) {
+                                // Corrispondenza trovata!
+                                $bom = $result['bom'];
+                                $customer = $result['customer'];
+                                $url = ProductionOrderResource::getUrl('create', [
+                                    'customer' => $customer,
+                                    'bom_id' => $bom->id,
+                                ]);
+                                return redirect($url);
+                            } else {
+                                // Nessuna corrispondenza.
+                                Notification::make()
+                                    ->title('Distinta Base non trovata')
+                                    ->body('L\'IA non ha trovato una Distinta Base corrispondente nel file. Vuoi crearne una nuova manualmente?')
+                                    ->warning()
+                                    ->persistent()
+                                    ->actions([
+                                        NotificationAction::make('create_bom')
+                                            ->label('Crea Distinta Base')
+                                            ->button()
+                                            ->url(BomResource::getUrl('create'))
+                                            ->color('primary'),
+                                    ])
+                                    ->send();
+                            }
+                        } catch (\Exception $e) {
                             Notification::make()
-                                ->title('Distinta Base non trovata')
-                                ->body('Non è stata trovata una corrispondenza. Vuoi creare una nuova Distinta Base?')
-                                ->warning()
-                                ->persistent()
-                                ->actions([
-                                    NotificationAction::make('create_bom')
-                                        ->label('Crea Distinta Base')
-                                        ->button()
-                                        ->url(BomResource::getUrl('create'))
-                                        ->color('primary'),
-                                ])
+                                ->title('Errore di Importazione')
+                                ->body($e->getMessage())
+                                ->danger()
                                 ->send();
                         }
                     })
