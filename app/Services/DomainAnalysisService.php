@@ -2,13 +2,11 @@
 
 namespace App\Services;
 
-use App\Events\AnalysisStatusUpdated;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Symfony\Component\Process\Process;
-use Illuminate\Support\Facades\File;
 use OpenAI;
+use Symfony\Component\Process\Process;
 
 class DomainAnalysisService
 {
@@ -16,7 +14,6 @@ class DomainAnalysisService
     protected const MAX_SUBDOMAINS_TO_SCAN = 10; // Limite per evitare timeout e costi eccessivi
 
     protected ?string $openaiApiKey;
-    protected ?int $userId;
     protected array $fullResults = [];
     protected string $originalDomain;
 
@@ -25,51 +22,34 @@ class DomainAnalysisService
         $this->openaiApiKey = config('services.openai.key');
     }
 
-    public function analyze(string $domain, ?int $userId): array
+    public function analyze(string $domain): array
     {
         $this->originalDomain = $this->sanitizeDomain($domain);
-        $this->userId = $userId;
         $this->fullResults['analysis'] = [];
         $this->fullResults['summary'] = [
             'subdomains_found' => 0,
             'subdomains_scanned' => 0,
         ];
 
-        $this->updateStatus("Avvio dell'analisi per {$this->originalDomain}...");
-
-        $this->updateStatus('Ricerca dei sottodomini tramite registri pubblici...');
         $subdomains = $this->enumerateSubdomains($this->originalDomain);
         $this->fullResults['summary']['subdomains_found'] = count($subdomains);
 
         if (empty($subdomains)) {
-            $this->updateStatus("Nessun sottodominio trovato. Analizzo solo il dominio principale: {$this->originalDomain}");
             $domainsToScan = [$this->originalDomain];
         } else {
-            $this->updateStatus('Selezione dei 5 sottodomini più rilevanti tramite Intelligenza Artificiale...');
             $domainsToScan = $this->selectSubdomainsWithAI($subdomains);
         }
         
         $this->fullResults['summary']['subdomains_scanned'] = count($domainsToScan);
         $this->fullResults['summary']['scanned_targets'] = $domainsToScan;
 
-        $this->updateStatus('Analisi delle vulnerabilità in corso sui target selezionati...');
         foreach ($domainsToScan as $currentDomain) {
-            $this->updateStatus("Scansione in corso: {$currentDomain}...");
             $this->fullResults['analysis'][$currentDomain] = $this->analyzeSingleDomain($currentDomain);
         }
         
-        $this->updateStatus('Aggregazione dei dati e valutazione finale del rischio...');
         return $this->getRiskScore();
     }
     
-    protected function updateStatus(string $message): void
-    {
-        if ($this->userId) {
-            broadcast(new AnalysisStatusUpdated($message, $this->userId));
-        }
-        Log::info("[Analysis:{$this->originalDomain}] " . $message);
-    }
-
     protected function selectSubdomainsWithAI(array $subdomains): array
     {
         if (!$this->openaiApiKey || empty($subdomains)) {
