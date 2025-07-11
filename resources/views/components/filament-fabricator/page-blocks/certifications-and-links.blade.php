@@ -4,12 +4,12 @@
 
 <div class="px-4 py-8 mx-auto max-w-7xl sm:px-6 lg:px-8">
     <div class="space-y-12">
-        @if(!empty($important_links))
+        @if(!empty($importantLinks))
             <div>
                 <h2 class="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white">Link Importanti</h2>
                 <div class="mt-6 space-y-4">
                     <ul class="list-disc list-inside">
-                        @foreach ($important_links as $link)
+                        @foreach ($importantLinks as $link)
                             <li class="text-lg">
                                 <a href="{{ $link['link_url'] }}" target="_blank" rel="noopener noreferrer" class="font-medium text-blue-600 hover:underline dark:text-blue-500">
                                     {{ $link['link_title'] }}
