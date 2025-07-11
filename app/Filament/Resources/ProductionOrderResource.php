@@ -16,6 +16,8 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Http\UploadedFile;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 class ProductionOrderResource extends Resource
 {
@@ -97,11 +99,21 @@ class ProductionOrderResource extends Resource
                     ->form([
                         Forms\Components\FileUpload::make('order_file')
                             ->label('File Ordine Cliente')
+                            ->storeFiles(false)
                             ->required(),
                     ])
                     ->action(function (array $data, OrderParsingService $parsingService) {
                         try {
-                            $file = $data['order_file'];
+                            /** @var TemporaryUploadedFile $tempFile */
+                            $tempFile = $data['order_file'];
+
+                            $file = new UploadedFile(
+                                $tempFile->getRealPath(),
+                                $tempFile->getClientOriginalName(),
+                                $tempFile->getMimeType(),
+                                null,
+                                true
+                            );
 
                             $result = $parsingService->parseOrderFromFile($file);
 

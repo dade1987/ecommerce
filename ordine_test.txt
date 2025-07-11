@@ -1,0 +1,14 @@
+ORDINE CLIENTE
+
+Spett.le Forniture Metalli S.r.l.,
+
+con la presente siamo a richiedere la fornitura urgente del seguente articolo:
+
+- Quantità: 50
+- Prodotto: Pannello Standard
+- Codice Prodotto Interno: LAM-ST-R5T8-INOX304
+
+Attendiamo conferma d'ordine.
+
+Cordiali saluti,
+Ufficio Acquisti 
