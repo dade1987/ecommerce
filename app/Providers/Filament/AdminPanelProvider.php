@@ -113,50 +113,21 @@ class AdminPanelProvider extends PanelProvider
             //->tenant(Team::class, ownershipRelationship: 'team', slugAttribute: 'slug')
             ->tenantRegistration(page: RegisterTeam::class)
             ->tenantProfile(EditTeamProfile::class)
-            ->navigation(
-                function (Panel $panel, \Filament\Navigation\NavigationBuilder $builder): \Filament\Navigation\NavigationBuilder {
-                    /** @var \App\Models\User $user */
-                    $user = auth()->user();
+            ->navigation(function (Panel $panel, \Filament\Navigation\NavigationBuilder $builder): \Filament\Navigation\NavigationBuilder {
+                /** @var \App\Models\User $user */
+                $user = auth()->user();
 
-                    if (! $user) {
-                        return $builder->items([]);
-                    }
-
-                    if ($user->hasRole('super_admin')) {
-                        $navigationItems = [
-                            \Filament\Navigation\NavigationItem::make('Dashboard')
-                                ->icon('heroicon-o-home')
-                                ->url(fn (): string => Pages\Dashboard::getUrl())
-                                ->isActiveWhen(fn (): bool => request()->routeIs('filament.pages.dashboard')),
-                        ];
-
-                        foreach (Filament::getResources() as $resource) {
-                            $navigationItems = array_merge($navigationItems, $resource::getNavigationItems());
-                        }
-
-                        return $builder->items($navigationItems);
-
-                    }
-
-                    // For the 'tripodi' role, display all resources in the navigation.
-                    // Permissions for actions (create, update, delete) will be handled by policies.
-                    if ($user->hasRole('tripodi')) {
-                        $navigationItems = [
-                            \Filament\Navigation\NavigationItem::make('Dashboard')
-                                ->icon('heroicon-o-home')
-                                ->url(fn (): string => Pages\Dashboard::getUrl())
-                                ->isActiveWhen(fn (): bool => request()->routeIs('filament.pages.dashboard')),
-                        ];
-
-                        foreach (Filament::getResources() as $resource) {
-                            $navigationItems = array_merge($navigationItems, $resource::getNavigationItems());
-                        }
-
-                        return $builder->items($navigationItems);
-                    }
-
-                    return $builder->items([]);
+                if (!$user) {
+                    return $builder;
                 }
-            );
+
+                if ($user->hasRole(['super_admin', 'tripodi'])) {
+                    return $builder->groups(
+                        Filament::getNavigationGroups()
+                    );
+                }
+
+                return $builder;
+            });
     }
 }
