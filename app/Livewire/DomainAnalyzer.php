@@ -5,6 +5,7 @@ namespace App\Livewire;
 use Livewire\Component;
 use App\Services\DomainAnalysisService;
 use App\Models\ScannedWebsite;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
 class DomainAnalyzer extends Component
@@ -16,6 +17,18 @@ class DomainAnalyzer extends Component
     public bool $analysing = false;
     public ?string $error = null;
     public string $statusMessage = '';
+
+    public function getListeners()
+    {
+        return [
+            "echo-private:user." . Auth::id() . ",AnalysisStatusUpdated" => 'updateStatus',
+        ];
+    }
+
+    public function updateStatus($payload)
+    {
+        $this->statusMessage = $payload['message'];
+    }
 
     public function analyze(DomainAnalysisService $analysisService)
     {
@@ -34,14 +47,11 @@ class DomainAnalyzer extends Component
             // Aggiungiamo un timeout generale per sicurezza
             set_time_limit(120); // Aumentato a 2 minuti per analisi complessa
 
-            $statusCallback = function(string $message) {
-                $this->statusMessage = $message;
-            };
-
             // Cerca una scansione precedente per questo dominio per preservare la % di rischio
             $existingScan = ScannedWebsite::where('domain', $this->domain)->first();
 
-            $this->result = $analysisService->analyze($this->domain, $statusCallback);
+            // Ora passiamo l'ID dell'utente autenticato
+            $this->result = $analysisService->analyze($this->domain, Auth::id());
 
             if (isset($this->result['error'])) {
                 // Logghiamo l'errore proveniente dal servizio di analisi per il debug

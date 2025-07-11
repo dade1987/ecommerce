@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Events\AnalysisStatusUpdated;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -15,7 +16,7 @@ class DomainAnalysisService
     protected const MAX_SUBDOMAINS_TO_SCAN = 10; // Limite per evitare timeout e costi eccessivi
 
     protected ?string $openaiApiKey;
-    protected $statusCallback;
+    protected ?int $userId;
     protected array $fullResults = [];
     protected string $originalDomain;
 
@@ -24,10 +25,10 @@ class DomainAnalysisService
         $this->openaiApiKey = config('services.openai.key');
     }
 
-    public function analyze(string $domain, callable $statusCallback): array
+    public function analyze(string $domain, ?int $userId): array
     {
         $this->originalDomain = $this->sanitizeDomain($domain);
-        $this->statusCallback = $statusCallback;
+        $this->userId = $userId;
         $this->fullResults['analysis'] = [];
         $this->fullResults['summary'] = [
             'subdomains_found' => 0,
@@ -63,8 +64,8 @@ class DomainAnalysisService
     
     protected function updateStatus(string $message): void
     {
-        if (is_callable($this->statusCallback)) {
-            call_user_func($this->statusCallback, $message);
+        if ($this->userId) {
+            broadcast(new AnalysisStatusUpdated($message, $this->userId));
         }
         Log::info("[Analysis:{$this->originalDomain}] " . $message);
     }
