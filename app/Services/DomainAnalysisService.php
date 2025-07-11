@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\File;
 class DomainAnalysisService
 {
     protected const TIMEOUT = 20; // Secondi per ogni processo
-    protected const MAX_SUBDOMAINS_TO_SCAN = 100; // Limite per evitare timeout e costi eccessivi
+    protected const MAX_SUBDOMAINS_TO_SCAN = 15; // Limite per evitare timeout e costi eccessivi
 
     protected string $originalDomain;
     protected array $fullResults = [];
