@@ -3,25 +3,24 @@
 namespace App\Filament\Fabricator\PageBlocks;
 
 use Filament\Forms\Components\Builder\Block;
-use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\TextInput;
 use Z3d0X\FilamentFabricator\PageBlocks\PageBlock;
 use Illuminate\Contracts\View\View;
+use Awcodes\Curator\Components\Forms\CuratorPicker;
 
 class CertificationsBlock extends PageBlock
 {
     public static function getBlockSchema(): Block
     {
         return Block::make('certifications')
-            ->label('Certificazioni e Link')
+            ->label('Certificazioni')
             ->schema([
                 Repeater::make('certifications')
                     ->label('Certificazioni')
                     ->schema([
-                        FileUpload::make('image')
+                        CuratorPicker::make('image')
                             ->label('Logo Ente')
-                            ->image()
                             ->columnSpan(1),
                         TextInput::make('title')
                             ->label('Titolo Certificazione')
@@ -42,18 +41,6 @@ class CertificationsBlock extends PageBlock
                             ->url()
                             ->columnSpan(2),
                     ])->columns(3),
-
-                Repeater::make('important_links')
-                    ->label('Link Importanti')
-                    ->schema([
-                        TextInput::make('link_title')
-                            ->label('Titolo Link')
-                            ->required(),
-                        TextInput::make('link_url')
-                            ->label('URL')
-                            ->url()
-                            ->required(),
-                    ])
             ]);
     }
 
