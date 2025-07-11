@@ -4,8 +4,25 @@
 
 <div class="px-4 py-8 mx-auto max-w-7xl sm:px-6 lg:px-8">
     <div class="space-y-12">
-        @if(!empty($certifications))
+        @if(!empty($important_links))
             <div>
+                <h2 class="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white">Link Importanti</h2>
+                <div class="mt-6 space-y-4">
+                    <ul class="list-disc list-inside">
+                        @foreach ($important_links as $link)
+                            <li class="text-lg">
+                                <a href="{{ $link['link_url'] }}" target="_blank" rel="noopener noreferrer" class="font-medium text-blue-600 hover:underline dark:text-blue-500">
+                                    {{ $link['link_title'] }}
+                                </a>
+                            </li>
+                        @endforeach
+                    </ul>
+                </div>
+            </div>
+        @endif
+
+        @if(!empty($certifications))
+            <div class="mt-12">
                 <h2 class="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white">Certificazioni</h2>
                 <div class="glider-contain">
                     <div class="glider mt-6">
@@ -50,23 +67,6 @@
                         @endforeach
                     </div>
                     <div role="tablist" class="dots"></div>
-                </div>
-            </div>
-        @endif
-
-        @if(!empty($important_links))
-            <div class="mt-12">
-                <h2 class="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white">Link Importanti</h2>
-                <div class="mt-6 space-y-4">
-                    <ul class="list-disc list-inside">
-                        @foreach ($important_links as $link)
-                            <li class="text-lg">
-                                <a href="{{ $link['link_url'] }}" target="_blank" rel="noopener noreferrer" class="font-medium text-blue-600 hover:underline dark:text-blue-500">
-                                    {{ $link['link_title'] }}
-                                </a>
-                            </li>
-                        @endforeach
-                    </ul>
                 </div>
             </div>
         @endif
