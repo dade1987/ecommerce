@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\SommelierChatbotController;
 use App\Http\Controllers\QuoterController;
 use App\Http\Controllers\Api\TestController;
 use App\Http\Controllers\Api\StaticController;
+use App\Http\Controllers\Api\OperatorFeedbackController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -154,3 +155,51 @@ Route::get('/avatar/{teamslug}', function ($teamslug) {
 
 Route::get('/test', TestController::class);
 Route::get('/static', StaticController::class);
+
+/*
+|--------------------------------------------------------------------------
+| Operator Feedback API Routes
+|--------------------------------------------------------------------------
+|
+| API endpoints per gestire i feedback degli operatori.
+| Questi endpoint sono progettati per essere utilizzati da sistemi esterni
+| come Cursor per leggere e aggiornare lo stato delle richieste operative.
+|
+*/
+
+// Endpoint di test per verificare che l'API funzioni
+Route::get('/operator-feedback/ping', [OperatorFeedbackController::class, 'ping']);
+
+// Endpoint per ottenere feedback filtrati (es. ?status=pending)
+Route::get('/operator-feedback', [OperatorFeedbackController::class, 'index']);
+
+// Endpoint per ottenere un singolo feedback
+Route::get('/operator-feedback/{id}', [OperatorFeedbackController::class, 'show']);
+
+// Endpoint per creare un nuovo feedback
+Route::post('/operator-feedback', [OperatorFeedbackController::class, 'store']);
+
+// Endpoint per aggiornare un feedback completo
+Route::put('/operator-feedback/{id}', [OperatorFeedbackController::class, 'update']);
+
+// Endpoint semplificato per aggiornare solo lo status
+Route::post('/operator-feedback/{id}/status', [OperatorFeedbackController::class, 'updateStatus']);
+
+// Endpoint per eliminare un feedback
+Route::delete('/operator-feedback/{id}', [OperatorFeedbackController::class, 'destroy']);
+
+/*
+|--------------------------------------------------------------------------
+| Esempi di utilizzo API OperatorFeedback
+|--------------------------------------------------------------------------
+|
+| GET /api/operator-feedback?status=pending
+| - Ottiene tutti i feedback con status "pending"
+|
+| POST /api/operator-feedback/{id}/status
+| - Body: {"status": "in_progress"}
+| - Aggiorna lo status del feedback con ID specificato
+|
+| Valori status ammessi: pending, in_progress, done, rejected
+|
+*/
