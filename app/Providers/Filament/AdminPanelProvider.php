@@ -150,6 +150,22 @@ class AdminPanelProvider extends PanelProvider
                                 $navigationItems = array_merge($navigationItems, $items);
                             }
                         }
+
+                        // Iterate through all pages to include custom pages
+                        foreach (Filament::getPages() as $page) {
+                            $group = $page::getNavigationGroup();
+                            $items = $page::getNavigationItems();
+
+                            if ($group) {
+                                if (!isset($groupedItemArrays[$group])) {
+                                    $groupedItemArrays[$group] = [];
+                                }
+                                $groupedItemArrays[$group] = array_merge($groupedItemArrays[$group], $items);
+                            } else {
+                                // It's an ungrouped page
+                                $navigationItems = array_merge($navigationItems, $items);
+                            }
+                        }
                         
                         // Now create the NavigationGroup objects from the temporary array
                         foreach($groupedItemArrays as $groupLabel => $items) {
