@@ -46,6 +46,7 @@ class InventoryOverview extends Page implements HasTable
             ->query(
                 LogisticProduct::query()
                     ->select([
+                        DB::raw('CONCAT(logistic_products.id, "-", logistic_warehouses.id) as id'),
                         'logistic_products.id as product_id',
                         'logistic_products.nome as product_name',
                         'logistic_products.unita_misura as unit_of_measure',
