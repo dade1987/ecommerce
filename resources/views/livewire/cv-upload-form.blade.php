@@ -56,7 +56,7 @@
             </div>
 
             <div>
-                <button type="submit" wire:loading.attr="disabled" class="group relative flex w-full justify-center rounded-md border border-transparent bg-orange-600 py-3 px-4 text-lg font-medium text-white hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2">
+                <button type="submit" wire:loading.attr="disabled" class="group relative flex w-full justify-center rounded-md border border-transparent bg-blue-500 py-3 px-4 text-lg font-medium text-white hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2">
                     <span wire:loading.remove wire:target="submit">
                         Invia Candidatura
                     </span>
