@@ -39,6 +39,7 @@
         "spatie/laravel-tags": "^4.6",
         "thecodingmachine/safe": "^2.5",
         "van-ons/laraberg": "^2.0",
+        "webklex/laravel-imap": "^6.2",
         "z3d0x/filament-fabricator": "2.2.2"
     },
     "require-dev": {
