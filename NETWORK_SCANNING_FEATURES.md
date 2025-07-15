@@ -137,12 +137,36 @@ Il sistema è progettato per mostrare **TUTTI** i punti critici trovati durante 
 - **Formato specifico**: Ogni punto critico specifica il dominio/sottodominio esatto: `[dominio.com] Descrizione specifica del problema`
 - **Contatore visivo**: L'interfaccia mostra un contatore che indica il numero totale di punti critici
 - **Nessun limite arbitrario**: Non vengono imposti limiti sul numero di punti critici visualizzati
-- **Istruzioni GPT**: GPT è istruito a includere TUTTE le vulnerabilità, servizi obsoleti e problemi di sicurezza
+- **Verifica CVE rigorosa**: Ogni CVE è verificato nel database NVD/MITRE prima di essere incluso
+- **Punteggio basato su CVSS**: Il rischio è calcolato usando score CVSS reali
 
 ### Esempi di Critical Points
-- `[admin.example.com] Apache 2.2.15 obsoleto con vulnerabilità CVE-2011-3192`
-- `[blog.example.com] WordPress 4.9.1 con plugin vulnerabile Contact Form 7`
-- `[ftp.example.com] vsftpd 2.3.4 con backdoor nota (rischio CRITICO)`
+- `[admin.example.com] Apache 2.2.15 - CVE-2011-3192 (CVSS 7.8 - DoS)`
+- `[blog.example.com] WordPress 4.9.1 - CVE-2018-6389 (CVSS 5.3 - DoS)`
+- `[ftp.example.com] vsftpd 2.3.4 - CVE-2011-2523 (CVSS 10.0 - RCE Backdoor)`
+
+## Sistema di Punteggio Rischio
+
+### Calcolo Basato su CVSS Score
+- **CVSS 9.0-10.0 (CRITICO)**: +40-50 punti (SQL Injection, RCE)
+- **CVSS 7.0-8.9 (ALTO)**: +25-35 punti (XSS, Directory Traversal)  
+- **CVSS 4.0-6.9 (MEDIO)**: +10-20 punti (Information Disclosure)
+- **CVSS 0.1-3.9 (BASSO)**: +5-10 punti (Minor issues)
+
+### Verifica CVE Rigorosa
+- Ogni CVE è verificato nel database NVD/MITRE
+- Solo versioni software specifiche vengono considerate
+- Nessun CVE fittizio o inventato
+- Fallback a pattern matching per vulnerabilità note
+
+## Gestione Timeout
+
+### Scansioni Lunghe
+- **Timeout execution**: 5 minuti per scansione completa
+- **Timeout processo**: 30 secondi per ogni processo
+- **Timeout rete**: 5 secondi per connessioni socket
+- **Gestione progressive**: Interrompe scansione se timeout vicino
+- **Notifica utente**: Avviso nell'interfaccia per scansioni parziali
 
 ## Limitazioni
 
