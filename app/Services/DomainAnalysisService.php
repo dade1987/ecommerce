@@ -502,12 +502,19 @@ ISTRUZIONI SPECIFICHE PER LA VALUTAZIONE:
    - Priorità alta per CVE con punteggio CVSS elevato
 5. Combina tutti i fattori per una valutazione olistica del rischio
 
+IMPORTANTE PER I CRITICAL POINTS:
+- Ogni punto critico DEVE specificare esattamente su quale dominio/sottodominio è stato trovato
+- Formato richiesto: "[DOMINIO] Descrizione del problema specifico"
+- Esempio: "[admin.example.com] Apache 2.2.15 obsoleto con vulnerabilità CVE-2011-3192"
+- Esempio: "[blog.example.com] WordPress 4.9.1 con plugin vulnerabile Contact Form 7"
+- Esempio: "[ftp.example.com] vsftpd 2.3.4 con backdoor nota (rischio CRITICO)"
+
 {$summaryString}
 
 Ecco i dati raccolti (in forma riassunta per ogni target):
 {$dataString}
 
-Fornisci la risposta esclusivamente in formato JSON, con le chiavi "risk_percentage" (numero intero da 0 a 100) e "critical_points" (array di stringhe in italiano che descrivono i punti critici specifici trovati).
+Fornisci la risposta esclusivamente in formato JSON, con le chiavi "risk_percentage" (numero intero da 0 a 100) e "critical_points" (array di stringhe in italiano che descrivono i punti critici specifici trovati, ciascuno con il formato "[DOMINIO] Descrizione").
 PROMPT;
     }
 

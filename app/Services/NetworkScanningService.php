@@ -10,6 +10,7 @@ use React\Stream\ReadableResourceStream;
 use Illuminate\Support\Facades\Log;
 use React\Promise\Promise;
 use React\Promise\Deferred;
+use OpenAI;
 
 class NetworkScanningService
 {
@@ -17,6 +18,7 @@ class NetworkScanningService
     protected $connector;
     protected $timeout;
     protected $results = [];
+    protected ?string $openaiApiKey;
 
     public function __construct()
     {
@@ -27,6 +29,7 @@ class NetworkScanningService
             $this->timeout,
             $this->loop
         );
+        $this->openaiApiKey = config('services.openai.key');
     }
 
     /**
@@ -206,14 +209,14 @@ class NetworkScanningService
     }
 
     /**
-     * Identifica il servizio dalla porta e dal banner
+     * Identifica il servizio dalla porta e dal banner usando GPT
      */
     protected function identifyService(int $port, string $banner): string
     {
-        // Mappa base dei servizi
+        // Mappa base dei servizi per fallback
         $services = [
             21 => 'FTP',
-            22 => 'SSH',
+            22 => 'SSH', 
             23 => 'Telnet',
             25 => 'SMTP',
             53 => 'DNS',
@@ -236,17 +239,99 @@ class NetworkScanningService
 
         $baseService = $services[$port] ?? 'Unknown';
         
-        // Prova a identificare il software dal banner
-        $software = $this->extractSoftwareInfo($banner);
+        // Se non abbiamo un banner valido, restituisci solo il servizio base
+        if (empty($banner) || strlen(trim($banner)) < 3) {
+            return $baseService;
+        }
+
+        // Usa GPT per identificare il software dal banner
+        $gptResult = $this->analyzeServiceWithGpt($port, $banner);
         
-        return $software ? "{$baseService} ({$software})" : $baseService;
+        return $gptResult ?: $baseService;
     }
 
     /**
-     * Estrae informazioni software dal banner
+     * Analizza il banner con GPT per identificare il software specifico
+     */
+    protected function analyzeServiceWithGpt(int $port, string $banner): ?string
+    {
+        if (!$this->openaiApiKey) {
+            Log::warning("OpenAI API key non configurata per l'analisi dei banner");
+            return null;
+        }
+
+        try {
+            $client = OpenAI::client($this->openaiApiKey);
+
+            $prompt = $this->buildBannerAnalysisPrompt($port, $banner);
+
+            $response = $client->chat()->create([
+                'model' => 'gpt-4o',
+                'messages' => [
+                    ['role' => 'system', 'content' => 'Sei un esperto di cybersecurity specializzato nell\'identificazione di servizi di rete. Analizza i banner dei servizi per identificare il software specifico, la versione e eventuali vulnerabilità.'],
+                    ['role' => 'user', 'content' => $prompt]
+                ],
+                'temperature' => 0.1,
+                'response_format' => ['type' => 'json_object'],
+            ]);
+
+            $content = json_decode($response->choices[0]->message->content, true);
+
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                Log::error("Risposta GPT non valida per l'analisi del banner sulla porta {$port}");
+                return null;
+            }
+
+            return $content['service_identification'] ?? null;
+
+        } catch (\Exception $e) {
+            Log::error("Errore durante l'analisi GPT del banner sulla porta {$port}: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Costruisce il prompt per l'analisi del banner con GPT
+     */
+    protected function buildBannerAnalysisPrompt(int $port, string $banner): string
+    {
+        return <<<PROMPT
+Analizza questo banner di servizio di rete per identificare il software specifico, la versione e eventuali indicatori di vulnerabilità.
+
+PORTA: {$port}
+BANNER COMPLETO:
+{$banner}
+
+Fornisci un'analisi dettagliata che includa:
+1. Il nome del software/servizio esatto
+2. La versione specifica se identificabile
+3. Eventuali informazioni sulla sicurezza (versioni obsolete, vulnerabilità note)
+4. Livello di rischio stimato
+
+Esempi di output desiderato:
+- "Apache 2.2.15 (versione obsoleta del 2010, vulnerabile a CVE-2011-3192)"
+- "OpenSSH 7.4 (versione sicura, nessuna vulnerabilità nota)"
+- "vsftpd 2.3.4 (versione con backdoor nota, rischio CRITICO)"
+- "MySQL 5.5.62 (versione EOL, aggiornamento consigliato)"
+
+Fornisci la risposta in formato JSON con la chiave "service_identification" contenente una stringa descrittiva del servizio identificato.
+PROMPT;
+    }
+
+    /**
+     * Estrae informazioni software dal banner - ora deprecato, usa GPT
+     * @deprecated Usa analyzeServiceWithGpt invece
      */
     protected function extractSoftwareInfo(string $banner): ?string
     {
+        // Manteniamo questo metodo per compatibilità ma ora usa GPT
+        $gptResult = $this->analyzeServiceWithGpt(0, $banner);
+        
+        if ($gptResult) {
+            return $gptResult;
+        }
+
+        // Fallback ai pattern esistenti solo se GPT non è disponibile
         $patterns = [
             // Web servers
             '/Server:\s*Apache\/([0-9\.]+)/i' => 'Apache',
