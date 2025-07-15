@@ -92,6 +92,118 @@
                     </ul>
                 </div>
 
+                {{-- Sezione informazioni di sicurezza avanzate --}}
+                <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {{-- Protezione Cloudflare --}}
+                    @if(isset($result['raw_data']['analysis_data']))
+                        @php
+                            $cloudflareProtected = false;
+                            $wpDetected = false;
+                            $totalOpenPorts = 0;
+                            $hasVulnerabilities = false;
+                            
+                            foreach($result['raw_data']['analysis_data'] as $domain => $data) {
+                                if(isset($data['cloudflare_detection']['is_cloudflare']) && $data['cloudflare_detection']['is_cloudflare']) {
+                                    $cloudflareProtected = true;
+                                }
+                                if(isset($data['wordpress_analysis']['is_wordpress']) && $data['wordpress_analysis']['is_wordpress']) {
+                                    $wpDetected = true;
+                                }
+                                if(isset($data['port_scan']['open_ports'])) {
+                                    $totalOpenPorts += count($data['port_scan']['open_ports']);
+                                }
+                                if(isset($data['cve_analysis']['vulnerabilities']) && !empty($data['cve_analysis']['vulnerabilities'])) {
+                                    $hasVulnerabilities = true;
+                                }
+                            }
+                        @endphp
+                        
+                        <div class="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+                            <h5 class="font-medium text-gray-700 dark:text-gray-200 mb-2">Protezione Cloudflare</h5>
+                            <div class="flex items-center">
+                                @if($cloudflareProtected)
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                        <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                        </svg>
+                                        Protetto
+                                    </span>
+                                @else
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+                                        <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                        </svg>
+                                        Non rilevato
+                                    </span>
+                                @endif
+                            </div>
+                        </div>
+
+                        {{-- WordPress Detection --}}
+                        <div class="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+                            <h5 class="font-medium text-gray-700 dark:text-gray-200 mb-2">WordPress</h5>
+                            <div class="flex items-center">
+                                @if($wpDetected)
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                                        <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                                        </svg>
+                                        Rilevato
+                                    </span>
+                                @else
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">
+                                        Non rilevato
+                                    </span>
+                                @endif
+                            </div>
+                        </div>
+
+                        {{-- Porte Aperte --}}
+                        <div class="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+                            <h5 class="font-medium text-gray-700 dark:text-gray-200 mb-2">Porte Aperte</h5>
+                            <div class="flex items-center">
+                                @if($totalOpenPorts > 0)
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">
+                                        <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 1.944A11.954 11.954 0 012.166 5C2.056 5.649 2 6.319 2 7c0 5.225 3.34 9.67 8 11.317C14.66 16.67 18 12.225 18 7c0-.682-.057-1.35-.166-2.001A11.954 11.954 0 0110 1.944zM11 14a1 1 0 11-2 0 1 1 0 012 0zm0-7a1 1 0 10-2 0v3a1 1 0 102 0V7z" clip-rule="evenodd"/>
+                                        </svg>
+                                        {{ $totalOpenPorts }} porte
+                                    </span>
+                                @else
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                        <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                        </svg>
+                                        Nessuna porta aperta
+                                    </span>
+                                @endif
+                            </div>
+                        </div>
+
+                        {{-- Vulnerabilità --}}
+                        <div class="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+                            <h5 class="font-medium text-gray-700 dark:text-gray-200 mb-2">Vulnerabilità CVE</h5>
+                            <div class="flex items-center">
+                                @if($hasVulnerabilities)
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
+                                        <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                        </svg>
+                                        Rilevate
+                                    </span>
+                                @else
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                        <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                        </svg>
+                                        Nessuna vulnerabilità
+                                    </span>
+                                @endif
+                            </div>
+                        </div>
+                    @endif
+                </div>
+
                 {{-- Per debug, si può de-commentare --}}
                 {{-- <details class="mt-6">
                     <summary>Dati Grezzi Raccolti</summary>

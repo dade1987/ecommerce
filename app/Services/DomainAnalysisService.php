@@ -105,6 +105,10 @@ class DomainAnalysisService
         $results['internal_links'] = $this->mapInternalLinks($domain);
         $results['dns_records'] = $this->checkDnsRecords($domain);
         $results['ssl_tls'] = $this->checkSslTls($domain);
+        $results['cloudflare_detection'] = $this->detectCloudflare($domain);
+        $results['wordpress_analysis'] = $this->analyzeWordPress($domain);
+        $results['port_scan'] = $this->performPortScan($domain);
+        $results['cve_analysis'] = $this->analyzeCVE($results['port_scan'] ?? []);
         return $results;
     }
 
@@ -210,6 +214,310 @@ class DomainAnalysisService
         return $output ?: null;
     }
 
+    protected function detectCloudflare(string $domain): array
+    {
+        $results = [
+            'is_cloudflare' => false,
+            'indicators' => [],
+            'ip_ranges' => []
+        ];
+
+        // Controlla gli header HTTP
+        $headers = $this->getHttpHeaders($domain);
+        if ($headers) {
+            if (strpos($headers, 'CF-RAY') !== false) {
+                $results['is_cloudflare'] = true;
+                $results['indicators'][] = 'CF-RAY header trovato';
+            }
+            if (strpos($headers, 'server: cloudflare') !== false || strpos($headers, 'Server: cloudflare') !== false) {
+                $results['is_cloudflare'] = true;
+                $results['indicators'][] = 'Server header cloudflare trovato';
+            }
+            if (strpos($headers, 'cf-cache-status') !== false) {
+                $results['is_cloudflare'] = true;
+                $results['indicators'][] = 'CF-Cache-Status header trovato';
+            }
+        }
+
+        // Controlla i range IP di Cloudflare
+        $ip = gethostbyname($domain);
+        if ($ip !== $domain) {
+            $cloudflareRanges = [
+                '173.245.48.0/20', '103.21.244.0/22', '103.22.200.0/22', '103.31.4.0/22',
+                '141.101.64.0/18', '108.162.192.0/18', '190.93.240.0/20', '188.114.96.0/20',
+                '197.234.240.0/22', '198.41.128.0/17', '162.158.0.0/15', '104.16.0.0/13',
+                '104.24.0.0/14', '172.64.0.0/13', '131.0.72.0/22'
+            ];
+            
+            foreach ($cloudflareRanges as $range) {
+                if ($this->ipInRange($ip, $range)) {
+                    $results['is_cloudflare'] = true;
+                    $results['indicators'][] = "IP {$ip} in range Cloudflare {$range}";
+                    $results['ip_ranges'][] = $range;
+                }
+            }
+        }
+
+        return $results;
+    }
+
+    protected function analyzeWordPress(string $domain): array
+    {
+        $results = [
+            'is_wordpress' => false,
+            'version' => null,
+            'plugins' => [],
+            'themes' => [],
+            'indicators' => []
+        ];
+
+        // Scarica il contenuto della homepage
+        $html = $this->runProcess(['curl', '--location', '--connect-timeout', '5', "https://{$domain}"]);
+        if (!$html) {
+            return $results;
+        }
+
+        // Controlla indicatori WordPress
+        $wpIndicators = [
+            'wp-content/' => 'wp-content directory trovato',
+            'wp-includes/' => 'wp-includes directory trovato',
+            'wp-admin/' => 'wp-admin directory trovato',
+            'wordpress' => 'WordPress menzionato nel codice',
+            'wp-json/' => 'WordPress REST API trovata'
+        ];
+
+        foreach ($wpIndicators as $indicator => $message) {
+            if (strpos($html, $indicator) !== false) {
+                $results['is_wordpress'] = true;
+                $results['indicators'][] = $message;
+            }
+        }
+
+        if ($results['is_wordpress']) {
+            // Estrai la versione di WordPress
+            preg_match('/wp-includes\/js\/wp-embed\.min\.js\?ver=([0-9\.]+)/', $html, $matches);
+            if (isset($matches[1])) {
+                $results['version'] = $matches[1];
+            }
+
+            // Trova plugin comuni
+            preg_match_all('/wp-content\/plugins\/([^\/]+)/', $html, $pluginMatches);
+            if (!empty($pluginMatches[1])) {
+                $results['plugins'] = array_unique($pluginMatches[1]);
+            }
+
+            // Trova theme
+            preg_match_all('/wp-content\/themes\/([^\/]+)/', $html, $themeMatches);
+            if (!empty($themeMatches[1])) {
+                $results['themes'] = array_unique($themeMatches[1]);
+            }
+
+            // Controlla anche wp-json per informazioni aggiuntive
+            $wpJson = $this->runProcess(['curl', '--location', '--connect-timeout', '5', "https://{$domain}/wp-json/"]);
+            if ($wpJson) {
+                $jsonData = json_decode($wpJson, true);
+                if (isset($jsonData['namespaces'])) {
+                    $results['api_namespaces'] = $jsonData['namespaces'];
+                }
+            }
+        }
+
+        return $results;
+    }
+
+    protected function performPortScan(string $domain): array
+    {
+        $results = [
+            'scanned_ports' => [],
+            'open_ports' => [],
+            'services' => []
+        ];
+
+        // Porte più comuni da scannerizzare
+        $commonPorts = [21, 22, 23, 25, 53, 80, 110, 143, 443, 993, 995, 1433, 3306, 3389, 5432, 8080, 8443, 9000];
+        
+        $ip = gethostbyname($domain);
+        if ($ip === $domain) {
+            return $results;
+        }
+
+        foreach ($commonPorts as $port) {
+            $results['scanned_ports'][] = $port;
+            
+            $connection = @fsockopen($ip, $port, $errno, $errstr, 3);
+            if ($connection) {
+                $results['open_ports'][] = $port;
+                
+                // Banner grabbing
+                $banner = $this->grabBanner($connection, $port);
+                if ($banner) {
+                    $results['services'][$port] = [
+                        'banner' => $banner,
+                        'service' => $this->identifyService($port, $banner)
+                    ];
+                }
+                
+                fclose($connection);
+            }
+        }
+
+        return $results;
+    }
+
+    protected function grabBanner($connection, int $port): ?string
+    {
+        $banner = '';
+        
+        // Invia richieste specifiche per protocollo
+        switch ($port) {
+            case 80:
+            case 8080:
+                fwrite($connection, "GET / HTTP/1.1\r\nHost: localhost\r\n\r\n");
+                break;
+            case 443:
+            case 8443:
+                fwrite($connection, "GET / HTTP/1.1\r\nHost: localhost\r\n\r\n");
+                break;
+            case 21:
+                // FTP non richiede comando iniziale
+                break;
+            case 22:
+                // SSH restituisce banner automaticamente
+                break;
+            case 25:
+                fwrite($connection, "EHLO localhost\r\n");
+                break;
+            default:
+                fwrite($connection, "\r\n");
+                break;
+        }
+        
+        // Leggi la risposta
+        $timeout = 2;
+        $start = time();
+        while (time() - $start < $timeout) {
+            $data = fread($connection, 1024);
+            if ($data === false || $data === '') {
+                break;
+            }
+            $banner .= $data;
+            if (strlen($banner) > 2048) { // Limita la dimensione del banner
+                break;
+            }
+        }
+        
+        return trim($banner) ?: null;
+    }
+
+    protected function identifyService(int $port, string $banner): string
+    {
+        $services = [
+            21 => 'FTP',
+            22 => 'SSH',
+            23 => 'Telnet',
+            25 => 'SMTP',
+            53 => 'DNS',
+            80 => 'HTTP',
+            110 => 'POP3',
+            143 => 'IMAP',
+            443 => 'HTTPS',
+            993 => 'IMAPS',
+            995 => 'POP3S',
+            1433 => 'SQL Server',
+            3306 => 'MySQL',
+            3389 => 'RDP',
+            5432 => 'PostgreSQL',
+            8080 => 'HTTP-Alt',
+            8443 => 'HTTPS-Alt',
+            9000 => 'HTTP-Alt'
+        ];
+
+        $baseService = $services[$port] ?? 'Unknown';
+        
+        // Prova a identificare software specifico dal banner
+        $software = $this->identifyServiceSoftware($banner);
+        
+        return $software ? "{$baseService} ({$software})" : $baseService;
+    }
+
+    protected function identifyServiceSoftware(string $banner): ?string
+    {
+        $patterns = [
+            '/Apache\/([0-9\.]+)/' => 'Apache',
+            '/nginx\/([0-9\.]+)/' => 'Nginx',
+            '/OpenSSH[_\s]([0-9\.]+)/' => 'OpenSSH',
+            '/Microsoft-IIS\/([0-9\.]+)/' => 'IIS',
+            '/MySQL/' => 'MySQL',
+            '/PostgreSQL/' => 'PostgreSQL',
+            '/ProFTPD/' => 'ProFTPD',
+            '/vsftpd/' => 'vsftpd',
+            '/Postfix/' => 'Postfix',
+            '/Exim/' => 'Exim'
+        ];
+
+        foreach ($patterns as $pattern => $software) {
+            if (preg_match($pattern, $banner, $matches)) {
+                return isset($matches[1]) ? "{$software} {$matches[1]}" : $software;
+            }
+        }
+
+        return null;
+    }
+
+    protected function analyzeCVE(array $portScanResults): array
+    {
+        if (!$this->openaiApiKey || empty($portScanResults['services'])) {
+            return ['cve_analysis' => 'Nessun servizio trovato o API non disponibile'];
+        }
+
+        $services = $portScanResults['services'];
+        $serviceInfo = [];
+
+        foreach ($services as $port => $service) {
+            $serviceInfo[] = [
+                'port' => $port,
+                'service' => $service['service'],
+                'banner' => substr($service['banner'], 0, 500) // Limita la lunghezza
+            ];
+        }
+
+        if (empty($serviceInfo)) {
+            return ['cve_analysis' => 'Nessun servizio identificato'];
+        }
+
+        try {
+            $client = OpenAI::client($this->openaiApiKey);
+            $prompt = "Analizza i seguenti servizi identificati tramite port scan e banner grabbing. Per ciascun servizio, identifica potenziali CVE o vulnerabilità note basandoti sul software e sulla versione rilevata. Fornisci una risposta in formato JSON con chiave 'vulnerabilities' contenente un array di oggetti con 'port', 'service', 'potential_cves' e 'risk_level'.\n\nServizi trovati:\n" . json_encode($serviceInfo, JSON_PRETTY_PRINT);
+
+            $response = $client->chat()->create([
+                'model' => 'gpt-4o',
+                'messages' => [
+                    ['role' => 'system', 'content' => 'Sei un esperto di cybersecurity specializzato in analisi di vulnerabilità. Analizza i servizi forniti e identifica potenziali CVE basandoti sulle informazioni del banner.'],
+                    ['role' => 'user', 'content' => $prompt]
+                ],
+                'response_format' => ['type' => 'json_object'],
+                'temperature' => 0.2
+            ]);
+
+            $content = json_decode($response->choices[0]->message->content, true);
+            return $content ?: ['cve_analysis' => 'Errore nel parsing della risposta AI'];
+
+        } catch (\Exception $e) {
+            Log::error("Errore nell'analisi CVE: " . $e->getMessage());
+            return ['cve_analysis' => 'Errore durante l\'analisi CVE'];
+        }
+    }
+
+    protected function ipInRange(string $ip, string $range): bool
+    {
+        list($subnet, $bits) = explode('/', $range);
+        $ip = ip2long($ip);
+        $subnet = ip2long($subnet);
+        $mask = -1 << (32 - $bits);
+        $subnet &= $mask;
+        return ($ip & $mask) == $subnet;
+    }
+
     protected function queryThreatIntelligence(string $domain)
     {
         // Integrazione con Shodan
@@ -280,15 +588,29 @@ class DomainAnalysisService
         $summaryString .= "Trovati {$summary['subdomains_found']} sottodomini, di cui {$summary['subdomains_scanned']} sono stati scansionati.";
 
         return <<<PROMPT
-Sulla base di questa analisi passiva per il dominio {$this->originalDomain} e i suoi sottodomini, fornisci una stima percentuale del rischio di compromissione entro i prossimi 3 mesi.
+Sulla base di questa analisi completa per il dominio {$this->originalDomain} e i suoi sottodomini, fornisci una stima percentuale del rischio di compromissione entro i prossimi 3 mesi.
 Evidenzia i punti più critici trovati nell'intera infrastruttura.
+
+ISTRUZIONI SPECIFICHE PER LA VALUTAZIONE:
+1. Se un dominio è protetto da Cloudflare (cloudflare_detection.is_cloudflare = true), riduci il punteggio di rischio del 15-20% poiché Cloudflare offre protezione DDoS e WAF.
+2. Se è rilevato WordPress (wordpress_analysis.is_wordpress = true), considera:
+   - Versione WordPress obsoleta: aumenta il rischio
+   - Plugin identificati: cerca vulnerabilità note per i plugin specifici
+   - Temi personalizzati: potrebbero avere vulnerabilità
+3. Analizza i risultati del port scan (port_scan):
+   - Porte aperte non necessarie aumentano la superficie di attacco
+   - Servizi identificati con versioni obsolete sono ad alto rischio
+4. Considera l'analisi CVE (cve_analysis):
+   - Vulnerabilità identificate aumentano significativamente il rischio
+   - Priorità alta per CVE con punteggio CVSS elevato
+5. Combina tutti i fattori per una valutazione olistica del rischio
 
 {$summaryString}
 
 Ecco i dati raccolti (in forma riassunta per ogni target):
 {$dataString}
 
-Fornisci la risposta esclusivamente in formato JSON, con le chiavi "risk_percentage" e "critical_points".
+Fornisci la risposta esclusivamente in formato JSON, con le chiavi "risk_percentage" (numero intero da 0 a 100) e "critical_points" (array di stringhe in italiano che descrivono i punti critici specifici trovati).
 PROMPT;
     }
 
@@ -361,6 +683,15 @@ PROMPT;
             $sslSummary['signature_algorithm'] = trim($matches[1] ?? 'N/D');
 
             $summary['ssl_tls'] = $sslSummary;
+        }
+
+        // Riassumi i banner dei servizi per evitare troppi dati
+        if (isset($summary['port_scan']['services']) && is_array($summary['port_scan']['services'])) {
+            foreach ($summary['port_scan']['services'] as $port => $service) {
+                if (isset($service['banner']) && strlen($service['banner']) > 300) {
+                    $summary['port_scan']['services'][$port]['banner'] = mb_strimwidth($service['banner'], 0, 300, "...");
+                }
+            }
         }
 
         return $summary;

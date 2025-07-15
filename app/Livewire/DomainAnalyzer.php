@@ -61,6 +61,16 @@ class DomainAnalyzer extends Component
         try {
             $ipAddress = gethostbyname($this->domain);
             
+            // Prepara i dati estesi per il salvataggio
+            $extendedData = [
+                'analysis_data' => $this->result['raw_data'] ?? [],
+                'cloudflare_protected' => $this->isCloudflareProtected(),
+                'wordpress_detected' => $this->isWordPressDetected(),
+                'open_ports' => $this->getOpenPorts(),
+                'vulnerabilities' => $this->getVulnerabilities(),
+                'security_summary' => $this->getSecuritySummary(),
+            ];
+            
             ScannedWebsite::updateOrCreate(
                 ['domain' => $this->domain],
                 [
@@ -68,7 +78,7 @@ class DomainAnalyzer extends Component
                     'phone_number' => $this->phone,
                     'risk_percentage' => $this->result['risk_percentage'],
                     'critical_points' => $this->result['critical_points'] ?? [],
-                    'raw_data' => $this->result['raw_data'] ?? [],
+                    'raw_data' => $extendedData,
                     'ip_address' => $ipAddress !== $this->domain ? $ipAddress : null,
                     'scanned_at' => now(),
                 ]
@@ -76,6 +86,81 @@ class DomainAnalyzer extends Component
         } catch (\Exception $e) {
             Log::error("Errore nel salvataggio dei dati di scansione per {$this->domain}: " . $e->getMessage());
         }
+    }
+
+    private function isCloudflareProtected(): bool
+    {
+        if (!isset($this->result['raw_data'])) {
+            return false;
+        }
+
+        foreach ($this->result['raw_data'] as $domain => $data) {
+            if (isset($data['cloudflare_detection']['is_cloudflare']) && $data['cloudflare_detection']['is_cloudflare']) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function isWordPressDetected(): bool
+    {
+        if (!isset($this->result['raw_data'])) {
+            return false;
+        }
+
+        foreach ($this->result['raw_data'] as $domain => $data) {
+            if (isset($data['wordpress_analysis']['is_wordpress']) && $data['wordpress_analysis']['is_wordpress']) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function getOpenPorts(): array
+    {
+        $allPorts = [];
+        
+        if (!isset($this->result['raw_data'])) {
+            return $allPorts;
+        }
+
+        foreach ($this->result['raw_data'] as $domain => $data) {
+            if (isset($data['port_scan']['open_ports']) && is_array($data['port_scan']['open_ports'])) {
+                $allPorts[$domain] = $data['port_scan']['open_ports'];
+            }
+        }
+
+        return $allPorts;
+    }
+
+    private function getVulnerabilities(): array
+    {
+        $allVulnerabilities = [];
+        
+        if (!isset($this->result['raw_data'])) {
+            return $allVulnerabilities;
+        }
+
+        foreach ($this->result['raw_data'] as $domain => $data) {
+            if (isset($data['cve_analysis']['vulnerabilities']) && is_array($data['cve_analysis']['vulnerabilities'])) {
+                $allVulnerabilities[$domain] = $data['cve_analysis']['vulnerabilities'];
+            }
+        }
+
+        return $allVulnerabilities;
+    }
+
+    private function getSecuritySummary(): array
+    {
+        return [
+            'cloudflare_protected' => $this->isCloudflareProtected(),
+            'wordpress_detected' => $this->isWordPressDetected(),
+            'total_open_ports' => count($this->getOpenPorts()),
+            'has_vulnerabilities' => !empty($this->getVulnerabilities()),
+            'analysis_timestamp' => now()->toISOString(),
+        ];
     }
 
     public function render()
