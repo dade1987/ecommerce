@@ -117,17 +117,30 @@ class DomainAnalysisService
     protected function analyzeSingleDomain(string $domain): array
     {
         $results = [];
+
+        $html = $this->runProcess(['curl', '--location', '--connect-timeout', '10', "https://{$domain}"]);
+
         $results['http_headers'] = $this->getHttpHeaders($domain);
         $results['security_headers'] = $this->analyzeSecurityHeaders($results['http_headers'] ?? '');
         $results['robots_txt'] = $this->checkRobotsTxt($domain);
         $results['sitemap_xml'] = $this->checkSitemapXml($domain);
-        $results['source_analysis'] = $this->analyzeSourceCode($domain);
-        $results['technology_analysis'] = $this->analyzeTechnology($results['source_analysis'] ?? '');
-        $results['internal_links'] = $this->mapInternalLinks($domain);
+        
+        if ($html) {
+            $results['source_analysis'] = $this->analyzeSourceCode($html);
+            $results['technology_analysis'] = $this->analyzeTechnology($html);
+            $results['internal_links'] = $this->mapInternalLinks($html, $domain);
+            $results['wordpress_analysis'] = $this->analyzeWordPress($domain, $html);
+        } else {
+            Log::warning("Impossibile recuperare il codice sorgente per {$domain}. Salto di diverse analisi.");
+            $results['source_analysis'] = ['error' => 'Could not fetch source code'];
+            $results['technology_analysis'] = ['error' => 'Could not fetch source code'];
+            $results['internal_links'] = [];
+            $results['wordpress_analysis'] = ['is_wordpress' => false, 'error' => 'Could not fetch source code'];
+        }
+
         $results['dns_records'] = $this->checkDnsRecords($domain);
         $results['ssl_tls'] = $this->checkSslTls($domain);
         $results['cloudflare_detection'] = $this->detectCloudflare($domain);
-        $results['wordpress_analysis'] = $this->analyzeWordPress($domain);
         $results['port_scan'] = $this->performPortScan($domain);
         $results['cve_analysis'] = $this->analyzeCVE($results['port_scan'] ?? []);
         return $results;
@@ -184,9 +197,8 @@ class DomainAnalysisService
         return $output ?: null;
     }
 
-    protected function analyzeSourceCode(string $domain): ?array
+    protected function analyzeSourceCode(string $html): ?array
     {
-        $html = $this->runProcess(['curl', '--location', '--connect-timeout', '5', "https://{$domain}"]);
         if (!$html) {
             return null;
         }
@@ -201,9 +213,8 @@ class DomainAnalysisService
         ];
     }
 
-    protected function mapInternalLinks(string $domain): array
+    protected function mapInternalLinks(string $html, string $domain): array
     {
-        $html = $this->runProcess(['curl', '--location', '--connect-timeout', '5', "https://{$domain}"]);
         if (!$html) {
             return [];
         }
@@ -386,7 +397,7 @@ class DomainAnalysisService
         return $results;
     }
 
-    protected function analyzeWordPress(string $domain): array
+    protected function analyzeWordPress(string $domain, ?string $html): array
     {
         $results = [
             'is_wordpress' => false,
@@ -401,8 +412,7 @@ class DomainAnalysisService
             'security_issues' => []
         ];
 
-        // Scarica il contenuto della homepage
-        $html = $this->runProcess(['curl', '--location', '--connect-timeout', '10', "https://{$domain}"]);
+        // Il contenuto HTML è ora passato come parametro
         if (!$html) {
             return $results;
         }
