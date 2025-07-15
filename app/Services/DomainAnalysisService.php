@@ -118,9 +118,11 @@ class DomainAnalysisService
     {
         $results = [];
         $results['http_headers'] = $this->getHttpHeaders($domain);
+        $results['security_headers'] = $this->analyzeSecurityHeaders($results['http_headers'] ?? '');
         $results['robots_txt'] = $this->checkRobotsTxt($domain);
         $results['sitemap_xml'] = $this->checkSitemapXml($domain);
         $results['source_analysis'] = $this->analyzeSourceCode($domain);
+        $results['technology_analysis'] = $this->analyzeTechnology($results['source_analysis'] ?? '');
         $results['internal_links'] = $this->mapInternalLinks($domain);
         $results['dns_records'] = $this->checkDnsRecords($domain);
         $results['ssl_tls'] = $this->checkSslTls($domain);
@@ -140,6 +142,25 @@ class DomainAnalysisService
             $process->mustRun();
             return $process->getOutput();
         } catch (\Exception $e) {
+            // Per errori SSL, prova con --insecure
+            if (strpos($e->getMessage(), 'SSL certificate problem') !== false && 
+                in_array('curl', $command) && 
+                !in_array('--insecure', $command)) {
+                
+                Log::warning("Tentativo con --insecure per SSL error: " . $command[count($command)-1]);
+                $insecureCommand = $command;
+                array_splice($insecureCommand, -1, 0, '--insecure');
+                
+                try {
+                    $insecureProcess = new Process($insecureCommand);
+                    $insecureProcess->setTimeout(self::TIMEOUT);
+                    $insecureProcess->mustRun();
+                    return $insecureProcess->getOutput();
+                } catch (\Exception $insecureE) {
+                    Log::error("Errore anche con --insecure: " . $insecureE->getMessage());
+                }
+            }
+            
             Log::error("Errore durante l'esecuzione del processo: " . $e->getMessage());
             return null;
         }
@@ -231,6 +252,91 @@ class DomainAnalysisService
         $command = "echo | openssl s_client -servername {$domain} -connect {$domain}:443 2>/dev/null | openssl x509 -noout -text";
         $output = $this->runProcess(['bash', '-c', $command]);
         return $output ?: null;
+    }
+
+    protected function analyzeSecurityHeaders(string $headers): array
+    {
+        $securityHeaders = [
+            'content-security-policy' => false,
+            'x-frame-options' => false,
+            'x-content-type-options' => false,
+            'x-xss-protection' => false,
+            'strict-transport-security' => false,
+            'referrer-policy' => false,
+            'permissions-policy' => false,
+        ];
+
+        $missingHeaders = [];
+        $presentHeaders = [];
+        
+        foreach ($securityHeaders as $header => $present) {
+            if (stripos($headers, $header) !== false) {
+                $presentHeaders[] = $header;
+            } else {
+                $missingHeaders[] = $header;
+            }
+        }
+
+        return [
+            'present_headers' => $presentHeaders,
+            'missing_headers' => $missingHeaders,
+            'security_score' => round((count($presentHeaders) / count($securityHeaders)) * 100, 2),
+        ];
+    }
+
+    protected function analyzeTechnology(string $sourceCode): array
+    {
+        $technologies = [
+            'jquery_old' => false,
+            'bootstrap_old' => false,
+            'php_version' => null,
+            'cms_detected' => null,
+            'framework_detected' => null,
+            'outdated_indicators' => [],
+        ];
+
+        if (empty($sourceCode)) {
+            return $technologies;
+        }
+
+        // Detect jQuery version
+        if (preg_match('/jquery[.-]([0-9]+\.[0-9]+\.[0-9]+)/i', $sourceCode, $matches)) {
+            $jqueryVersion = $matches[1];
+            $technologies['jquery_version'] = $jqueryVersion;
+            // jQuery < 3.0 è considerato vecchio
+            if (version_compare($jqueryVersion, '3.0.0', '<')) {
+                $technologies['jquery_old'] = true;
+                $technologies['outdated_indicators'][] = "jQuery {$jqueryVersion} (obsoleto)";
+            }
+        }
+
+        // Detect Bootstrap version
+        if (preg_match('/bootstrap[.-]([0-9]+\.[0-9]+\.[0-9]+)/i', $sourceCode, $matches)) {
+            $bootstrapVersion = $matches[1];
+            $technologies['bootstrap_version'] = $bootstrapVersion;
+            // Bootstrap < 4.0 è considerato vecchio
+            if (version_compare($bootstrapVersion, '4.0.0', '<')) {
+                $technologies['bootstrap_old'] = true;
+                $technologies['outdated_indicators'][] = "Bootstrap {$bootstrapVersion} (obsoleto)";
+            }
+        }
+
+        // Detect old HTML patterns
+        if (strpos($sourceCode, 'DOCTYPE html PUBLIC') !== false) {
+            $technologies['outdated_indicators'][] = 'DOCTYPE HTML 4.01 o XHTML (obsoleto)';
+        }
+
+        // Detect Flash references
+        if (strpos($sourceCode, '.swf') !== false || strpos($sourceCode, 'application/x-shockwave-flash') !== false) {
+            $technologies['outdated_indicators'][] = 'Adobe Flash rilevato (obsoleto e insicuro)';
+        }
+
+        // Detect old IE compatibility
+        if (strpos($sourceCode, 'X-UA-Compatible') !== false) {
+            $technologies['outdated_indicators'][] = 'Meta tag IE compatibility (indica supporto browser obsoleti)';
+        }
+
+        return $technologies;
     }
 
     protected function detectCloudflare(string $domain): array
@@ -774,38 +880,72 @@ Evidenzia i punti più critici trovati nell'intera infrastruttura.
 
 ISTRUZIONI CRITICHE PER LA VALUTAZIONE - SOLO DATI CONCRETI:
 
-PUNTEGGIO DI RISCHIO (0-100) - SISTEMA RIGOROSO:
-- Base il punteggio ESCLUSIVAMENTE su vulnerabilità concrete e identificate
-- NON fare supposizioni o assumere rischi senza prove specifiche
-- VERIFICA SEMPRE che i CVE siano reali e corrispondano alle versioni trovate
-- Sistema di punteggio basato su CVSS score:
-  * CVSS 9.0-10.0 (CRITICO): +40-50 punti (es. SQL Injection, RCE)
-  * CVSS 7.0-8.9 (ALTO): +25-35 punti (es. XSS, Directory Traversal)
-  * CVSS 4.0-6.9 (MEDIO): +10-20 punti (es. Info Disclosure)
-  * CVSS 0.1-3.9 (BASSO): +5-10 punti (es. Minor issues)
-- Per ogni vulnerabilità CONFERMA che:
-  * Il CVE esiste nel database NVD
-  * La versione identificata è effettivamente vulnerabile
-  * Il CVSS score è corretto
-- Se non hai dati precisi o versioni specifiche, mantieni il punteggio BASSO (0-30%)
-- Cloudflare protection riduci di 15-20% solo se hai altri rischi concreti
+PUNTEGGIO DI RISCHIO (0-100) - SISTEMA BILANCIATO:
+- Base il punteggio su TUTTI i fattori di sicurezza analizzati, non solo CVE
+- Considera TUTTI questi elementi nell'analisi:
 
-CRITICAL POINTS - SOLO VULNERABILITÀ CONCRETE:
-- Includi SOLO problemi con prove specifiche e dati precisi
-- Formato: "[DOMINIO] Software/Versione specifica + CVE/Vulnerabilità identificata"
+VULNERABILITÀ CONCRETE (peso: 40-60%):
+  * CVSS 9.0-10.0 (CRITICO): +40-50 punti (SQL Injection, RCE)
+  * CVSS 7.0-8.9 (ALTO): +25-35 punti (XSS, Directory Traversal)
+  * CVSS 4.0-6.9 (MEDIO): +10-20 punti (Info Disclosure)
+  * CVSS 0.1-3.9 (BASSO): +5-10 punti (Minor issues)
+
+SECURITY HEADERS MANCANTI (peso: 15-20%):
+  * Mancanza di CSP, X-Frame-Options, HSTS: +10-15 punti
+  * Security score < 30%: +5-10 punti aggiuntivi
+
+TECNOLOGIE OBSOLETE (peso: 10-15%):
+  * jQuery < 3.0: +5-8 punti
+  * Bootstrap < 4.0: +3-5 punti
+  * DOCTYPE HTML 4.01/XHTML: +3-5 punti
+  * Adobe Flash rilevato: +8-12 punti
+  * Meta tag IE compatibility: +2-3 punti
+
+PORTE APERTE (peso: 5-10%):
+  * Porte non standard o inusuali: +5-10 punti per porta
+  * Servizi esposti senza versioni identificate: +3-5 punti per servizio
+
+CONFIGURAZIONE GENERALE (peso: 5-10%):
+  * Mancanza di robots.txt: +2-3 punti
+  * Errori SSL/TLS: +5-8 punti
+  * Servizi non responsivi: +3-5 punti
+
+FATTORI PROTETTIVI:
+  * Cloudflare protection: -15-20 punti
+  * HTTPS correttamente configurato: -5-10 punti
+  * Security headers presenti: -5-15 punti
+
+CRITICAL POINTS - PROBLEMI DI SICUREZZA IDENTIFICATI:
+- Includi TUTTI i problemi di sicurezza identificati nell'analisi
+- Formato: "[DOMINIO] Descrizione specifica del problema"
 - ESEMPI ACCETTABILI:
+
+VULNERABILITÀ CONCRETE:
   * "[admin.example.com] Apache 2.2.15 - CVE-2011-3192 (DoS vulnerability)"
   * "[blog.example.com] WordPress 4.9.1 - CVE-2018-6389 (DoS vulnerability)"
   * "[ftp.example.com] vsftpd 2.3.4 - backdoor smiley face (CRITICO)"
-  * "[mail.example.com] Postfix 2.8.1 - CVE-2011-0411 (privilege escalation)"
 
-ESEMPI NON ACCETTABILI (da evitare):
-- "WordPress rilevato senza versione specifica, potenzialmente obsoleto"
-- "Plugin potenzialmente vulnerabile" senza versione/CVE
-- "Servizio potenzialmente esposto" senza dettagli specifici
-- "Configurazione potenzialmente insicura" senza prove
+SECURITY HEADERS MANCANTI:
+  * "[example.com] Mancanza di Content Security Policy (CSP)"
+  * "[api.example.com] Assenza di X-Frame-Options (rischio clickjacking)"
+  * "[shop.example.com] HSTS non configurato (rischio downgrade SSL)"
 
-REGOLA FONDAMENTALE: Se non hai dati precisi (versioni, CVE, configurazioni specifiche), NON creare punti critici e mantieni il punteggio di rischio basso. Un cliente deve poter verificare ogni singolo punto critico.
+TECNOLOGIE OBSOLETE:
+  * "[example.com] jQuery 1.8.3 utilizzato (versione obsoleta del 2012)"
+  * "[blog.example.com] Bootstrap 2.3.2 (versione EOL dal 2013)"
+  * "[old.example.com] Adobe Flash rilevato (tecnologia obsoleta e insicura)"
+
+PORTE/SERVIZI ESPOSTI:
+  * "[example.com] Porta 21 (FTP) aperta senza crittografia"
+  * "[db.example.com] Porta 3306 (MySQL) esposta pubblicamente"
+  * "[admin.example.com] Porta 8080 (HTTP-Alt) accessibile esternamente"
+
+CONFIGURAZIONI INSICURE:
+  * "[example.com] Certificato SSL scaduto o non valido"
+  * "[api.example.com] Servizio non raggiungibile (timeout frequenti)"
+  * "[www.example.com] Robots.txt mancante"
+
+REGOLA: Ogni punto critico deve essere verificabile dal cliente. Include dettagli specifici quando disponibili.
 
 {$summaryString}
 
@@ -894,6 +1034,15 @@ PROMPT;
                     $summary['port_scan']['services'][$port]['banner'] = mb_strimwidth($service['banner'], 0, 300, "...");
                 }
             }
+        }
+
+        // Assicurati che i nuovi dati siano inclusi
+        if (isset($summary['security_headers'])) {
+            // Security headers è già in formato compatto, mantieni così
+        }
+
+        if (isset($summary['technology_analysis'])) {
+            // Technology analysis è già in formato compatto, mantieni così
         }
 
         return $summary;

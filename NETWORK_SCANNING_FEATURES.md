@@ -159,7 +159,7 @@ Il sistema è progettato per mostrare **TUTTI** i punti critici trovati durante 
 - Nessun CVE fittizio o inventato
 - Fallback a pattern matching per vulnerabilità note
 
-## Gestione Timeout
+## Gestione Timeout e Errori SSL
 
 ### Scansioni Lunghe
 - **Timeout execution**: 5 minuti per scansione completa
@@ -167,6 +167,41 @@ Il sistema è progettato per mostrare **TUTTI** i punti critici trovati durante 
 - **Timeout rete**: 5 secondi per connessioni socket
 - **Gestione progressive**: Interrompe scansione se timeout vicino
 - **Notifica utente**: Avviso nell'interfaccia per scansioni parziali
+
+### Gestione Errori SSL
+- **Fallback automatico**: Se SSL fallisce, prova con `--insecure`
+- **Certificati non validi**: Continua scansione anche con SSL errors
+- **Timeout SSL**: OpenSSL timeout gestito separatamente
+- **Logging dettagliato**: Errori SSL loggati per debugging
+
+## Nuove Funzionalità di Analisi
+
+### Security Headers Analysis
+- **Headers monitorati**: CSP, X-Frame-Options, HSTS, X-XSS-Protection, etc.
+- **Security Score**: Percentuale di headers di sicurezza presenti
+- **Impatto sul rischio**: Headers mancanti aumentano il punteggio di rischio
+
+### Technology Analysis
+- **Librerie obsolete**: jQuery < 3.0, Bootstrap < 4.0
+- **Tecnologie deprecate**: Adobe Flash, DOCTYPE obsoleti
+- **Indicatori di età**: Meta tag IE compatibility
+- **Valutazione automatica**: Ogni tecnologia obsoleta aggiunge punti di rischio
+
+## Sistema di Punteggio Revisionato
+
+### Approccio Bilanciato
+Il sistema ora considera **tutti i fattori di sicurezza**, non solo CVE:
+
+- **Vulnerabilità concrete** (40-60%): CVE verificati con CVSS score
+- **Security headers** (15-20%): Presenza/assenza di headers di sicurezza
+- **Tecnologie obsolete** (10-15%): Librerie e framework datati
+- **Porte aperte** (5-10%): Servizi esposti e configurazioni
+- **Configurazione generale** (5-10%): SSL, robots.txt, responsività
+
+### Fattori Protettivi
+- **Cloudflare**: -15-20 punti
+- **HTTPS configurato**: -5-10 punti
+- **Security headers**: -5-15 punti
 
 ## Limitazioni
 
