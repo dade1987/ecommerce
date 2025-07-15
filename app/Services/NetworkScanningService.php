@@ -23,7 +23,7 @@ class NetworkScanningService
     public function __construct()
     {
         $this->loop = Loop::get();
-        $this->timeout = 3; // 3 secondi di timeout
+        $this->timeout = 5; // 5 secondi di timeout (aumentato)
         $this->connector = new TimeoutConnector(
             new Connector([], $this->loop),
             $this->timeout,
@@ -257,7 +257,7 @@ class NetworkScanningService
     {
         if (!$this->openaiApiKey) {
             Log::warning("OpenAI API key non configurata per l'analisi dei banner");
-            return null;
+            return $this->fallbackBannerAnalysis($port, $banner);
         }
 
         try {
@@ -273,21 +273,53 @@ class NetworkScanningService
                 ],
                 'temperature' => 0.1,
                 'response_format' => ['type' => 'json_object'],
+                'max_tokens' => 500, // Limita token per velocità
             ]);
 
             $content = json_decode($response->choices[0]->message->content, true);
 
             if (json_last_error() !== JSON_ERROR_NONE) {
                 Log::error("Risposta GPT non valida per l'analisi del banner sulla porta {$port}");
-                return null;
+                return $this->fallbackBannerAnalysis($port, $banner);
             }
 
-            return $content['service_identification'] ?? null;
+            return $content['service_identification'] ?? $this->fallbackBannerAnalysis($port, $banner);
 
         } catch (\Exception $e) {
             Log::error("Errore durante l'analisi GPT del banner sulla porta {$port}: " . $e->getMessage());
-            return null;
+            return $this->fallbackBannerAnalysis($port, $banner);
         }
+    }
+
+    protected function fallbackBannerAnalysis(int $port, string $banner): ?string
+    {
+        $services = [
+            21 => 'FTP',
+            22 => 'SSH',
+            25 => 'SMTP',
+            80 => 'HTTP',
+            443 => 'HTTPS',
+            3306 => 'MySQL',
+            5432 => 'PostgreSQL'
+        ];
+
+        $baseService = $services[$port] ?? 'Unknown';
+        
+        // Prova pattern matching di base per versioni critiche
+        $criticalPatterns = [
+            '/vsftpd\s*2\.3\.4/i' => 'vsftpd 2.3.4 (backdoor vulnerability)',
+            '/apache\/2\.2\.15/i' => 'Apache 2.2.15 (multiple vulnerabilities)',
+            '/openssh[_\s]6\.6/i' => 'OpenSSH 6.6 (multiple vulnerabilities)',
+            '/mysql.*5\.5/i' => 'MySQL 5.5 (EOL version)',
+        ];
+
+        foreach ($criticalPatterns as $pattern => $description) {
+            if (preg_match($pattern, $banner)) {
+                return $description;
+            }
+        }
+
+        return $baseService;
     }
 
     /**

@@ -11,8 +11,9 @@ use App\Services\NetworkScanningService;
 
 class DomainAnalysisService
 {
-    protected const TIMEOUT = 20; // Secondi per ogni processo
-    protected const MAX_SUBDOMAINS_TO_SCAN = 10; // Limite per evitare timeout e costi eccessivi
+    protected const TIMEOUT = 30; // Secondi per ogni processo (aumentato)
+    protected const MAX_SUBDOMAINS_TO_SCAN = 8; // Limite per evitare timeout e costi eccessivi (ridotto)
+    protected const MAX_EXECUTION_TIME = 300; // 5 minuti per scansione completa
 
     protected ?string $openaiApiKey;
     protected array $fullResults = [];
@@ -25,11 +26,13 @@ class DomainAnalysisService
 
     public function analyze(string $domain): array
     {
+        $startTime = microtime(true);
         $this->originalDomain = $this->sanitizeDomain($domain);
         $this->fullResults['analysis'] = [];
         $this->fullResults['summary'] = [
             'subdomains_found' => 0,
             'subdomains_scanned' => 0,
+            'scan_timeout' => false,
         ];
 
         $subdomains = $this->enumerateSubdomains($this->originalDomain);
@@ -44,8 +47,23 @@ class DomainAnalysisService
         $this->fullResults['summary']['subdomains_scanned'] = count($domainsToScan);
         $this->fullResults['summary']['scanned_targets'] = $domainsToScan;
 
-        foreach ($domainsToScan as $currentDomain) {
-            $this->fullResults['analysis'][$currentDomain] = $this->analyzeSingleDomain($currentDomain);
+        foreach ($domainsToScan as $index => $currentDomain) {
+            // Controlla se stiamo per superare il timeout
+            if ((microtime(true) - $startTime) > (self::MAX_EXECUTION_TIME - 60)) {
+                Log::warning("Timeout raggiunto, interrompendo scansione dopo {$index} domini");
+                $this->fullResults['summary']['scan_timeout'] = true;
+                break;
+            }
+            
+            try {
+                $this->fullResults['analysis'][$currentDomain] = $this->analyzeSingleDomain($currentDomain);
+            } catch (\Exception $e) {
+                Log::error("Errore durante l'analisi di {$currentDomain}: " . $e->getMessage());
+                $this->fullResults['analysis'][$currentDomain] = [
+                    'error' => 'Analisi fallita per timeout o errore di rete',
+                    'partial_data' => true
+                ];
+            }
         }
         
         return $this->getRiskScore();
@@ -536,13 +554,20 @@ class DomainAnalysisService
         return <<<PROMPT
 Analizza questa installazione WordPress per identificare vulnerabilità specifiche e concrete.
 
-CRITERI RIGOROSI:
-1. Includi SOLO vulnerabilità con CVE specifici per versioni note
-2. Per plugin/temi senza versione identificata, NON assumere vulnerabilità
-3. Usa database CVE pubblici e verificati (WPVulnDB, NVD)
-4. Fornisci punteggio CVSS quando disponibile
-5. Se non hai dati sufficienti, ometti dalla risposta
-6. Per file esposti, considera solo se rappresentano rischi concreti
+CRITERI RIGOROSI PER WORDPRESS:
+1. VERIFICA che il CVE esista nel database NVD/WPVulnDB
+2. CONFERMA che la versione specifica sia vulnerabile
+3. Per plugin/temi senza versione identificata, NON assumere vulnerabilità
+4. Fornisci SOLO CVSS score reali e verificati
+5. Se non sei sicuro del CVE, ometti dalla risposta
+6. NON creare CVE fittizi o inventati
+7. Per file esposti, considera solo se rappresentano rischi concreti
+
+ESEMPI CVE WORDPRESS CORRETTI:
+- WordPress 4.9.1: CVE-2018-6389 (CVSS 5.3 - DoS)
+- Contact Form 7 4.6.1: CVE-2017-9804 (CVSS 6.1 - XSS)
+- WP Super Cache 1.4.4: CVE-2017-1000600 (CVSS 8.8 - RCE)
+- Yoast SEO 7.0.2: CVE-2018-6511 (CVSS 6.1 - XSS)
 
 INSTALLAZIONE WORDPRESS:
 {$dataString}
@@ -632,7 +657,7 @@ PROMPT;
 
         try {
             $client = OpenAI::client($this->openaiApiKey);
-            $prompt = "Analizza i seguenti servizi identificati tramite port scan e banner grabbing. IMPORTANTE: Identifica SOLO CVE specifici per versioni software chiaramente identificate. NON fare supposizioni su vulnerabilità senza versioni precise.\n\nCRITERI RIGOROSI:\n1. Includi un CVE SOLO se la versione software è nota e quella versione è effettivamente vulnerabile\n2. Se la versione non è identificata, NON assumere vulnerabilità\n3. Usa solo CVE databases verificati e pubblici\n4. Risk_level deve essere basato su CVSS score reale quando possibile\n5. Se non ci sono dati sufficienti per un servizio, ometti dalla risposta\n\nFormato JSON richiesto:\n{\n  \"vulnerabilities\": [\n    {\n      \"port\": 80,\n      \"service\": \"Apache 2.2.15\",\n      \"software\": \"Apache\",\n      \"version\": \"2.2.15\",\n      \"confirmed_cves\": [\"CVE-2011-3192\"],\n      \"risk_level\": 8,\n      \"cvss_score\": 7.8,\n      \"recommendations\": \"Aggiorna ad Apache 2.4.x\"\n    }\n  ]\n}\n\nServizi trovati:\n" . json_encode($cveInfo, JSON_PRETTY_PRINT);
+            $prompt = "Analizza i seguenti servizi identificati tramite port scan e banner grabbing. IMPORTANTE: Identifica SOLO CVE specifici per versioni software chiaramente identificate.\n\nCRITERI RIGOROSI PER CVE:\n1. VERIFICA che il CVE esista nel database NVD/MITRE\n2. CONFERMA che la versione software identificata sia effettivamente vulnerabile\n3. FORNISCI solo CVSS score reali e verificati\n4. Se la versione non è identificata, NON assumere vulnerabilità\n5. Se non sei sicuro del CVE, ometti dalla risposta\n6. NON creare CVE fittizi o inventati\n\nEsempi di CVE CORRETTI:\n- Apache 2.2.15: CVE-2011-3192 (CVSS 7.8 - DoS)\n- vsftpd 2.3.4: CVE-2011-2523 (CVSS 10.0 - RCE Backdoor)\n- WordPress 4.9.1: CVE-2018-6389 (CVSS 5.3 - DoS)\n- OpenSSH 7.4: CVE-2016-10012 (CVSS 7.8 - Privilege Escalation)\n\nFormato JSON richiesto:\n{\n  \"vulnerabilities\": [\n    {\n      \"port\": 80,\n      \"service\": \"Apache 2.2.15\",\n      \"software\": \"Apache\",\n      \"version\": \"2.2.15\",\n      \"confirmed_cves\": [\"CVE-2011-3192\"],\n      \"risk_level\": 8,\n      \"cvss_score\": 7.8,\n      \"vulnerability_type\": \"DoS\",\n      \"recommendations\": \"Aggiorna ad Apache 2.4.x\"\n    }\n  ]\n}\n\nServizi trovati:\n" . json_encode($cveInfo, JSON_PRETTY_PRINT);
 
             $response = $client->chat()->create([
                 'model' => 'gpt-4o',
@@ -749,15 +774,20 @@ Evidenzia i punti più critici trovati nell'intera infrastruttura.
 
 ISTRUZIONI CRITICHE PER LA VALUTAZIONE - SOLO DATI CONCRETI:
 
-PUNTEGGIO DI RISCHIO (0-100):
+PUNTEGGIO DI RISCHIO (0-100) - SISTEMA RIGOROSO:
 - Base il punteggio ESCLUSIVAMENTE su vulnerabilità concrete e identificate
 - NON fare supposizioni o assumere rischi senza prove specifiche
-- Usa solo questi criteri con dati precisi:
-  * Versioni software specifiche con CVE noti (es. Apache 2.2.15 → CVE-2011-3192)
-  * Porte aperte con servizi notoriamente vulnerabili (es. vsftpd 2.3.4 → backdoor)
-  * Plugin WordPress con versioni specifiche vulnerabili
-  * Servizi con configurazioni insicure identificate dai banner
-- Se non hai dati precisi, mantieni il punteggio BASSO (0-30%)
+- VERIFICA SEMPRE che i CVE siano reali e corrispondano alle versioni trovate
+- Sistema di punteggio basato su CVSS score:
+  * CVSS 9.0-10.0 (CRITICO): +40-50 punti (es. SQL Injection, RCE)
+  * CVSS 7.0-8.9 (ALTO): +25-35 punti (es. XSS, Directory Traversal)
+  * CVSS 4.0-6.9 (MEDIO): +10-20 punti (es. Info Disclosure)
+  * CVSS 0.1-3.9 (BASSO): +5-10 punti (es. Minor issues)
+- Per ogni vulnerabilità CONFERMA che:
+  * Il CVE esiste nel database NVD
+  * La versione identificata è effettivamente vulnerabile
+  * Il CVSS score è corretto
+- Se non hai dati precisi o versioni specifiche, mantieni il punteggio BASSO (0-30%)
 - Cloudflare protection riduci di 15-20% solo se hai altri rischi concreti
 
 CRITICAL POINTS - SOLO VULNERABILITÀ CONCRETE:

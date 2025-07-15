@@ -60,6 +60,14 @@
             <div class="p-6 mt-6 border rounded-lg">
                 <h3 class="text-xl font-bold text-center text-gray-800 dark:text-gray-100">Rapporto di Analisi per: {{ $domain }}</h3>
 
+                {{-- Avviso timeout se presente --}}
+                @if(isset($result['summary']['scan_timeout']) && $result['summary']['scan_timeout'])
+                    <div class="p-4 mb-4 text-orange-800 bg-orange-100 border-l-4 border-orange-500 rounded-md">
+                        <p class="font-bold">⚠️ Scansione Parziale</p>
+                        <p class="text-sm">La scansione è stata interrotta per evitare timeout del server. I risultati mostrano un'analisi parziale dell'infrastruttura.</p>
+                    </div>
+                @endif
+
                 <div class="my-6 text-center">
                     <p class="text-lg text-gray-600 dark:text-gray-300">Valutazione del Rischio di Compromissione (prossimi 3 mesi)</p>
                     <p class="text-6xl font-extrabold {{ $result['risk_percentage'] > 50 ? 'text-red-500' : 'text-green-500' }}">

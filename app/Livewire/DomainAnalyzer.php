@@ -29,7 +29,8 @@ class DomainAnalyzer extends Component
         $this->error = null;
 
         try {
-            set_time_limit(120);
+            set_time_limit(300); // 5 minuti per scansioni complete
+            ini_set('max_execution_time', 300);
 
             $existingScan = ScannedWebsite::where('domain', $this->domain)->first();
 
