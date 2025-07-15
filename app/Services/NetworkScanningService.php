@@ -32,7 +32,7 @@ class NetworkScanningService
     /**
      * Esegue port scan su un host specifico
      */
-    public function portScan(string $host, array $ports = null): array
+    public function portScan(string $host, ?array $ports = null): array
     {
         $this->results = [
             'host' => $host,
