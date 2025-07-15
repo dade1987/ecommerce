@@ -128,6 +128,22 @@ SHODAN_API_KEY=your_shodan_key_here
 - `react/stream`: Gestione stream di dati
 - `OpenAI client`: Analisi CVE intelligente
 
+## Sistema Critical Points
+
+### Nessuna Limitazione sui Punti Critici
+
+Il sistema è progettato per mostrare **TUTTI** i punti critici trovati durante l'analisi:
+
+- **Formato specifico**: Ogni punto critico specifica il dominio/sottodominio esatto: `[dominio.com] Descrizione specifica del problema`
+- **Contatore visivo**: L'interfaccia mostra un contatore che indica il numero totale di punti critici
+- **Nessun limite arbitrario**: Non vengono imposti limiti sul numero di punti critici visualizzati
+- **Istruzioni GPT**: GPT è istruito a includere TUTTE le vulnerabilità, servizi obsoleti e problemi di sicurezza
+
+### Esempi di Critical Points
+- `[admin.example.com] Apache 2.2.15 obsoleto con vulnerabilità CVE-2011-3192`
+- `[blog.example.com] WordPress 4.9.1 con plugin vulnerabile Contact Form 7`
+- `[ftp.example.com] vsftpd 2.3.4 con backdoor nota (rischio CRITICO)`
+
 ## Limitazioni
 
 - **Timeout di rete**: Alcune scansioni potrebbero fallire su reti lente

@@ -82,7 +82,14 @@
                 @endif
 
                 <div class="mt-6">
-                    <h4 class="text-lg font-semibold text-gray-700 dark:text-gray-200">Aree di Attenzione Identificate:</h4>
+                    <div class="flex items-center justify-between">
+                        <h4 class="text-lg font-semibold text-gray-700 dark:text-gray-200">Aree di Attenzione Identificate:</h4>
+                        @if(isset($result['critical_points']) && count($result['critical_points']) > 0)
+                            <span class="px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full dark:bg-red-900 dark:text-red-200">
+                                {{ count($result['critical_points']) }} punti critici
+                            </span>
+                        @endif
+                    </div>
                     <ul class="mt-2 space-y-2 list-disc list-inside">
                         @forelse ($result['critical_points'] as $point)
                             <li class="text-gray-600 dark:text-gray-300">{{ $point }}</li>

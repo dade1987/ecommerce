@@ -508,6 +508,7 @@ IMPORTANTE PER I CRITICAL POINTS:
 - Esempio: "[admin.example.com] Apache 2.2.15 obsoleto con vulnerabilità CVE-2011-3192"
 - Esempio: "[blog.example.com] WordPress 4.9.1 con plugin vulnerabile Contact Form 7"
 - Esempio: "[ftp.example.com] vsftpd 2.3.4 con backdoor nota (rischio CRITICO)"
+- IMPORTANTE: Includi TUTTI i punti critici identificati, non limitarti a pochi. Ogni vulnerabilità, servizio obsoleto, e problema di sicurezza deve essere riportato.
 
 {$summaryString}
 
