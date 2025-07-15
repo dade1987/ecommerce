@@ -118,10 +118,11 @@ class DomainAnalysisService
     {
         $results = [];
 
-        $html = $this->runProcess(['curl', '--location', '--connect-timeout', '10', "https://{$domain}"]);
+        $response = $this->makeHttpRequest('get', "https://{$domain}");
+        $html = $response ? $response->body() : null;
 
         $results['http_headers'] = $this->getHttpHeaders($domain);
-        $results['security_headers'] = $this->analyzeSecurityHeaders($results['http_headers'] ?? '');
+        $results['security_headers'] = $this->analyzeSecurityHeaders($results['http_headers'] ?? []);
         $results['robots_txt'] = $this->checkRobotsTxt($domain);
         $results['sitemap_xml'] = $this->checkSitemapXml($domain);
         
@@ -140,10 +141,47 @@ class DomainAnalysisService
 
         $results['dns_records'] = $this->checkDnsRecords($domain);
         $results['ssl_tls'] = $this->checkSslTls($domain);
-        $results['cloudflare_detection'] = $this->detectCloudflare($domain);
+        $results['cloudflare_detection'] = $this->detectCloudflare($domain, $results['http_headers']);
         $results['port_scan'] = $this->performPortScan($domain);
         $results['cve_analysis'] = $this->analyzeCVE($results['port_scan'] ?? []);
         return $results;
+    }
+
+    protected function makeHttpRequest(string $method, string $url, array $options = []): ?\Illuminate\Http\Client\Response
+    {
+        // Default options
+        $defaultOptions = [
+            'connect_timeout' => 5,
+            'timeout' => 10,
+            'allow_redirects' => true,
+            'verify' => false, // This handles potential SSL errors, like curl --insecure
+        ];
+        
+        $finalOptions = array_merge($defaultOptions, $options);
+
+        try {
+            // Ensure URL has a scheme
+            if (!preg_match("~^(?:f|ht)tps?://~i", $url)) {
+                $url = "https://" . $url;
+            }
+
+            $client = Http::withOptions($finalOptions);
+            $response = $client->{strtolower($method)}($url);
+
+            if ($response->successful() || $response->redirect()) {
+                return $response;
+            }
+            
+            Log::warning("Richiesta HTTP Guzzle a {$url} fallita con status: " . $response->status());
+            return null;
+
+        } catch (\Illuminate\Http\Client\ConnectionException $e) {
+            Log::error("Errore di connessione Guzzle durante la richiesta a {$url}: " . $e->getMessage());
+            return null;
+        } catch (\Exception $e) {
+            Log::error("Errore generico Guzzle durante la richiesta HTTP a {$url}: " . $e->getMessage());
+            return null;
+        }
     }
 
     protected function runProcess(array $command): ?string
@@ -179,22 +217,22 @@ class DomainAnalysisService
         }
     }
 
-    protected function getHttpHeaders(string $domain): ?string
+    protected function getHttpHeaders(string $domain): array
     {
-        $output = $this->runProcess(['curl', '-I', '--location', '--connect-timeout', '5', $domain]);
-        return $output ?: null;
+        $response = $this->makeHttpRequest('head', $domain);
+        return $response ? $response->headers() : [];
     }
 
     protected function checkRobotsTxt(string $domain): ?string
     {
-        $output = $this->runProcess(['curl', '--location', '--connect-timeout', '5', "https://{$domain}/robots.txt"]);
-        return $output ?: null;
+        $response = $this->makeHttpRequest('get', "https://{$domain}/robots.txt");
+        return $response ? $response->body() : null;
     }
 
     protected function checkSitemapXml(string $domain): ?string
     {
-        $output = $this->runProcess(['curl', '--location', '--connect-timeout', '5', "https://{$domain}/sitemap.xml"]);
-        return $output ?: null;
+        $response = $this->makeHttpRequest('get', "https://{$domain}/sitemap.xml");
+        return $response ? $response->body() : null;
     }
 
     protected function analyzeSourceCode(string $html): ?array
@@ -265,7 +303,7 @@ class DomainAnalysisService
         return $output ?: null;
     }
 
-    protected function analyzeSecurityHeaders(string $headers): array
+    protected function analyzeSecurityHeaders(array $headers): array
     {
         $securityHeaders = [
             'content-security-policy' => false,
@@ -280,8 +318,10 @@ class DomainAnalysisService
         $missingHeaders = [];
         $presentHeaders = [];
         
+        $headersLowercase = array_change_key_case($headers, CASE_LOWER);
+        
         foreach ($securityHeaders as $header => $present) {
-            if (stripos($headers, $header) !== false) {
+            if (array_key_exists(strtolower($header), $headersLowercase)) {
                 $presentHeaders[] = $header;
             } else {
                 $missingHeaders[] = $header;
@@ -291,7 +331,7 @@ class DomainAnalysisService
         return [
             'present_headers' => $presentHeaders,
             'missing_headers' => $missingHeaders,
-            'security_score' => round((count($presentHeaders) / count($securityHeaders)) * 100, 2),
+            'security_score' => count($securityHeaders) > 0 ? round((count($presentHeaders) / count($securityHeaders)) * 100, 2) : 0,
         ];
     }
 
@@ -350,7 +390,7 @@ class DomainAnalysisService
         return $technologies;
     }
 
-    protected function detectCloudflare(string $domain): array
+    protected function detectCloudflare(string $domain, array $headers): array
     {
         $results = [
             'is_cloudflare' => false,
@@ -359,17 +399,17 @@ class DomainAnalysisService
         ];
 
         // Controlla gli header HTTP
-        $headers = $this->getHttpHeaders($domain);
-        if ($headers) {
-            if (strpos($headers, 'CF-RAY') !== false) {
+        if (!empty($headers)) {
+            $headersLowercase = array_change_key_case($headers, CASE_LOWER);
+            if (array_key_exists('cf-ray', $headersLowercase)) {
                 $results['is_cloudflare'] = true;
                 $results['indicators'][] = 'CF-RAY header trovato';
             }
-            if (strpos($headers, 'server: cloudflare') !== false || strpos($headers, 'Server: cloudflare') !== false) {
+            if (isset($headersLowercase['server']) && in_array('cloudflare', $headersLowercase['server'])) {
                 $results['is_cloudflare'] = true;
                 $results['indicators'][] = 'Server header cloudflare trovato';
             }
-            if (strpos($headers, 'cf-cache-status') !== false) {
+            if (array_key_exists('cf-cache-status', $headersLowercase)) {
                 $results['is_cloudflare'] = true;
                 $results['indicators'][] = 'CF-Cache-Status header trovato';
             }
@@ -477,7 +517,8 @@ class DomainAnalysisService
         
         // Metodo 3: readme.html
         if (!$version) {
-            $readme = $this->runProcess(['curl', '--location', '--connect-timeout', '5', "https://{$domain}/readme.html"]);
+            $response = $this->makeHttpRequest('get', "https://{$domain}/readme.html");
+            $readme = $response ? $response->body() : null;
             if ($readme && preg_match('/Version\s*([0-9\.]+)/i', $readme, $matches)) {
                 $version = $matches[1];
             }
@@ -485,7 +526,8 @@ class DomainAnalysisService
         
         // Metodo 4: wp-includes/version.php (raramente esposto)
         if (!$version) {
-            $versionFile = $this->runProcess(['curl', '--location', '--connect-timeout', '5', "https://{$domain}/wp-includes/version.php"]);
+            $response = $this->makeHttpRequest('get', "https://{$domain}/wp-includes/version.php");
+            $versionFile = $response ? $response->body() : null;
             if ($versionFile && preg_match('/wp_version\s*=\s*[\'"]([0-9\.]+)[\'"]/', $versionFile, $matches)) {
                 $version = $matches[1];
             }
@@ -513,8 +555,8 @@ class DomainAnalysisService
         ];
         
         foreach ($commonPlugins as $plugin) {
-            $pluginPath = $this->runProcess(['curl', '--location', '--connect-timeout', '3', '-I', "https://{$domain}/wp-content/plugins/{$plugin}/"]);
-            if ($pluginPath && strpos($pluginPath, '200 OK') !== false) {
+            $response = $this->makeHttpRequest('head', "https://{$domain}/wp-content/plugins/{$plugin}/", ['timeout' => 5, 'connect_timeout' => 3]);
+            if ($response && $response->ok()) {
                 if (!in_array($plugin, $plugins)) {
                     $plugins[] = $plugin;
                 }
@@ -534,7 +576,8 @@ class DomainAnalysisService
     protected function getPluginVersion(string $domain, string $plugin): ?string
     {
         // Prova a leggere readme.txt del plugin
-        $readme = $this->runProcess(['curl', '--location', '--connect-timeout', '5', "https://{$domain}/wp-content/plugins/{$plugin}/readme.txt"]);
+        $response = $this->makeHttpRequest('get', "https://{$domain}/wp-content/plugins/{$plugin}/readme.txt");
+        $readme = $response ? $response->body() : null;
         if ($readme) {
             if (preg_match('/Stable tag:\s*([0-9\.]+)/i', $readme, $matches)) {
                 return $matches[1];
@@ -545,7 +588,8 @@ class DomainAnalysisService
         }
         
         // Prova il file principale del plugin
-        $mainFile = $this->runProcess(['curl', '--location', '--connect-timeout', '5', "https://{$domain}/wp-content/plugins/{$plugin}/{$plugin}.php"]);
+        $response = $this->makeHttpRequest('get', "https://{$domain}/wp-content/plugins/{$plugin}/{$plugin}.php");
+        $mainFile = $response ? $response->body() : null;
         if ($mainFile && preg_match('/Version:\s*([0-9\.]+)/i', $mainFile, $matches)) {
             return $matches[1];
         }
@@ -576,7 +620,8 @@ class DomainAnalysisService
     protected function getThemeVersion(string $domain, string $theme): ?string
     {
         // Prova style.css del tema
-        $style = $this->runProcess(['curl', '--location', '--connect-timeout', '5', "https://{$domain}/wp-content/themes/{$theme}/style.css"]);
+        $response = $this->makeHttpRequest('get', "https://{$domain}/wp-content/themes/{$theme}/style.css");
+        $style = $response ? $response->body() : null;
         if ($style && preg_match('/Version:\s*([0-9\.]+)/i', $style, $matches)) {
             return $matches[1];
         }
@@ -589,7 +634,8 @@ class DomainAnalysisService
         $apiInfo = [];
         
         // Controlla API principale
-        $wpJson = $this->runProcess(['curl', '--location', '--connect-timeout', '5', "https://{$domain}/wp-json/"]);
+        $response = $this->makeHttpRequest('get', "https://{$domain}/wp-json/");
+        $wpJson = $response ? $response->body() : null;
         if ($wpJson) {
             $jsonData = json_decode($wpJson, true);
             if (isset($jsonData['namespaces'])) {
@@ -598,7 +644,8 @@ class DomainAnalysisService
         }
         
         // Controlla endpoint specifici se disponibili
-        $wpApiV2 = $this->runProcess(['curl', '--location', '--connect-timeout', '5', "https://{$domain}/wp-json/wp/v2/"]);
+        $response = $this->makeHttpRequest('get', "https://{$domain}/wp-json/wp/v2/");
+        $wpApiV2 = $response ? $response->body() : null;
         if ($wpApiV2) {
             $apiData = json_decode($wpApiV2, true);
             if (isset($apiData['routes'])) {
@@ -623,8 +670,8 @@ class DomainAnalysisService
         ];
         
         foreach ($criticalFiles as $file => $description) {
-            $response = $this->runProcess(['curl', '--location', '--connect-timeout', '3', '-I', "https://{$domain}/{$file}"]);
-            if ($response && strpos($response, '200 OK') !== false) {
+            $response = $this->makeHttpRequest('head', "https://{$domain}/{$file}", ['timeout' => 5, 'connect_timeout' => 3]);
+            if ($response && $response->ok()) {
                 $exposedFiles[$file] = $description;
             }
         }
