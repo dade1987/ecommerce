@@ -1,4 +1,4 @@
-<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16">
+<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
     <div class="p-4 border rounded-lg shadow-sm bg-white dark:bg-gray-800">
         <form wire:submit.prevent="analyze">
             <div class="flex flex-col space-y-4 md:flex-row md:space-y-0 md:space-x-4 md:items-end">
