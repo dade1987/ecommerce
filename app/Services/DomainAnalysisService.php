@@ -118,11 +118,25 @@ class DomainAnalysisService
     {
         $results = [];
 
+        // Eseguiamo una singola richiesta GET che useremo per più analisi
         $response = $this->makeHttpRequest('get', "https://{$domain}");
-        $html = $response ? $response->body() : null;
+        
+        // Se il target primario non risponde, eseguiamo solo controlli esterni
+        if (!$response) {
+            Log::warning("Il target primario {$domain} è irraggiungibile. Vengono eseguiti solo controlli esterni.");
+            $results['error'] = 'Host Unreachable';
+            $results['dns_records'] = $this->checkDnsRecords($domain);
+            $results['port_scan'] = $this->performPortScan($domain);
+            $results['cve_analysis'] = $this->analyzeCVE($results['port_scan'] ?? []);
+            return $results;
+        }
 
-        $results['http_headers'] = $this->getHttpHeaders($domain);
-        $results['security_headers'] = $this->analyzeSecurityHeaders($results['http_headers'] ?? []);
+        // Il target è raggiungibile, procediamo con l'analisi completa
+        $html = $response->body();
+        $headers = $response->headers();
+
+        $results['http_headers'] = $headers;
+        $results['security_headers'] = $this->analyzeSecurityHeaders($headers);
         $results['robots_txt'] = $this->checkRobotsTxt($domain);
         $results['sitemap_xml'] = $this->checkSitemapXml($domain);
         
@@ -132,7 +146,7 @@ class DomainAnalysisService
             $results['internal_links'] = $this->mapInternalLinks($html, $domain);
             $results['wordpress_analysis'] = $this->analyzeWordPress($domain, $html);
         } else {
-            Log::warning("Impossibile recuperare il codice sorgente per {$domain}. Salto di diverse analisi.");
+            Log::warning("Impossibile recuperare il codice sorgente per {$domain} anche se l'host è raggiungibile.");
             $results['source_analysis'] = ['error' => 'Could not fetch source code'];
             $results['technology_analysis'] = ['error' => 'Could not fetch source code'];
             $results['internal_links'] = [];
@@ -141,7 +155,7 @@ class DomainAnalysisService
 
         $results['dns_records'] = $this->checkDnsRecords($domain);
         $results['ssl_tls'] = $this->checkSslTls($domain);
-        $results['cloudflare_detection'] = $this->detectCloudflare($domain, $results['http_headers']);
+        $results['cloudflare_detection'] = $this->detectCloudflare($domain, $headers);
         $results['port_scan'] = $this->performPortScan($domain);
         $results['cve_analysis'] = $this->analyzeCVE($results['port_scan'] ?? []);
         return $results;
@@ -930,6 +944,9 @@ PROMPT;
         $dataString = json_encode($summarizedData, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
         $summaryString = "Analisi eseguita sul dominio principale {$this->originalDomain}. ";
         $summaryString .= "Trovati {$summary['subdomains_found']} sottodomini, di cui {$summary['subdomains_scanned']} sono stati scansionati.";
+        if ($summary['scan_timeout']) {
+            $summaryString .= " ATTENZIONE: La scansione è stata interrotta per timeout, i risultati potrebbero essere parziali.";
+        }
 
         return <<<PROMPT
 Sulla base di questa analisi completa per il dominio {$this->originalDomain} e i suoi sottodomini, fornisci una stima percentuale del rischio di compromissione entro i prossimi 3 mesi.
@@ -938,7 +955,7 @@ Evidenzia i punti più critici trovati nell'intera infrastruttura.
 ISTRUZIONI CRITICHE PER LA VALUTAZIONE - SOLO DATI CONCRETI:
 
 PUNTEGGIO DI RISCHIO (0-100) - SISTEMA BILANCIATO:
-- Base il punteggio su TUTTI i fattori di sicurezza analizzati, non solo CVE
+- Basa il punteggio su TUTTI i fattori di sicurezza analizzati, non solo CVE.
 - Considera TUTTI questi elementi nell'analisi:
 
 VULNERABILITÀ CONCRETE (peso: 40-60%):
@@ -965,7 +982,7 @@ PORTE APERTE (peso: 5-10%):
 CONFIGURAZIONE GENERALE (peso: 5-10%):
   * Mancanza di robots.txt: +2-3 punti
   * Errori SSL/TLS: +5-8 punti
-  * Servizi non responsivi: +3-5 punti
+  * Servizi non responsivi o irraggiungibili: +3-5 punti
 
 FATTORI PROTETTIVI:
   * Cloudflare protection: -15-20 punti
@@ -973,36 +990,20 @@ FATTORI PROTETTIVI:
   * Security headers presenti: -5-15 punti
 
 CRITICAL POINTS - PROBLEMI DI SICUREZZA IDENTIFICATI:
-- Includi TUTTI i problemi di sicurezza identificati nell'analisi
-- Formato: "[DOMINIO] Descrizione specifica del problema"
-- ESEMPI ACCETTABILI:
+- Crea una lista concisa e diversificata dei punti critici più importanti (massimo 15).
+- L'obiettivo è fornire una panoramica bilanciata dei rischi. Includi risultati da TUTTE le categorie di analisi (Vulnerabilità CVE, Header, Tecnologie, Porte, WordPress, etc.), se sono stati trovati problemi.
+- RAGGRUPPA i problemi identici o sistemici. Se lo stesso header manca su più sottodomini, segnalalo una sola volta in modo aggregato.
+- Dai priorità ai problemi più gravi (es. CVE critici, porte di database esposte) rispetto a quelli di media o bassa gravità (es. header mancanti).
+- Formato: "[DOMINIO o 'Sistemico'] Descrizione specifica e chiara del problema."
 
-VULNERABILITÀ CONCRETE:
-  * "[admin.example.com] Apache 2.2.15 - CVE-2011-3192 (DoS vulnerability)"
-  * "[blog.example.com] WordPress 4.9.1 - CVE-2018-6389 (DoS vulnerability)"
-  * "[ftp.example.com] vsftpd 2.3.4 - backdoor smiley face (CRITICO)"
+ESEMPI DI RAGGRUPPAMENTO E DIVERSIFICAZIONE:
+- "[Tutti i target analizzati] Mancanza sistemica dell'header Content-Security-Policy (CSP)."
+- "[ftp.example.com] vsftpd 2.3.4 identificato, potenzialmente vulnerabile a backdoor critica (CVE-2011-2523)."
+- "[example.com] Il sito utilizza una versione obsoleta di jQuery (1.8.3) che non riceve aggiornamenti di sicurezza dal 2012."
+- "[db.example.com] La porta 3306 (MySQL) risulta aperta e accessibile da Internet, un grave rischio per la sicurezza dei dati."
+- "[mail.example.com] Host irraggiungibile durante la scansione, impossibile verificare la configurazione web ma la porta 25 (SMTP) è aperta."
 
-SECURITY HEADERS MANCANTI:
-  * "[example.com] Mancanza di Content Security Policy (CSP)"
-  * "[api.example.com] Assenza di X-Frame-Options (rischio clickjacking)"
-  * "[shop.example.com] HSTS non configurato (rischio downgrade SSL)"
-
-TECNOLOGIE OBSOLETE:
-  * "[example.com] jQuery 1.8.3 utilizzato (versione obsoleta del 2012)"
-  * "[blog.example.com] Bootstrap 2.3.2 (versione EOL dal 2013)"
-  * "[old.example.com] Adobe Flash rilevato (tecnologia obsoleta e insicura)"
-
-PORTE/SERVIZI ESPOSTI:
-  * "[example.com] Porta 21 (FTP) aperta senza crittografia"
-  * "[db.example.com] Porta 3306 (MySQL) esposta pubblicamente"
-  * "[admin.example.com] Porta 8080 (HTTP-Alt) accessibile esternamente"
-
-CONFIGURAZIONI INSICURE:
-  * "[example.com] Certificato SSL scaduto o non valido"
-  * "[api.example.com] Servizio non raggiungibile (timeout frequenti)"
-  * "[www.example.com] Robots.txt mancante"
-
-REGOLA: Ogni punto critico deve essere verificabile dal cliente. Include dettagli specifici quando disponibili.
+REGOLA: Ogni punto critico deve essere verificabile dal cliente. Include dettagli specifici quando disponibili. Se un host è irraggiungibile, non riportare problemi di header o di contenuto web per esso.
 
 {$summaryString}
 
