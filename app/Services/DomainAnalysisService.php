@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use OpenAI;
 use Symfony\Component\Process\Process;
+use App\Services\NetworkScanningService;
 
 class DomainAnalysisService
 {
@@ -327,142 +328,35 @@ class DomainAnalysisService
 
     protected function performPortScan(string $domain): array
     {
-        $results = [
-            'scanned_ports' => [],
-            'open_ports' => [],
-            'services' => []
-        ];
-
-        // Porte più comuni da scannerizzare
-        $commonPorts = [21, 22, 23, 25, 53, 80, 110, 143, 443, 993, 995, 1433, 3306, 3389, 5432, 8080, 8443, 9000];
+        $networkScanner = new NetworkScanningService();
         
-        $ip = gethostbyname($domain);
-        if ($ip === $domain) {
-            return $results;
-        }
-
-        foreach ($commonPorts as $port) {
-            $results['scanned_ports'][] = $port;
+        try {
+            $scanResults = $networkScanner->portScan($domain);
             
-            $connection = @fsockopen($ip, $port, $errno, $errstr, 3);
-            if ($connection) {
-                $results['open_ports'][] = $port;
-                
-                // Banner grabbing
-                $banner = $this->grabBanner($connection, $port);
-                if ($banner) {
-                    $results['services'][$port] = [
-                        'banner' => $banner,
-                        'service' => $this->identifyService($port, $banner)
-                    ];
-                }
-                
-                fclose($connection);
-            }
+            // Converte il formato per compatibilità con il resto del sistema
+            return [
+                'scanned_ports' => $scanResults['scanned_ports'] ?? [],
+                'open_ports' => $scanResults['open_ports'] ?? [],
+                'closed_ports' => $scanResults['closed_ports'] ?? [],
+                'services' => $scanResults['services'] ?? [],
+                'scan_duration' => $scanResults['scan_duration'] ?? 0,
+                'host' => $scanResults['host'] ?? $domain
+            ];
+        } catch (\Exception $e) {
+            Log::error("Errore durante il port scan per {$domain}: " . $e->getMessage());
+            return [
+                'scanned_ports' => [],
+                'open_ports' => [],
+                'closed_ports' => [],
+                'services' => [],
+                'scan_duration' => 0,
+                'host' => $domain,
+                'error' => $e->getMessage()
+            ];
         }
-
-        return $results;
     }
 
-    protected function grabBanner($connection, int $port): ?string
-    {
-        $banner = '';
-        
-        // Invia richieste specifiche per protocollo
-        switch ($port) {
-            case 80:
-            case 8080:
-                fwrite($connection, "GET / HTTP/1.1\r\nHost: localhost\r\n\r\n");
-                break;
-            case 443:
-            case 8443:
-                fwrite($connection, "GET / HTTP/1.1\r\nHost: localhost\r\n\r\n");
-                break;
-            case 21:
-                // FTP non richiede comando iniziale
-                break;
-            case 22:
-                // SSH restituisce banner automaticamente
-                break;
-            case 25:
-                fwrite($connection, "EHLO localhost\r\n");
-                break;
-            default:
-                fwrite($connection, "\r\n");
-                break;
-        }
-        
-        // Leggi la risposta
-        $timeout = 2;
-        $start = time();
-        while (time() - $start < $timeout) {
-            $data = fread($connection, 1024);
-            if ($data === false || $data === '') {
-                break;
-            }
-            $banner .= $data;
-            if (strlen($banner) > 2048) { // Limita la dimensione del banner
-                break;
-            }
-        }
-        
-        return trim($banner) ?: null;
-    }
 
-    protected function identifyService(int $port, string $banner): string
-    {
-        $services = [
-            21 => 'FTP',
-            22 => 'SSH',
-            23 => 'Telnet',
-            25 => 'SMTP',
-            53 => 'DNS',
-            80 => 'HTTP',
-            110 => 'POP3',
-            143 => 'IMAP',
-            443 => 'HTTPS',
-            993 => 'IMAPS',
-            995 => 'POP3S',
-            1433 => 'SQL Server',
-            3306 => 'MySQL',
-            3389 => 'RDP',
-            5432 => 'PostgreSQL',
-            8080 => 'HTTP-Alt',
-            8443 => 'HTTPS-Alt',
-            9000 => 'HTTP-Alt'
-        ];
-
-        $baseService = $services[$port] ?? 'Unknown';
-        
-        // Prova a identificare software specifico dal banner
-        $software = $this->identifyServiceSoftware($banner);
-        
-        return $software ? "{$baseService} ({$software})" : $baseService;
-    }
-
-    protected function identifyServiceSoftware(string $banner): ?string
-    {
-        $patterns = [
-            '/Apache\/([0-9\.]+)/' => 'Apache',
-            '/nginx\/([0-9\.]+)/' => 'Nginx',
-            '/OpenSSH[_\s]([0-9\.]+)/' => 'OpenSSH',
-            '/Microsoft-IIS\/([0-9\.]+)/' => 'IIS',
-            '/MySQL/' => 'MySQL',
-            '/PostgreSQL/' => 'PostgreSQL',
-            '/ProFTPD/' => 'ProFTPD',
-            '/vsftpd/' => 'vsftpd',
-            '/Postfix/' => 'Postfix',
-            '/Exim/' => 'Exim'
-        ];
-
-        foreach ($patterns as $pattern => $software) {
-            if (preg_match($pattern, $banner, $matches)) {
-                return isset($matches[1]) ? "{$software} {$matches[1]}" : $software;
-            }
-        }
-
-        return null;
-    }
 
     protected function analyzeCVE(array $portScanResults): array
     {
@@ -470,29 +364,21 @@ class DomainAnalysisService
             return ['cve_analysis' => 'Nessun servizio trovato o API non disponibile'];
         }
 
-        $services = $portScanResults['services'];
-        $serviceInfo = [];
+        $networkScanner = new NetworkScanningService();
+        $cveInfo = $networkScanner->extractCVEInfo($portScanResults);
 
-        foreach ($services as $port => $service) {
-            $serviceInfo[] = [
-                'port' => $port,
-                'service' => $service['service'],
-                'banner' => substr($service['banner'], 0, 500) // Limita la lunghezza
-            ];
-        }
-
-        if (empty($serviceInfo)) {
-            return ['cve_analysis' => 'Nessun servizio identificato'];
+        if (empty($cveInfo)) {
+            return ['cve_analysis' => 'Nessun servizio identificato per analisi CVE'];
         }
 
         try {
             $client = OpenAI::client($this->openaiApiKey);
-            $prompt = "Analizza i seguenti servizi identificati tramite port scan e banner grabbing. Per ciascun servizio, identifica potenziali CVE o vulnerabilità note basandoti sul software e sulla versione rilevata. Fornisci una risposta in formato JSON con chiave 'vulnerabilities' contenente un array di oggetti con 'port', 'service', 'potential_cves' e 'risk_level'.\n\nServizi trovati:\n" . json_encode($serviceInfo, JSON_PRETTY_PRINT);
+            $prompt = "Analizza i seguenti servizi identificati tramite port scan e banner grabbing avanzato. Per ciascun servizio, identifica potenziali CVE o vulnerabilità note basandoti sul software, versione e indicatori di rischio rilevati. Fornisci una risposta in formato JSON con chiave 'vulnerabilities' contenente un array di oggetti con 'port', 'service', 'software', 'version', 'potential_cves', 'risk_level' (1-10), e 'recommendations'.\n\nServizi trovati:\n" . json_encode($cveInfo, JSON_PRETTY_PRINT);
 
             $response = $client->chat()->create([
                 'model' => 'gpt-4o',
                 'messages' => [
-                    ['role' => 'system', 'content' => 'Sei un esperto di cybersecurity specializzato in analisi di vulnerabilità. Analizza i servizi forniti e identifica potenziali CVE basandoti sulle informazioni del banner.'],
+                    ['role' => 'system', 'content' => 'Sei un esperto di cybersecurity specializzato in analisi di vulnerabilità CVE. Analizza i servizi forniti e identifica potenziali CVE basandoti sulle informazioni dettagliate del banner, versioni software e indicatori di rischio. Fornisci raccomandazioni specifiche per ogni vulnerabilità identificata.'],
                     ['role' => 'user', 'content' => $prompt]
                 ],
                 'response_format' => ['type' => 'json_object'],
@@ -500,11 +386,22 @@ class DomainAnalysisService
             ]);
 
             $content = json_decode($response->choices[0]->message->content, true);
+            
+            // Aggiungi informazioni aggiuntive dai risk indicators
+            if (isset($content['vulnerabilities'])) {
+                foreach ($content['vulnerabilities'] as &$vulnerability) {
+                    $port = $vulnerability['port'];
+                    if (isset($cveInfo[$port - 1]['risk_indicators'])) {
+                        $vulnerability['risk_indicators'] = $cveInfo[$port - 1]['risk_indicators'];
+                    }
+                }
+            }
+            
             return $content ?: ['cve_analysis' => 'Errore nel parsing della risposta AI'];
 
         } catch (\Exception $e) {
             Log::error("Errore nell'analisi CVE: " . $e->getMessage());
-            return ['cve_analysis' => 'Errore durante l\'analisi CVE'];
+            return ['cve_analysis' => 'Errore durante l\'analisi CVE: ' . $e->getMessage()];
         }
     }
 

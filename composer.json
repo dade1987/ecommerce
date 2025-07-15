@@ -30,6 +30,8 @@
         "phpoffice/phpword": "^1.4",
         "predis/predis": "^2.3",
         "rakutentech/laravel-request-docs": "^2.42",
+        "react/socket": "^1.16",
+        "react/stream": "^1.4",
         "rupadana/filament-api-service": "^1.0",
         "saade/filament-fullcalendar": "3.0",
         "spatie/eloquent-sortable": "^4.0",

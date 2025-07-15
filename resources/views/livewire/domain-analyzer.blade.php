@@ -137,6 +137,28 @@
                                     </span>
                                 @endif
                             </div>
+                            
+                            {{-- Mostra dettagli Cloudflare --}}
+                            @if($cloudflareProtected)
+                                <div class="mt-2 max-h-20 overflow-y-auto">
+                                    @foreach($result['raw_data']['analysis_data'] as $domain => $data)
+                                        @if(isset($data['cloudflare_detection']['is_cloudflare']) && $data['cloudflare_detection']['is_cloudflare'])
+                                            <div class="text-xs text-gray-600 dark:text-gray-400 mb-1">
+                                                <strong>{{ $domain }}:</strong>
+                                                @if(isset($data['cloudflare_detection']['indicators']) && !empty($data['cloudflare_detection']['indicators']))
+                                                    <div class="mt-1">
+                                                        @foreach($data['cloudflare_detection']['indicators'] as $indicator)
+                                                            <span class="inline-block bg-green-100 text-green-800 px-1 py-0.5 rounded mr-1 text-xs">
+                                                                {{ $indicator }}
+                                                            </span>
+                                                        @endforeach
+                                                    </div>
+                                                @endif
+                                            </div>
+                                        @endif
+                                    @endforeach
+                                </div>
+                            @endif
                         </div>
 
                         {{-- WordPress Detection --}}
@@ -156,6 +178,47 @@
                                     </span>
                                 @endif
                             </div>
+                            
+                            {{-- Mostra dettagli WordPress --}}
+                            @if($wpDetected)
+                                <div class="mt-2 max-h-24 overflow-y-auto">
+                                    @foreach($result['raw_data']['analysis_data'] as $domain => $data)
+                                        @if(isset($data['wordpress_analysis']['is_wordpress']) && $data['wordpress_analysis']['is_wordpress'])
+                                            <div class="text-xs text-gray-600 dark:text-gray-400 mb-2">
+                                                <strong>{{ $domain }}:</strong>
+                                                @if(isset($data['wordpress_analysis']['version']))
+                                                    <span class="inline-block bg-blue-100 text-blue-800 px-1 py-0.5 rounded mr-1">
+                                                        v{{ $data['wordpress_analysis']['version'] }}
+                                                    </span>
+                                                @endif
+                                                @if(isset($data['wordpress_analysis']['plugins']) && !empty($data['wordpress_analysis']['plugins']))
+                                                    <div class="mt-1">
+                                                        <span class="text-xs">Plugin:</span>
+                                                        @foreach(array_slice($data['wordpress_analysis']['plugins'], 0, 3) as $plugin)
+                                                            <span class="inline-block bg-yellow-100 text-yellow-800 px-1 py-0.5 rounded mr-1 text-xs">
+                                                                {{ $plugin }}
+                                                            </span>
+                                                        @endforeach
+                                                        @if(count($data['wordpress_analysis']['plugins']) > 3)
+                                                            <span class="text-xs text-gray-500">+{{ count($data['wordpress_analysis']['plugins']) - 3 }} altri</span>
+                                                        @endif
+                                                    </div>
+                                                @endif
+                                                @if(isset($data['wordpress_analysis']['themes']) && !empty($data['wordpress_analysis']['themes']))
+                                                    <div class="mt-1">
+                                                        <span class="text-xs">Tema:</span>
+                                                        @foreach(array_slice($data['wordpress_analysis']['themes'], 0, 2) as $theme)
+                                                            <span class="inline-block bg-purple-100 text-purple-800 px-1 py-0.5 rounded mr-1 text-xs">
+                                                                {{ $theme }}
+                                                            </span>
+                                                        @endforeach
+                                                    </div>
+                                                @endif
+                                            </div>
+                                        @endif
+                                    @endforeach
+                                </div>
+                            @endif
                         </div>
 
                         {{-- Porte Aperte --}}
@@ -178,6 +241,27 @@
                                     </span>
                                 @endif
                             </div>
+                            
+                            {{-- Mostra dettagli delle porte aperte --}}
+                            @if($totalOpenPorts > 0)
+                                <div class="mt-2 max-h-24 overflow-y-auto">
+                                    @foreach($result['raw_data']['analysis_data'] as $domain => $data)
+                                        @if(isset($data['port_scan']['open_ports']) && !empty($data['port_scan']['open_ports']))
+                                            <div class="text-xs text-gray-600 dark:text-gray-400 mb-1">
+                                                <strong>{{ $domain }}:</strong>
+                                                @foreach($data['port_scan']['open_ports'] as $port)
+                                                    <span class="inline-block bg-blue-100 text-blue-800 px-1 py-0.5 rounded mr-1">
+                                                        {{ $port }}
+                                                        @if(isset($data['port_scan']['services'][$port]['service']))
+                                                            ({{ $data['port_scan']['services'][$port]['service'] }})
+                                                        @endif
+                                                    </span>
+                                                @endforeach
+                                            </div>
+                                        @endif
+                                    @endforeach
+                                </div>
+                            @endif
                         </div>
 
                         {{-- Vulnerabilità --}}
@@ -200,6 +284,41 @@
                                     </span>
                                 @endif
                             </div>
+                            
+                            {{-- Mostra dettagli delle vulnerabilità CVE --}}
+                            @if($hasVulnerabilities)
+                                <div class="mt-2 max-h-32 overflow-y-auto">
+                                    @foreach($result['raw_data']['analysis_data'] as $domain => $data)
+                                        @if(isset($data['cve_analysis']['vulnerabilities']) && !empty($data['cve_analysis']['vulnerabilities']))
+                                            <div class="text-xs text-gray-600 dark:text-gray-400 mb-2">
+                                                <strong>{{ $domain }}:</strong>
+                                                @foreach($data['cve_analysis']['vulnerabilities'] as $vuln)
+                                                    <div class="bg-red-50 border border-red-200 rounded px-2 py-1 mt-1">
+                                                        <div class="flex items-center justify-between">
+                                                            <span class="font-medium text-red-800">
+                                                                Porta {{ $vuln['port'] ?? 'N/A' }}
+                                                            </span>
+                                                            @if(isset($vuln['risk_level']))
+                                                                <span class="text-xs bg-red-200 text-red-800 px-1 py-0.5 rounded">
+                                                                    Rischio: {{ $vuln['risk_level'] }}/10
+                                                                </span>
+                                                            @endif
+                                                        </div>
+                                                        <div class="text-xs text-red-600 mt-1">
+                                                            {{ $vuln['software'] ?? $vuln['service'] ?? 'Servizio sconosciuto' }}
+                                                        </div>
+                                                        @if(isset($vuln['potential_cves']) && !empty($vuln['potential_cves']))
+                                                            <div class="text-xs text-red-700 mt-1">
+                                                                CVE: {{ implode(', ', array_slice($vuln['potential_cves'], 0, 3)) }}
+                                                            </div>
+                                                        @endif
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                        @endif
+                                    @endforeach
+                                </div>
+                            @endif
                         </div>
                     @endif
                 </div>
