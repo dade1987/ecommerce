@@ -269,11 +269,16 @@ class DomainAnalysisService
             'version' => null,
             'plugins' => [],
             'themes' => [],
-            'indicators' => []
+            'indicators' => [],
+            'api_namespaces' => [],
+            'vulnerable_plugins' => [],
+            'vulnerable_themes' => [],
+            'exposed_files' => [],
+            'security_issues' => []
         ];
 
         // Scarica il contenuto della homepage
-        $html = $this->runProcess(['curl', '--location', '--connect-timeout', '5', "https://{$domain}"]);
+        $html = $this->runProcess(['curl', '--location', '--connect-timeout', '10', "https://{$domain}"]);
         if (!$html) {
             return $results;
         }
@@ -295,35 +300,289 @@ class DomainAnalysisService
         }
 
         if ($results['is_wordpress']) {
-            // Estrai la versione di WordPress
-            preg_match('/wp-includes\/js\/wp-embed\.min\.js\?ver=([0-9\.]+)/', $html, $matches);
-            if (isset($matches[1])) {
-                $results['version'] = $matches[1];
-            }
-
-            // Trova plugin comuni
-            preg_match_all('/wp-content\/plugins\/([^\/]+)/', $html, $pluginMatches);
-            if (!empty($pluginMatches[1])) {
-                $results['plugins'] = array_unique($pluginMatches[1]);
-            }
-
-            // Trova theme
-            preg_match_all('/wp-content\/themes\/([^\/]+)/', $html, $themeMatches);
-            if (!empty($themeMatches[1])) {
-                $results['themes'] = array_unique($themeMatches[1]);
-            }
-
-            // Controlla anche wp-json per informazioni aggiuntive
-            $wpJson = $this->runProcess(['curl', '--location', '--connect-timeout', '5', "https://{$domain}/wp-json/"]);
-            if ($wpJson) {
-                $jsonData = json_decode($wpJson, true);
-                if (isset($jsonData['namespaces'])) {
-                    $results['api_namespaces'] = $jsonData['namespaces'];
-                }
+            // Analisi versione WordPress approfondita
+            $results['version'] = $this->getWordPressVersion($domain, $html);
+            
+            // Analisi plugin dettagliata
+            $results['plugins'] = $this->getWordPressPlugins($domain, $html);
+            
+            // Analisi temi dettagliata
+            $results['themes'] = $this->getWordPressThemes($domain, $html);
+            
+            // Controlla API WordPress
+            $results['api_namespaces'] = $this->getWordPressApiInfo($domain);
+            
+            // Controlla file esposti pericolosi
+            $results['exposed_files'] = $this->checkExposedWordPressFiles($domain);
+            
+            // Analisi vulnerabilità con GPT
+            if (!empty($results['plugins']) || !empty($results['themes']) || $results['version']) {
+                $vulnerabilityAnalysis = $this->analyzeWordPressVulnerabilities($results);
+                $results['vulnerable_plugins'] = $vulnerabilityAnalysis['plugins'] ?? [];
+                $results['vulnerable_themes'] = $vulnerabilityAnalysis['themes'] ?? [];
+                $results['security_issues'] = $vulnerabilityAnalysis['core_issues'] ?? [];
             }
         }
 
         return $results;
+    }
+
+    protected function getWordPressVersion(string $domain, string $html): ?string
+    {
+        $version = null;
+        
+        // Metodo 1: Meta generator
+        if (preg_match('/generator.*?wordpress\s*([0-9\.]+)/i', $html, $matches)) {
+            $version = $matches[1];
+        }
+        
+        // Metodo 2: wp-embed.min.js versione
+        if (!$version && preg_match('/wp-includes\/js\/wp-embed\.min\.js\?ver=([0-9\.]+)/', $html, $matches)) {
+            $version = $matches[1];
+        }
+        
+        // Metodo 3: readme.html
+        if (!$version) {
+            $readme = $this->runProcess(['curl', '--location', '--connect-timeout', '5', "https://{$domain}/readme.html"]);
+            if ($readme && preg_match('/Version\s*([0-9\.]+)/i', $readme, $matches)) {
+                $version = $matches[1];
+            }
+        }
+        
+        // Metodo 4: wp-includes/version.php (raramente esposto)
+        if (!$version) {
+            $versionFile = $this->runProcess(['curl', '--location', '--connect-timeout', '5', "https://{$domain}/wp-includes/version.php"]);
+            if ($versionFile && preg_match('/wp_version\s*=\s*[\'"]([0-9\.]+)[\'"]/', $versionFile, $matches)) {
+                $version = $matches[1];
+            }
+        }
+        
+        return $version;
+    }
+
+    protected function getWordPressPlugins(string $domain, string $html): array
+    {
+        $plugins = [];
+        
+        // Metodo 1: Scansione HTML
+        preg_match_all('/wp-content\/plugins\/([^\/\?\#]+)/', $html, $pluginMatches);
+        if (!empty($pluginMatches[1])) {
+            $plugins = array_unique($pluginMatches[1]);
+        }
+        
+        // Metodo 2: Controlla directory plugins comuni
+        $commonPlugins = [
+            'akismet', 'jetpack', 'yoast-seo', 'contact-form-7', 'elementor',
+            'woocommerce', 'wp-super-cache', 'wordfence', 'all-in-one-wp-migration',
+            'classic-editor', 'duplicate-post', 'wp-optimize', 'updraftplus',
+            'wp-rocket', 'really-simple-ssl', 'wpforms-lite', 'mailchimp-for-wp'
+        ];
+        
+        foreach ($commonPlugins as $plugin) {
+            $pluginPath = $this->runProcess(['curl', '--location', '--connect-timeout', '3', '-I', "https://{$domain}/wp-content/plugins/{$plugin}/"]);
+            if ($pluginPath && strpos($pluginPath, '200 OK') !== false) {
+                if (!in_array($plugin, $plugins)) {
+                    $plugins[] = $plugin;
+                }
+            }
+        }
+        
+        // Metodo 3: Ottieni versioni plugin
+        $pluginsWithVersions = [];
+        foreach ($plugins as $plugin) {
+            $version = $this->getPluginVersion($domain, $plugin);
+            $pluginsWithVersions[$plugin] = $version;
+        }
+        
+        return $pluginsWithVersions;
+    }
+
+    protected function getPluginVersion(string $domain, string $plugin): ?string
+    {
+        // Prova a leggere readme.txt del plugin
+        $readme = $this->runProcess(['curl', '--location', '--connect-timeout', '5', "https://{$domain}/wp-content/plugins/{$plugin}/readme.txt"]);
+        if ($readme) {
+            if (preg_match('/Stable tag:\s*([0-9\.]+)/i', $readme, $matches)) {
+                return $matches[1];
+            }
+            if (preg_match('/Version:\s*([0-9\.]+)/i', $readme, $matches)) {
+                return $matches[1];
+            }
+        }
+        
+        // Prova il file principale del plugin
+        $mainFile = $this->runProcess(['curl', '--location', '--connect-timeout', '5', "https://{$domain}/wp-content/plugins/{$plugin}/{$plugin}.php"]);
+        if ($mainFile && preg_match('/Version:\s*([0-9\.]+)/i', $mainFile, $matches)) {
+            return $matches[1];
+        }
+        
+        return null;
+    }
+
+    protected function getWordPressThemes(string $domain, string $html): array
+    {
+        $themes = [];
+        
+        // Trova temi dall'HTML
+        preg_match_all('/wp-content\/themes\/([^\/\?\#]+)/', $html, $themeMatches);
+        if (!empty($themeMatches[1])) {
+            $themes = array_unique($themeMatches[1]);
+        }
+        
+        // Ottieni versioni temi
+        $themesWithVersions = [];
+        foreach ($themes as $theme) {
+            $version = $this->getThemeVersion($domain, $theme);
+            $themesWithVersions[$theme] = $version;
+        }
+        
+        return $themesWithVersions;
+    }
+
+    protected function getThemeVersion(string $domain, string $theme): ?string
+    {
+        // Prova style.css del tema
+        $style = $this->runProcess(['curl', '--location', '--connect-timeout', '5', "https://{$domain}/wp-content/themes/{$theme}/style.css"]);
+        if ($style && preg_match('/Version:\s*([0-9\.]+)/i', $style, $matches)) {
+            return $matches[1];
+        }
+        
+        return null;
+    }
+
+    protected function getWordPressApiInfo(string $domain): array
+    {
+        $apiInfo = [];
+        
+        // Controlla API principale
+        $wpJson = $this->runProcess(['curl', '--location', '--connect-timeout', '5', "https://{$domain}/wp-json/"]);
+        if ($wpJson) {
+            $jsonData = json_decode($wpJson, true);
+            if (isset($jsonData['namespaces'])) {
+                $apiInfo['namespaces'] = $jsonData['namespaces'];
+            }
+        }
+        
+        // Controlla endpoint specifici se disponibili
+        $wpApiV2 = $this->runProcess(['curl', '--location', '--connect-timeout', '5', "https://{$domain}/wp-json/wp/v2/"]);
+        if ($wpApiV2) {
+            $apiData = json_decode($wpApiV2, true);
+            if (isset($apiData['routes'])) {
+                $apiInfo['available_routes'] = array_keys($apiData['routes']);
+            }
+        }
+        
+        return $apiInfo;
+    }
+
+    protected function checkExposedWordPressFiles(string $domain): array
+    {
+        $exposedFiles = [];
+        $criticalFiles = [
+            'wp-config.php' => 'File di configurazione con credenziali database',
+            'wp-config-sample.php' => 'File di configurazione di esempio',
+            'wp-admin/install.php' => 'Script di installazione WordPress',
+            'wp-admin/upgrade.php' => 'Script di aggiornamento WordPress',
+            'readme.html' => 'File README con versione WordPress',
+            'license.txt' => 'File licenza WordPress',
+            'wp-content/debug.log' => 'Log di debug WordPress'
+        ];
+        
+        foreach ($criticalFiles as $file => $description) {
+            $response = $this->runProcess(['curl', '--location', '--connect-timeout', '3', '-I', "https://{$domain}/{$file}"]);
+            if ($response && strpos($response, '200 OK') !== false) {
+                $exposedFiles[$file] = $description;
+            }
+        }
+        
+        return $exposedFiles;
+    }
+
+    protected function analyzeWordPressVulnerabilities(array $wpData): array
+    {
+        if (!$this->openaiApiKey) {
+            return ['plugins' => [], 'themes' => [], 'core_issues' => []];
+        }
+        
+        try {
+            $client = OpenAI::client($this->openaiApiKey);
+            
+            $prompt = $this->buildWordPressVulnerabilityPrompt($wpData);
+            
+            $response = $client->chat()->create([
+                'model' => 'gpt-4o',
+                'messages' => [
+                    ['role' => 'system', 'content' => 'Sei un esperto di sicurezza WordPress. Analizza le versioni specifiche di WordPress, plugin e temi per identificare vulnerabilità note con CVE specifici. Rispondi SOLO con dati concreti e verificabili.'],
+                    ['role' => 'user', 'content' => $prompt]
+                ],
+                'temperature' => 0.1,
+                'response_format' => ['type' => 'json_object'],
+            ]);
+            
+            $content = json_decode($response->choices[0]->message->content, true);
+            
+            return $content ?: ['plugins' => [], 'themes' => [], 'core_issues' => []];
+            
+        } catch (\Exception $e) {
+            Log::error("Errore durante l'analisi vulnerabilità WordPress: " . $e->getMessage());
+            return ['plugins' => [], 'themes' => [], 'core_issues' => []];
+        }
+    }
+
+    protected function buildWordPressVulnerabilityPrompt(array $wpData): string
+    {
+        $dataString = json_encode($wpData, JSON_PRETTY_PRINT);
+        
+        return <<<PROMPT
+Analizza questa installazione WordPress per identificare vulnerabilità specifiche e concrete.
+
+CRITERI RIGOROSI:
+1. Includi SOLO vulnerabilità con CVE specifici per versioni note
+2. Per plugin/temi senza versione identificata, NON assumere vulnerabilità
+3. Usa database CVE pubblici e verificati (WPVulnDB, NVD)
+4. Fornisci punteggio CVSS quando disponibile
+5. Se non hai dati sufficienti, ometti dalla risposta
+6. Per file esposti, considera solo se rappresentano rischi concreti
+
+INSTALLAZIONE WORDPRESS:
+{$dataString}
+
+Fornisci risposta in formato JSON:
+{
+  "plugins": [
+    {
+      "name": "contact-form-7",
+      "version": "4.6.1",
+      "cves": ["CVE-2017-9804"],
+      "risk_level": 8,
+      "cvss_score": 6.1,
+      "description": "XSS vulnerability in Contact Form 7 before 4.8",
+      "recommendation": "Aggiorna a versione 4.8 o superiore"
+    }
+  ],
+  "themes": [
+    {
+      "name": "twentyfifteen",
+      "version": "1.8",
+      "cves": ["CVE-2019-8943"],
+      "risk_level": 6,
+      "description": "Authenticated theme editor vulnerability",
+      "recommendation": "Aggiorna tema o disabilita editor"
+    }
+  ],
+  "core_issues": [
+    {
+      "component": "WordPress Core",
+      "version": "4.9.1",
+      "cves": ["CVE-2018-6389"],
+      "risk_level": 7,
+      "cvss_score": 5.3,
+      "description": "DoS vulnerability in load-scripts.php",
+      "recommendation": "Aggiorna a WordPress 4.9.2 o superiore"
+    }
+  ]
+}
+PROMPT;
     }
 
     protected function performPortScan(string $domain): array
@@ -373,7 +632,7 @@ class DomainAnalysisService
 
         try {
             $client = OpenAI::client($this->openaiApiKey);
-            $prompt = "Analizza i seguenti servizi identificati tramite port scan e banner grabbing avanzato. Per ciascun servizio, identifica potenziali CVE o vulnerabilità note basandoti sul software, versione e indicatori di rischio rilevati. Fornisci una risposta in formato JSON con chiave 'vulnerabilities' contenente un array di oggetti con 'port', 'service', 'software', 'version', 'potential_cves', 'risk_level' (1-10), e 'recommendations'.\n\nServizi trovati:\n" . json_encode($cveInfo, JSON_PRETTY_PRINT);
+            $prompt = "Analizza i seguenti servizi identificati tramite port scan e banner grabbing. IMPORTANTE: Identifica SOLO CVE specifici per versioni software chiaramente identificate. NON fare supposizioni su vulnerabilità senza versioni precise.\n\nCRITERI RIGOROSI:\n1. Includi un CVE SOLO se la versione software è nota e quella versione è effettivamente vulnerabile\n2. Se la versione non è identificata, NON assumere vulnerabilità\n3. Usa solo CVE databases verificati e pubblici\n4. Risk_level deve essere basato su CVSS score reale quando possibile\n5. Se non ci sono dati sufficienti per un servizio, ometti dalla risposta\n\nFormato JSON richiesto:\n{\n  \"vulnerabilities\": [\n    {\n      \"port\": 80,\n      \"service\": \"Apache 2.2.15\",\n      \"software\": \"Apache\",\n      \"version\": \"2.2.15\",\n      \"confirmed_cves\": [\"CVE-2011-3192\"],\n      \"risk_level\": 8,\n      \"cvss_score\": 7.8,\n      \"recommendations\": \"Aggiorna ad Apache 2.4.x\"\n    }\n  ]\n}\n\nServizi trovati:\n" . json_encode($cveInfo, JSON_PRETTY_PRINT);
 
             $response = $client->chat()->create([
                 'model' => 'gpt-4o',
@@ -488,27 +747,35 @@ class DomainAnalysisService
 Sulla base di questa analisi completa per il dominio {$this->originalDomain} e i suoi sottodomini, fornisci una stima percentuale del rischio di compromissione entro i prossimi 3 mesi.
 Evidenzia i punti più critici trovati nell'intera infrastruttura.
 
-ISTRUZIONI SPECIFICHE PER LA VALUTAZIONE:
-1. Se un dominio è protetto da Cloudflare (cloudflare_detection.is_cloudflare = true), riduci il punteggio di rischio del 15-20% poiché Cloudflare offre protezione DDoS e WAF.
-2. Se è rilevato WordPress (wordpress_analysis.is_wordpress = true), considera:
-   - Versione WordPress obsoleta: aumenta il rischio
-   - Plugin identificati: cerca vulnerabilità note per i plugin specifici
-   - Temi personalizzati: potrebbero avere vulnerabilità
-3. Analizza i risultati del port scan (port_scan):
-   - Porte aperte non necessarie aumentano la superficie di attacco
-   - Servizi identificati con versioni obsolete sono ad alto rischio
-4. Considera l'analisi CVE (cve_analysis):
-   - Vulnerabilità identificate aumentano significativamente il rischio
-   - Priorità alta per CVE con punteggio CVSS elevato
-5. Combina tutti i fattori per una valutazione olistica del rischio
+ISTRUZIONI CRITICHE PER LA VALUTAZIONE - SOLO DATI CONCRETI:
 
-IMPORTANTE PER I CRITICAL POINTS:
-- Ogni punto critico DEVE specificare esattamente su quale dominio/sottodominio è stato trovato
-- Formato richiesto: "[DOMINIO] Descrizione del problema specifico"
-- Esempio: "[admin.example.com] Apache 2.2.15 obsoleto con vulnerabilità CVE-2011-3192"
-- Esempio: "[blog.example.com] WordPress 4.9.1 con plugin vulnerabile Contact Form 7"
-- Esempio: "[ftp.example.com] vsftpd 2.3.4 con backdoor nota (rischio CRITICO)"
-- IMPORTANTE: Includi TUTTI i punti critici identificati, non limitarti a pochi. Ogni vulnerabilità, servizio obsoleto, e problema di sicurezza deve essere riportato.
+PUNTEGGIO DI RISCHIO (0-100):
+- Base il punteggio ESCLUSIVAMENTE su vulnerabilità concrete e identificate
+- NON fare supposizioni o assumere rischi senza prove specifiche
+- Usa solo questi criteri con dati precisi:
+  * Versioni software specifiche con CVE noti (es. Apache 2.2.15 → CVE-2011-3192)
+  * Porte aperte con servizi notoriamente vulnerabili (es. vsftpd 2.3.4 → backdoor)
+  * Plugin WordPress con versioni specifiche vulnerabili
+  * Servizi con configurazioni insicure identificate dai banner
+- Se non hai dati precisi, mantieni il punteggio BASSO (0-30%)
+- Cloudflare protection riduci di 15-20% solo se hai altri rischi concreti
+
+CRITICAL POINTS - SOLO VULNERABILITÀ CONCRETE:
+- Includi SOLO problemi con prove specifiche e dati precisi
+- Formato: "[DOMINIO] Software/Versione specifica + CVE/Vulnerabilità identificata"
+- ESEMPI ACCETTABILI:
+  * "[admin.example.com] Apache 2.2.15 - CVE-2011-3192 (DoS vulnerability)"
+  * "[blog.example.com] WordPress 4.9.1 - CVE-2018-6389 (DoS vulnerability)"
+  * "[ftp.example.com] vsftpd 2.3.4 - backdoor smiley face (CRITICO)"
+  * "[mail.example.com] Postfix 2.8.1 - CVE-2011-0411 (privilege escalation)"
+
+ESEMPI NON ACCETTABILI (da evitare):
+- "WordPress rilevato senza versione specifica, potenzialmente obsoleto"
+- "Plugin potenzialmente vulnerabile" senza versione/CVE
+- "Servizio potenzialmente esposto" senza dettagli specifici
+- "Configurazione potenzialmente insicura" senza prove
+
+REGOLA FONDAMENTALE: Se non hai dati precisi (versioni, CVE, configurazioni specifiche), NON creare punti critici e mantieni il punteggio di rischio basso. Un cliente deve poter verificare ogni singolo punto critico.
 
 {$summaryString}
 

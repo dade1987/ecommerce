@@ -188,37 +188,89 @@
                             
                             {{-- Mostra dettagli WordPress --}}
                             @if($wpDetected)
-                                <div class="mt-2 max-h-24 overflow-y-auto">
+                                <div class="mt-2 max-h-32 overflow-y-auto">
                                     @foreach($result['raw_data']['analysis_data'] as $domain => $data)
                                         @if(isset($data['wordpress_analysis']['is_wordpress']) && $data['wordpress_analysis']['is_wordpress'])
-                                            <div class="text-xs text-gray-600 dark:text-gray-400 mb-2">
+                                            <div class="text-xs text-gray-600 dark:text-gray-400 mb-3 border-b pb-2">
                                                 <strong>{{ $domain }}:</strong>
                                                 @if(isset($data['wordpress_analysis']['version']))
                                                     <span class="inline-block bg-blue-100 text-blue-800 px-1 py-0.5 rounded mr-1">
                                                         v{{ $data['wordpress_analysis']['version'] }}
                                                     </span>
                                                 @endif
+                                                
+                                                {{-- Plugin con versioni --}}
                                                 @if(isset($data['wordpress_analysis']['plugins']) && !empty($data['wordpress_analysis']['plugins']))
                                                     <div class="mt-1">
-                                                        <span class="text-xs">Plugin:</span>
-                                                        @foreach(array_slice($data['wordpress_analysis']['plugins'], 0, 3) as $plugin)
-                                                            <span class="inline-block bg-yellow-100 text-yellow-800 px-1 py-0.5 rounded mr-1 text-xs">
-                                                                {{ $plugin }}
-                                                            </span>
-                                                        @endforeach
-                                                        @if(count($data['wordpress_analysis']['plugins']) > 3)
-                                                            <span class="text-xs text-gray-500">+{{ count($data['wordpress_analysis']['plugins']) - 3 }} altri</span>
-                                                        @endif
+                                                        <span class="text-xs font-medium">Plugin ({{ count($data['wordpress_analysis']['plugins']) }}):</span>
+                                                        <div class="flex flex-wrap gap-1 mt-1">
+                                                            @foreach(array_slice($data['wordpress_analysis']['plugins'], 0, 4, true) as $plugin => $version)
+                                                                <span class="inline-block bg-yellow-100 text-yellow-800 px-1 py-0.5 rounded text-xs">
+                                                                    {{ $plugin }}
+                                                                    @if($version)
+                                                                        <span class="text-yellow-600">v{{ $version }}</span>
+                                                                    @else
+                                                                        <span class="text-red-600">(?)</span>
+                                                                    @endif
+                                                                </span>
+                                                            @endforeach
+                                                            @if(count($data['wordpress_analysis']['plugins']) > 4)
+                                                                <span class="text-xs text-gray-500">+{{ count($data['wordpress_analysis']['plugins']) - 4 }} altri</span>
+                                                            @endif
+                                                        </div>
                                                     </div>
                                                 @endif
+                                                
+                                                {{-- Temi con versioni --}}
                                                 @if(isset($data['wordpress_analysis']['themes']) && !empty($data['wordpress_analysis']['themes']))
                                                     <div class="mt-1">
-                                                        <span class="text-xs">Tema:</span>
-                                                        @foreach(array_slice($data['wordpress_analysis']['themes'], 0, 2) as $theme)
-                                                            <span class="inline-block bg-purple-100 text-purple-800 px-1 py-0.5 rounded mr-1 text-xs">
-                                                                {{ $theme }}
-                                                            </span>
-                                                        @endforeach
+                                                        <span class="text-xs font-medium">Temi:</span>
+                                                        <div class="flex flex-wrap gap-1 mt-1">
+                                                            @foreach(array_slice($data['wordpress_analysis']['themes'], 0, 2, true) as $theme => $version)
+                                                                <span class="inline-block bg-purple-100 text-purple-800 px-1 py-0.5 rounded text-xs">
+                                                                    {{ $theme }}
+                                                                    @if($version)
+                                                                        <span class="text-purple-600">v{{ $version }}</span>
+                                                                    @else
+                                                                        <span class="text-red-600">(?)</span>
+                                                                    @endif
+                                                                </span>
+                                                            @endforeach
+                                                        </div>
+                                                    </div>
+                                                @endif
+                                                
+                                                {{-- Plugin vulnerabili --}}
+                                                @if(isset($data['wordpress_analysis']['vulnerable_plugins']) && !empty($data['wordpress_analysis']['vulnerable_plugins']))
+                                                    <div class="mt-1">
+                                                        <span class="text-xs font-medium text-red-600">Plugin Vulnerabili:</span>
+                                                        <div class="flex flex-wrap gap-1 mt-1">
+                                                            @foreach($data['wordpress_analysis']['vulnerable_plugins'] as $vuln)
+                                                                <span class="inline-block bg-red-100 text-red-800 px-1 py-0.5 rounded text-xs">
+                                                                    {{ $vuln['name'] ?? 'Unknown' }}
+                                                                    @if(isset($vuln['version']))
+                                                                        <span class="text-red-600">v{{ $vuln['version'] }}</span>
+                                                                    @endif
+                                                                </span>
+                                                            @endforeach
+                                                        </div>
+                                                    </div>
+                                                @endif
+                                                
+                                                {{-- File esposti --}}
+                                                @if(isset($data['wordpress_analysis']['exposed_files']) && !empty($data['wordpress_analysis']['exposed_files']))
+                                                    <div class="mt-1">
+                                                        <span class="text-xs font-medium text-orange-600">File Esposti ({{ count($data['wordpress_analysis']['exposed_files']) }}):</span>
+                                                        <div class="flex flex-wrap gap-1 mt-1">
+                                                            @foreach(array_slice($data['wordpress_analysis']['exposed_files'], 0, 3, true) as $file => $desc)
+                                                                <span class="inline-block bg-orange-100 text-orange-800 px-1 py-0.5 rounded text-xs">
+                                                                    {{ basename($file) }}
+                                                                </span>
+                                                            @endforeach
+                                                            @if(count($data['wordpress_analysis']['exposed_files']) > 3)
+                                                                <span class="text-xs text-gray-500">+{{ count($data['wordpress_analysis']['exposed_files']) - 3 }} altri</span>
+                                                            @endif
+                                                        </div>
                                                     </div>
                                                 @endif
                                             </div>

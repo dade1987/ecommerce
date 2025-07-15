@@ -296,25 +296,34 @@ class NetworkScanningService
     protected function buildBannerAnalysisPrompt(int $port, string $banner): string
     {
         return <<<PROMPT
-Analizza questo banner di servizio di rete per identificare il software specifico, la versione e eventuali indicatori di vulnerabilità.
+Analizza questo banner di servizio di rete per identificare SOLO informazioni concrete e verificabili.
 
 PORTA: {$port}
 BANNER COMPLETO:
 {$banner}
 
-Fornisci un'analisi dettagliata che includa:
-1. Il nome del software/servizio esatto
-2. La versione specifica se identificabile
-3. Eventuali informazioni sulla sicurezza (versioni obsolete, vulnerabilità note)
-4. Livello di rischio stimato
+ISTRUZIONI RIGOROSE:
+1. Identifica SOLO software e versioni se chiaramente visibili nel banner
+2. NON fare supposizioni o assumere versioni se non esplicite
+3. Includi CVE specifici SOLO se la versione è nota e vulnerabile
+4. Se non riesci a identificare la versione esatta, specifica solo il software base
 
-Esempi di output desiderato:
-- "Apache 2.2.15 (versione obsoleta del 2010, vulnerabile a CVE-2011-3192)"
-- "OpenSSH 7.4 (versione sicura, nessuna vulnerabilità nota)"
-- "vsftpd 2.3.4 (versione con backdoor nota, rischio CRITICO)"
-- "MySQL 5.5.62 (versione EOL, aggiornamento consigliato)"
+ESEMPI ACCETTABILI:
+- "Apache 2.2.15 - CVE-2011-3192 (DoS vulnerability)"
+- "OpenSSH 7.4 - nessuna vulnerabilità critica nota"
+- "vsftpd 2.3.4 - backdoor smiley face (CRITICO)"
+- "MySQL 5.5.62 - versione EOL dal 2018"
+- "nginx 1.10.3 - CVE-2017-7529 (integer overflow)"
 
-Fornisci la risposta in formato JSON con la chiave "service_identification" contenente una stringa descrittiva del servizio identificato.
+ESEMPI NON ACCETTABILI:
+- "Apache (versione probabilmente obsoleta)"
+- "SSH (potenzialmente vulnerabile)"
+- "FTP (configurazione potenzialmente insicura)"
+- "MySQL (versione sconosciuta, possibili rischi)"
+
+REGOLA FONDAMENTALE: Se non hai dati precisi dal banner, restituisci solo il nome del servizio base senza speculazioni sulla sicurezza.
+
+Fornisci la risposta in formato JSON con la chiave "service_identification" contenente una stringa descrittiva basata SOLO su dati concreti dal banner.
 PROMPT;
     }
 
