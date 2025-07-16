@@ -33,7 +33,7 @@
                         </a>
                     @endif
 
-                    @livewire('open-calendar-button', ['style' => 'secondary', 'text' => 'Prenota una Call'])
+                    @livewire('open-calendar-button', ['style' => 'secondary', 'text' => __('frontend.book_call')])
                 </div>
             </div>
 
