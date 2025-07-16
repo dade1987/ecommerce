@@ -9,7 +9,7 @@ class OpenCalendarButton extends Component
     public string $style;
     public string $text;
 
-    public function mount(string $style = 'primary', string $text = 'Prenota una Call')
+    public function mount(string $style = 'primary', string $text = _('frontend.book_call'))
     {
         $this->style = rtrim(trim($style), ';');
         $this->text = $text;
