@@ -6,7 +6,7 @@
     <div class="space-y-12">
         @if(!empty($importantLinks))
             <div>
-                <h2 class="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white">Link Importanti</h2>
+                <h2 class="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white">{{ __('messages.Important Links') }}</h2>
                 <div class="mt-6 space-y-4">
                     <ul class="list-disc list-inside">
                         @foreach ($importantLinks as $link)
@@ -23,7 +23,7 @@
 
         @if(!empty($certifications))
             <div class="mt-12">
-                <h2 class="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white">Certificazioni</h2>
+                <h2 class="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white">{{ __('messages.Certifications') }}</h2>
                 <div class="glider-contain">
                     <div class="glider mt-6">
                         @foreach ($certifications as $certification)
@@ -43,22 +43,22 @@
                                         @if($certification['issue_date'] || $certification['credential_id'])
                                         <p class="mt-2 text-sm text-gray-500 dark:text-gray-300">
                                             @if($certification['issue_date'])
-                                                <span>Data: {{ $certification['issue_date'] }}</span>
+                                                <span>{{ __('messages.Date') }}: {{ $certification['issue_date'] }}</span>
                                             @endif
                                             @if($certification['issue_date'] && $certification['credential_id'])
                                                 <span class="mx-2">·</span>
                                             @endif
                                             @if($certification['credential_id'])
-                                                <span>ID: {{ $certification['credential_id'] }}</span>
+                                                <span>{{ __('messages.ID') }}: {{ $certification['credential_id'] }}</span>
                                             @endif
                                         </p>
                                         @endif
                                     </div>
                                     @if($certification['credential_url'])
                                         <div class="mt-auto pt-4">
-                                            <a href="{{ $certification['credential_url'] }}" target="_blank" rel="noopener noreferrer" 
+                                            <a href="{{ $certification['credential_url'] }}" target="_blank" rel="noopener noreferrer"
                                                class="inline-block px-5 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 dark:bg-blue-500 dark:hover:bg-blue-600 dark:focus:ring-blue-800">
-                                                Mostra credenziale
+                                                {{ __('messages.Show credential') }}
                                             </a>
                                         </div>
                                     @endif
