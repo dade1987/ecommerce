@@ -6,7 +6,7 @@
                 @csrf
                 <div>
                     <label for="file-upload" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Seleziona un file PDF
+                        {{ __('order-reader.select_pdf') }}
                     </label>
                     <div class="mt-2 flex justify-center items-center px-6 pt-5 pb-6 border-2 border-gray-300 dark:border-gray-600 border-dashed rounded-md">
                         <div class="space-y-1 text-center">
@@ -15,13 +15,13 @@
                             </svg>
                             <div class="flex text-sm text-gray-600 dark:text-gray-400">
                                 <label for="file-upload" class="relative cursor-pointer bg-white dark:bg-gray-800 rounded-md font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500">
-                                    <span>Carica un file</span>
+                                    <span>{{ __('order-reader.upload_file') }}</span>
                                     <input id="file-upload" name="file" type="file" class="sr-only" accept=".pdf">
                                 </label>
-                                <p class="pl-1">o trascinalo qui</p>
+                                <p class="pl-1">{{ __('order-reader.drag_and_drop') }}</p>
                             </div>
                             <p class="text-xs text-gray-500 dark:text-gray-400">
-                                Solo PDF
+                                {{ __('order-reader.pdf_only') }}
                             </p>
                         </div>
                     </div>
@@ -29,15 +29,15 @@
                 </div>
 
                 <div class="mt-6 text-center">
-                    <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Oppure</p>
+                    <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{{ __('order-reader.or') }}</p>
                     <div class="flex justify-center space-x-4">
                         <button type="button" id="start-recording" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
                             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path></svg>
-                            Registra Audio
+                            {{ __('order-reader.record_audio') }}
                         </button>
                         <button type="button" id="stop-recording" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" disabled>
                             <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z" clip-rule="evenodd"></path></svg>
-                            Interrompi
+                            {{ __('order-reader.stop') }}
                         </button>
                     </div>
                     <p id="recording-status" class="mt-2 text-sm text-gray-500 dark:text-gray-400"></p>
@@ -45,13 +45,13 @@
 
                 <div>
                     <button type="submit" id="submit-button" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                        Estrai Informazioni
+                        {{ __('order-reader.extract_info') }}
                     </button>
                 </div>
             </form>
 
             <div id="loading" class="mt-6 text-center" style="display: none;">
-                <p class="text-lg text-gray-700 dark:text-gray-300">Estrazione in corso... Potrebbero volerci fino a 30 secondi.</p>
+                <p class="text-lg text-gray-700 dark:text-gray-300">{{ __('order-reader.extraction_in_progress') }}</p>
                 <div class="mt-4">
                     <svg class="animate-spin -ml-1 mr-3 h-8 w-8 text-indigo-600 inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -61,12 +61,12 @@
             </div>
 
             <div id="results" class="mt-8" style="display: none;">
-                <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">Dati Estratti</h3>
+                <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">{{ __('order-reader.extracted_data') }}</h3>
                 <div class="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg">
                     <pre class="whitespace-pre-wrap text-sm text-gray-800 dark:text-gray-200"><code id="json-output"></code></pre>
                 </div>
                  <button id="copy-button" class="mt-4 w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                    Copia JSON
+                    {{ __('order-reader.copy_json') }}
                 </button>
             </div>
              <div id="error" class="mt-6 text-center text-red-500" style="display: none;"></div>
@@ -75,6 +75,23 @@
 </div>
 
 <script>
+    const translations = {
+        file_selected: "{{ __('order-reader.file_selected') }}",
+        audio_unsupported: "{{ __('order-reader.audio_unsupported') }}",
+        recording_complete: "{{ __('order-reader.recording_complete') }}",
+        audio_file_ready: "{{ __('order-reader.audio_file_ready') }}",
+        recording_in_progress: "{{ __('order-reader.recording_in_progress') }}",
+        mic_error: "{{ __('order-reader.mic_error') }}",
+        select_file_or_record_audio: "{{ __('order-reader.select_file_or_record_audio') }}",
+        server_error: "{{ __('order-reader.server_error') }}",
+        file_downloaded_successfully: "{{ __('order-reader.file_downloaded_successfully') }}",
+        error_occurred: "{{ __('order-reader.error_occurred') }}",
+        copied: "{{ __('order-reader.copied') }}",
+        copy_json: "{{ __('order-reader.copy_json') }}",
+        copy_error: "{{ __('order-reader.copy_error') }}",
+        copy_unavailable: "{{ __('order-reader.copy_unavailable') }}"
+    };
+
 document.addEventListener('DOMContentLoaded', function () {
     const form = document.getElementById('upload-form');
     const submitButton = document.getElementById('submit-button');
@@ -97,7 +114,7 @@ document.addEventListener('DOMContentLoaded', function () {
     fileInput.addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (file) {
-            fileNameDisplay.textContent = `File selezionato: ${file.name}`;
+            fileNameDisplay.textContent = translations.file_selected.replace(':filename', file.name);
             audioFile = null; // Clear audio file if a regular file is selected
             recordingStatus.textContent = '';
         } else {
@@ -107,7 +124,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     startRecordingButton.addEventListener('click', async () => {
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            alert('Il tuo browser non supporta la registrazione audio.');
+            alert(translations.audio_unsupported);
             return;
         }
 
@@ -123,19 +140,19 @@ document.addEventListener('DOMContentLoaded', function () {
             mediaRecorder.onstop = () => {
                 const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
                 audioFile = new File([audioBlob], 'registrazione.webm', { type: 'audio/webm' });
-                recordingStatus.textContent = 'Registrazione completata. Premi "Estrai" per processare.';
-                fileNameDisplay.textContent = `File audio pronto: registrazione.webm`;
+                recordingStatus.textContent = translations.recording_complete;
+                fileNameDisplay.textContent = translations.audio_file_ready.replace(':filename', 'registrazione.webm');
                 fileInput.value = ''; // Clear file input
             };
 
             mediaRecorder.start();
             startRecordingButton.disabled = true;
             stopRecordingButton.disabled = false;
-            recordingStatus.textContent = 'Registrazione in corso...';
+            recordingStatus.textContent = translations.recording_in_progress;
 
         } catch (err) {
             console.error('Errore durante l\'accesso al microfono:', err);
-            recordingStatus.textContent = 'Errore microfono: ' + err.message;
+            recordingStatus.textContent = translations.mic_error + err.message;
         }
     });
 
@@ -159,7 +176,7 @@ document.addEventListener('DOMContentLoaded', function () {
         } else if (fileInput.files.length > 0) {
             formData.append('file', fileInput.files[0]);
         } else {
-            alert('Per favore, seleziona un file o registra un audio.');
+            alert(translations.select_file_or_record_audio);
             return;
         }
 
@@ -179,7 +196,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             if (!response.ok) {
                 // Try to parse error from JSON response
-                let errorMsg = `Errore del server: ${response.status}`;
+                let errorMsg = `${translations.server_error}: ${response.status}`;
                 try {
                     const errorData = await response.json();
                     if(errorData.error) {
@@ -217,7 +234,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 document.body.removeChild(a);
 
                 results.style.display = 'block';
-                jsonOutput.textContent = `File "${filename}" scaricato con successo.`;
+                jsonOutput.textContent = translations.file_downloaded_successfully.replace(':filename', filename);
 
 
             } else {
@@ -229,7 +246,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         } catch (error) {
             console.error('Errore:', error);
-            errorDiv.textContent = 'Si è verificato un errore: ' + error.message;
+            errorDiv.textContent = translations.error_occurred + error.message;
             errorDiv.style.display = 'block';
         } finally {
             loading.style.display = 'none';
@@ -239,13 +256,13 @@ document.addEventListener('DOMContentLoaded', function () {
     copyButton.addEventListener('click', () => {
         if(jsonOutput.textContent.startsWith('File "')) return; // Don't copy download message
         navigator.clipboard.writeText(jsonOutput.textContent).then(() => {
-            copyButton.textContent = 'Copiato!';
+            copyButton.textContent = translations.copied;
             setTimeout(() => {
-                copyButton.textContent = 'Copia JSON';
+                copyButton.textContent = translations.copy_json;
             }, 2000);
         }).catch(err => {
-            console.error('Errore durante la copia:', err);
-            alert('Impossibile copiare il testo.');
+            console.error(translations.copy_error, err);
+            alert(translations.copy_unavailable);
         });
     });
 });
