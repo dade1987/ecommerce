@@ -81,6 +81,7 @@
         addLoadingIndicator();
         const formData = new FormData();
         formData.append('file', file);
+        formData.append('locale', '{{ app()->getLocale() }}');
 
         fetch('/api/upload-file', {
             method: 'POST',
@@ -171,10 +172,10 @@
         }
     }
 
-    {{-- document.getElementById('generate-quote-button').addEventListener('click', () => {
+    /* document.getElementById('generate-quote-button').addEventListener('click', () => {
         addMessageToChatbox("{{ __('quoter.you') }}", "{{ __('quoter.generate_quote') }}", 'border border-blue-500 text-black');
         sendMessageToServer("{{ __('quoter.generate_quote') }}");
-    }); --}}
+    }); */
 
     function addMessageToChatbox(sender, message, messageType) {
         message = message.replaceAll('\n', '<br>');
@@ -198,7 +199,8 @@
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    message
+                    message,
+                    locale: '{{ app()->getLocale() }}'
                 })
             });
             const data = await response.json();
