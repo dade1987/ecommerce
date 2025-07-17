@@ -16,4 +16,5 @@ Describe the chatbot's features (how to retrieve information about services, ava
 TXT,
     'user_data_submitted' => 'Thank you! Your data has been successfully saved.',
     'fallback_message' => 'For a more specific setup for your business, contact 3487433620 Giuliano',
+    'order_created_successfully' => 'Thank you! Your order has been created successfully.',
 ]; 

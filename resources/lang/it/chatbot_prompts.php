@@ -16,4 +16,5 @@ Descrivi le funzionalità del chatbot (come recuperare informazioni sui servizi,
 TXT,
     'user_data_submitted' => 'Grazie! I tuoi dati sono stati registrati con successo.',
     'fallback_message' => 'Per un setup più specifico per la tua attività contatta 3487433620 Giuliano',
+    'order_created_successfully' => 'Grazie! Il tuo ordine è stato creato con successo.',
 ]; 

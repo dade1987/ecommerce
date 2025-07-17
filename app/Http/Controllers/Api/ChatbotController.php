@@ -6,9 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Models\Quoter;
 use App\Models\Team;
+use App\Models\Product;
+use App\Models\Event;
+use App\Models\Order;
+use App\Models\Faq;
 use GuzzleHttp\Client;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Log;
 use OpenAI;
 use OpenAI\Client as OpenAIClient;
@@ -276,7 +279,7 @@ class ChatbotController extends Controller
                             $output = $this->fetchAvailableTimes($teamSlug);
                             break;
                         case 'createOrder':
-                            $output = $this->createOrder($arguments['user_phone'], $arguments['delivery_date'], $arguments['product_ids'] ?? [], $teamSlug);
+                            $output = $this->createOrder($arguments['user_phone'], $arguments['delivery_date'], $arguments['product_ids'] ?? [], $teamSlug, $locale);
                             break;
                         case 'submitUserData':
                             $output = $this->submitUserData($arguments['user_phone'], $arguments['user_email'], $arguments['user_name'], $teamSlug, $locale, $activityUuid);
@@ -365,52 +368,46 @@ class ChatbotController extends Controller
             'productNames' => $productNames,
             'teamSlug'     => $teamSlug,
         ]);
-        $client = new Client();
-        $products = [];
 
-        if (empty($productNames)) {
-            Log::info('fetchProductData: Richiesta indice di tutti i prodotti e servizi');
-            $response = $client->get("https://cavalliniservice.com/api/products/{$teamSlug}");
-            $products = json_decode($response->getBody(), true);
-        } else {
-            foreach ($productNames as $name) {
-                Log::info('fetchProductData: Richiesta dati per prodotto o servizio', ['name' => $name]);
-                $response = $client->get("https://cavalliniservice.com/api/products/{$teamSlug}", [
-                    'query' => ['name' => $name],
-                ]);
-                $productData = json_decode($response->getBody(), true);
-                $products = array_merge($products, $productData);
-            }
+        $team = Team::where('slug', $teamSlug)->firstOrFail();
+        $query = Product::where('team_id', $team->id);
+
+        if (!empty($productNames)) {
+            $query->where(function ($q) use ($productNames) {
+                foreach ($productNames as $name) {
+                    $q->orWhere('name', 'like', '%' . $name . '%');
+                }
+            });
         }
 
+        $products = $query->get()->toArray();
         Log::info('fetchProductData: Dati prodotti e servizi finali', ['products' => $products]);
-
         return $products;
     }
 
     private function fetchAddressData($teamSlug)
     {
         Log::info('fetchAddressData: Inizio recupero dati indirizzo', ['teamSlug' => $teamSlug]);
-        $client = new Client();
-        $response = $client->get("https://cavalliniservice.com/api/teams/{$teamSlug}");
-        $addressData = json_decode($response->getBody(), true);
-        Log::info('fetchAddressData: Dati indirizzo ricevuti', ['addressData' => $addressData]);
-
-        return $addressData;
+        $team = Team::where('slug', $teamSlug)->firstOrFail();
+        Log::info('fetchAddressData: Dati indirizzo ricevuti', ['addressData' => $team->toArray()]);
+        return $team->toArray();
     }
 
     private function fetchAvailableTimes($teamSlug)
     {
         Log::info('fetchAvailableTimes: Inizio recupero orari disponibili', ['teamSlug' => $teamSlug]);
-        $client = new Client();
-        $response = $client->get("https://cavalliniservice.com/api/events/{$teamSlug}");
-        $availableTimes = json_decode($response->getBody(), true);
-        Log::info('fetchAvailableTimes: Orari disponibili ricevuti', ['availableTimes' => $availableTimes]);
-
-        return $availableTimes;
+        $team = Team::where('slug', $teamSlug)->firstOrFail();
+        $events = Event::where('team_id', $team->id)
+            ->where('name', 'Disponibile')
+            ->where('starts_at', '>=', now())
+            ->orderBy('starts_at', 'asc')
+            ->get(['starts_at', 'ends_at', 'name', 'featured_image_id', 'description'])
+            ->toArray();
+        Log::info('fetchAvailableTimes: Orari disponibili ricevuti', ['availableTimes' => $events]);
+        return $events;
     }
 
-    private function createOrder($userPhone, $deliveryDate, $productIds, $teamSlug)
+    private function createOrder($userPhone, $deliveryDate, $productIds, $teamSlug, string $locale)
     {
         Log::info('createOrder: Inizio creazione ordine', [
             'userPhone'    => $userPhone,
@@ -418,18 +415,23 @@ class ChatbotController extends Controller
             'productIds'   => $productIds,
             'teamSlug'     => $teamSlug,
         ]);
-        $client = new Client();
-        $response = $client->post("https://cavalliniservice.com/api/order/{$teamSlug}", [
-            'json' => [
-                'user_phone'    => $userPhone,
-                'delivery_date' => $deliveryDate,
-                'product_ids'   => $productIds,
-            ],
-        ]);
+        $team = Team::where('slug', $teamSlug)->firstOrFail();
 
-        $orderData = json_decode($response->getBody(), true);
+        $order = new Order();
+        $order->team_id = $team->id;
+        $order->delivery_date = $deliveryDate;
+        $order->phone = $userPhone;
+        $order->save();
+
+        if (!empty($productIds)) {
+            $order->products()->attach($productIds);
+        }
+
+        $orderData = [
+            'order_id' => $order->id,
+            'message'  => trans('chatbot_prompts.order_created_successfully', [], $locale),
+        ];
         Log::info('createOrder: Ordine creato', ['orderData' => $orderData]);
-
         return $orderData;
     }
 
@@ -479,14 +481,13 @@ class ChatbotController extends Controller
     private function fetchFAQs($teamSlug, $query)
     {
         Log::info('fetchFAQs: Inizio recupero FAQ', ['teamSlug' => $teamSlug, 'query' => $query]);
-        $client = new Client();
-        $response = $client->get("https://cavalliniservice.com/api/faqs/{$teamSlug}", [
-            'query' => ['query' => $query],
-        ]);
-        $faqData = json_decode($response->getBody(), true);
-        Log::info('fetchFAQs: FAQ ricevute', ['faqData' => $faqData]);
-
-        return $faqData;
+        $team = Team::where('slug', $teamSlug)->firstOrFail();
+        $faqs = Faq::where('team_id', $team->id)
+            ->whereRaw('MATCH(question, answer) AGAINST(? IN NATURAL LANGUAGE MODE)', [$query])
+            ->get(['question', 'answer'])
+            ->toArray();
+        Log::info('fetchFAQs: FAQ ricevute', ['faqData' => $faqs]);
+        return $faqs;
     }
 
     /**
@@ -515,7 +516,7 @@ class ChatbotController extends Controller
 
         // 1) Scarica il contenuto dal sito
         try {
-            $client = new Client();
+            $client = new \GuzzleHttp\Client();
             $response = $client->get($customer->website);
             $html = $response->getBody()->getContents();
         } catch (\Exception $e) {
