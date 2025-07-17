@@ -1,20 +1,20 @@
 @aware(['page'])
 
-<h2 class="text-2xl font-bold text-gray-800 text-center mb-6">Fai il tuo preventivo con l'AI</h2>
+<h2 class="text-2xl font-bold text-gray-800 text-center mb-6">{{ __('quoter.title') }}</h2>
 
 <div class="flex bg-white h-[70vh]">
 
     <div id="chatbox-window" class="flex flex-col flex-1 overflow-hidden">
         <div id="drop-area" class="border-dashed border-2 border-gray-400 p-4 rounded-lg mb-2 text-center">
-            Trascina qui i file o clicca per caricarli
+            {{ __('quoter.upload_area') }}
         </div>
         <input type="file" id="fileElem" class="hidden" multiple>
         <div id="chatbox" class="flex-1 overflow-y-auto p-4 bg-gray-50"></div>
         <div class="pb-4 flex items-center p-2 bg-gray-100">
-            <input type="text" id="user-input" class="flex-grow border rounded-l-lg p-2" placeholder="Scrivi un messaggio...">
-            <button id="send-button" class="bg-blue-500 text-white p-2 rounded-r-lg">Invia</button>
+            <input type="text" id="user-input" class="flex-grow border rounded-l-lg p-2" placeholder="{{ __('quoter.placeholder') }}">
+            <button id="send-button" class="bg-blue-500 text-white p-2 rounded-r-lg">{{ __('quoter.send') }}</button>
         </div>
-        {{--<button id="generate-quote-button" class="bg-blue-500 text-white rounded-lg w-full p-4">Genera Preventivo</button>--}}
+        {{--<button id="generate-quote-button" class="bg-blue-500 text-white rounded-lg w-full p-4">{{ __('quoter.generate_quote') }}</button>--}}
     </div>
 </div>
 
@@ -23,16 +23,16 @@
 <div class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center hidden" id="quoteModal">
     <div class="bg-white rounded-lg overflow-hidden w-11/12 md:w-1/2 lg:w-1/3">
         <div class="p-4 flex justify-between items-center border-b">
-            <h5 class="text-xl font-bold" id="quoteModalLabel">AI-799</h5>
+            <h5 class="text-xl font-bold" id="quoteModalLabel">{{ __('quoter.modal_title') }}</h5>
             <button type="button" class="text-gray-400" id="closeModal">&times;</button>
         </div>
         <div class="p-4">
             <div id="quoteContent" class="p-4"></div>
         </div>
         <div class="p-4 border-t flex justify-end">
-            <button type="button" class="bg-gray-500 text-white p-2 rounded mr-2" id="closeModalButton">Chiudi</button>
-            <button type="button" class="bg-blue-500 text-white p-2 rounded" id="downloadPdf">Scarica PDF</button>
-            <button type="button" class="bg-green-500 text-white p-2 rounded" id="confirmQuote">Conferma Preventivo</button>
+            <button type="button" class="bg-gray-500 text-white p-2 rounded mr-2" id="closeModalButton">{{ __('quoter.close') }}</button>
+            <button type="button" class="bg-blue-500 text-white p-2 rounded" id="downloadPdf">{{ __('quoter.download_pdf') }}</button>
+            <button type="button" class="bg-green-500 text-white p-2 rounded" id="confirmQuote">{{ __('quoter.confirm_quote') }}</button>
         </div>
     </div>
 </div>
@@ -93,13 +93,13 @@
 
         })
         .catch(error => {
-            addMessageToChatbox('Errore', `Errore durante il caricamento del file: ${file.name}`, 'border border-red-500 text-black');
+            addMessageToChatbox("{{ __('quoter.error') }}", `{{ __('quoter.file_upload_error') }} ${file.name}`, 'border border-red-500 text-black');
         });
     }
 
     document.getElementById('confirmQuote').addEventListener('click', function() {
         console.log(quoteContent);
-        alert('Preventivo Inviato');
+        alert("{{ __('quoter.quote_sent') }}");
         document.getElementById('quoteModal').classList.add('hidden');
     });
 
@@ -135,7 +135,7 @@
     document.getElementById('send-button').addEventListener('click', () => {
         const userInput = document.getElementById('user-input').value;
         if (userInput) {
-            addMessageToChatbox('Tu', userInput, 'border border-blue-500 text-black');
+            addMessageToChatbox("{{ __('quoter.you') }}", userInput, 'border border-blue-500 text-black');
             addLoadingIndicator();
             sendMessageToServer(userInput);
             document.getElementById('user-input').value = '';
@@ -146,7 +146,7 @@
         if (event.key === 'Enter' || event.keyCode === 13) {
             const userInput = document.getElementById('user-input').value;
             if (userInput) {
-                addMessageToChatbox('Tu', userInput, 'border border-blue-500 text-black');
+                addMessageToChatbox("{{ __('quoter.you') }}", userInput, 'border border-blue-500 text-black');
                 addLoadingIndicator();
                 sendMessageToServer(userInput);
                 document.getElementById('user-input').value = '';
@@ -159,7 +159,7 @@
         const loadingElement = document.createElement('div');
         loadingElement.id = 'loading-indicator';
         loadingElement.classList.add('p-4', 'rounded-lg', 'bg-gray-200', 'text-black', 'mt-2');
-        loadingElement.innerHTML = '<h5>'+chatbotName+'</h5><span class="loading-dots">Sto rispondendo</span>';
+        loadingElement.innerHTML = '<h5>'+chatbotName+'</h5><span class="loading-dots">{{ __("quoter.waiting_for_response") }}</span>';
         chatbox.appendChild(loadingElement);
         chatbox.scrollTop = chatbox.scrollHeight;
     }
@@ -172,8 +172,8 @@
     }
 
     {{-- document.getElementById('generate-quote-button').addEventListener('click', () => {
-        addMessageToChatbox('Tu', 'Genera Preventivo', 'border border-blue-500 text-black');
-        sendMessageToServer('Genera Preventivo');
+        addMessageToChatbox("{{ __('quoter.you') }}", "{{ __('quoter.generate_quote') }}", 'border border-blue-500 text-black');
+        sendMessageToServer("{{ __('quoter.generate_quote') }}");
     }); --}}
 
     function addMessageToChatbox(sender, message, messageType) {
@@ -222,17 +222,17 @@
                         <h3 class="text-lg font-semibold">AI-799</h3>
                     </div>
                     <div>
-                        <h3 class="text-lg font-semibold">Informazioni Personali</h3>
-                        <p><strong>Nome:</strong> ${jsonParsed.personal_info.first_name} ${jsonParsed.personal_info.last_name}</p>
-                        <p><strong>Numero di Telefono:</strong> ${jsonParsed.personal_info.phone_number}</p>
-                        <p><strong>Email:</strong> ${jsonParsed.personal_info.email}</p>
+                        <h3 class="text-lg font-semibold">{{ __("quoter.personal_info") }}</h3>
+                        <p><strong>{{ __("quoter.name") }}</strong> ${jsonParsed.personal_info.first_name} ${jsonParsed.personal_info.last_name}</p>
+                        <p><strong>{{ __("quoter.phone_number") }}</strong> ${jsonParsed.personal_info.phone_number}</p>
+                        <p><strong>{{ __("quoter.email") }}</strong> ${jsonParsed.personal_info.email}</p>
                     </div>
                     <table class="w-full mt-4 bg-white shadow-md rounded-lg">
                         <thead class="bg-gray-200">
                             <tr>
-                                <th class="p-2">Prodotto</th>
-                                <th class="p-2">Quantità</th>
-                                <th class="p-2">Prezzo</th>
+                                <th class="p-2">{{ __("quoter.product") }}</th>
+                                <th class="p-2">{{ __("quoter.quantity") }}</th>
+                                <th class="p-2">{{ __("quoter.price") }}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -244,15 +244,15 @@
                                                             </tr>
                                                         `).join('')}
                             <tr class="font-semibold">
-                                <td colspan="2" class="p-2 text-right border">Prezzo Netto</td>
+                                <td colspan="2" class="p-2 text-right border">{{ __("quoter.net_price") }}</td>
                                 <td class="p-2 border">€ ${jsonParsed.price_info.net_price.toFixed(2)}</td>
                             </tr>
                             <tr class="font-semibold">
-                                <td colspan="2" class="p-2 text-right border">IVA</td>
+                                <td colspan="2" class="p-2 text-right border">{{ __("quoter.vat") }}</td>
                                 <td class="p-2 border">€ ${jsonParsed.price_info.vat.toFixed(2)}</td>
                             </tr>
                             <tr class="font-semibold">
-                                <td colspan="2" class="p-2 text-right border">Prezzo Totale</td>
+                                <td colspan="2" class="p-2 text-right border">{{ __("quoter.total_price") }}</td>
                                 <td class="p-2 border">€ ${jsonParsed.price_info.total.toFixed(2)}</td>
                             </tr>
                         </tbody>
@@ -267,7 +267,7 @@
                 addMessageToChatbox(chatbotName, data.response, 'border border-gray-200 text-black');
             }
         } catch (error) {
-            addMessageToChatbox('Errore', error.message, 'border border-red-500 text-black');
+            addMessageToChatbox("{{ __('quoter.error') }}", error.message, 'border border-red-500 text-black');
         } finally {
             removeLoadingIndicator();
         }
@@ -282,7 +282,7 @@
         });
 
         addMessageToChatbox(chatbotName,
-            'Ciao. Benvenuto in '+chatbotName+'. Attendi alcuni secondi...',
+            "{{ __('quoter.welcome_message') }} "+chatbotName+". {{ __('quoter.wait_message') }}",
             'border border-gray-200 text-black');
 
         sendMessageToServer('Intro');
