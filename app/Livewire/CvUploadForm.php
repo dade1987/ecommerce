@@ -41,7 +41,7 @@ class CvUploadForm extends Component
         // Invia email di notifica
         Mail::to(config('mail.from.address'))->send(new NewCvSubmission($this->name, $this->email, $filePath));
 
-        session()->flash('success', 'Candidatura inviata con successo! Grazie.');
+        session()->flash('success', __('cv-upload-form.submission_success'));
 
         $this->reset(['name', 'email', 'cv', 'privacy_consent']);
     }
