@@ -1,0 +1,35 @@
+<?php
+
+return [
+    'choose_method' => 'Scegli come fornire i dati',
+    'upload_file' => 'Carica File',
+    'upload_file_desc' => 'Seleziona un file dal tuo dispositivo.',
+    'take_photo' => 'Scatta Foto',
+    'take_photo_desc' => "Usa la fotocamera per un'acquisizione rapida.",
+    'record_audio' => 'Registra Audio',
+    'record_audio_desc' => "Registra un vocale con i dettagli dell'ordine.",
+    'back' => 'Indietro',
+    'upload_the_file' => 'Carica il file:',
+    'submit' => 'Invia',
+    'take_photo_title' => 'Scatta Foto',
+    'snap_and_send' => 'Scatta e Invia',
+    'sending_in_progress' => 'Invio in corso...',
+    'photo_sent_successfully' => 'Foto inviata con successo!',
+    'record_audio_order' => 'Registra Ordine Audio',
+    'start_recording' => 'Inizia Registrazione',
+    'recording_in_progress_status' => 'Registrazione in corso...',
+    'stop' => 'Ferma',
+    'recording_complete' => 'Registrazione completata.',
+    'send_audio' => 'Invia Audio',
+    'sending' => 'Invio...',
+    'record_again' => 'Registra di nuovo',
+
+    // Stringhe JavaScript
+    'camera_access_error' => "Impossibile accedere alla fotocamera. Assicurati di aver dato i permessi e che sia disponibile.",
+    'blob_creation_error' => "Errore nella creazione dell'immagine. Riprova.",
+    'csrf_token_error' => 'Errore: Token di sicurezza non trovato. Ricaricare la pagina.',
+    'audio_unsupported' => 'Il tuo browser non supporta la registrazione audio.',
+    'mic_access_error' => 'Impossibile accedere al microfono. Assicurati di aver dato i permessi.',
+    'audio_conversion_error' => "Errore nella conversione del file audio.",
+    'select_file_before_submit' => 'Per favore, seleziona un file prima di inviare.',
+]; 

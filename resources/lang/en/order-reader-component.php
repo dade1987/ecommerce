@@ -1,0 +1,35 @@
+<?php
+
+return [
+    'choose_method' => 'Choose how to provide the data',
+    'upload_file' => 'Upload File',
+    'upload_file_desc' => 'Select a file from your device.',
+    'take_photo' => 'Take Photo',
+    'take_photo_desc' => 'Use the camera for a quick capture.',
+    'record_audio' => 'Record Audio',
+    'record_audio_desc' => 'Record a voice message with the order details.',
+    'back' => 'Back',
+    'upload_the_file' => 'Upload the file:',
+    'submit' => 'Submit',
+    'take_photo_title' => 'Take Photo',
+    'snap_and_send' => 'Snap and Send',
+    'sending_in_progress' => 'Sending in progress...',
+    'photo_sent_successfully' => 'Photo sent successfully!',
+    'record_audio_order' => 'Record Audio Order',
+    'start_recording' => 'Start Recording',
+    'recording_in_progress_status' => 'Recording in progress...',
+    'stop' => 'Stop',
+    'recording_complete' => 'Recording complete.',
+    'send_audio' => 'Send Audio',
+    'sending' => 'Sending...',
+    'record_again' => 'Record again',
+
+    // JavaScript strings
+    'camera_access_error' => 'Could not access the camera. Please ensure you have granted permission and that it is available.',
+    'blob_creation_error' => 'Error creating the image. Please try again.',
+    'csrf_token_error' => 'Error: Security token not found. Please reload the page.',
+    'audio_unsupported' => 'Your browser does not support audio recording.',
+    'mic_access_error' => 'Could not access the microphone. Please ensure you have granted permission.',
+    'audio_conversion_error' => 'Error converting the audio file.',
+    'select_file_before_submit' => 'Please select a file before submitting.',
+]; 

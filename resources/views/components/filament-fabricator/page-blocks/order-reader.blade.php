@@ -15,15 +15,15 @@
              x-transition:leave-start="opacity-100 transform scale-100"
              x-transition:leave-end="opacity-0 transform scale-90">
 
-            <p class="text-lg text-gray-500 dark:text-gray-400 mb-8">Scegli come fornire i dati</p>
+            <p class="text-lg text-gray-500 dark:text-gray-400 mb-8">{{ __('order-reader-component.choose_method') }}</p>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <!-- Option 1: Upload File -->
                 <div @click="setStep('upload')" class="relative p-6 bg-white dark:bg-gray-800 rounded-xl shadow-lg cursor-pointer transform hover:scale-105 transition-transform duration-300">
                     <div class="flex flex-col items-center justify-center">
                         <svg class="w-16 h-16 text-blue-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-                        <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Carica File</h2>
-                        <p class="text-gray-500 dark:text-gray-400 mt-1">Seleziona un file dal tuo dispositivo.</p>
+                        <h2 class="text-2xl font-bold text-gray-800 dark:text-white">{{ __('order-reader-component.upload_file') }}</h2>
+                        <p class="text-gray-500 dark:text-gray-400 mt-1">{{ __('order-reader-component.upload_file_desc') }}</p>
                     </div>
                 </div>
 
@@ -34,8 +34,8 @@
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                         </svg>
-                        <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Scatta Foto</h2>
-                        <p class="text-gray-500 dark:text-gray-400 mt-1">Usa la fotocamera per un'acquisizione rapida.</p>
+                        <h2 class="text-2xl font-bold text-gray-800 dark:text-white">{{ __('order-reader-component.take_photo') }}</h2>
+                        <p class="text-gray-500 dark:text-gray-400 mt-1">{{ __('order-reader-component.take_photo_desc') }}</p>
                     </div>
                 </div>
 
@@ -45,8 +45,8 @@
                         <svg class="w-16 h-16 text-blue-500 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 016 0v8.25a3 3 0 01-3 3z" />
                         </svg>
-                        <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Registra Audio</h2>
-                        <p class="text-gray-500 dark:text-gray-400 mt-1">Registra un vocale con i dettagli dell'ordine.</p>
+                        <h2 class="text-2xl font-bold text-gray-800 dark:text-white">{{ __('order-reader-component.record_audio') }}</h2>
+                        <p class="text-gray-500 dark:text-gray-400 mt-1">{{ __('order-reader-component.record_audio_desc') }}</p>
                     </div>
                 </div>
             </div>
@@ -59,18 +59,18 @@
              x-transition:enter-end="opacity-100 transform scale-100">
             
             <button @click="setStep('options')" class="absolute top-4 left-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white z-10">
-                &larr; Indietro
+                &larr; {{ __('order-reader-component.back') }}
             </button>
             
             <div class="max-w-7xl mx-auto bg-white dark:bg-gray-800 shadow-md rounded-lg p-6">
                 <form id="upload-form" action="/api/calzaturiero/process-order/{{ $slug }}" method="POST" enctype="multipart/form-data" class="space-y-6">
                     @csrf
                     <div class="flex flex-col">
-                        <label for="file" class="mb-2 text-lg font-medium text-gray-700 dark:text-gray-200">Carica il file:</label>
+                        <label for="file" class="mb-2 text-lg font-medium text-gray-700 dark:text-gray-200">{{ __('order-reader-component.upload_the_file') }}</label>
                         <input type="file" id="file" name="file" required class="p-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-700 dark:text-gray-300">
                     </div>
                     <div class="flex justify-end">
-                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">Invia</button>
+                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">{{ __('order-reader-component.submit') }}</button>
                     </div>
                 </form>
             </div>
@@ -83,22 +83,22 @@
              x-transition:enter-end="opacity-100 transform scale-100">
 
             <button @click="setStep('options')" class="absolute top-4 left-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white z-10">
-                &larr; Indietro
+                &larr; {{ __('order-reader-component.back') }}
             </button>
 
-             <h2 class="mb-4 text-2xl font-bold text-center text-gray-800 dark:text-white">Scatta Foto</h2>
+             <h2 class="mb-4 text-2xl font-bold text-center text-gray-800 dark:text-white">{{ __('order-reader-component.take_photo_title') }}</h2>
              <div class="mt-8 text-center bg-white dark:bg-gray-800 shadow-md rounded-lg p-6">
                  <div x-show="!photoTaken">
                     <video x-ref="video" class="w-full rounded-lg" autoplay playsinline></video>
                     <canvas x-ref="canvas" class="hidden"></canvas>
                     <button @click.stop="takePhoto()" :disabled="submitting" class="inline-flex items-center justify-center px-5 py-3 mt-4 text-base font-medium text-center text-white bg-blue-700 rounded-lg hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-900 disabled:bg-blue-400">
-                        <span x-show="!submitting">Scatta e Invia</span>
-                        <span x-show="submitting">Invio in corso...</span>
+                        <span x-show="!submitting">{{ __('order-reader-component.snap_and_send') }}</span>
+                        <span x-show="submitting">{{ __('order-reader-component.sending_in_progress') }}</span>
                     </button>
                  </div>
                  <div x-show="photoTaken" class="mt-4">
                      <img :src="photoUrl" class="w-full rounded-lg">
-                     <p class="mt-2 text-sm text-green-500 dark:text-green-400">Foto inviata con successo!</p>
+                     <p class="mt-2 text-sm text-green-500 dark:text-green-400">{{ __('order-reader-component.photo_sent_successfully') }}</p>
                  </div>
              </div>
         </div>
@@ -110,18 +110,18 @@
              x-transition:enter-end="opacity-100 transform scale-100">
 
             <button @click="setStep('options')" class="absolute top-4 left-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white z-10">
-                &larr; Indietro
+                &larr; {{ __('order-reader-component.back') }}
             </button>
 
-            <h2 class="mb-4 text-2xl font-bold text-center text-gray-800 dark:text-white">Registra Ordine Audio</h2>
+            <h2 class="mb-4 text-2xl font-bold text-center text-gray-800 dark:text-white">{{ __('order-reader-component.record_audio_order') }}</h2>
             <div class="mt-8 text-center bg-white dark:bg-gray-800 shadow-md rounded-lg p-6">
                 <div x-show="!isRecording && !audioBlob">
                     <button @click="startRecording()" class="inline-flex items-center justify-center px-5 py-3 text-base font-medium text-center text-white bg-red-700 rounded-lg hover:bg-red-800 focus:ring-4 focus:ring-red-300 dark:focus:ring-red-900">
-                        Inizia Registrazione
+                        {{ __('order-reader-component.start_recording') }}
                     </button>
                 </div>
                 <div x-show="isRecording">
-                    <p class="text-lg text-gray-700 dark:text-gray-300">Registrazione in corso...</p>
+                    <p class="text-lg text-gray-700 dark:text-gray-300">{{ __('order-reader-component.recording_in_progress_status') }}</p>
                     <div class="mt-4 flex justify-center items-center space-x-2">
                         <span class="relative flex h-3 w-3">
                           <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
@@ -129,17 +129,17 @@
                         </span>
                         <span x-text="recordingTime + 's'"></span>
                     </div>
-                    <button @click="stopRecording()" class="px-4 py-2 mt-4 bg-gray-600 text-white font-semibold rounded-md hover:bg-gray-700">Ferma</button>
+                    <button @click="stopRecording()" class="px-4 py-2 mt-4 bg-gray-600 text-white font-semibold rounded-md hover:bg-gray-700">{{ __('order-reader-component.stop') }}</button>
                 </div>
                 <div x-show="audioBlob">
-                     <p class="text-lg text-gray-700 dark:text-gray-300 mb-4">Registrazione completata.</p>
+                     <p class="text-lg text-gray-700 dark:text-gray-300 mb-4">{{ __('order-reader-component.recording_complete') }}</p>
                      <audio :src="audioUrl" controls class="w-full"></audio>
                      <div class="flex justify-center space-x-4 mt-4">
                         <button @click="sendAudio" :disabled="submitting" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 disabled:bg-blue-400">
-                            <span x-show="!submitting">Invia Audio</span>
-                            <span x-show="submitting">Invio...</span>
+                            <span x-show="!submitting">{{ __('order-reader-component.send_audio') }}</span>
+                            <span x-show="submitting">{{ __('order-reader-component.sending') }}</span>
                         </button>
-                         <button @click="resetRecording" class="px-4 py-2 bg-gray-300 text-gray-700 font-semibold rounded-md hover:bg-gray-400">Registra di nuovo</button>
+                         <button @click="resetRecording" class="px-4 py-2 bg-gray-300 text-gray-700 font-semibold rounded-md hover:bg-gray-400">{{ __('order-reader-component.record_again') }}</button>
                      </div>
                 </div>
             </div>
@@ -147,6 +147,18 @@
 
     </div>
 </div>
+
+<script>
+    const translations = {
+        camera_access_error: "{{ __('order-reader-component.camera_access_error') }}",
+        blob_creation_error: "{{ __('order-reader-component.blob_creation_error') }}",
+        csrf_token_error: "{{ __('order-reader-component.csrf_token_error') }}",
+        audio_unsupported: "{{ __('order-reader-component.audio_unsupported') }}",
+        mic_access_error: "{{ __('order-reader-component.mic_access_error') }}",
+        audio_conversion_error: "{{ __('order-reader-component.audio_conversion_error') }}",
+        select_file_before_submit: "{{ __('order-reader-component.select_file_before_submit') }}",
+    };
+</script>
 
 @push('scripts')
 <script>
@@ -187,6 +199,7 @@
                 if(form) {
                     this.actionUrl = form.getAttribute('action');
                 }
+                 this.translations = translations;
             },
 
             setStep(newStep) {
@@ -213,7 +226,7 @@
                     this.$refs.video.srcObject = this.stream;
                 } catch (err) {
                     console.error("Errore nell'accesso alla fotocamera: ", err);
-                    alert("Impossibile accedere alla fotocamera. Assicurati di aver dato i permessi e che sia disponibile.");
+                    alert(this.translations.camera_access_error);
                     this.setStep('options');
                 }
             },
@@ -242,7 +255,7 @@
                 canvas.toBlob(blob => {
                     if (!blob) {
                         console.error('Impossibile creare il blob dall\'immagine');
-                        alert('Errore nella creazione dell\'immagine. Riprova.');
+                        alert(this.translations.blob_creation_error);
                         this.submitting = false;
                         return;
                     }
@@ -256,7 +269,7 @@
                     const csrfTokenElement = document.querySelector('#upload-form input[name="_token"]');
                     if (!csrfTokenElement) {
                         console.error('CSRF token not found');
-                        alert('Errore: Token di sicurezza non trovato. Ricaricare la pagina.');
+                        alert(this.translations.csrf_token_error);
                         this.submitting = false;
                         return;
                     }
@@ -279,7 +292,7 @@
             
             async startRecording() {
                 if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                    alert('Il tuo browser non supporta la registrazione audio.');
+                    alert(this.translations.audio_unsupported);
                     return;
                 }
                 this.resetRecording();
@@ -314,7 +327,7 @@
                     this.mediaRecorder.start();
                 } catch (err) {
                     console.error('Errore accesso microfono:', err);
-                    alert('Impossibile accedere al microfono. Assicurati di aver dato i permessi.');
+                    alert(this.translations.mic_access_error);
                     this.isRecording = false;
                 }
             },
@@ -356,7 +369,7 @@
                     const csrfTokenElement = document.querySelector('#upload-form input[name="_token"]');
                     if (!csrfTokenElement) {
                         console.error('CSRF token not found');
-                        alert('Errore: Token di sicurezza non trovato. Ricaricare la pagina.');
+                        alert(this.translations.csrf_token_error);
                         this.submitting = false;
                         return;
                     }
@@ -377,7 +390,7 @@
                 };
 
                 reader.onerror = () => {
-                    alert('Errore nella conversione del file audio.');
+                    alert(this.translations.audio_conversion_error);
                     this.submitting = false;
                 };
             },
@@ -386,7 +399,7 @@
                 const form = event.target;
                 if (form.elements.file.files.length === 0) {
                     event.preventDefault();
-                    alert('Per favore, seleziona un file prima di inviare.');
+                    alert(this.translations.select_file_before_submit);
                     return;
                 }
                 
