@@ -15,4 +15,5 @@ return [
     'unit_price' => 'Prezzo Unitario (€)',
     'total' => 'Totale (€)',
     'order_total' => 'Totale Ordine',
+    'filename' => 'ordine',
 ]; 

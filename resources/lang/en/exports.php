@@ -15,4 +15,5 @@ return [
     'unit_price' => 'Unit Price ($)',
     'total' => 'Total ($)',
     'order_total' => 'Order Total',
+    'filename' => 'order',
 ]; 

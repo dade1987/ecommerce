@@ -213,7 +213,8 @@ class CalzaturieroController extends Controller
                 if (! class_exists($exportClassName)) {
                     throw new \Exception("La classe di esportazione '{$exportClassName}' non esiste.");
                 }
-                $fileName = 'ordine.' . ($extractor->export_format === 'csv' ? 'csv' : 'xlsx');
+                $baseFileName = trans('exports.filename', [], $locale);
+                $fileName = $baseFileName . '.' . ($extractor->export_format === 'csv' ? 'csv' : 'xlsx');
                 return Excel::download(new $exportClassName($orderData, $locale), $fileName);
             }
 
