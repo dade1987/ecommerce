@@ -43,6 +43,7 @@ class CalzaturieroController extends Controller
     {
         $extractor = Extractor::where('slug', $slug)->firstOrFail();
         $processedFile = null;
+        $locale = $request->input('locale', 'it'); // Default to Italian
 
         try {
             if (! $request->hasFile('file') && ! $request->input('file_data_url')) {
@@ -213,7 +214,7 @@ class CalzaturieroController extends Controller
                     throw new \Exception("La classe di esportazione '{$exportClassName}' non esiste.");
                 }
                 $fileName = 'ordine.' . ($extractor->export_format === 'csv' ? 'csv' : 'xlsx');
-                return Excel::download(new $exportClassName($orderData), $fileName);
+                return Excel::download(new $exportClassName($orderData, $locale), $fileName);
             }
 
             return response()->json($orderData);

@@ -3,7 +3,7 @@
     'slug',
 ])
 
-<div x-data="orderReader()" x-init="init()" class="relative p-4 md:p-8 bg-gray-100 dark:bg-gray-900 min-h-[50vh] flex flex-col items-center justify-center">
+<div x-data="orderReader()" x-init="init('{{ app()->getLocale() }}')" class="relative p-4 md:p-8 bg-gray-100 dark:bg-gray-900 min-h-[50vh] flex flex-col items-center justify-center">
 
     <div class="w-full max-w-2xl text-center">
         <!-- Step 1: Choose method -->
@@ -63,8 +63,9 @@
             </button>
             
             <div class="max-w-7xl mx-auto bg-white dark:bg-gray-800 shadow-md rounded-lg p-6">
-                <form id="upload-form" action="/api/calzaturiero/process-order/{{ $slug }}" method="POST" enctype="multipart/form-data" class="space-y-6">
+                <form id="upload-form" action="/api/calzaturiero/process-order/{{ $slug }}" method="POST" enctype="multipart/form-data" class="space-y-6" @submit.prevent="submitForm($event)">
                     @csrf
+                    <input type="hidden" name="locale" :value="locale">
                     <div class="flex flex-col">
                         <label for="file" class="mb-2 text-lg font-medium text-gray-700 dark:text-gray-200">{{ __('order-reader-component.upload_the_file') }}</label>
                         <input type="file" id="file" name="file" required class="p-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-700 dark:text-gray-300">
@@ -178,6 +179,7 @@
             audioUrl: '',
             recordingTime: 0,
             recordingTimer: null,
+            locale: 'en',
 
             _findSupportedMimeType() {
                 const mimeTypes = [
@@ -194,7 +196,8 @@
                 return ''; // Fallback to browser default
             },
 
-            init() {
+            init(currentLocale) {
+                this.locale = currentLocale;
                 const form = document.getElementById('upload-form');
                 if(form) {
                     this.actionUrl = form.getAttribute('action');
@@ -278,6 +281,12 @@
                     csrfInput.name = '_token';
                     csrfInput.value = csrfTokenElement.value;
                     form.appendChild(csrfInput);
+
+                    const localeInput = document.createElement('input');
+                    localeInput.type = 'hidden';
+                    localeInput.name = 'locale';
+                    localeInput.value = this.locale;
+                    form.appendChild(localeInput);
 
                     const dataUrlInput = document.createElement('input');
                     dataUrlInput.type = 'hidden';
@@ -379,6 +388,12 @@
                     csrfInput.value = csrfTokenElement.value;
                     form.appendChild(csrfInput);
 
+                    const localeInput = document.createElement('input');
+                    localeInput.type = 'hidden';
+                    localeInput.name = 'locale';
+                    localeInput.value = this.locale;
+                    form.appendChild(localeInput);
+
                     const dataUrlInput = document.createElement('input');
                     dataUrlInput.type = 'hidden';
                     dataUrlInput.name = 'file_data_url';
@@ -403,7 +418,8 @@
                     return;
                 }
                 
-                // Allow native form submission to handle the response
+                // Manually submit the form to include the locale
+                form.submit();
             }
         }
     }

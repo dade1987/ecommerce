@@ -11,10 +11,12 @@ use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 class OrdineExport implements FromArray, WithTitle, WithStyles
 {
     protected array $dati;
+    protected string $locale;
 
-    public function __construct(array $exportData)
+    public function __construct(array $exportData, string $locale = 'it')
     {
         $this->dati = $exportData;
+        $this->locale = $locale;
     }
 
     public function array(): array
@@ -39,18 +41,24 @@ class OrdineExport implements FromArray, WithTitle, WithStyles
         $output = [];
 
         // Sezione Intestazione
-        $output[] = ['Fornitore', $fornitoreNome];
-        $output[] = ['Indirizzo Fornitore', $fornitoreIndirizzo];
-        $output[] = ['Contatti Fornitore', $fornitoreContatti];
-        $output[] = ['Cliente', $clienteNome];
-        $output[] = ['Indirizzo Consegna', $clienteIndirizzo];
-        $output[] = ['Data Ordine', $ordineData];
-        $output[] = ['Numero Ordine', $ordineNumero];
-        $output[] = ['Termini di Consegna', $ordineTermini];
+        $output[] = [trans('exports.supplier', [], $this->locale), $fornitoreNome];
+        $output[] = [trans('exports.supplier_address', [], $this->locale), $fornitoreIndirizzo];
+        $output[] = [trans('exports.supplier_contacts', [], $this->locale), $fornitoreContatti];
+        $output[] = [trans('exports.customer', [], $this->locale), $clienteNome];
+        $output[] = [trans('exports.delivery_address', [], $this->locale), $clienteIndirizzo];
+        $output[] = [trans('exports.order_date', [], $this->locale), $ordineData];
+        $output[] = [trans('exports.order_number', [], $this->locale), $ordineNumero];
+        $output[] = [trans('exports.delivery_terms', [], $this->locale), $ordineTermini];
         $output[] = []; // Riga vuota di spaziatura
 
         // Intestazioni Tabella Articoli
-        $output[] = ['Codice Articolo', 'Descrizione', 'Quantità', 'Prezzo Unitario (€)', 'Totale (€)'];
+        $output[] = [
+            trans('exports.item_code', [], $this->locale),
+            trans('exports.description', [], $this->locale),
+            trans('exports.quantity', [], $this->locale),
+            trans('exports.unit_price', [], $this->locale),
+            trans('exports.total', [], $this->locale)
+        ];
 
         // Righe Articoli
         foreach ($articoli as $articolo) {
@@ -64,7 +72,7 @@ class OrdineExport implements FromArray, WithTitle, WithStyles
         }
 
         // Riga Totale
-        $output[] = ['', '', '', 'Totale Ordine', $ordineTotale];
+        $output[] = ['', '', '', trans('exports.order_total', [], $this->locale), $ordineTotale];
         
         return $output;
     }
