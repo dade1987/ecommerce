@@ -254,11 +254,9 @@ class ChatbotController extends Controller
             ]
         );
 
-        $runId = $run->id;
-        $status = $run->status;
-
-        while ($status !== 'completed') {
-            if ($status === 'requires_action' && isset($run->requiredAction)) {
+        // Loop until the run is in a terminal state
+        while (in_array($run->status, ['queued', 'in_progress', 'requires_action'])) {
+            if ($run->status === 'requires_action' && isset($run->requiredAction)) {
                 $toolCalls = $run->requiredAction->submitToolOutputs->toolCalls;
                 $toolOutputs = [];
 
@@ -300,42 +298,45 @@ class ChatbotController extends Controller
                     ];
                 }
 
-                $this->client->threads()->runs()->submitToolOutputs(
+                $run = $this->client->threads()->runs()->submitToolOutputs(
                     threadId: $threadId,
-                    runId: $runId,
+                    runId: $run->id,
                     parameters: [
                         'tool_outputs' => $toolOutputs,
                     ]
                 );
-
-                $run = $this->retrieveRunResult($threadId, $runId);
-                $status = $run->status;
-            } else {
-                // Handle other statuses if necessary, e.g., 'failed'
-                Log::error('handleChat: Run status is not "requires_action" or "completed"', ['runId' => $runId, 'status' => $status]);
-                break;
             }
+
+            // Wait for a second before polling again
+            sleep(1);
+            $run = $this->client->threads()->runs()->retrieve(threadId: $threadId, runId: $run->id);
+            Log::info('handleChat: Polling run status', ['status' => $run->status, 'runId' => $run->id]);
         }
 
-        // Run completato o non richiede altre azioni
-        $messages = $this->client->threads()->messages()->list($threadId)->data;
-        $content = $messages[0]->content[0]->text->value ?? 'Nessuna risposta trovata.';
 
-        // Salva il messaggio del chatbot nel modello Quoter
-        Quoter::create([
-            'thread_id' => $threadId,
-            'role'      => 'chatbot',
-            'content'   => $content,
-        ]);
-
-        // Formatta il contenuto della risposta
-        $formattedContent = $this->formatResponseContent($content);
-
-        return response()->json([
-            'message'     => $formattedContent,
-            'thread_id'   => $threadId,
-            'product_ids' => $productIds ?? [],
-        ]);
+        if ($run->status === 'completed') {
+            $messages = $this->client->threads()->messages()->list($threadId)->data;
+            $content = $messages[0]->content[0]->text->value ?? 'Nessuna risposta trovata.';
+    
+            // Salva il messaggio del chatbot nel modello Quoter
+            Quoter::create([
+                'thread_id' => $threadId,
+                'role'      => 'chatbot',
+                'content'   => $content,
+            ]);
+    
+            // Formatta il contenuto della risposta
+            $formattedContent = $this->formatResponseContent($content);
+    
+            return response()->json([
+                'message'     => $formattedContent,
+                'thread_id'   => $threadId,
+                'product_ids' => $productIds ?? [],
+            ]);
+        } else {
+             Log::error('handleChat: Run did not complete successfully.', ['status' => $run->status, 'run_data' => $run->toArray()]);
+            return response()->json(['error' => "The AI assistant could not process the request. Status: {$run->status}"], 500);
+        }
     }
 
     /**
