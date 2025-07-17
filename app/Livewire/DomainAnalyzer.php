@@ -5,6 +5,7 @@ namespace App\Livewire;
 use Livewire\Component;
 use App\Services\DomainAnalysisService;
 use App\Models\ScannedWebsite;
+use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Log;
 
 class DomainAnalyzer extends Component
@@ -33,8 +34,9 @@ class DomainAnalyzer extends Component
             ini_set('max_execution_time', 300);
 
             $existingScan = ScannedWebsite::where('domain', $this->domain)->first();
+            $locale = App::getLocale();
 
-            $this->result = $analysisService->analyze($this->domain);
+            $this->result = $analysisService->analyze($this->domain, $locale);
 
             if (isset($this->result['error'])) {
                 $errorMessage = is_array($this->result['error']) ? json_encode($this->result['error']) : $this->result['error'];

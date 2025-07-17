@@ -19,6 +19,7 @@ class NetworkScanningService
     protected $timeout;
     protected $results = [];
     protected ?string $openaiApiKey;
+    protected string $locale = 'en';
 
     public function __construct()
     {
@@ -35,8 +36,9 @@ class NetworkScanningService
     /**
      * Esegue port scan su un host specifico
      */
-    public function portScan(string $host, ?array $ports = null): array
+    public function portScan(string $host, ?array $ports = null, string $locale = 'en'): array
     {
+        $this->locale = $locale;
         $this->results = [
             'host' => $host,
             'scanned_ports' => [],
@@ -268,7 +270,7 @@ class NetworkScanningService
             $response = $client->chat()->create([
                 'model' => 'gpt-4o',
                 'messages' => [
-                    ['role' => 'system', 'content' => 'Sei un esperto di cybersecurity specializzato nell\'identificazione di servizi di rete. Analizza i banner dei servizi per identificare il software specifico, la versione e eventuali vulnerabilità.'],
+                    ['role' => 'system', 'content' => trans('prompts.banner_analysis_system', [], $this->locale)],
                     ['role' => 'user', 'content' => $prompt]
                 ],
                 'temperature' => 0.1,
@@ -327,36 +329,7 @@ class NetworkScanningService
      */
     protected function buildBannerAnalysisPrompt(int $port, string $banner): string
     {
-        return <<<PROMPT
-Analizza questo banner di servizio di rete per identificare SOLO informazioni concrete e verificabili.
-
-PORTA: {$port}
-BANNER COMPLETO:
-{$banner}
-
-ISTRUZIONI RIGOROSE:
-1. Identifica SOLO software e versioni se chiaramente visibili nel banner
-2. NON fare supposizioni o assumere versioni se non esplicite
-3. Includi CVE specifici SOLO se la versione è nota e vulnerabile
-4. Se non riesci a identificare la versione esatta, specifica solo il software base
-
-ESEMPI ACCETTABILI:
-- "Apache 2.2.15 - CVE-2011-3192 (DoS vulnerability)"
-- "OpenSSH 7.4 - nessuna vulnerabilità critica nota"
-- "vsftpd 2.3.4 - backdoor smiley face (CRITICO)"
-- "MySQL 5.5.62 - versione EOL dal 2018"
-- "nginx 1.10.3 - CVE-2017-7529 (integer overflow)"
-
-ESEMPI NON ACCETTABILI:
-- "Apache (versione probabilmente obsoleta)"
-- "SSH (potenzialmente vulnerabile)"
-- "FTP (configurazione potenzialmente insicura)"
-- "MySQL (versione sconosciuta, possibili rischi)"
-
-REGOLA FONDAMENTALE: Se non hai dati precisi dal banner, restituisci solo il nome del servizio base senza speculazioni sulla sicurezza.
-
-Fornisci la risposta in formato JSON con la chiave "service_identification" contenente una stringa descrittiva basata SOLO su dati concreti dal banner.
-PROMPT;
+        return trans('prompts.banner_analysis_user', ['port' => $port, 'banner' => $banner], $this->locale);
     }
 
     /**
