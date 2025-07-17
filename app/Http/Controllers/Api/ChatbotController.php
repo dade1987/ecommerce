@@ -290,7 +290,7 @@ class ChatbotController extends Controller
                             $output = $this->scrapeSite($activityUuid);
                             break;
                         case 'fallback':
-                            $output = trans('chatbot_prompts.fallback_message', [], $locale);
+                            $output = ['message' => trans('chatbot_prompts.fallback_message', [], $locale)];
                             break;
                     }
 
