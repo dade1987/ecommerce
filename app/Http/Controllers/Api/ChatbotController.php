@@ -44,6 +44,7 @@ class ChatbotController extends Controller
         $userInput = $request->input('message');
         $teamSlug = $request->input('team');
         $activityUuid = $request->input('uuid');  // UUID identificativo dell’attività
+        $locale = $request->input('locale', 'it'); // Default to Italian
 
         // Se non viene passato un thread_id, ne crea uno nuovo
         if (! $threadId) {
@@ -72,9 +73,9 @@ class ChatbotController extends Controller
         ]);
 
         // Se l'utente scrive "buongiorno", recupera il welcome message dal modello Team
-        if (strtolower($userInput) === 'buongiorno') {
+        if (strtolower($userInput) === strtolower(trans('enjoy-work.greeting', [], $locale))) {
             $team = Team::where('slug', $teamSlug)->first();
-            $welcomeMessage = $team ? $team->welcome_message : 'Benvenuto!';
+            $welcomeMessage = $team ? $team->welcome_message : trans('enjoy-work.welcome_message_fallback', [], $locale);
 
             Quoter::create([
                 'thread_id' => $threadId,
@@ -93,27 +94,7 @@ class ChatbotController extends Controller
             threadId: $threadId,
             parameters: [
                 'assistant_id' => 'asst_34SA8ZkwlHiiXxNufoZYddn0',
-                'instructions' => <<<'TXT'
-Se chiedo quali servizi, attività o prodotti offri, esegui la function call getProductInfo.
-
-Se richiedo informazioni sul luogo o numero di telefono dell'azienda, esegui la function call getAddressInfo.
-
-Se chiedo gli orari disponibili, esegui la function call getAvailableTimes.
-
-Se desidero prenotare un servizio o un prodotto, prima di tutto esegui la function call getAvailableTimes per mostrare gli orari disponibili. Poi, quando l'utente ha scelto un orario e fornisce il numero di telefono (solo a fini di demo), esegui la function call createOrder.
-
-Se chiedo di organizzare qualcosa, come un meeting, cerca tra i prodotti e utilizza la function call getProductInfo.
-
-Se inserisco da qualche parte i dati dell'utente (nome, email, telefono), esegui la function call submitUserData.
-
-Se richiedo le domande frequenti, esegui la function call getFAQs.
-
-Se chiedo che cosa può fare l’AI per la mia attività, esegui la function call scrapeSite.
-
-Per domande non inerenti al contesto, utilizza la function fallback.
-
-Descrivi le funzionalità del chatbot (come recuperare informazioni sui servizi, gli orari disponibili, come prenotare, ecc.). Alla fine, quando l'utente decide di prenotare, chiedi il numero di telefono per completare l'ordine.
-TXT,
+                'instructions' => trans('chatbot_prompts.instructions', ['locale' => $locale], $locale),
                 'model'  => 'gpt-4o',
                 'tools'  => [
                     [
@@ -256,14 +237,14 @@ TXT,
                         'type'     => 'function',
                         'function' => [
                             'name'        => 'scrapeSite',
-                            'description' => "Recupera il testo del sito (senza tag HTML) associato all'UUID nel modello Customer e con GPT risponde su cosa può fare l'AI.",
+                            'description' => 'Recupera il contenuto del sito web del cliente per rispondere a domande sull\'attività.',
                             'parameters'  => [
                                 'type'       => 'object',
                                 'properties' => [
                                     'user_uuid' => [
-                                        'type'        => 'string',
-                                        'description' => "UUID che identifica l'utente/attività nel modello Customer.",
-                                    ],
+                                        'type' => 'string',
+                                        'description' => 'UUID che identifica univocamente l\'attività del cliente.',
+                                    ]
                                 ],
                                 'required' => ['user_uuid'],
                             ],
@@ -273,129 +254,67 @@ TXT,
             ]
         );
 
-        // Recupera il risultato del run
-        $run = $this->retrieveRunResult($threadId, $run->id);
+        $runId = $run->id;
+        $status = $run->status;
 
-        // Gestione del function calling
-        while ($run->status === 'requires_action') {
-            $requiredAction = $run->requiredAction;
-            $toolOutputs = [];
+        while ($status !== 'completed') {
+            if ($status === 'requires_action' && isset($run->requiredAction)) {
+                $toolCalls = $run->requiredAction->submitToolOutputs->toolCalls;
+                $toolOutputs = [];
 
-            foreach ($requiredAction->submitToolOutputs->toolCalls as $toolCall) {
-                $functionCall = $toolCall->function;
-                Log::info('Esecuzione funzione', ['function_name' => $functionCall->name]);
+                foreach ($toolCalls as $toolCall) {
+                    $functionName = $toolCall->function->name;
+                    $arguments = json_decode($toolCall->function->arguments, true);
+                    $output = '';
 
-                if ($functionCall->name === 'getProductInfo') {
-                    $arguments = json_decode($functionCall->arguments, true);
-                    $productNames = $arguments['product_names'] ?? [];
-                    $productData = $this->fetchProductData($productNames, $teamSlug);
-                    $toolOutputs[] = [
-                        'tool_call_id' => $toolCall->id,
-                        'output'       => json_encode($productData),
-                    ];
-
-                } elseif ($functionCall->name === 'getAddressInfo') {
-                    $arguments = json_decode($functionCall->arguments, true);
-                    $addressData = $this->fetchAddressData($teamSlug);
-                    $toolOutputs[] = [
-                        'tool_call_id' => $toolCall->id,
-                        'output'       => json_encode($addressData),
-                    ];
-
-                } elseif ($functionCall->name === 'getAvailableTimes') {
-                    $arguments = json_decode($functionCall->arguments, true);
-                    $availableTimes = $this->fetchAvailableTimes($teamSlug);
-                    $toolOutputs[] = [
-                        'tool_call_id' => $toolCall->id,
-                        'output'       => json_encode($availableTimes),
-                    ];
-
-                } elseif ($functionCall->name === 'createOrder') {
-                    $arguments = json_decode($functionCall->arguments, true);
-                    $userPhone = $arguments['user_phone'];
-                    $deliveryDate = $arguments['delivery_date'];
-                    $productIds = $arguments['product_ids'];
-
-                    if (empty($userPhone)) {
-                        return response()->json([
-                            'message'   => 'Per favore fornisci un numero di telefono fisso o cellulare per completare la prenotazione.',
-                            'thread_id' => $threadId,
-                        ]);
+                    switch ($functionName) {
+                        case 'getProductInfo':
+                            $output = $this->fetchProductData($arguments['product_names'] ?? [], $teamSlug);
+                            break;
+                        case 'getAddressInfo':
+                            $output = $this->fetchAddressData($teamSlug);
+                            break;
+                        case 'getAvailableTimes':
+                            $output = $this->fetchAvailableTimes($teamSlug);
+                            break;
+                        case 'createOrder':
+                            $output = $this->createOrder($arguments['user_phone'], $arguments['delivery_date'], $arguments['product_ids'] ?? [], $teamSlug);
+                            break;
+                        case 'submitUserData':
+                            $output = $this->submitUserData($arguments['user_phone'], $arguments['user_email'], $arguments['user_name'], $teamSlug, $locale, $activityUuid);
+                            break;
+                        case 'getFAQs':
+                            $output = $this->fetchFAQs($teamSlug, $arguments['query'] ?? '');
+                            break;
+                        case 'scrapeSite':
+                            $output = $this->scrapeSite($activityUuid);
+                            break;
+                        case 'fallback':
+                            $output = trans('chatbot_prompts.fallback_message', [], $locale);
+                            break;
                     }
 
-                    if (empty($productIds)) {
-                        return response()->json([
-                            'message'   => 'Per favore fornisci informazioni aggiuntive sul prodotto/servizio che vorresti acquistare.',
-                            'thread_id' => $threadId,
-                        ]);
-                    }
-
-                    $orderData = $this->createOrder($userPhone, $deliveryDate, $productIds, $teamSlug);
                     $toolOutputs[] = [
                         'tool_call_id' => $toolCall->id,
-                        'output'       => json_encode($orderData),
-                    ];
-
-                } elseif ($functionCall->name === 'submitUserData') {
-                    $arguments = json_decode($functionCall->arguments, true);
-                    $userPhone = $arguments['user_phone'] ?? null;
-                    $userEmail = $arguments['user_email'] ?? null;
-                    $userName = $arguments['user_name'] ?? null;
-
-                    if (empty($userPhone) || empty($userEmail) || empty($userName)) {
-                        return response()->json([
-                            'message'   => 'Per favore fornisci nome, email e numero di telefono.',
-                            'thread_id' => $threadId,
-                        ]);
-                    }
-
-                    $userDataResponse = $this->submitUserData($userPhone, $userEmail, $userName, $teamSlug);
-                    $toolOutputs[] = [
-                        'tool_call_id' => $toolCall->id,
-                        'output'       => json_encode($userDataResponse),
-                    ];
-
-                } elseif ($functionCall->name === 'getFAQs') {
-                    $arguments = json_decode($functionCall->arguments, true);
-                    $faqTeamSlug = $arguments['team_slug'] ?? $teamSlug;
-                    $faqQuery = $arguments['query'] ?? '';
-                    $faqData = $this->fetchFAQs($faqTeamSlug, $faqQuery);
-                    $toolOutputs[] = [
-                        'tool_call_id' => $toolCall->id,
-                        'output'       => json_encode($faqData),
-                    ];
-
-                } elseif ($functionCall->name === 'fallback') {
-                    $fallbackMessage = 'Per un setup più specifico per la tua attività contatta 3487433620 Giuliano';
-                    $toolOutputs[] = [
-                        'tool_call_id' => $toolCall->id,
-                        'output'       => json_encode(['message' => $fallbackMessage]),
-                    ];
-
-                } elseif ($functionCall->name === 'scrapeSite') {
-                    // Funzione di scraping + analisi
-                    $arguments = json_decode($functionCall->arguments, true);
-                    $uuidToUse = $activityUuid;
-
-                    $scrapeData = $this->scrapeSite($uuidToUse);
-                    $toolOutputs[] = [
-                        'tool_call_id' => $toolCall->id,
-                        'output'       => json_encode($scrapeData),
+                        'output'       => json_encode($output),
                     ];
                 }
+
+                $this->client->threads()->runs()->submitToolOutputs(
+                    threadId: $threadId,
+                    runId: $runId,
+                    parameters: [
+                        'tool_outputs' => $toolOutputs,
+                    ]
+                );
+
+                $run = $this->retrieveRunResult($threadId, $runId);
+                $status = $run->status;
+            } else {
+                // Handle other statuses if necessary, e.g., 'failed'
+                Log::error('handleChat: Run status is not "requires_action" or "completed"', ['runId' => $runId, 'status' => $status]);
+                break;
             }
-
-            // Invia in un'unica chiamata tutti i risultati dei tool
-            $this->client->threads()->runs()->submitToolOutputs(
-                threadId: $threadId,
-                runId: $run->id,
-                parameters: [
-                    'tool_outputs' => $toolOutputs,
-                ]
-            );
-
-            // Recupera la risposta finale dopo gli output
-            $run = $this->retrieveRunResult($threadId, $run->id);
         }
 
         // Run completato o non richiede altre azioni
@@ -513,29 +432,47 @@ TXT,
         return $orderData;
     }
 
-    private function submitUserData($userPhone, $userEmail, $userName, $teamSlug)
+    private function submitUserData($userPhone, $userEmail, $userName, $teamSlug, string $locale, ?string $activityUuid)
     {
-        Log::info('submitUserData: Inizio invio dati utente', [
+        Log::info('submitUserData: Inizio salvataggio dati utente', [
             'userPhone' => $userPhone,
             'userEmail' => $userEmail,
             'userName'  => $userName,
             'teamSlug'  => $teamSlug,
+            'uuid'      => $activityUuid
         ]);
 
-        $client = new Client();
-        $url = 'https://cavalliniservice.com/api/customers';
-
-        $response = $client->post($url, [
-            'json' => [
-                'name'  => $userName,
+        // Aggiorna il modello Customer con l'UUID dell'attività
+        if ($activityUuid) {
+            $customer = Customer::where('uuid', $activityUuid)->first();
+            if ($customer) {
+                $customer->phone = $userPhone;
+                $customer->email = $userEmail;
+                $customer->name = $userName;
+                $customer->save();
+            } else {
+                // Se non esiste un cliente con questo UUID, potresti volerlo creare
+                 Customer::create([
+                    'uuid' => $activityUuid,
+                    'phone' => $userPhone,
+                    'email' => $userEmail,
+                    'name' => $userName,
+                    'team_id' => Team::where('slug', $teamSlug)->first()->id,
+                ]);
+            }
+        } else {
+             // Gestisci il caso in cui non c'è UUID
+             Customer::create([
                 'phone' => $userPhone,
                 'email' => $userEmail,
-            ],
-        ]);
+                'name' => $userName,
+                'team_id' => Team::where('slug', $teamSlug)->first()->id,
+            ]);
+        }
 
-        $responseData = json_decode($response->getBody(), true);
 
-        return $responseData;
+        // Messaggio di conferma in base alla lingua
+        return trans('chatbot_prompts.user_data_submitted', [], $locale);
     }
 
     private function fetchFAQs($teamSlug, $query)

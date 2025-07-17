@@ -3,7 +3,7 @@
 
   <!-- Header -->
   <div class="p-4 flex items-center gap-3">
-    <img id="teamLogo" src="/images/logoai.jpeg" alt="Logo Azienda" 
+    <img id="teamLogo" src="/images/logoai.jpeg" alt="{{ __('enjoy-work.company_logo_alt') }}" 
          class="w-12 h-12 rounded-full object-cover border border-gray-500">
     <h1 id="teamName" class="font-sans text-3xl text-white">EnjoyWork</h1>
   </div>
@@ -12,9 +12,9 @@
   <div id="quickReplies" class="px-4 flex flex-wrap gap-3 mb-5">
     <button 
       class="quick-reply-btn bg-[#4f4f58] hover:bg-[#5e5e69] text-white px-2 py-2 rounded-md"
-      data-message="Come l'AI può potenziare la mia azienda?"
+      data-message="{{ __('enjoy-work.quick_reply_message') }}"
     >
-      Come l'AI può potenziare la mia azienda? (clicca qui per saperlo)
+      {{ __('enjoy-work.quick_reply_text') }}
     </button>
   </div>
 
@@ -32,14 +32,14 @@
       <input
         id="userInput"
         type="text"
-        placeholder="Chiedi all'AI..."
+        placeholder="{{ __('enjoy-work.input_placeholder') }}"
         class="flex-1 p-4 text-white bg-transparent focus:outline-none placeholder-gray-400"
       />
       <button
         id="sendButton"
         class="bg-[#40414f] px-4 text-white border-l border-[#565869] hover:bg-[#565869]"
       >
-        Invia
+        {{ __('enjoy-work.send_button') }}
       </button>
     </div>
   </div>
@@ -59,6 +59,12 @@ document.addEventListener('DOMContentLoaded', function() {
   // Estrai l'UUID dalla query string
   const urlParams = new URLSearchParams(window.location.search);
   const uuid = urlParams.get('uuid');
+  const locale = '{{ app()->getLocale() }}';
+  const translations = {
+      greeting: "{{ __('enjoy-work.greeting') }}",
+      typing_indicator_text: "{{ __('enjoy-work.typing_indicator_text') }}",
+      send_error_message: "{{ __('enjoy-work.send_error_message') }}"
+  };
 
   // Carica nome e logo azienda
   fetch(`/api/avatar/${teamSlug}`)
@@ -103,8 +109,8 @@ document.addEventListener('DOMContentLoaded', function() {
       });
   }
 
-  // Invia automaticamente "Buongiorno" all'API al caricamento
-  postMessage('Buongiorno').then(response => {
+  // Invia automaticamente il messaggio di benvenuto all'API al caricamento
+  postMessage(translations.greeting).then(response => {
     const botMessage = {
       id: Date.now(),
       role: 'bot',
@@ -176,14 +182,14 @@ document.addEventListener('DOMContentLoaded', function() {
   function addTypingIndicator() {
     const typingElement = document.createElement('div');
     typingElement.className = 'message bot self-start w-full bg-[#40414f] text-white border border-[#565869] px-4 py-3 rounded-md italic opacity-80';
-    typingElement.textContent = 'Attendi.';
+    typingElement.textContent = translations.typing_indicator_text;
     messagesElement.appendChild(typingElement);
     messagesElement.scrollTop = messagesElement.scrollHeight;
 
     const interval = setInterval(() => {
       typingElement.textContent += '.';
       if (typingElement.textContent.length > 10) {
-        typingElement.textContent = 'Attendi.';
+        typingElement.textContent = translations.typing_indicator_text;
       }
     }, 500);
 
@@ -206,7 +212,8 @@ document.addEventListener('DOMContentLoaded', function() {
           thread_id: threadId,
           team: teamSlug,
           product_ids: productIds,
-          uuid: uuid // Passa l'UUID all'API se disponibile
+          uuid: uuid, // Passa l'UUID all'API se disponibile
+          locale: locale
         }),
       });
       const data = await response.json();
@@ -214,7 +221,7 @@ document.addEventListener('DOMContentLoaded', function() {
       return data;
     } catch (error) {
       console.error('Errore invio messaggio:', error);
-      return { message: 'Errore invio messaggio. Riprova più tardi.' };
+      return { message: translations.send_error_message };
     }
   }
 });
