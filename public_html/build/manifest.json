@@ -4,6 +4,11 @@
     "isEntry": true,
     "src": "resources/css/app.css"
   },
+  "resources/css/filament/admin/theme.css": {
+    "file": "assets/theme-76070e7a.css",
+    "isEntry": true,
+    "src": "resources/css/filament/admin/theme.css"
+  },
   "resources/js/app.js": {
     "file": "assets/app-9df2accc.js",
     "isEntry": true,
