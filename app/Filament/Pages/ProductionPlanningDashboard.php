@@ -4,9 +4,12 @@ namespace App\Filament\Pages;
 
 use App\Services\Forecasting\DemandForecastingService;
 use App\Services\Production\AdvancedSchedulingService;
+use App\Services\Production\OeeService;
 use App\Services\Production\ProductionSchedulingService;
 use App\Services\Production\SimulationService;
+use App\Services\Production\GanttChartService;
 use App\Models\Bom;
+use App\Models\Workstation;
 use Carbon\Carbon;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
@@ -32,13 +35,21 @@ class ProductionPlanningDashboard extends Page implements HasForms
     public ?string $endDate = null;
     public array $bottleneckData = [];
     public ?string $ganttChart = null;
+    public ?string $simulationGantt = null;
     public ?array $demandForecast = null;
+    public array $oeeData = [];
 
     public function mount(): void
     {
         $this->startDate = now()->startOfWeek()->format('Y-m-d');
         $this->endDate = now()->endOfWeek()->format('Y-m-d');
+        $this->updateDashboardData();
+    }
+
+    public function updateDashboardData(): void
+    {
         $this->updateBottleneckData();
+        $this->updateOeeData();
     }
 
     public function updateBottleneckData(): void
@@ -52,18 +63,38 @@ class ProductionPlanningDashboard extends Page implements HasForms
         }
     }
 
+    public function updateOeeData(): void
+    {
+        $oeeService = new OeeService();
+        $workstations = Workstation::all();
+        $totalOee = 0;
+
+        if ($workstations->isEmpty()) {
+            $this->oeeData = ['avg_oee' => 0];
+            return;
+        }
+
+        foreach ($workstations as $workstation) {
+            $totalOee += $oeeService->calculateForWorkstation($workstation)['oee'];
+        }
+
+        $this->oeeData = [
+            'avg_oee' => round(($totalOee / $workstations->count()) * 100, 2),
+        ];
+    }
+
     protected function getFormSchema(): array
     {
         return [
             DatePicker::make('startDate')
                 ->label('Data Inizio')
                 ->live()
-                ->afterStateUpdated(fn () => $this->updateBottleneckData()),
+                ->afterStateUpdated(fn () => $this->updateDashboardData()),
 
             DatePicker::make('endDate')
                 ->label('Data Fine')
                 ->live()
-                ->afterStateUpdated(fn () => $this->updateBottleneckData()),
+                ->afterStateUpdated(fn () => $this->updateDashboardData()),
         ];
     }
 
@@ -87,22 +118,14 @@ class ProductionPlanningDashboard extends Page implements HasForms
                 ->action(function (array $data): void {
                     $simulationService = new SimulationService();
                     $result = $simulationService->runWhatIfSimulation($data);
+                    
+                    $ganttService = new GanttChartService();
+                    $this->simulationGantt = $ganttService->generateForData($result['scheduled_phases']);
 
                     Notification::make()
                         ->title('Simulazione "What-If" Completata')
                         ->success()
-                        ->body('L\'impatto dell\'ordine ipotetico è stato calcolato.')
-                        ->persistent()
-                        ->send();
-                    
-                    Notification::make()
-                        ->title('Risultati Simulazione')
-                        ->info()
-                        ->body(implode("\n", [
-                            "Nuovi colli di bottiglia: " . $result['impact']['new_bottlenecks'],
-                            "Ordini ritardati: " . $result['impact']['delayed_orders'],
-                            "Tempo di completamento stimato: " . $result['impact']['estimated_completion_time'],
-                        ]))
+                        ->body('Il Gantt simulato è stato generato qui sotto.')
                         ->send();
                 })
                 ->form([
@@ -142,94 +165,21 @@ class ProductionPlanningDashboard extends Page implements HasForms
             ->send();
     }
 
-    public function runSimpleScheduling()
-    {
-        $service = new ProductionSchedulingService();
-        $service->scheduleProduction();
-        Notification::make()
-            ->title('Schedulazione semplice completata')
-            ->success()
-            ->send();
-    }
-
     public function runAdvancedScheduling()
     {
-        $service = new AdvancedSchedulingService();
-        $result = $service->generateSchedule(); // This returns an array with logs
-
-        // Count how many phases were actually scheduled from the log
-        $scheduledPhasesCount = collect($result['log'] ?? [])->filter(fn($line) => str_starts_with($line, 'Scheduled'))->count();
+        $scheduler = new AdvancedSchedulingService();
+        $result = $scheduler->generateSchedule();
+        
+        $scheduledPhasesCount = count($result['scheduled_phases_data']);
 
         Notification::make()
             ->title('Schedulazione Avanzata Completata')
             ->success()
-            ->body("Create o aggiornate {$scheduledPhasesCount} fasi di produzione.")
+            ->body("Schedulate con successo {$scheduledPhasesCount} fasi di produzione e manutenzione.")
             ->send();
-
-        $this->ganttChart = $this->generateGanttChart();
-    }
-
-    private function generateGanttChart(): ?string
-    {
-        $phases = \App\Models\ProductionPhase::whereNotNull('scheduled_start_time')
-            ->whereNotNull('scheduled_end_time')
-            ->with('productionOrder.bom', 'workstation') // Corrected: removed '.product'
-            ->orderBy('scheduled_start_time')
-            ->get();
-
-        if ($phases->isEmpty()) {
-            return null;
-        }
-
-        // Gantt chart settings
-        $ganttWidth = 1200;
-        $rowHeight = 40;
-        $headerHeight = 50;
-        $padding = 20;
-
-        $startDate = $phases->min('scheduled_start_time');
-        $endDate = $phases->max('scheduled_end_time');
-        $totalDays = $startDate->diffInDays($endDate) + 1;
-        $pixelsPerDay = $ganttWidth / $totalDays;
-
-        $ganttHeight = ($phases->count() * $rowHeight) + $headerHeight + $padding;
-
-        $svg = "<svg width=\"{$ganttWidth}\" height=\"{$ganttHeight}\" xmlns=\"http://www.w3.org/2000/svg\" style=\"font-family: sans-serif; background-color: #f9fafb;\">";
-
-        // Header
-        $currentDate = $startDate->copy();
-        for ($i = 0; $i < $totalDays; $i++) {
-            $x = $i * $pixelsPerDay;
-            $svg .= "<line x1=\"{$x}\" y1=\"0\" x2=\"{$x}\" y2=\"{$ganttHeight}\" stroke=\"#e5e7eb\" />";
-            $svg .= "<text x=\"" . ($x + 5) . "\" y=\"30\" font-size=\"12\" fill=\"#6b7280\">{$currentDate->format('d/m')}</text>";
-            $currentDate->addDay();
-        }
-
-        // Rows and Bars
-        foreach ($phases as $index => $phase) {
-            $y = $headerHeight + ($index * $rowHeight);
-            $startOffsetDays = $startDate->diffInDays($phase->scheduled_start_time);
-            $durationDays = $phase->scheduled_start_time->diffInDays($phase->scheduled_end_time);
-            if ($durationDays == 0) $durationDays = 0.5; // Min width for short tasks
-
-            $barX = $startOffsetDays * $pixelsPerDay;
-            $barWidth = $durationDays * $pixelsPerDay;
-
-            // Row background
-            $svg .= "<rect x=\"0\" y=\"{$y}\" width=\"{$ganttWidth}\" height=\"{$rowHeight}\" fill=\"" . ($index % 2 == 0 ? '#fff' : '#f9fafb') . "\" />";
-            
-            // Task bar
-            $color = '#3b82f6'; // Blue
-            $svg .= "<rect x=\"{$barX}\" y=\"" . ($y + 5) . "\" width=\"{$barWidth}\" height=\"" . ($rowHeight - 10) . "\" fill=\"{$color}\" rx=\"3\" />";
-            
-            // Task label
-            $productName = $phase->productionOrder->bom->product_name ?? 'Prodotto non definito';
-            $taskName = "Ordine {$phase->productionOrder->id}: {$productName} ({$phase->workstation->name})";
-            $svg .= "<text x=\"" . ($barX + 5) . "\" y=\"" . ($y + $rowHeight / 2 + 5) . "\" font-size=\"12\" fill=\"#fff\">" . htmlspecialchars($taskName) . "</text>";
-        }
-
-        $svg .= "</svg>";
-
-        return $svg;
+        
+        $ganttService = new GanttChartService();
+        $this->ganttChart = $ganttService->generateForData($result['scheduled_phases_data']);
+        $this->simulationGantt = null; // Resetta il gantt di simulazione
     }
 } 

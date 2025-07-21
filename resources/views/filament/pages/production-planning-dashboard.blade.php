@@ -7,11 +7,11 @@
             <div class="mt-4 space-y-4">
                 <div>
                     <div class="flex justify-between">
-                        <span class="text-sm font-medium text-gray-500 dark:text-gray-400">OEE (Overall Equipment Effectiveness)</span>
-                        <span class="text-lg font-bold text-green-600 dark:text-green-400">85%</span>
+                        <span class="text-sm font-medium text-gray-500 dark:text-gray-400">OEE Medio Impianto</span>
+                        <span class="text-lg font-bold text-green-600 dark:text-green-400">{{ $oeeData['avg_oee'] ?? 0 }}%</span>
                     </div>
                     <div class="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700 mt-1">
-                        <div class="bg-green-600 h-2.5 rounded-full" style="width: 85%"></div>
+                        <div class="bg-green-600 h-2.5 rounded-full" style="width: {{ $oeeData['avg_oee'] ?? 0 }}%"></div>
                     </div>
                 </div>
                 <div>
@@ -63,8 +63,14 @@
                     <span class="font-medium">Volume previsto per il prossimo mese:</span>
                     <span class="text-xl font-bold text-primary-600">{{ $demandForecast['next_month_volume'] }}</span> unità.
                 </p>
+                <p>
+                    <span class="font-medium">Trend stimato:</span>
+                    <span class="font-bold @if($demandForecast['trend_per_month'] > 0) text-green-600 @else text-red-600 @endif">
+                        {{ $demandForecast['trend_per_month'] > 0 ? '+' : '' }}{{ $demandForecast['trend_per_month'] }} unità/mese
+                    </span>
+                </p>
                 <p class="text-sm text-gray-500">
-                    Calcolato con {{ $demandForecast['calculation_method'] }} basato su {{ $demandForecast['based_on_months'] }} mesi di storico.
+                    Calcolato con: {{ $demandForecast['calculation_method'] }}.
                 </p>
                 <div class="p-4 mt-4 text-sm text-blue-700 bg-blue-100 border-l-4 border-blue-500" role="alert">
                     <p class="font-bold">Azione Suggerita:</p>
@@ -77,9 +83,19 @@
     {{-- Gantt Chart Section --}}
     @if ($ganttChart)
         <div class="p-6 mt-6 bg-white rounded-lg shadow-md dark:bg-gray-800">
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Diagramma di Gantt Schedulazione</h3>
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Diagramma di Gantt Reale</h3>
             <div class="overflow-x-auto">
                 {!! $ganttChart !!}
+            </div>
+        </div>
+    @endif
+
+    {{-- Simulated Gantt Chart Section --}}
+    @if ($simulationGantt)
+        <div class="p-6 mt-6 border-2 border-dashed rounded-lg border-primary-500 dark:border-primary-400">
+            <h3 class="text-lg font-semibold text-primary-600 dark:text-primary-400">Diagramma di Gantt Simulata (What-If)</h3>
+            <div class="overflow-x-auto">
+                {!! $simulationGantt !!}
             </div>
         </div>
     @endif

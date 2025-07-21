@@ -17,6 +17,9 @@ class ProductionSeeder extends Seeder
      */
     public function run(): void
     {
+        // Pulisce le disponibilità esistenti per garantire uno stato pulito
+        \App\Models\WorkstationAvailability::truncate();
+
         // Use raw SQL for cleaning to be absolutely sure, in the correct order.
         DB::statement('SET FOREIGN_KEY_CHECKS=0;');
         DB::table('workstation_availabilities')->truncate();
@@ -30,36 +33,40 @@ class ProductionSeeder extends Seeder
         $lineaAssemblaggio = ProductionLine::create(['name' => 'Linea Assemblaggio', 'description' => 'Linea principale per assemblaggio componenti.']);
         $lineaFinitura = ProductionLine::create(['name' => 'Linea Finitura', 'description' => 'Linea per verniciatura e finiture finali.']);
 
-        // 2. Create Workstations
-        $wsTaglio = Workstation::create(['production_line_id' => $lineaAssemblaggio->id, 'name' => 'Taglio Laser', 'capacity' => 8]);
-        $wsSaldatura = Workstation::create(['production_line_id' => $lineaAssemblaggio->id, 'name' => 'Saldatura Robotizzata', 'capacity' => 8]);
-        $wsVerniciatura = Workstation::create(['production_line_id' => $lineaFinitura->id, 'name' => 'Cabina Verniciatura', 'capacity' => 8]);
-        $wsControllo = Workstation::create(['production_line_id' => $lineaFinitura->id, 'name' => 'Controllo Qualità', 'capacity' => 8]);
+        // 2. Create Workstations with realistic Digital Twin data
+        $wsTaglio = Workstation::create([
+            'production_line_id' => $lineaAssemblaggio->id, 'name' => 'Taglio Laser', 'capacity' => 8,
+            'real_time_status' => 'running', 'current_speed' => 5, 'error_rate' => 2.5, 'wear_level' => rand(10, 30)
+        ]);
+        $wsSaldatura = Workstation::create([
+            'production_line_id' => $lineaAssemblaggio->id, 'name' => 'Saldatura Robotizzata', 'capacity' => 8,
+            'real_time_status' => 'idle', 'current_speed' => 0, 'error_rate' => 1.0, 'wear_level' => rand(5, 20)
+        ]);
+        $wsVerniciatura = Workstation::create([
+            'production_line_id' => $lineaFinitura->id, 'name' => 'Cabina Verniciatura', 'capacity' => 8,
+            'real_time_status' => 'running', 'current_speed' => 8, 'error_rate' => 5.0, 'wear_level' => rand(20, 50)
+        ]);
+        $wsControllo = Workstation::create([
+            'production_line_id' => $lineaFinitura->id, 'name' => 'Controllo Qualità', 'capacity' => 8,
+            'real_time_status' => 'faulted', 'current_speed' => 0, 'error_rate' => 0.5, 'wear_level' => rand(30, 60)
+        ]);
 
         $workstations = [$wsTaglio, $wsSaldatura, $wsVerniciatura, $wsControllo];
 
-        // 3. Define standard availability for each workstation
+        // 3. Define standard availability for each workstation (Monday to Friday)
         foreach ($workstations as $workstation) {
-            foreach (['lunedi', 'martedi', 'mercoledi', 'giovedi', 'venerdi'] as $day) {
-                // The DB column is in English due to schema issues, the UI will show Italian.
-                $dayInEnglish = match($day) {
-                    'lunedi' => 'monday',
-                    'martedi' => 'tuesday',
-                    'mercoledi' => 'wednesday',
-                    'giovedi' => 'thursday',
-                    'venerdi' => 'friday',
-                    default => 'monday'
-                };
-                $workstation->availabilities()->create([
-                    'day_of_week' => $dayInEnglish,
+            for ($day = 1; $day <= 5; $day++) { // 1 = Monday, 5 = Friday
+                \App\Models\WorkstationAvailability::create([
+                    'workstation_id' => $workstation->id,
+                    'day_of_week' => $day,
                     'start_time' => '08:00:00',
-                    'end_time' => '18:00:00',
+                    'end_time' => '17:00:00',
                 ]);
             }
         }
         
         // 4. Create Production Orders
-        $boms = Bom::all();
+        $boms = Bom::factory(10)->create();
         if ($boms->isEmpty()) {
             $this->command->info('Nessuna Distinta Base (BOM) trovata. Salto la creazione degli Ordini di Produzione.');
             return;
@@ -101,13 +108,16 @@ class ProductionSeeder extends Seeder
 
         // 6. Aggiungi fasi di manutenzione programmata
         foreach ($workstations as $workstation) {
+            $duration = rand(60, 120);
+            $startTime = now()->addDays(rand(2, 5))->hour(10);
             ProductionPhase::create([
                 'production_order_id' => ProductionOrder::inRandomOrder()->first()->id, // Assegnato a un ordine a caso
                 'workstation_id' => $workstation->id,
                 'name' => 'Manutenzione Programmata',
-                'estimated_duration' => rand(60, 120),
+                'estimated_duration' => $duration,
                 'is_maintenance' => true,
-                'scheduled_start_time' => now()->addDays(rand(2, 5))->hour(10), // Pianificata per i prossimi giorni
+                'scheduled_start_time' => $startTime,
+                'scheduled_end_time' => $startTime->copy()->addMinutes($duration),
             ]);
         }
     }

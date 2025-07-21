@@ -24,28 +24,37 @@ class SimulationService
     {
         $this->logManager->startLog('what-if', $newOrderData);
         
-        $this->logManager->logStep("Avvio simulazione per nuovo ordine: " . ($newOrderData['customer'] ?? 'N/A'));
+        // 1. Recupera gli ordini reali in attesa
+        $realOrders = ProductionOrder::whereIn('status', ['in_attesa'])
+            ->with('bom', 'phases.workstation')
+            ->get();
+        $this->logManager->logStep("Recuperati " . $realOrders->count() . " ordini reali in attesa.");
 
-        // Qui andrà la logica complessa per:
-        // 1. Clonare lo stato attuale del sistema (ordini, fasi, workstation).
-        $this->logManager->logStep("Clonazione stato attuale del sistema...");
-        // 2. Inserire il nuovo ordine nel sistema clonato.
-        $this->logManager->logStep("Inserimento ordine ipotetico nel sistema clonato.");
-        // 3. Eseguire la schedulazione avanzata sul sistema clonato.
-        $this->logManager->logStep("Esecuzione schedulazione avanzata sul nuovo stato.");
-        // 4. Analizzare l'impatto: ritardi, colli di bottiglia, utilizzo.
-        $this->logManager->logStep("Analisi dell'impatto sui KPI di produzione.");
+        // 2. Crea un nuovo ordine fittizio in memoria
+        $hypotheticalOrder = new ProductionOrder($newOrderData);
+        $hypotheticalOrder->id = 99999; // ID fittizio per il logging
+        // Aggiungi le fasi basate sul BOM
+        $bom = \App\Models\Bom::with('phases.workstation')->find($newOrderData['bom_id']);
+        if ($bom) {
+            foreach ($bom->phases as $phaseTemplate) {
+                $hypotheticalOrder->phases->add(new \App\Models\ProductionPhase($phaseTemplate->toArray()));
+            }
+        }
+        $this->logManager->logStep("Creato ordine ipotetico '{$hypotheticalOrder->customer}' in memoria.");
 
-        $simulatedImpact = [
-            'new_bottlenecks' => 'Nessuno (da implementare)',
-            'delayed_orders' => 0,
-            'estimated_completion_time' => now()->addDays(5)->toDateTimeString(),
-        ];
-        
-        $this->logManager->endLog($simulatedImpact);
+        // 3. Unisci gli ordini reali e quello ipotetico
+        $ordersForSimulation = $realOrders->push($hypotheticalOrder);
+
+        // 4. Esegui la schedulazione sulla collezione combinata
+        $scheduler = new AdvancedSchedulingService();
+        $simulationResult = $scheduler->generateSchedule($ordersForSimulation);
+
+        $this->logManager->logStep("Schedulazione simulata completata.");
+        $this->logManager->endLog(['simulation_log' => $simulationResult['log']]);
 
         return [
-            'impact' => $simulatedImpact,
+            'log' => $simulationResult['log'],
+            'scheduled_phases' => $simulationResult['scheduled_phases_data'] ?? [], // Assicurati che questo venga restituito dallo scheduler
         ];
     }
 } 

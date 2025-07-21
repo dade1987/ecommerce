@@ -19,6 +19,7 @@ class ProductionOrder extends Model
         'status',
         'priority',
         'bom_id',
+        'quantity',
         'notes',
     ];
 

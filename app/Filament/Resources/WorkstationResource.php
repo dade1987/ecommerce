@@ -55,7 +55,20 @@ class WorkstationResource extends Resource
                 TextInput::make('capacity')
                     ->label('Capacità (ore/giorno)')
                     ->required()
-                    ->numeric(),
+                    ->numeric()
+                    ->default(8),
+                Forms\Components\TextInput::make('batch_size')
+                    ->label('Dimensione Lotto (unità)')
+                    ->numeric()
+                    ->required()
+                    ->default(1)
+                    ->minValue(1),
+                Forms\Components\TextInput::make('time_per_unit')
+                    ->label('Tempo per Unità (minuti)')
+                    ->numeric()
+                    ->required()
+                    ->default(10)
+                    ->minValue(1),
                 Forms\Components\Section::make('Digital Twin Fields')
                     ->description('Questi campi rappresentano lo stato in tempo reale della postazione.')
                     ->columns(2)

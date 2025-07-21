@@ -56,6 +56,12 @@ class ProductionOrderResource extends Resource
                     ->preload()
                     ->required()
                     ->default(fn () => request()->get('bom_id')),
+                Forms\Components\TextInput::make('quantity')
+                    ->label('Quantità')
+                    ->numeric()
+                    ->required()
+                    ->default(1)
+                    ->minValue(1),
                 Forms\Components\Textarea::make('notes')
                     ->label('Note')
                     ->columnSpanFull(),
@@ -75,6 +81,9 @@ class ProductionOrderResource extends Resource
                 Tables\Columns\TextColumn::make('bom.product_name')
                     ->label('Prodotto (Distinta Base)')
                     ->searchable(),
+                Tables\Columns\TextColumn::make('quantity')
+                    ->label('Qtà')
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('status')
                     ->label('Stato')
                     ->badge()

@@ -17,6 +17,8 @@ class Workstation extends Model
         'production_line_id',
         'status',
         'capacity',
+        'batch_size',
+        'time_per_unit',
         'real_time_status',
         'wear_level',
         'last_maintenance_date',
