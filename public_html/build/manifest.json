@@ -1,22 +1,12 @@
 {
   "resources/css/app.css": {
-    "file": "assets/app-dab29996.css",
+    "file": "assets/app-b8560a65.css",
     "isEntry": true,
     "src": "resources/css/app.css"
-  },
-  "resources/css/filament/admin/theme.css": {
-    "file": "assets/theme-de318b18.css",
-    "isEntry": true,
-    "src": "resources/css/filament/admin/theme.css"
   },
   "resources/js/app.js": {
     "file": "assets/app-9df2accc.js",
     "isEntry": true,
     "src": "resources/js/app.js"
-  },
-  "resources/js/gantt.js": {
-    "file": "assets/gantt-aa163192.js",
-    "isEntry": true,
-    "src": "resources/js/gantt.js"
   }
 }
