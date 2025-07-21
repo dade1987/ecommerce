@@ -36,6 +36,12 @@ return [
         'trace' => false,
     ],
 
+    'simulation' => [
+        'driver' => 'single',
+        'path' => storage_path('logs/simulation.log'),
+        'level' => 'info',
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Log Channels

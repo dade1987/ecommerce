@@ -17,6 +17,11 @@ class Workstation extends Model
         'production_line_id',
         'status',
         'capacity',
+        'real_time_status',
+        'wear_level',
+        'last_maintenance_date',
+        'error_rate',
+        'current_speed',
     ];
 
     public function productionLine(): BelongsTo

@@ -7,18 +7,20 @@ use App\Filament\Resources\WorkstationResource\RelationManagers;
 use App\Filament\Resources\WorkstationResource\RelationManagers\AvailabilitiesRelationManager;
 use App\Models\Workstation;
 use Filament\Forms;
+use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class WorkstationResource extends Resource
 {
     protected static ?string $model = Workstation::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-cpu-chip';
+    protected static ?string $navigationIcon = 'heroicon-o-wrench-screwdriver';
 
     protected static ?string $navigationGroup = 'Produzione';
 
@@ -31,18 +33,18 @@ class WorkstationResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Select::make('production_line_id')
+                Select::make('production_line_id')
                     ->label('Linea di Produzione')
                     ->relationship('productionLine', 'name')
                     ->required(),
-                Forms\Components\TextInput::make('name')
+                TextInput::make('name')
                     ->label('Nome Postazione')
                     ->required()
                     ->maxLength(255),
-                Forms\Components\Textarea::make('description')
+                Textarea::make('description')
                     ->label('Descrizione')
                     ->columnSpanFull(),
-                Forms\Components\Select::make('status')
+                Select::make('status')
                     ->label('Stato')
                     ->options([
                         'active' => 'Attiva',
@@ -50,10 +52,40 @@ class WorkstationResource extends Resource
                         'maintenance' => 'In Manutenzione',
                     ])
                     ->required(),
-                Forms\Components\TextInput::make('capacity')
+                TextInput::make('capacity')
                     ->label('Capacità (ore/giorno)')
                     ->required()
                     ->numeric(),
+                Forms\Components\Section::make('Digital Twin Fields')
+                    ->description('Questi campi rappresentano lo stato in tempo reale della postazione.')
+                    ->columns(2)
+                    ->schema([
+                        Select::make('real_time_status')
+                            ->options([
+                                'running' => 'In Funzione',
+                                'idle' => 'Inattiva',
+                                'faulted' => 'Guasta',
+                            ])
+                            ->default('idle')
+                            ->required(),
+                        TextInput::make('current_speed')
+                            ->label('Velocità Corrente (unità/ora)')
+                            ->numeric(),
+                        TextInput::make('wear_level')
+                            ->label('Livello Usura (%)')
+                            ->numeric()
+                            ->minValue(0)
+                            ->maxValue(100)
+                            ->default(0)
+                            ->required(),
+                        TextInput::make('error_rate')
+                            ->label('Tasso di Errore (%)')
+                            ->numeric()
+                            ->default(0)
+                            ->required(),
+                        DateTimePicker::make('last_maintenance_date')
+                            ->label('Data Ultima Manutenzione'),
+                    ]),
             ]);
     }
 
@@ -78,6 +110,14 @@ class WorkstationResource extends Resource
                         default => 'gray',
                     })
                     ->searchable(),
+                Tables\Columns\TextColumn::make('real_time_status')->label('Stato Real-Time')->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'running' => 'success',
+                        'idle' => 'warning',
+                        'faulted' => 'danger',
+                        default => 'gray',
+                    }),
+                Tables\Columns\TextColumn::make('wear_level')->label('Usura (%)')->sortable(),
                 Tables\Columns\TextColumn::make('capacity')
                     ->label('Capacità')
                     ->numeric()
@@ -87,6 +127,7 @@ class WorkstationResource extends Resource
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('updated_at')->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 //

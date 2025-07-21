@@ -4,9 +4,14 @@ namespace App\Filament\Pages;
 
 use App\Services\Production\AdvancedSchedulingService;
 use App\Services\Production\ProductionSchedulingService;
+use App\Services\Production\SimulationService;
+use App\Models\Bom;
 use Carbon\Carbon;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Notifications\Notification;
@@ -72,6 +77,39 @@ class ProductionPlanningDashboard extends Page implements HasForms
             Action::make('generateGantt')
                 ->label('Genera Schedulazione Avanzata (Gantt)')
                 ->action('runAdvancedScheduling'),
+            Action::make('whatIfSimulation')
+                ->label('Simulazione "What-If"')
+                ->action(function (array $data): void {
+                    $simulationService = new SimulationService();
+                    $result = $simulationService->runWhatIfSimulation($data);
+
+                    Notification::make()
+                        ->title('Simulazione "What-If" Completata')
+                        ->success()
+                        ->body('L\'impatto dell\'ordine ipotetico è stato calcolato.')
+                        ->persistent()
+                        ->send();
+                    
+                    Notification::make()
+                        ->title('Risultati Simulazione')
+                        ->info()
+                        ->body(implode("\n", [
+                            "Nuovi colli di bottiglia: " . $result['impact']['new_bottlenecks'],
+                            "Ordini ritardati: " . $result['impact']['delayed_orders'],
+                            "Tempo di completamento stimato: " . $result['impact']['estimated_completion_time'],
+                        ]))
+                        ->send();
+                })
+                ->form([
+                    TextInput::make('customer')->label('Cliente Ipotetico')->required(),
+                    Select::make('bom_id')
+                        ->label('Distinta Base')
+                        ->options(Bom::all()->pluck('product_name', 'id'))
+                        ->searchable()
+                        ->required(),
+                    TextInput::make('priority')->label('Priorità')->numeric()->required()->default(3),
+                    Textarea::make('notes')->label('Note Aggiuntive'),
+                ]),
         ];
     }
 
