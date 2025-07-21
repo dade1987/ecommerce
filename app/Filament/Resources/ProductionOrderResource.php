@@ -79,6 +79,23 @@ class ProductionOrderResource extends Resource
                     ->label('Stato')
                     ->badge()
                     ->searchable(),
+                Tables\Columns\IconColumn::make('priority')
+                    ->label('Priorità')
+                    ->icon(fn (int $state): string => match ($state) {
+                        0 => 'heroicon-o-arrow-down-circle',
+                        1, 2 => 'heroicon-o-minus-circle',
+                        3, 4 => 'heroicon-o-arrow-up-circle',
+                        5 => 'heroicon-o-fire',
+                        default => 'heroicon-o-question-mark-circle',
+                    })
+                    ->color(fn (int $state): string => match ($state) {
+                        0 => 'gray',
+                        1, 2 => 'info',
+                        3, 4 => 'warning',
+                        5 => 'danger',
+                        default => 'gray',
+                    })
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('order_date')
                     ->label('Data Ordine')
                     ->date()

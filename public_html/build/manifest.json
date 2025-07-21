@@ -1,11 +1,11 @@
 {
   "resources/css/app.css": {
-    "file": "assets/app-7f61742b.css",
+    "file": "assets/app-dab29996.css",
     "isEntry": true,
     "src": "resources/css/app.css"
   },
   "resources/css/filament/admin/theme.css": {
-    "file": "assets/theme-4d6129bc.css",
+    "file": "assets/theme-de318b18.css",
     "isEntry": true,
     "src": "resources/css/filament/admin/theme.css"
   },
@@ -14,9 +14,9 @@
     "isEntry": true,
     "src": "resources/js/app.js"
   },
-  "resources/js/filament/rich-editor-plugins/color.js": {
-    "file": "assets/color-a96ee692.js",
+  "resources/js/gantt.js": {
+    "file": "assets/gantt-aa163192.js",
     "isEntry": true,
-    "src": "resources/js/filament/rich-editor-plugins/color.js"
+    "src": "resources/js/gantt.js"
   }
 }

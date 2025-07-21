@@ -45,20 +45,16 @@ class ProductionPhasesRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
+            ->recordTitleAttribute('name')
             ->columns([
-                Tables\Columns\TextColumn::make('name')
-                    ->label('Fase'),
-                Tables\Columns\TextColumn::make('start_time')
-                    ->label('Inizio')
-                    ->dateTime(),
-                Tables\Columns\TextColumn::make('end_time')
-                    ->label('Fine')
-                    ->dateTime(),
-                Tables\Columns\TextColumn::make('operator')
-                    ->label('Operatore'),
-                Tables\Columns\IconColumn::make('is_completed')
-                    ->label('Completata')
-                    ->boolean(),
+                Tables\Columns\TextColumn::make('name'),
+                Tables\Columns\TextColumn::make('workstation.name')->label('Postazione'),
+                Tables\Columns\TextColumn::make('estimated_duration')->label('Durata Stim. (min)'),
+                Tables\Columns\TextColumn::make('scheduled_start_time')->label('Inizio Pianificato')->dateTime(),
+                Tables\Columns\TextColumn::make('scheduled_end_time')->label('Fine Pianificata')->dateTime(),
+                Tables\Columns\TextColumn::make('start_time')->label('Inizio Effettivo')->dateTime()->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('end_time')->label('Fine Effettiva')->dateTime()->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\IconColumn::make('is_completed')->label('Completata')->boolean(),
             ])
             ->filters([
                 //

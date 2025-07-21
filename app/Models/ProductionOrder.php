@@ -13,9 +13,11 @@ class ProductionOrder extends Model
     use HasFactory;
 
     protected $fillable = [
+        'production_line_id',
         'customer',
         'order_date',
         'status',
+        'priority',
         'bom_id',
         'notes',
     ];
@@ -24,6 +26,11 @@ class ProductionOrder extends Model
         'order_date' => 'date',
         'status' => OrderStatus::class,
     ];
+
+    public function productionLine(): BelongsTo
+    {
+        return $this->belongsTo(ProductionLine::class);
+    }
 
     public function bom(): BelongsTo
     {

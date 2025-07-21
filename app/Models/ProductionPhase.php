@@ -12,9 +12,13 @@ class ProductionPhase extends Model
 
     protected $fillable = [
         'production_order_id',
+        'workstation_id',
         'name',
+        'estimated_duration',
         'start_time',
         'end_time',
+        'scheduled_start_time',
+        'scheduled_end_time',
         'operator',
         'is_completed',
     ];
@@ -22,11 +26,18 @@ class ProductionPhase extends Model
     protected $casts = [
         'start_time' => 'datetime',
         'end_time' => 'datetime',
+        'scheduled_start_time' => 'datetime',
+        'scheduled_end_time' => 'datetime',
         'is_completed' => 'boolean',
     ];
 
     public function productionOrder(): BelongsTo
     {
         return $this->belongsTo(ProductionOrder::class);
+    }
+
+    public function workstation(): BelongsTo
+    {
+        return $this->belongsTo(Workstation::class);
     }
 }

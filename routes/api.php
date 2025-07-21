@@ -8,6 +8,7 @@ use App\Http\Controllers\QuoterController;
 use App\Http\Controllers\Api\TestController;
 use App\Http\Controllers\Api\StaticController;
 use App\Http\Controllers\Api\OperatorFeedbackController;
+use App\Models\ProductionPhase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -203,3 +204,22 @@ Route::delete('/operator-feedback/{id}', [OperatorFeedbackController::class, 'de
 | Valori status ammessi: pending, in_progress, done, rejected
 |
 */
+
+Route::get('/gantt-data', function () {
+    $phases = ProductionPhase::whereNotNull('scheduled_start_time')
+        ->with('workstation')
+        ->get();
+
+    $tasks = $phases->map(function ($phase) {
+        return [
+            'id' => 'phase_' . $phase->id,
+            'name' => $phase->name,
+            'start' => $phase->scheduled_start_time->format('Y-m-d'),
+            'end' => $phase->scheduled_end_time->format('Y-m-d'),
+            'progress' => $phase->is_completed ? 100 : 0,
+            'custom_class' => 'bar-' . strtolower($phase->workstation->name ?? 'default'),
+        ];
+    });
+
+    return response()->json($tasks);
+})->middleware('auth:sanctum'); // Assuming authentication is needed
