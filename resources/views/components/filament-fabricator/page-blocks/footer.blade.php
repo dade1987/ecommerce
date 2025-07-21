@@ -11,6 +11,7 @@
                   <p>{{ __('footer.contact') }}: +39 320 4206795</p>
                   <p>{{ __('footer.vat_number') }} IT04914550274</p>
                   <p>{{ __('footer.tax_code') }}: CVLDVD87M23L736P</p>
+                  <p><a href="https://www.linkedin.com/in/davidecavallini/" class="hover:underline">LinkedIn</a></p>
               </address>
           </div>
           <div class="grid grid-cols-2 gap-8 sm:gap-6 sm:grid-cols-3">
