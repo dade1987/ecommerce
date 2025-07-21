@@ -94,8 +94,21 @@ class ProductionSeeder extends Seeder
                     'workstation_id' => $workstations[array_rand($workstations)]->id,
                     'name' => $phase_data['name'],
                     'estimated_duration' => $phase_data['duration'],
+                    'setup_time' => rand(5, 15), // Aggiunge un tempo di setup casuale
                 ]);
             }
+        }
+
+        // 6. Aggiungi fasi di manutenzione programmata
+        foreach ($workstations as $workstation) {
+            ProductionPhase::create([
+                'production_order_id' => ProductionOrder::inRandomOrder()->first()->id, // Assegnato a un ordine a caso
+                'workstation_id' => $workstation->id,
+                'name' => 'Manutenzione Programmata',
+                'estimated_duration' => rand(60, 120),
+                'is_maintenance' => true,
+                'scheduled_start_time' => now()->addDays(rand(2, 5))->hour(10), // Pianificata per i prossimi giorni
+            ]);
         }
     }
 }

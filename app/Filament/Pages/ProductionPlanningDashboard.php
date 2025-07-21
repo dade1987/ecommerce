@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use App\Services\Forecasting\DemandForecastingService;
 use App\Services\Production\AdvancedSchedulingService;
 use App\Services\Production\ProductionSchedulingService;
 use App\Services\Production\SimulationService;
@@ -31,6 +32,7 @@ class ProductionPlanningDashboard extends Page implements HasForms
     public ?string $endDate = null;
     public array $bottleneckData = [];
     public ?string $ganttChart = null;
+    public ?array $demandForecast = null;
 
     public function mount(): void
     {
@@ -77,6 +79,9 @@ class ProductionPlanningDashboard extends Page implements HasForms
             Action::make('generateGantt')
                 ->label('Genera Schedulazione Avanzata (Gantt)')
                 ->action('runAdvancedScheduling'),
+            Action::make('generateDemandForecast')
+                ->label('Genera Forecast Domanda')
+                ->action('runDemandForecast'),
             Action::make('whatIfSimulation')
                 ->label('Simulazione "What-If"')
                 ->action(function (array $data): void {
@@ -111,6 +116,19 @@ class ProductionPlanningDashboard extends Page implements HasForms
                     Textarea::make('notes')->label('Note Aggiuntive'),
                 ]),
         ];
+    }
+
+    public function runDemandForecast(): void
+    {
+        $forecastingService = new DemandForecastingService();
+        $result = $forecastingService->predictDemand();
+        $this->demandForecast = $result['forecast'];
+
+        Notification::make()
+            ->title('Previsione della Domanda Calcolata')
+            ->success()
+            ->body("Il volume previsto per il prossimo mese è di {$this->demandForecast['next_month_volume']} unità.")
+            ->send();
     }
 
     public function balanceProductionLines()

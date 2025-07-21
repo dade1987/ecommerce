@@ -15,12 +15,14 @@ class ProductionPhase extends Model
         'workstation_id',
         'name',
         'estimated_duration',
+        'setup_time',
         'start_time',
         'end_time',
         'scheduled_start_time',
         'scheduled_end_time',
         'operator',
         'is_completed',
+        'is_maintenance',
     ];
 
     protected $casts = [
@@ -29,6 +31,7 @@ class ProductionPhase extends Model
         'scheduled_start_time' => 'datetime',
         'scheduled_end_time' => 'datetime',
         'is_completed' => 'boolean',
+        'is_maintenance' => 'boolean',
     ];
 
     public function productionOrder(): BelongsTo

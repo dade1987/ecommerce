@@ -2,8 +2,9 @@
 
 namespace App\Services\Forecasting;
 
+use App\Models\ProductionOrder;
 use App\Services\Logging\SimulationLogManager;
-use Illuminate\Support\Collection;
+use Carbon\Carbon;
 
 class DemandForecastingService
 {
@@ -15,32 +16,41 @@ class DemandForecastingService
     }
 
     /**
-     * Prevede la domanda futura per un dato prodotto o categoria.
+     * Prevede la domanda futura usando una media mobile ponderata.
      *
-     * In una implementazione reale, questo metodo userebbe un modello di ML
-     * addestrato su dati storici di vendita e altri fattori.
-     *
-     * @param int|null $productId
-     * @param int|null $categoryId
+     * @param int $months Periodo su cui basare la media.
+     * @param array $weights Pesi da assegnare a ciascun mese (dal più recente al più vecchio).
      * @return array
      */
-    public function predictDemand(int $productId = null, int $categoryId = null): array
+    public function predictDemand(int $months = 3, array $weights = [0.5, 0.3, 0.2]): array
     {
-        $params = ['productId' => $productId, 'categoryId' => $categoryId];
-        $this->logManager->startLog('demand_forecast', $params);
+        $params = ['months' => $months, 'weights' => $weights];
+        $this->logManager->startLog('demand_forecast_wma', $params);
 
-        if ($productId) {
-            $this->logManager->logStep("Previsione per il prodotto ID: $productId");
-        }
-        if ($categoryId) {
-            $this->logManager->logStep("Previsione per la categoria ID: $categoryId");
+        if (array_sum($weights) !== 1.0 || count($weights) !== $months) {
+            $this->logManager->logWarning('La somma dei pesi non è 1 o il numero di pesi non corrisponde ai mesi.', $params);
+            throw new \InvalidArgumentException('La somma dei pesi deve essere 1 e il numero di pesi deve corrispondere ai mesi.');
         }
 
-        // Dati di previsione fittizi
+        $historicalData = [];
+        for ($i = 0; $i < $months; $i++) {
+            $date = Carbon::now()->subMonths($i + 1);
+            $ordersCount = ProductionOrder::whereYear('order_date', $date->year)
+                                           ->whereMonth('order_date', $date->month)
+                                           ->count();
+            $historicalData[] = $ordersCount;
+            $this->logManager->logStep("Dati storici per {$date->format('F Y')}: {$ordersCount} ordini.");
+        }
+
+        $forecastVolume = 0;
+        foreach ($historicalData as $index => $count) {
+            $forecastVolume += $count * $weights[$index];
+        }
+        
         $forecast = [
-            'next_month_volume' => rand(100, 500),
-            'trend' => ['crescita', 'stabile', 'calo'][rand(0, 2)],
-            'confidence_score' => round(rand(75, 95) / 100, 2),
+            'next_month_volume' => round($forecastVolume),
+            'based_on_months' => $months,
+            'calculation_method' => 'Weighted Moving Average',
         ];
         
         $this->logManager->endLog($forecast);

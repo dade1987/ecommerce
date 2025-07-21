@@ -8,6 +8,7 @@ use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Workstation;
 
 class ProductionPhasesRelationManager extends RelationManager
 {
@@ -27,19 +28,28 @@ class ProductionPhasesRelationManager extends RelationManager
         return $form
             ->schema([
                 Forms\Components\TextInput::make('name')
-                    ->label('Nome Fase (es. Taglio, Foratura)')
+                    ->label('Nome Fase')
                     ->required()
                     ->maxLength(255),
-                Forms\Components\DateTimePicker::make('start_time')
-                    ->label('Inizio Lavorazione'),
-                Forms\Components\DateTimePicker::make('end_time')
-                    ->label('Fine Lavorazione'),
-                Forms\Components\TextInput::make('operator')
-                    ->label('Operatore')
-                    ->maxLength(255),
-                Forms\Components\Toggle::make('is_completed')
-                    ->label('Fase Completata'),
-            ]);
+                Forms\Components\Select::make('workstation_id')
+                    ->label('Postazione di Lavoro')
+                    ->options(Workstation::all()->pluck('name', 'id'))
+                    ->searchable()
+                    ->required(),
+                Forms\Components\TextInput::make('estimated_duration')
+                    ->label('Durata Stimata (minuti)')
+                    ->numeric()
+                    ->required(),
+                Forms\Components\TextInput::make('setup_time')
+                    ->label('Tempo di Setup (minuti)')
+                    ->numeric()
+                    ->default(0)
+                    ->required(),
+                Forms\Components\Toggle::make('is_maintenance')
+                    ->label('Fase di Manutenzione')
+                    ->inline(false),
+            ])
+            ->columns(2);
     }
 
     public function table(Table $table): Table
@@ -50,6 +60,12 @@ class ProductionPhasesRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('name'),
                 Tables\Columns\TextColumn::make('workstation.name')->label('Postazione'),
                 Tables\Columns\TextColumn::make('estimated_duration')->label('Durata Stim. (min)'),
+                Tables\Columns\TextColumn::make('setup_time')
+                    ->label('Setup (min)')
+                    ->sortable(),
+                Tables\Columns\IconColumn::make('is_maintenance')
+                    ->label('Manutenzione')
+                    ->boolean(),
                 Tables\Columns\TextColumn::make('scheduled_start_time')->label('Inizio Pianificato')->dateTime(),
                 Tables\Columns\TextColumn::make('scheduled_end_time')->label('Fine Pianificata')->dateTime(),
                 Tables\Columns\TextColumn::make('start_time')->label('Inizio Effettivo')->dateTime()->toggleable(isToggledHiddenByDefault: true),

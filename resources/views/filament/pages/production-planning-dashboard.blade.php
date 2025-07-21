@@ -54,6 +54,26 @@
         </div>
     </div>
 
+    {{-- Demand Forecast Section --}}
+    @if ($demandForecast)
+        <div class="p-6 mt-6 bg-white rounded-lg shadow-md dark:bg-gray-800">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Risultati Previsione Domanda</h3>
+            <div class="mt-4">
+                <p>
+                    <span class="font-medium">Volume previsto per il prossimo mese:</span>
+                    <span class="text-xl font-bold text-primary-600">{{ $demandForecast['next_month_volume'] }}</span> unità.
+                </p>
+                <p class="text-sm text-gray-500">
+                    Calcolato con {{ $demandForecast['calculation_method'] }} basato su {{ $demandForecast['based_on_months'] }} mesi di storico.
+                </p>
+                <div class="p-4 mt-4 text-sm text-blue-700 bg-blue-100 border-l-4 border-blue-500" role="alert">
+                    <p class="font-bold">Azione Suggerita:</p>
+                    <p>Considera di creare ordini di produzione per stock per i prodotti più richiesti per evitare stock-out e soddisfare la domanda prevista.</p>
+                </div>
+            </div>
+        </div>
+    @endif
+
     {{-- Gantt Chart Section --}}
     @if ($ganttChart)
         <div class="p-6 mt-6 bg-white rounded-lg shadow-md dark:bg-gray-800">
