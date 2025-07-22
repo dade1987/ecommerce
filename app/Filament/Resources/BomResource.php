@@ -16,32 +16,41 @@ class BomResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
 
-    protected static ?string $modelLabel = 'Distinta Base';
+    public static function getModelLabel(): string
+    {
+        return __('filament-production.Distinta Base');
+    }
 
-    protected static ?string $pluralModelLabel = 'Distinte Basi';
+    public static function getPluralModelLabel(): string
+    {
+        return __('filament-production.Distinte Basi');
+    }
 
-    protected static ?string $navigationGroup = 'Produzione';
+    public static function getNavigationGroup(): string
+    {
+        return __('filament-production.Produzione');
+    }
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
                 Forms\Components\TextInput::make('internal_code')
-                    ->label('Codice Interno')
+                    ->label(__('filament-production.Codice Interno'))
                     ->required()
                     ->maxLength(255),
                 Forms\Components\Repeater::make('materials')
-                    ->label('Materiali')
+                    ->label(__('filament-production.Materiali'))
                     ->schema([
                         Forms\Components\TextInput::make('material_type')
-                            ->label('Materiale (es. Lamiera Acciaio)')
+                            ->label(__('filament-production.Materiale (es. Lamiera Acciaio)'))
                             ->required(),
                         Forms\Components\TextInput::make('thickness')
-                            ->label('Spessore (mm)')
+                            ->label(__('filament-production.Spessore (mm)'))
                             ->numeric()
                             ->required(),
                         Forms\Components\TextInput::make('quantity')
-                            ->label('Quantità')
+                            ->label(__('filament-production.Quantità'))
                             ->integer()
                             ->required(),
                     ])
@@ -55,15 +64,15 @@ class BomResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('internal_code')
-                    ->label('Codice Interno')
+                    ->label(__('filament-production.Codice Interno'))
                     ->searchable(),
                 Tables\Columns\TextColumn::make('created_at')
-                    ->label('Data Creazione')
+                    ->label(__('filament-production.Data Creazione'))
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('updated_at')
-                    ->label('Data Aggiornamento')
+                    ->label(__('filament-production.Data Aggiornamento'))
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),

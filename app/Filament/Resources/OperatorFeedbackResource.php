@@ -14,9 +14,20 @@ class OperatorFeedbackResource extends Resource
 {
     protected static ?string $model = OperatorFeedback::class;
     protected static ?string $navigationIcon = 'heroicon-o-chat-bubble-left-ellipsis';
-    protected static ?string $navigationGroup = 'Logistica';
-    protected static ?string $modelLabel = 'Feedback Operatore';
-    protected static ?string $pluralModelLabel = 'Feedback Operatori';
+public static function getNavigationGroup(): string
+    {
+        return __('filament-logistics.Logistica');
+    }
+
+public static function getModelLabel(): string
+    {
+        return __('filament-logistics.Feedback Operatore');
+    }
+
+public static function getPluralModelLabel(): string
+    {
+        return __('filament-logistics.Feedback Operatori');
+    }
     protected static ?int $navigationSort = 4;
 
     public static function form(Form $form): Form
@@ -24,31 +35,31 @@ class OperatorFeedbackResource extends Resource
         return $form
             ->schema([
                 Forms\Components\TextInput::make('titolo')
-                    ->label('Titolo')
+                    ->label(__('filament-logistics.Titolo'))
                     ->required()
                     ->maxLength(255)
                     ->columnSpanFull(),
 
                 Forms\Components\Textarea::make('descrizione')
-                    ->label('Descrizione')
+                    ->label(__('filament-logistics.Descrizione'))
                     ->required()
                     ->rows(4)
                     ->columnSpanFull(),
 
                 Forms\Components\Select::make('status')
-                    ->label('Stato')
+                    ->label(__('filament-logistics.Stato'))
                     ->required()
                     ->options([
-                        'pending' => 'In Attesa',
-                        'in_progress' => 'In Corso',
-                        'done' => 'Completato',
-                        'rejected' => 'Rifiutato',
+                        'pending' => __('filament-logistics.In Attesa'),
+                        'in_progress' => __('filament-logistics.In Corso'),
+                        'done' => __('filament-logistics.Completato'),
+                        'rejected' => __('filament-logistics.Rifiutato'),
                     ])
                     ->default('pending')
                     ->columnSpan(1),
 
                 Forms\Components\KeyValue::make('metadata')
-                    ->label('Metadati')
+                    ->label(__('filament-logistics.Metadati'))
                     ->helperText('Dati aggiuntivi in formato chiave-valore per estensioni future')
                     ->columnSpanFull()
                     ->collapsed(),
@@ -61,13 +72,13 @@ class OperatorFeedbackResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('titolo')
-                    ->label('Titolo')
+                    ->label(__('filament-logistics.Titolo'))
                     ->searchable()
                     ->sortable()
                     ->limit(50),
 
                 Tables\Columns\BadgeColumn::make('status')
-                    ->label('Stato')
+                    ->label(__('filament-logistics.Stato'))
                     ->colors([
                         'warning' => 'pending',
                         'primary' => 'in_progress',
@@ -75,15 +86,15 @@ class OperatorFeedbackResource extends Resource
                         'danger' => 'rejected',
                     ])
                     ->formatStateUsing(fn (string $state): string => match ($state) {
-                        'pending' => 'In Attesa',
-                        'in_progress' => 'In Corso',
-                        'done' => 'Completato',
-                        'rejected' => 'Rifiutato',
+                        'pending' => __('filament-logistics.In Attesa'),
+                        'in_progress' => __('filament-logistics.In Corso'),
+                        'done' => __('filament-logistics.Completato'),
+                        'rejected' => __('filament-logistics.Rifiutato'),
                         default => $state,
                     }),
 
                 Tables\Columns\TextColumn::make('descrizione')
-                    ->label('Descrizione')
+                    ->label(__('filament-logistics.Descrizione'))
                     ->limit(100)
                     ->tooltip(function (Tables\Columns\TextColumn $column): ?string {
                         $state = $column->getState();
@@ -94,24 +105,24 @@ class OperatorFeedbackResource extends Resource
                     }),
 
                 Tables\Columns\TextColumn::make('created_at')
-                    ->label('Creato il')
+                    ->label(__('filament-logistics.Creato il'))
                     ->dateTime()
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('updated_at')
-                    ->label('Aggiornato il')
+                    ->label(__('filament-logistics.Aggiornato il'))
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('status')
-                    ->label('Stato')
+                    ->label(__('filament-logistics.Stato'))
                     ->options([
-                        'pending' => 'In Attesa',
-                        'in_progress' => 'In Corso',
-                        'done' => 'Completato',
-                        'rejected' => 'Rifiutato',
+                        'pending' => __('filament-logistics.In Attesa'),
+                        'in_progress' => __('filament-logistics.In Corso'),
+                        'done' => __('filament-logistics.Completato'),
+                        'rejected' => __('filament-logistics.Rifiutato'),
                     ]),
             ])
             ->actions([

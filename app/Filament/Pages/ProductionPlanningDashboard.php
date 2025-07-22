@@ -27,8 +27,15 @@ class ProductionPlanningDashboard extends Page implements HasForms
     use InteractsWithForms;
 
     protected static ?string $navigationIcon = 'heroicon-o-chart-bar-square';
-    protected static ?string $navigationLabel = 'Dashboard di Pianificazione';
-    protected static ?string $navigationGroup = 'Produzione';
+public static function getNavigationLabel(): string
+{
+    return __("filament-production.Dashboard di Pianificazione");
+}
+
+public static function getNavigationGroup(): ?string
+{
+    return __("filament-production.Produzione");
+}
     protected static string $view = 'filament.pages.production-planning-dashboard';
 
     public ?string $startDate = null;
@@ -89,12 +96,12 @@ class ProductionPlanningDashboard extends Page implements HasForms
     {
         return [
             DatePicker::make('startDate')
-                ->label('Data Inizio')
+                ->label(__('filament-production.Data Inizio'))
                 ->live()
                 ->afterStateUpdated(fn () => $this->updateDashboardData()),
 
             DatePicker::make('endDate')
-                ->label('Data Fine')
+                ->label(__('filament-production.Data Fine'))
                 ->live()
                 ->afterStateUpdated(fn () => $this->updateDashboardData()),
         ];
@@ -104,19 +111,19 @@ class ProductionPlanningDashboard extends Page implements HasForms
     {
         return [
             Action::make('balanceLines')
-                ->label('Bilancia Carichi Linee')
+                ->label(__('filament-production.Bilancia Carichi Linee'))
                 ->action('balanceProductionLines'),
             Action::make('scheduleProduction')
-                ->label('Avvia Schedulazione (Semplice)')
+                ->label(__('filament-production.Avvia Schedulazione (Semplice)'))
                 ->action('runSimpleScheduling'),
             Action::make('generateGantt')
-                ->label('Genera Schedulazione Avanzata (Gantt)')
+                ->label(__('filament-production.Genera Schedulazione Avanzata (Gantt)'))
                 ->action('runAdvancedScheduling'),
             Action::make('generateDemandForecast')
-                ->label('Genera Forecast Domanda')
+                ->label(__('filament-production.Genera Forecast Domanda'))
                 ->action('runDemandForecast'),
             Action::make('whatIfSimulation')
-                ->label('Simulazione "What-If"')
+                ->label(__('filament-production.Simulazione What-If'))
                 ->action(function (array $data): void {
                     $simulationService = new SimulationService();
                     $result = $simulationService->runWhatIfSimulation($data);
@@ -125,20 +132,20 @@ class ProductionPlanningDashboard extends Page implements HasForms
                     $this->simulationGantt = $ganttService->generateForData($result['scheduled_phases']);
 
                     Notification::make()
-                        ->title('Simulazione "What-If" Completata')
+                        ->title(__('filament-production.Simulazione What-If Completata'))
                         ->success()
-                        ->body('Il Gantt simulato è stato generato qui sotto.')
+                        ->body(__('filament-production.Il Gantt simulato è stato generato qui sotto.'))
                         ->send();
                 })
                 ->form([
-                    TextInput::make('customer')->label('Cliente Ipotetico')->required(),
+                    TextInput::make('customer')->label(__('filament-production.Cliente Ipotetico'))->required(),
                     Select::make('bom_id')
-                        ->label('Distinta Base')
+                        ->label(__('filament-production.Distinta Base'))
                         ->options(Bom::all()->pluck('internal_code', 'id'))
                         ->searchable()
                         ->required(),
-                    TextInput::make('priority')->label('Priorità')->numeric()->required()->default(3),
-                    Textarea::make('notes')->label('Note Aggiuntive'),
+                    TextInput::make('priority')->label(__('filament-production.Priorità'))->numeric()->required()->default(3),
+                    Textarea::make('notes')->label(__('filament-production.Note Aggiuntive')),
                 ]),
         ];
     }
@@ -150,9 +157,9 @@ class ProductionPlanningDashboard extends Page implements HasForms
         $this->demandForecast = $result['forecast'];
 
         Notification::make()
-            ->title('Previsione della Domanda Calcolata')
+            ->title(__('filament-production.Previsione della Domanda Calcolata'))
             ->success()
-            ->body("Il volume previsto per il prossimo mese è di {$this->demandForecast['next_month_volume']} unità.")
+            ->body(__('filament-production.Il volume previsto per il prossimo mese è di :volume unità.', ['volume' => $this->demandForecast['next_month_volume']]))
             ->send();
     }
 
@@ -162,7 +169,7 @@ class ProductionPlanningDashboard extends Page implements HasForms
         $service->balanceProductionLines();
         $this->updateBottleneckData();
         Notification::make()
-            ->title('Linee di produzione bilanciate con successo')
+            ->title(__('filament-production.Linee di produzione bilanciate con successo'))
             ->success()
             ->send();
     }
@@ -175,9 +182,9 @@ class ProductionPlanningDashboard extends Page implements HasForms
         $scheduledPhasesCount = count($result['scheduled_phases_data']);
 
         Notification::make()
-            ->title('Schedulazione Avanzata Completata')
+            ->title(__('filament-production.Schedulazione Avanzata Completata'))
             ->success()
-            ->body("Schedulate con successo {$scheduledPhasesCount} fasi di produzione e manutenzione.")
+            ->body(__('filament-production.Schedulate con successo :count fasi di produzione e manutenzione.', ['count' => $scheduledPhasesCount]))
             ->send();
         
         $ganttService = new GanttChartService();
@@ -191,7 +198,7 @@ class ProductionPlanningDashboard extends Page implements HasForms
         $service->scheduleProduction();
         $this->updateBottleneckData();
         Notification::make()
-            ->title('Schedulazione semplice completata')
+            ->title(__('filament-production.Schedulazione semplice completata'))
             ->success()
             ->send();
     }

@@ -20,29 +20,38 @@ class ProductionLineResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-server-stack';
 
-    protected static ?string $navigationGroup = 'Produzione';
+public static function getNavigationGroup(): string
+    {
+        return __('filament-production.Produzione');
+    }
 
-    protected static ?string $modelLabel = 'Linea di Produzione';
+public static function getModelLabel(): string
+    {
+        return __('filament-production.Linea di Produzione');
+    }
 
-    protected static ?string $pluralModelLabel = 'Linee di Produzione';
+public static function getPluralModelLabel(): string
+    {
+        return __('filament-production.Linee di Produzione');
+    }
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
                 Forms\Components\TextInput::make('name')
-                    ->label('Nome Linea')
+                    ->label(__('filament-production.Nome Linea'))
                     ->required()
                     ->maxLength(255),
                 Forms\Components\Textarea::make('description')
-                    ->label('Descrizione')
+                    ->label(__('filament-production.Descrizione'))
                     ->columnSpanFull(),
                 Forms\Components\Select::make('status')
-                    ->label('Stato')
+                    ->label(__('filament-production.Stato'))
                     ->options([
-                        'active' => 'Attiva',
-                        'inactive' => 'Inattiva',
-                        'maintenance' => 'In Manutenzione',
+                        'active' => __('filament-production.Attiva'),
+                        'inactive' => __('filament-production.Inattiva'),
+                        'maintenance' => __('filament-production.In Manutenzione'),
                     ])
                     ->required(),
             ]);
@@ -53,10 +62,10 @@ class ProductionLineResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('name')
-                    ->label('Nome Linea')
+                    ->label(__('filament-production.Nome Linea'))
                     ->searchable(),
                 Tables\Columns\TextColumn::make('status')
-                    ->label('Stato')
+                    ->label(__('filament-production.Stato'))
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'active' => 'success',
@@ -66,7 +75,7 @@ class ProductionLineResource extends Resource
                     })
                     ->searchable(),
                 Tables\Columns\TextColumn::make('created_at')
-                    ->label('Data Creazione')
+                    ->label(__('filament-production.Data Creazione'))
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),

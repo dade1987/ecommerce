@@ -14,9 +14,20 @@ class WarehouseResource extends Resource
 {
     protected static ?string $model = Warehouse::class;
     protected static ?string $navigationIcon = 'heroicon-o-building-storefront';
-    protected static ?string $navigationGroup = 'Logistica';
-    protected static ?string $modelLabel = 'Magazzino';
-    protected static ?string $pluralModelLabel = 'Magazzini';
+public static function getNavigationGroup(): string
+    {
+        return __('filament-logistics.Logistica');
+    }
+
+public static function getModelLabel(): string
+    {
+        return __('filament-logistics.Magazzino');
+    }
+
+public static function getPluralModelLabel(): string
+    {
+        return __('filament-logistics.Magazzini');
+    }
     protected static ?int $navigationSort = 2;
 
     public static function form(Form $form): Form
@@ -24,22 +35,22 @@ class WarehouseResource extends Resource
         return $form
             ->schema([
                 Forms\Components\TextInput::make('name')
-                    ->label('Nome')
+                    ->label(__('filament-logistics.Nome'))
                     ->required()
                     ->maxLength(255)
                     ->columnSpan(1),
 
                 Forms\Components\Select::make('type')
-                    ->label('Tipo')
+                    ->label(__('filament-logistics.Tipo'))
                     ->required()
                     ->options([
-                        'fornitore' => 'Fornitore',
-                        'magazzino' => 'Magazzino',
-                        'negozio' => 'Negozio',
+                        'fornitore' => __('filament-logistics.Fornitore'),
+                        'magazzino' => __('filament-logistics.Magazzino (option)'),
+                        'negozio' => __('filament-logistics.Negozio'),
                     ])
                     ->columnSpan(1),
                 Forms\Components\Toggle::make('is_final_destination')
-                    ->label('È Destinazione Finale?')
+                    ->label(__('filament-logistics.È Destinazione Finale?'))
                     ->columnSpan(1),
             ])
             ->columns(2);
@@ -50,12 +61,12 @@ class WarehouseResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('name')
-                    ->label('Nome')
+                    ->label(__('filament-logistics.Nome'))
                     ->searchable()
                     ->sortable(),
 
                 Tables\Columns\BadgeColumn::make('type')
-                    ->label('Tipo')
+                    ->label(__('filament-logistics.Tipo'))
                     ->colors([
                         'primary' => 'fornitore',
                         'success' => 'magazzino',
@@ -64,32 +75,32 @@ class WarehouseResource extends Resource
                     ->formatStateUsing(fn (string $state): string => ucfirst($state)),
 
                 Tables\Columns\TextColumn::make('incomingMovements_count')
-                    ->label('Movimenti in Entrata')
+                    ->label(__('filament-logistics.Movimenti in Entrata'))
                     ->sortable()
                     ->default(0),
 
                 Tables\Columns\TextColumn::make('outgoingMovements_count')
-                    ->label('Movimenti in Uscita')
+                    ->label(__('filament-logistics.Movimenti in Uscita'))
                     ->sortable()
                     ->default(0),
 
                 
                 Tables\Columns\ToggleColumn::make('is_final_destination')
-                    ->label('Destinazione Finale'),
+                    ->label(__('filament-logistics.Destinazione Finale')),
 
                 Tables\Columns\TextColumn::make('created_at')
-                    ->label('Creato il')
+                    ->label(__('filament-logistics.Creato il'))
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('type')
-                    ->label('Tipo')
+                    ->label(__('filament-logistics.Tipo'))
                     ->options([
-                        'fornitore' => 'Fornitore',
-                        'magazzino' => 'Magazzino',
-                        'negozio' => 'Negozio',
+                        'fornitore' => __('filament-logistics.Fornitore'),
+                        'magazzino' => __('filament-logistics.Magazzino (option)'),
+                        'negozio' => __('filament-logistics.Negozio'),
                     ]),
             ])
             ->actions([

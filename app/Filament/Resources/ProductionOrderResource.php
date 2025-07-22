@@ -25,45 +25,54 @@ class ProductionOrderResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-list';
 
-    protected static ?string $modelLabel = 'Ordine di Produzione';
+    public static function getModelLabel(): string
+    {
+        return __('filament-production.Ordine di Produzione');
+    }
 
-    protected static ?string $pluralModelLabel = 'Ordini di Produzione';
+    public static function getPluralModelLabel(): string
+    {
+        return __('filament-production.Ordini di Produzione');
+    }
 
-    protected static ?string $navigationGroup = 'Produzione';
+    public static function getNavigationGroup(): string
+    {
+        return __('filament-production.Produzione');
+    }
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
                 Forms\Components\TextInput::make('customer')
-                    ->label('Cliente')
+                    ->label(__('filament-production.Cliente'))
                     ->required()
                     ->maxLength(255)
                     ->default(fn () => request()->get('customer')),
                 Forms\Components\DatePicker::make('order_date')
-                    ->label('Data Ordine')
+                    ->label(__('filament-production.Data Ordine'))
                     ->required()
                     ->default(now()),
                 Forms\Components\Select::make('status')
-                    ->label('Stato')
+                    ->label(__('filament-production.Stato'))
                     ->options(OrderStatus::class)
                     ->required()
                     ->default(OrderStatus::PENDING),
                 Forms\Components\Select::make('bom_id')
-                    ->label('Distinta Base')
+                    ->label(__('filament-production.Distinta Base'))
                     ->relationship('bom', 'internal_code')
                     ->searchable()
                     ->preload()
                     ->required()
                     ->default(fn () => request()->get('bom_id')),
                 Forms\Components\TextInput::make('quantity')
-                    ->label('Quantità')
+                    ->label(__('filament-production.Quantità'))
                     ->numeric()
                     ->required()
                     ->default(1)
                     ->minValue(1),
                 Forms\Components\Textarea::make('notes')
-                    ->label('Note')
+                    ->label(__('filament-production.Note'))
                     ->columnSpanFull(),
             ]);
     }
@@ -73,22 +82,22 @@ class ProductionOrderResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('id')
-                    ->label('ID Ordine')
+                    ->label(__('filament-production.ID Ordine'))
                     ->searchable(),
                 Tables\Columns\TextColumn::make('customer')
-                    ->label('Cliente')
+                    ->label(__('filament-production.Cliente'))
                     ->searchable(),
                 Tables\Columns\TextColumn::make('bom.internal_code')
-                    ->label('Codice BOM'),
+                    ->label(__('filament-production.Codice BOM')),
                 Tables\Columns\TextColumn::make('quantity')
-                    ->label('Qtà')
+                    ->label(__('filament-production.Qtà'))
                     ->sortable(),
                 Tables\Columns\TextColumn::make('status')
-                    ->label('Stato')
+                    ->label(__('filament-production.Stato'))
                     ->badge()
                     ->searchable(),
                 Tables\Columns\IconColumn::make('priority')
-                    ->label('Priorità')
+                    ->label(__('filament-production.Priorità'))
                     ->icon(fn (int $state): string => match ($state) {
                         0 => 'heroicon-o-arrow-down-circle',
                         1, 2 => 'heroicon-o-minus-circle',
@@ -105,13 +114,13 @@ class ProductionOrderResource extends Resource
                     })
                     ->sortable(),
                 Tables\Columns\TextColumn::make('order_date')
-                    ->label('Data Ordine')
+                    ->label(__('filament-production.Data Ordine'))
                     ->date()
                     ->sortable(),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('status')
-                    ->label('Filtra per Stato')
+                    ->label(__('filament-production.Filtra per Stato'))
                     ->options(OrderStatus::class)
             ])
             ->actions([

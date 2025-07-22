@@ -22,11 +22,20 @@ class WorkstationResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-wrench-screwdriver';
 
-    protected static ?string $navigationGroup = 'Produzione';
+public static function getNavigationGroup(): string
+    {
+        return __('filament-production.Produzione');
+    }
 
-    protected static ?string $modelLabel = 'Postazione di Lavoro';
+public static function getModelLabel(): string
+    {
+        return __('filament-production.Postazione di Lavoro');
+    }
 
-    protected static ?string $pluralModelLabel = 'Postazioni di Lavoro';
+public static function getPluralModelLabel(): string
+    {
+        return __('filament-production.Postazioni di Lavoro');
+    }
 
 
     public static function form(Form $form): Form
@@ -34,70 +43,70 @@ class WorkstationResource extends Resource
         return $form
             ->schema([
                 Select::make('production_line_id')
-                    ->label('Linea di Produzione')
+                    ->label(__('filament-production.Linea di Produzione'))
                     ->relationship('productionLine', 'name')
                     ->required(),
                 TextInput::make('name')
-                    ->label('Nome Postazione')
+                    ->label(__('filament-production.Nome Postazione'))
                     ->required()
                     ->maxLength(255),
                 Textarea::make('description')
-                    ->label('Descrizione')
+                    ->label(__('filament-production.Descrizione'))
                     ->columnSpanFull(),
                 Select::make('status')
-                    ->label('Stato')
+                    ->label(__('filament-production.Stato'))
                     ->options([
-                        'active' => 'Attiva',
-                        'inactive' => 'Inattiva',
-                        'maintenance' => 'In Manutenzione',
+                        'active' => __('filament-production.Attiva'),
+                        'inactive' => __('filament-production.Inattiva'),
+                        'maintenance' => __('filament-production.In Manutenzione'),
                     ])
                     ->required(),
                 TextInput::make('capacity')
-                    ->label('Capacità (ore/giorno)')
+                    ->label(__('filament-production.Capacità (ore/giorno)'))
                     ->required()
                     ->numeric()
                     ->default(8),
                 Forms\Components\TextInput::make('batch_size')
-                    ->label('Dimensione Lotto (unità)')
+                    ->label(__('filament-production.Dimensione Lotto (unità)'))
                     ->numeric()
                     ->required()
                     ->default(1)
                     ->minValue(1),
                 Forms\Components\TextInput::make('time_per_unit')
-                    ->label('Tempo per Unità (minuti)')
+                    ->label(__('filament-production.Tempo per Unità (minuti)'))
                     ->numeric()
                     ->required()
                     ->default(10)
                     ->minValue(1),
                 Forms\Components\Section::make('Digital Twin Fields')
-                    ->description('Questi campi rappresentano lo stato in tempo reale della postazione.')
+                    ->description(__('filament-production.Questi campi rappresentano lo stato in tempo reale della postazione.'))
                     ->columns(2)
                     ->schema([
                         Select::make('real_time_status')
                             ->options([
-                                'running' => 'In Funzione',
-                                'idle' => 'Inattiva',
-                                'faulted' => 'Guasta',
+                                'running' => __('filament-production.In Funzione'),
+                                'idle' => __('filament-production.Inattiva'),
+                                'faulted' => __('filament-production.Guasta'),
                             ])
                             ->default('idle')
                             ->required(),
                         TextInput::make('current_speed')
-                            ->label('Velocità Corrente (unità/ora)')
+                            ->label(__('filament-production.Velocità Corrente (unità/ora)'))
                             ->numeric(),
                         TextInput::make('wear_level')
-                            ->label('Livello Usura (%)')
+                            ->label(__('filament-production.Livello Usura (%)'))
                             ->numeric()
                             ->minValue(0)
                             ->maxValue(100)
                             ->default(0)
                             ->required(),
                         TextInput::make('error_rate')
-                            ->label('Tasso di Errore (%)')
+                            ->label(__('filament-production.Tasso di Errore (%)'))
                             ->numeric()
                             ->default(0)
                             ->required(),
                         DateTimePicker::make('last_maintenance_date')
-                            ->label('Data Ultima Manutenzione'),
+                            ->label(__('filament-production.Data Ultima Manutenzione')),
                     ]),
             ]);
     }
@@ -107,14 +116,14 @@ class WorkstationResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('name')
-                    ->label('Nome Postazione')
+                    ->label(__('filament-production.Nome Postazione'))
                     ->searchable(),
                 Tables\Columns\TextColumn::make('productionLine.name')
-                    ->label('Linea di Produzione')
+                    ->label(__('filament-production.Linea di Produzione'))
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('status')
-                    ->label('Stato')
+                    ->label(__('filament-production.Stato'))
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'active' => 'success',
@@ -123,20 +132,20 @@ class WorkstationResource extends Resource
                         default => 'gray',
                     })
                     ->searchable(),
-                Tables\Columns\TextColumn::make('real_time_status')->label('Stato Real-Time')->badge()
+                Tables\Columns\TextColumn::make('real_time_status')->label(__('filament-production.Stato Real-Time'))->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'running' => 'success',
                         'idle' => 'warning',
                         'faulted' => 'danger',
                         default => 'gray',
                     }),
-                Tables\Columns\TextColumn::make('wear_level')->label('Usura (%)')->sortable(),
+                Tables\Columns\TextColumn::make('wear_level')->label(__('filament-production.Usura (%)'))->sortable(),
                 Tables\Columns\TextColumn::make('capacity')
-                    ->label('Capacità')
+                    ->label(__('filament-production.Capacità'))
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
-                    ->label('Data Creazione')
+                    ->label(__('filament-production.Data Creazione'))
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),

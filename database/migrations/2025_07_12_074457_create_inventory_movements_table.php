@@ -16,8 +16,8 @@ return new class extends Migration
             $table->foreignId('logistic_product_id')->constrained('logistic_products')->onDelete('cascade');
             $table->foreignId('from_warehouse_id')->nullable()->constrained('logistic_warehouses')->onDelete('cascade');
             $table->foreignId('to_warehouse_id')->nullable()->constrained('logistic_warehouses')->onDelete('cascade');
-            $table->enum('movement_type', ['carico', 'scarico', 'trasferimento'])
-                  ->comment('Tipo di movimento: carico, scarico, trasferimento');
+            $table->enum('movement_type', ['carico', 'scarico', 'trasferimento', 'reso'])
+                  ->comment('Tipo di movimento: carico, scarico, trasferimento, reso');
             $table->integer('quantita')->comment('Quantità del movimento');
             $table->text('note')->nullable()->comment('Note aggiuntive sul movimento');
             

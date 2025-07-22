@@ -19,7 +19,10 @@ class ProductTwinResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-identification';
     
-    protected static ?string $navigationGroup = 'Tracciabilità';
+public static function getNavigationGroup(): string
+{
+    return __('filament-traceability.Tracciabilità');
+}
 
     public static function form(Form $form): Form
     {
@@ -33,16 +36,11 @@ class ProductTwinResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('uuid')
-                    ->label('UUID')
-                    ->searchable()
-                    ->copyable()
-                    ->copyMessage('UUID copiato'),
                 Tables\Columns\TextColumn::make('internalProduct.name')
-                    ->label('Prodotto')
+                    ->label(__('filament-traceability.Prodotto'))
                     ->searchable(),
                 Tables\Columns\TextColumn::make('lifecycle_status')
-                    ->label('Stato')
+                    ->label(__('filament-traceability.Stato'))
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'in_production' => 'gray',
@@ -52,13 +50,14 @@ class ProductTwinResource extends Resource
                         'recycled' => 'primary',
                         default => 'gray',
                     })
+                    ->formatStateUsing(fn (string $state): string => __("filament-traceability." . $state))
                     ->searchable(),
                 Tables\Columns\TextColumn::make('co2_emissions_total')
-                    ->label('CO2 Totale (kg)')
+                    ->label(__('filament-traceability.CO2 Totale (kg)'))
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
-                    ->label('Data Creazione')
+                    ->label(__('filament-traceability.Data Creazione'))
                     ->dateTime()
                     ->sortable(),
             ])

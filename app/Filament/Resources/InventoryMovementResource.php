@@ -18,9 +18,20 @@ class InventoryMovementResource extends Resource
 {
     protected static ?string $model = InventoryMovement::class;
     protected static ?string $navigationIcon = 'heroicon-o-arrows-right-left';
-    protected static ?string $navigationGroup = 'Logistica';
-    protected static ?string $modelLabel = 'Movimento di Inventario';
-    protected static ?string $pluralModelLabel = 'Movimenti di Inventario';
+public static function getNavigationGroup(): string
+    {
+        return __('filament-logistics.Logistica');
+    }
+
+public static function getModelLabel(): string
+    {
+        return __('filament-logistics.Movimento di Inventario');
+    }
+
+public static function getPluralModelLabel(): string
+    {
+        return __('filament-logistics.Movimenti di Inventario');
+    }
     protected static ?int $navigationSort = 3;
 
     public static function form(Form $form): Form
@@ -28,19 +39,20 @@ class InventoryMovementResource extends Resource
         return $form
             ->schema([
                 Forms\Components\Select::make('movement_type')
-                    ->label('Tipo Movimento')
+                    ->label(__('filament-logistics.Tipo Movimento'))
                     ->required()
                     ->options([
-                        'carico' => 'Carico',
-                        'scarico' => 'Scarico',
-                        'trasferimento' => 'Trasferimento',
+                        'carico' => __('filament-logistics.Carico'),
+                        'scarico' => __('filament-logistics.Scarico'),
+                        'trasferimento' => __('filament-logistics.Trasferimento'),
+                        'reso' => __('filament-logistics.Reso'),
                     ])
                     ->live()
                     ->columnSpanFull(),
 
                 // Fields for UNLOAD and TRANSFER
                 Forms\Components\Select::make('from_warehouse_id')
-                    ->label('Magazzino Origine')
+                    ->label(__('filament-logistics.Magazzino Origine'))
                     ->relationship('fromWarehouse', 'name')
                     ->searchable()
                     ->preload()
@@ -49,14 +61,14 @@ class InventoryMovementResource extends Resource
                     ->required(fn (Get $get) => in_array($get('movement_type'), ['scarico', 'trasferimento'])),
 
                 Forms\Components\Select::make('internal_product_id_for_twins')
-                    ->label('Prodotto')
+                    ->label(__('filament-logistics.Prodotto'))
                     ->options(InternalProduct::query()->pluck('name', 'id'))
                     ->live()
                     ->visible(fn (Get $get) => in_array($get('movement_type'), ['scarico', 'trasferimento']))
                     ->dehydrated(false),
 
                 Forms\Components\CheckboxList::make('product_twins')
-                    ->label('Prodotti Specifici (Digital Twin)')
+                    ->label(__('filament-logistics.Prodotti Specifici (Digital Twin)'))
                     ->options(function (Get $get): Collection {
                         $warehouseId = $get('from_warehouse_id');
                         $internalProductId = $get('internal_product_id_for_twins');
@@ -74,7 +86,7 @@ class InventoryMovementResource extends Resource
 
                 // Fields for LOAD
                 Forms\Components\Select::make('internal_product_id')
-                    ->label('Prodotto')
+                    ->label(__('filament-logistics.Prodotto'))
                     ->relationship('internalProduct', 'name')
                     ->searchable()
                     ->preload()
@@ -82,7 +94,7 @@ class InventoryMovementResource extends Resource
                     ->required(fn (Get $get) => $get('movement_type') === 'carico'),
                 
                 Forms\Components\TextInput::make('quantity')
-                    ->label('Quantità')
+                    ->label(__('filament-logistics.Quantità'))
                     ->numeric()
                     ->minValue(1)
                     ->visible(fn (Get $get) => $get('movement_type') === 'carico')
@@ -90,7 +102,7 @@ class InventoryMovementResource extends Resource
 
                 // Fields for LOAD and TRANSFER
                 Forms\Components\Select::make('to_warehouse_id')
-                    ->label('Magazzino Destinazione')
+                    ->label(__('filament-logistics.Magazzino Destinazione'))
                     ->relationship('toWarehouse', 'name')
                     ->searchable()
                     ->preload()
@@ -98,15 +110,19 @@ class InventoryMovementResource extends Resource
                     ->required(fn (Get $get) => in_array($get('movement_type'), ['carico', 'trasferimento'])),
 
                 Forms\Components\TextInput::make('distance_km')
-                    ->label('Distanza (km)')
+                    ->label(__('filament-logistics.Distanza (km)'))
                     ->numeric(),
 
                 Forms\Components\Select::make('transport_mode')
-                    ->label('Mezzo di Trasporto')
-                    ->options(['camion' => 'Camion', 'treno' => 'Treno', 'aereo' => 'Aereo']),
+                    ->label(__('filament-logistics.Mezzo di Trasporto'))
+                    ->options([
+                        'camion' => __('filament-logistics.Camion'),
+                        'treno' => __('filament-logistics.Treno'),
+                        'aereo' => __('filament-logistics.Aereo'),
+                    ]),
 
                 Forms\Components\Textarea::make('note')
-                    ->label('Note')
+                    ->label(__('filament-logistics.Note'))
                     ->columnSpanFull(),
             ]);
     }
@@ -116,20 +132,21 @@ class InventoryMovementResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('movement_type')
-                    ->label('Tipo')
+                    ->label(__('filament-logistics.Tipo'))
                     ->badge()
                     ->formatStateUsing(fn (string $state): string => ucfirst($state))
                     ->color(fn (string $state): string => match ($state) {
                         'carico' => 'success',
                         'scarico' => 'danger',
                         'trasferimento' => 'warning',
+                        'reso' => 'info',
                     }),
-                Tables\Columns\TextColumn::make('internalProduct.name')->label('Prodotto')->searchable()->sortable(),
-                Tables\Columns\TextColumn::make('fromWarehouse.name')->label('Da')->searchable()->sortable(),
-                Tables\Columns\TextColumn::make('toWarehouse.name')->label('A')->searchable()->sortable(),
-                Tables\Columns\TextColumn::make('quantity')->label('Quantità (Carico)')->numeric()->sortable(),
-                Tables\Columns\TextColumn::make('product_twins_count')->counts('productTwins')->label('Unità Mosse')->sortable(),
-                Tables\Columns\TextColumn::make('created_at')->label('Data')->dateTime()->sortable(),
+                Tables\Columns\TextColumn::make('internalProduct.name')->label(__('filament-logistics.Prodotto'))->searchable()->sortable(),
+                Tables\Columns\TextColumn::make('fromWarehouse.name')->label(__('filament-logistics.Da'))->searchable()->sortable(),
+                Tables\Columns\TextColumn::make('toWarehouse.name')->label(__('filament-logistics.A'))->searchable()->sortable(),
+                Tables\Columns\TextColumn::make('quantity')->label(__('filament-logistics.Quantità (Carico)'))->numeric()->sortable(),
+                Tables\Columns\TextColumn::make('product_twins_count')->counts('productTwins')->label(__('filament-logistics.Unità Mosse'))->sortable(),
+                Tables\Columns\TextColumn::make('created_at')->label(__('filament-logistics.Data'))->dateTime()->sortable(),
             ])
             ->filters([
                 //

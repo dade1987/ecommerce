@@ -473,8 +473,9 @@ class FullProductionDemoSeeder extends Seeder
                 ->take(intdiv($twinsToMilan->count(), 2))->get();
             if ($twinsReturn->count() > 0) {
                 ProductTwin::whereIn('id', $twinsReturn->pluck('id'))->update(['current_warehouse_id' => $warehouses['raw']->id]);
+                $movementType = $warehouses['milan']->is_final_destination ? 'reso' : 'trasferimento';
                 $returnTransfer = InventoryMovement::create([
-                    'movement_type' => 'trasferimento',
+                    'movement_type' => $movementType,
                     'internal_product_id' => $product->id,
                     'from_warehouse_id' => $warehouses['milan']->id,
                     'to_warehouse_id' => $warehouses['raw']->id,
