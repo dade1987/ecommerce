@@ -1,6 +1,8 @@
 <?php
 return [
 
+    'Ordini di Produzione' => 'Ordini di Produzione',
+
         // Dashboard di Pianificazione
     'Dashboard di Pianificazione' => 'Dashboard di Pianificazione',
     'Data Inizio' => 'Data Inizio',
@@ -13,6 +15,8 @@ return [
     'Cliente Ipotetico' => 'Cliente Ipotetico',
     'Note Aggiuntive' => 'Note Aggiuntive',
     'Distinta Base' => 'Distinta Base',
+    'Distinte Basi' => 'Distinte Basi',
+
     'Priorità' => 'Priorità',
     'KPI di Produzione in Tempo Reale' => 'KPI di Produzione in Tempo Reale',
     'OEE Medio Impianto' => 'OEE Medio Impianto',

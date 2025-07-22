@@ -129,9 +129,54 @@ class FullProductionDemoSeeder extends Seeder
 
     private function createBoms(array $products)
     {
-        Bom::create(['internal_product_id' => $products['sheet']->id, 'internal_code' => $products['sheet']->code, 'materials' => json_encode([['material_type' => 'Acciaio Grezzo', 'thickness' => 2, 'quantity' => 1]])]);
-        Bom::create(['internal_product_id' => $products['bracket']->id, 'internal_code' => $products['bracket']->code, 'materials' => json_encode([['material_type' => 'Nastro Acciaio', 'thickness' => 1, 'quantity' => 1]])]);
-        Bom::create(['internal_product_id' => $products['plate']->id, 'internal_code' => $products['plate']->code, 'materials' => json_encode([['material_type' => 'Acciaio Grezzo', 'thickness' => 3, 'quantity' => 1]])]);
+        Bom::create([
+            'internal_product_id' => $products['sheet']->id,
+            'internal_code' => $products['sheet']->code,
+            'materials' => [
+                [
+                    'material_type' => 'Acciaio Grezzo',
+                    'thickness' => 2,
+                    'quantity' => 1,
+                ],
+                [
+                    'material_type' => 'Viti in Acciaio Inox',
+                    'thickness' => 0,
+                    'quantity' => 8,
+                ],
+            ],
+        ]);
+        Bom::create([
+            'internal_product_id' => $products['bracket']->id,
+            'internal_code' => $products['bracket']->code,
+            'materials' => [
+                [
+                    'material_type' => 'Nastro Acciaio',
+                    'thickness' => 1,
+                    'quantity' => 1,
+                ],
+                [
+                    'material_type' => 'Rivetti in Alluminio',
+                    'thickness' => 0,
+                    'quantity' => 12,
+                ],
+            ],
+        ]);
+        Bom::create([
+            'internal_product_id' => $products['plate']->id,
+            'internal_code' => $products['plate']->code,
+            'materials' => [
+                [
+                    'material_type' => 'Acciaio Grezzo',
+                    'thickness' => 3,
+                    'quantity' => 1,
+                ],
+                [
+                    'material_type' => 'Viti in Acciaio Zincato',
+                    'thickness' => 0,
+                    'quantity' => 10,
+                ],
+            ],
+        ]);
     }
 
     private function createProduction(array $products, array $infra)

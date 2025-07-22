@@ -21,7 +21,12 @@ class BomSeeder extends Seeder
                     'material_type' => 'Lamiera in Acciaio Inox AISI 304',
                     'thickness' => '1.5',
                     'quantity' => '1',
-                ]
+                ],
+                [
+                    'material_type' => 'Viti in Acciaio Inox',
+                    'thickness' => '0.0',
+                    'quantity' => '8',
+                ],
             ],
         ]);
 
@@ -33,7 +38,12 @@ class BomSeeder extends Seeder
                     'material_type' => 'Lamiera in Alluminio Preverniciato Bianco',
                     'thickness' => '2.0',
                     'quantity' => '1',
-                ]
+                ],
+                [
+                    'material_type' => 'Rivetti in Alluminio',
+                    'thickness' => '0.0',
+                    'quantity' => '12',
+                ],
             ],
         ]);
 
@@ -45,7 +55,12 @@ class BomSeeder extends Seeder
                     'material_type' => 'Lamiera in Ferro Zincato a Caldo',
                     'thickness' => '3.0',
                     'quantity' => '1',
-                ]
+                ],
+                [
+                    'material_type' => 'Viti in Acciaio Zincato',
+                    'thickness' => '0.0',
+                    'quantity' => '10',
+                ],
             ],
         ]);
     }

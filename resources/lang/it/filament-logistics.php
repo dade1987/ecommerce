@@ -15,6 +15,10 @@ return [
     'Prodotto Gemello' => 'Prodotto Gemello',
     // Aggiungi altre chiavi se necessario
 
+    'Movimenti di Inventario' => 'Movimenti di Inventario',
+    'Feedback Operatori' => 'Feedback Operatori',
+
+
     'Da' => 'Da',
     'A' => 'A',
 ];
