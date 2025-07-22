@@ -23,13 +23,13 @@ class WarehouseResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('nome')
+                Forms\Components\TextInput::make('name')
                     ->label('Nome')
                     ->required()
                     ->maxLength(255)
                     ->columnSpan(1),
 
-                Forms\Components\Select::make('tipo')
+                Forms\Components\Select::make('type')
                     ->label('Tipo')
                     ->required()
                     ->options([
@@ -37,6 +37,9 @@ class WarehouseResource extends Resource
                         'magazzino' => 'Magazzino',
                         'negozio' => 'Negozio',
                     ])
+                    ->columnSpan(1),
+                Forms\Components\Toggle::make('is_final_destination')
+                    ->label('È Destinazione Finale?')
                     ->columnSpan(1),
             ])
             ->columns(2);
@@ -46,12 +49,12 @@ class WarehouseResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('nome')
+                Tables\Columns\TextColumn::make('name')
                     ->label('Nome')
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\BadgeColumn::make('tipo')
+                Tables\Columns\BadgeColumn::make('type')
                     ->label('Tipo')
                     ->colors([
                         'primary' => 'fornitore',
@@ -62,13 +65,17 @@ class WarehouseResource extends Resource
 
                 Tables\Columns\TextColumn::make('incomingMovements_count')
                     ->label('Movimenti in Entrata')
-                    ->counts('incomingMovements')
-                    ->sortable(),
+                    ->sortable()
+                    ->default(0),
 
                 Tables\Columns\TextColumn::make('outgoingMovements_count')
                     ->label('Movimenti in Uscita')
-                    ->counts('outgoingMovements')
-                    ->sortable(),
+                    ->sortable()
+                    ->default(0),
+
+                
+                Tables\Columns\ToggleColumn::make('is_final_destination')
+                    ->label('Destinazione Finale'),
 
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Creato il')
@@ -77,7 +84,7 @@ class WarehouseResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('tipo')
+                Tables\Filters\SelectFilter::make('type')
                     ->label('Tipo')
                     ->options([
                         'fornitore' => 'Fornitore',

@@ -16,92 +16,97 @@ class WarehouseSeeder extends Seeder
         $warehouses = [
             // Fornitori
             [
-                'nome' => 'Molino San Giuseppe',
-                'tipo' => 'fornitore'
+                'name' => 'Molino San Giuseppe',
+                'type' => 'fornitore'
             ],
             [
-                'nome' => 'Oleificio Toscano',
-                'tipo' => 'fornitore'
+                'name' => 'Oleificio Toscano',
+                'type' => 'fornitore'
             ],
             [
-                'nome' => 'Zuccherificio Nazionale',
-                'tipo' => 'fornitore'
+                'name' => 'Zuccherificio Nazionale',
+                'type' => 'fornitore'
             ],
             [
-                'nome' => 'Caseificio Valle Verde',
-                'tipo' => 'fornitore'
+                'name' => 'Caseificio Valle Verde',
+                'type' => 'fornitore'
             ],
             [
-                'nome' => 'Fornitore Packaging SRL',
-                'tipo' => 'fornitore'
+                'name' => 'Fornitore Packaging SRL',
+                'type' => 'fornitore'
             ],
             [
-                'nome' => 'Ingredienti & Co.',
-                'tipo' => 'fornitore'
+                'name' => 'Ingredienti & Co.',
+                'type' => 'fornitore'
             ],
             
             // Magazzini centrali
             [
-                'nome' => 'Magazzino Centrale Nord',
-                'tipo' => 'magazzino'
+                'name' => 'Magazzino Centrale Nord',
+                'type' => 'magazzino'
             ],
             [
-                'nome' => 'Magazzino Centrale Sud',
-                'tipo' => 'magazzino'
+                'name' => 'Magazzino Centrale Sud',
+                'type' => 'magazzino'
             ],
             [
-                'nome' => 'Deposito Materie Prime',
-                'tipo' => 'magazzino'
+                'name' => 'Deposito Materie Prime',
+                'type' => 'magazzino'
             ],
             [
-                'nome' => 'Deposito Prodotti Finiti',
-                'tipo' => 'magazzino'
+                'name' => 'Deposito Prodotti Finiti',
+                'type' => 'magazzino'
             ],
             [
-                'nome' => 'Magazzino Refrigerato',
-                'tipo' => 'magazzino'
+                'name' => 'Magazzino Refrigerato',
+                'type' => 'magazzino'
             ],
             
             // Negozi e punti vendita
             [
-                'nome' => 'Negozio Centro Storico',
-                'tipo' => 'negozio'
+                'name' => 'Negozio Centro Storico',
+                'type' => 'negozio',
+                'is_final_destination' => true,
             ],
             [
-                'nome' => 'Punto Vendita Periferia',
-                'tipo' => 'negozio'
+                'name' => 'Punto Vendita Periferia',
+                'type' => 'negozio',
+                'is_final_destination' => true,
             ],
             [
-                'nome' => 'Outlet Factory Store',
-                'tipo' => 'negozio'
+                'name' => 'Outlet Factory Store',
+                'type' => 'negozio',
+                'is_final_destination' => true,
             ],
             [
-                'nome' => 'Corner Supermercato',
-                'tipo' => 'negozio'
+                'name' => 'Corner Supermercato',
+                'type' => 'negozio',
+                'is_final_destination' => true,
             ],
             [
-                'nome' => 'Negozio Online (E-commerce)',
-                'tipo' => 'negozio'
+                'name' => 'Negozio Online (E-commerce)',
+                'type' => 'negozio',
+                'is_final_destination' => true,
             ],
             
             // Magazzini specializzati
             [
-                'nome' => 'Area Quarantena Qualità',
-                'tipo' => 'magazzino'
+                'name' => 'Area Quarantena Qualità',
+                'type' => 'magazzino'
             ],
             [
-                'nome' => 'Deposito Resi e Scarti',
-                'tipo' => 'magazzino'
+                'name' => 'Deposito Resi e Scarti',
+                'type' => 'magazzino'
             ],
             [
-                'nome' => 'Magazzino Spedizioni',
-                'tipo' => 'magazzino'
+                'name' => 'Magazzino Spedizioni',
+                'type' => 'magazzino'
             ],
         ];
 
         foreach ($warehouses as $warehouse) {
             Warehouse::updateOrCreate(
-                ['nome' => $warehouse['nome']],
+                ['name' => $warehouse['name']],
                 $warehouse
             );
         }

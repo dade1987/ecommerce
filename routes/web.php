@@ -6,6 +6,8 @@ use App\Http\Controllers\PageController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TagController;
 use Illuminate\Support\Facades\Route;
+use App\Models\Warehouse;
+use App\Models\InventoryMovement;
 
 use App\Http\Controllers\DebugMediaController;
 
@@ -17,20 +19,22 @@ use App\Http\Controllers\DebugMediaController;
 |
 | Here is where you can register web routes for your application. These
 | routes are loaded by the RouteServiceProvider and all of them will
-| be assigned to the "web" middleware group. Make something great!
+| be assigned to the "web" middleware group. Now create something great!
 |
 */
 
 require __DIR__.'/auth.php';
 
-/*Route::get('/', function () {
+Route::get('/', function () {
     return view('welcome');
-})->name('home');*/
+})->name('home');
 
 Route::prefix(config('curator.glide.route_path', 'curator'))
-    ->get('/{path}', [DebugMediaController::class, 'show'])
-    ->where('path', '.*')
-    ->name('curator.media.debug');
+    ->group(function () {
+        Route::get('/{path}', [DebugMediaController::class, 'show'])
+            ->where('path', '.*')
+            ->name('curator.media.debug');
+    });
     
 Route::redirect('/', '/home')->name('home');
 

@@ -169,11 +169,30 @@ class AdminPanelProvider extends PanelProvider
                             }
                         }
                         
-                        // Now create the NavigationGroup objects from the temporary array
+                        // Define the desired order of navigation groups
+                        $groupOrder = [
+                            'Produzione',
+                            'Logistica', 
+                            'Tracciabilità',
+                            'Email Intelligenti'
+                        ];
+                        
+                        // Create NavigationGroup objects in the desired order
+                        foreach($groupOrder as $groupLabel) {
+                            if (isset($groupedItemArrays[$groupLabel])) {
+                                $navigationGroups[] = \Filament\Navigation\NavigationGroup::make($groupLabel)
+                                    ->label($groupLabel)
+                                    ->items($groupedItemArrays[$groupLabel]);
+                            }
+                        }
+                        
+                        // Add any remaining groups not in the predefined order
                         foreach($groupedItemArrays as $groupLabel => $items) {
-                            $navigationGroups[] = \Filament\Navigation\NavigationGroup::make($groupLabel)
-                                ->label($groupLabel)
-                                ->items($items);
+                            if (!in_array($groupLabel, $groupOrder)) {
+                                $navigationGroups[] = \Filament\Navigation\NavigationGroup::make($groupLabel)
+                                    ->label($groupLabel)
+                                    ->items($items);
+                            }
                         }
                         
                         // Finally, build the navigation

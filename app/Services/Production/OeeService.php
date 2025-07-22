@@ -3,6 +3,8 @@
 namespace App\Services\Production;
 
 use App\Models\Workstation;
+use Carbon\Carbon;
+use App\Models\ProductionPhase;
 
 class OeeService
 {
@@ -13,36 +15,47 @@ class OeeService
      * @param Workstation $workstation
      * @return array
      */
-    public function calculateForWorkstation(Workstation $workstation): array
+    public function calculateForWorkstation(Workstation $workstation, ?Carbon $startDate = null, ?Carbon $endDate = null): array
     {
-        // 1. Calcolo della Disponibilità (simplificato)
-        // Si basa sullo stato in tempo reale. In un sistema reale, si userebbero i log di uptime/downtime.
-        $availability = match ($workstation->real_time_status) {
-            'running' => 0.95, // Si assume un 5% di micro-fermate, cambi, ecc.
-            'idle' => 1.0,     // Disponibile ma non in uso
-            'faulted' => 0.1,  // Fortemente indisponibile
-            default => 0.0,
-        };
+        $startDate = $startDate ?? now()->subMonth();
+        $endDate = $endDate ?? now();
 
-        // 2. Calcolo della Performance (simplificato)
-        // Confronta la velocità attuale con la velocità teorica ideale.
-        $idealSpeed = ($workstation->time_per_unit > 0) ? (60 / $workstation->time_per_unit) : 0; // unità/ora
-        $currentSpeed = $workstation->current_speed ?? 0;
-        $performance = ($idealSpeed > 0) ? ($currentSpeed / $idealSpeed) : 0;
-        $performance = min($performance, 1.0); // La performance non può superare il 100%
+        // 1. Availability: (Tempo di funzionamento effettivo / Tempo pianificato)
+        $totalPlannedMinutes = $workstation->availabilities()
+            ->get()
+            ->sum(function ($availability) use ($startDate, $endDate) {
+                return Carbon::parse($availability->start_time)->diffInMinutes(Carbon::parse($availability->end_time)) * $startDate->diffInDaysFiltered(fn (Carbon $date) => $date->isWeekday(), $endDate);
+            });
 
-        // 3. Calcolo della Qualità
-        // Basato direttamente sul tasso di errore registrato.
+        $actualRunTimeMinutes = ProductionPhase::where('workstation_id', $workstation->id)
+            ->whereBetween('end_time', [$startDate, $endDate])
+            ->sum('estimated_duration'); // Usiamo la durata stimata come approssimazione del tempo di ciclo
+
+        $availability = ($totalPlannedMinutes > 0) ? ($actualRunTimeMinutes / $totalPlannedMinutes) : 0;
+
+        // 2. Performance: (Produzione effettiva / Produzione teorica nel tempo di funzionamento)
+        $totalUnitsProduced = ProductionPhase::where('workstation_id', $workstation->id)
+            ->whereBetween('end_time', [$startDate, $endDate])
+            ->with('productionOrder')
+            ->get()
+            ->sum('productionOrder.quantity'); // Questo è un'approssimazione, sarebbe meglio avere pezzi/fase
+            
+        $idealCycleTimeMinutes = $workstation->time_per_unit;
+        $theoreticalProduction = ($idealCycleTimeMinutes > 0) ? ($actualRunTimeMinutes / $idealCycleTimeMinutes) : 0;
+        
+        $performance = ($theoreticalProduction > 0) ? ($totalUnitsProduced / $theoreticalProduction) : 0;
+
+        // 3. Quality: (Pezzi buoni / Pezzi totali)
+        // Simplificato: usiamo l'error_rate della workstation
         $quality = 1 - ($workstation->error_rate / 100);
 
-        // Calcolo dell'OEE complessivo
         $oee = $availability * $performance * $quality;
 
         return [
-            'availability' => round($availability, 4),
-            'performance' => round($performance, 4),
+            'availability' => min(1, round($availability, 4)),
+            'performance' => min(1, round($performance, 4)),
             'quality' => round($quality, 4),
-            'oee' => round($oee, 4),
+            'oee' => min(1, round($oee, 4)),
         ];
     }
 } 

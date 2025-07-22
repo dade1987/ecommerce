@@ -26,10 +26,6 @@ class BomResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('product_name')
-                    ->label('Nome Prodotto')
-                    ->required()
-                    ->maxLength(255),
                 Forms\Components\TextInput::make('internal_code')
                     ->label('Codice Interno')
                     ->required()
@@ -58,9 +54,6 @@ class BomResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('product_name')
-                    ->label('Nome Prodotto')
-                    ->searchable(),
                 Tables\Columns\TextColumn::make('internal_code')
                     ->label('Codice Interno')
                     ->searchable(),

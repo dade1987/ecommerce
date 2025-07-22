@@ -51,7 +51,7 @@ class ProductionOrderResource extends Resource
                     ->default(OrderStatus::PENDING),
                 Forms\Components\Select::make('bom_id')
                     ->label('Distinta Base')
-                    ->relationship('bom', 'product_name')
+                    ->relationship('bom', 'internal_code')
                     ->searchable()
                     ->preload()
                     ->required()
@@ -78,9 +78,8 @@ class ProductionOrderResource extends Resource
                 Tables\Columns\TextColumn::make('customer')
                     ->label('Cliente')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('bom.product_name')
-                    ->label('Prodotto (Distinta Base)')
-                    ->searchable(),
+                Tables\Columns\TextColumn::make('bom.internal_code')
+                    ->label('Codice BOM'),
                 Tables\Columns\TextColumn::make('quantity')
                     ->label('Qtà')
                     ->sortable(),
@@ -209,7 +208,7 @@ class ProductionOrderResource extends Resource
     {
         return [
             'Cliente' => $record->customer,
-            'Prodotto' => $record->bom?->product_name,
+            'Prodotto' => $record->bom?->internal_code,
         ];
     }
 }

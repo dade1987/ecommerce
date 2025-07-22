@@ -68,6 +68,8 @@ class ProductionPlanningDashboard extends Page implements HasForms
         $oeeService = new OeeService();
         $workstations = Workstation::all();
         $totalOee = 0;
+        $startDate = Carbon::parse($this->startDate);
+        $endDate = Carbon::parse($this->endDate);
 
         if ($workstations->isEmpty()) {
             $this->oeeData = ['avg_oee' => 0];
@@ -75,7 +77,7 @@ class ProductionPlanningDashboard extends Page implements HasForms
         }
 
         foreach ($workstations as $workstation) {
-            $totalOee += $oeeService->calculateForWorkstation($workstation)['oee'];
+            $totalOee += $oeeService->calculateForWorkstation($workstation, $startDate, $endDate)['oee'];
         }
 
         $this->oeeData = [
@@ -132,7 +134,7 @@ class ProductionPlanningDashboard extends Page implements HasForms
                     TextInput::make('customer')->label('Cliente Ipotetico')->required(),
                     Select::make('bom_id')
                         ->label('Distinta Base')
-                        ->options(Bom::all()->pluck('product_name', 'id'))
+                        ->options(Bom::all()->pluck('internal_code', 'id'))
                         ->searchable()
                         ->required(),
                     TextInput::make('priority')->label('Priorità')->numeric()->required()->default(3),
@@ -181,5 +183,16 @@ class ProductionPlanningDashboard extends Page implements HasForms
         $ganttService = new GanttChartService();
         $this->ganttChart = $ganttService->generateForData($result['scheduled_phases_data']);
         $this->simulationGantt = null; // Resetta il gantt di simulazione
+    }
+
+    public function runSimpleScheduling(): void
+    {
+        $service = new ProductionSchedulingService();
+        $service->scheduleProduction();
+        $this->updateBottleneckData();
+        Notification::make()
+            ->title('Schedulazione semplice completata')
+            ->success()
+            ->send();
     }
 } 

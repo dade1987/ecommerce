@@ -21,21 +21,27 @@ class ProductionSchedulingService
     public function predictBottlenecks(Carbon $startDate, Carbon $endDate): Collection
     {
         $workstations = Workstation::with('productionLine')->get();
-        $days = $startDate->diffInDays($endDate);
+        $daysInRange = $startDate->diffInDays($endDate) + 1;
 
-        return $workstations->map(function (Workstation $workstation) use ($days) {
-            $totalDurationMinutes = ProductionPhase::where('workstation_id', $workstation->id)
-                ->where('is_completed', false)
+        return $workstations->map(function ($workstation) use ($startDate, $endDate, $daysInRange) {
+            $workloadMinutes = ProductionPhase::where('workstation_id', $workstation->id)
+                ->where(function ($query) use ($startDate, $endDate) {
+                    $query->whereBetween('scheduled_start_time', [$startDate, $endDate])
+                          ->orWhereBetween('scheduled_end_time', [$startDate, $endDate]);
+                })
                 ->sum('estimated_duration');
 
-            $totalCapacityHours = $workstation->capacity * $days;
-            $workloadHours = $totalDurationMinutes / 60;
+            $totalCapacityHours = 8 * $daysInRange;
+            $workloadHours = $workloadMinutes / 60;
 
-            $utilization = ($totalCapacityHours > 0) ? ($workloadHours / $totalCapacityHours) * 100 : 0;
+            $utilization = 0;
+            if ($totalCapacityHours > 0) {
+                $utilization = min(100, ($workloadHours / $totalCapacityHours) * 100);
+            }
 
             return [
                 'workstation_name' => $workstation->name,
-                'production_line' => $workstation->productionLine->name,
+                'production_line' => $workstation->productionLine->name ?? 'N/D',
                 'workload_hours' => round($workloadHours, 2),
                 'capacity_hours' => round($totalCapacityHours, 2),
                 'utilization' => round($utilization, 2),

@@ -23,6 +23,7 @@ class ProductionPhase extends Model
         'operator',
         'is_completed',
         'is_maintenance',
+        'energy_consumption',
     ];
 
     protected $casts = [

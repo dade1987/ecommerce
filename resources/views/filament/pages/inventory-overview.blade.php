@@ -4,19 +4,22 @@
         <div class="bg-white rounded-lg shadow p-6">
             <h2 class="text-lg font-semibold text-gray-900 mb-2">Vista Aggregata delle Giacenze</h2>
             <p class="text-sm text-gray-600">
-                Questa pagina mostra una <strong>tabella aggregata calcolata in tempo reale</strong> delle quantità correnti 
-                per ogni combinazione prodotto-magazzino. I dati sono calcolati sommando tutte le entrate e sottraendo 
-                tutte le uscite per ogni prodotto in ogni magazzino.
+                Questa pagina mostra una <strong>tabella aggregata calcolata in tempo reale</strong> delle quantità di Digital Twin
+                per ogni combinazione prodotto-magazzino. I dati sono calcolati contando i Digital Twin presenti in ogni magazzino.
             </p>
         </div>
+
+        @php
+            $stats = $this->getHeaderStats();
+        @endphp
 
         {{-- Statistiche rapide --}}
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div class="bg-white rounded-lg shadow p-4">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-sm text-gray-600">Prodotti Logistici</p>
-                        <p class="text-2xl font-bold text-gray-900">{{ \App\Models\LogisticProduct::count() }}</p>
+                        <p class="text-sm text-gray-600">Prodotti Interni</p>
+                        <p class="text-2xl font-bold text-gray-900">{{ $stats['total_products'] }}</p>
                     </div>
                     <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
                         <x-heroicon-o-cube class="w-6 h-6 text-blue-600" />
@@ -28,7 +31,7 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm text-gray-600">Magazzini</p>
-                        <p class="text-2xl font-bold text-gray-900">{{ \App\Models\Warehouse::count() }}</p>
+                        <p class="text-2xl font-bold text-gray-900">{{ $stats['total_warehouses'] }}</p>
                     </div>
                     <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
                         <x-heroicon-o-building-storefront class="w-6 h-6 text-green-600" />
@@ -39,11 +42,11 @@
             <div class="bg-white rounded-lg shadow p-4">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-sm text-gray-600">Movimenti Totali</p>
-                        <p class="text-2xl font-bold text-gray-900">{{ \App\Models\InventoryMovement::count() }}</p>
+                        <p class="text-sm text-gray-600">Digital Twin Totali</p>
+                        <p class="text-2xl font-bold text-gray-900">{{ $stats['total_twins'] }}</p>
                     </div>
                     <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                        <x-heroicon-o-arrows-right-left class="w-6 h-6 text-orange-600" />
+                        <x-heroicon-o-document-duplicate class="w-6 h-6 text-orange-600" />
                     </div>
                 </div>
             </div>
@@ -51,11 +54,11 @@
             <div class="bg-white rounded-lg shadow p-4">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-sm text-gray-600">Feedback Operatori</p>
-                        <p class="text-2xl font-bold text-gray-900">{{ \App\Models\OperatorFeedback::count() }}</p>
+                        <p class="text-sm text-gray-600">Emissioni CO2 Totali (kg)</p>
+                        <p class="text-2xl font-bold text-gray-900">{{ $stats['total_co2'] }}</p>
                     </div>
-                    <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                        <x-heroicon-o-chat-bubble-left-ellipsis class="w-6 h-6 text-purple-600" />
+                    <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                        <x-heroicon-o-fire class="w-6 h-6 text-red-600" />
                     </div>
                 </div>
             </div>
@@ -70,10 +73,10 @@
         <div class="bg-gray-50 rounded-lg p-4">
             <h3 class="font-semibold text-gray-900 mb-2">Note Tecniche</h3>
             <ul class="text-sm text-gray-600 space-y-1">
-                <li>• <strong>Vista aggregata:</strong> I dati sono calcolati in tempo reale, non persistiti nel database</li>
-                <li>• <strong>Calcolo giacenze:</strong> Somma entrate (to_warehouse) - Somma uscite (from_warehouse)</li>
-                <li>• <strong>Integrazione produzione:</strong> Supporto per movimenti automatici tramite production_order_id</li>
-                <li>• <strong>Feedback esterni:</strong> OperatorFeedback letto da Cursor per suggerimenti funzionalità</li>
+                <li>• <strong>Vista aggregata:</strong> I dati sono calcolati in tempo reale, non persistiti nel database.</li>
+                <li>• <strong>Calcolo giacenze:</strong> Conteggio dei record nella tabella <code>product_twins</code> raggruppati per prodotto e magazzino.</li>
+                <li>• <strong>Integrazione produzione:</strong> I Digital Twin vengono creati al completamento di un ordine di produzione.</li>
+                <li>• <strong>Tracciabilità CO2:</strong> Le emissioni vengono calcolate e aggregate per ogni fase (produzione e logistica).</li>
             </ul>
         </div>
     </div>

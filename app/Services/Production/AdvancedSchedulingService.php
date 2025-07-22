@@ -16,10 +16,19 @@ class AdvancedSchedulingService
      * @param Collection|null $ordersToSchedule
      * @return array
      */
-    public function generateSchedule(Collection $ordersToSchedule = null): array
+    public function generateSchedule(): array
     {
+        // Ottieni tutti gli ordini che non sono ancora completati
+        $orders = ProductionOrder::where('status', 'in_attesa')
+            ->orderBy('priority', 'desc')
+            ->orderBy('order_date', 'asc')
+            ->with(['phases' => function ($query) {
+                $query->where('is_completed', false);
+            }, 'phases.workstation.availabilities'])
+            ->get();
+
         $log = [];
-        $isSimulation = $ordersToSchedule !== null;
+        $isSimulation = false; // This variable is no longer needed as $ordersToSchedule is removed
 
         // 1. Carica tutte le fasi di manutenzione esistenti come blocchi iniziali
         $maintenancePhases = \App\Models\ProductionPhase::where('is_maintenance', true)
@@ -42,10 +51,9 @@ class AdvancedSchedulingService
         // 2. Recupera gli ordini da schedulare se non forniti
         if (!$isSimulation) {
             $log[] = "Recupero ordini reali dal database...";
-            $ordersToSchedule = ProductionOrder::where('status', 'in_attesa')
-                ->orderBy('priority', 'desc')
-                ->with('bom', 'phases.workstation')
-                ->get();
+            // The original code had $ordersToSchedule = ProductionOrder::where('status', 'in_attesa')
+            // This line is removed as $ordersToSchedule is no longer available.
+            // The new code directly uses $orders.
         } else {
             $log[] = "Utilizzo della collezione di ordini fornita per la simulazione.";
         }
@@ -53,15 +61,15 @@ class AdvancedSchedulingService
         // 3. Itera e schedula ogni fase di ogni ordine
         $lastPhaseEndTimeByWorkstation = [];
 
-        foreach ($ordersToSchedule as $order) {
+        foreach ($orders as $order) {
             foreach ($order->phases as $phase) {
-                 if (!$phase->workstation) {
+                if (!$phase->workstation) {
                     $log[] = "Skipping phase {$phase->name} (ID: {$phase->id}) - no workstation assigned.";
                     continue;
                 }
-                
+
                 $workstation = $phase->workstation;
-                
+
                 // La durata ora dipende dalla quantità dell'ordine
                 $processingTime = ($order->quantity ?? 1) * ($phase->estimated_duration ?? 60);
                 $totalDuration = $processingTime + ($phase->setup_time ?? 0);
@@ -70,10 +78,25 @@ class AdvancedSchedulingService
                 $lastEndTime = $lastPhaseEndTimeByWorkstation[$workstation->id] ?? now();
                 $slot = $this->findNextAvailableSlot($workstation, $lastEndTime, $totalDuration, $scheduledPhasesData);
 
+                if (empty($slot['start']) || empty($slot['end'])) {
+                    $log[] = "Impossibile schedulare la fase '{$phase->name}' (Ordine {$order->id}) su {$workstation->name}: nessuno slot disponibile.";
+                    $scheduledPhasesData[] = [
+                        'name' => "Ord. {$order->id}: {$phase->name}",
+                        'workstation_name' => $workstation->name,
+                        'workstation_id' => $workstation->id,
+                        'scheduled_start_time' => null,
+                        'scheduled_end_time' => null,
+                        'color' => '#e53e3e', // Rosso per errore
+                        'error' => $slot['error'] ?? 'Nessuno slot disponibile',
+                    ];
+                    continue;
+                }
+
+
                 // Salva le date se NON è una simulazione
                 if (!$isSimulation) {
-                    $phase->scheduled_start_time = $slot['start'];
-                    $phase->scheduled_end_time = $slot['end'];
+                    $phase->scheduled_start_time = $slot['start'] ?? null;
+                    $phase->scheduled_end_time = $slot['end'] ?? null;
                     $phase->save();
                 }
 
@@ -86,7 +109,7 @@ class AdvancedSchedulingService
                     'scheduled_end_time' => $slot['end']->toDateTimeString(),
                     'color' => '#4299e1', // Blu per produzione
                 ];
-                
+
                 // Aggiorna l'ultimo orario di fine per questa specifica postazione
                 $lastPhaseEndTimeByWorkstation[$workstation->id] = $slot['end'];
             }
@@ -108,65 +131,78 @@ class AdvancedSchedulingService
      * @param bool $isMaintenance
      * @return array ['start' => Carbon, 'end' => Carbon]
      */
-    private function findNextAvailableSlot(Workstation $workstation, Carbon $earliestStartTime, int $durationMinutes, array &$allScheduledPhases, bool $isMaintenance = false): array
+    private function findNextAvailableSlot(Workstation $workstation, Carbon $earliestStartTime, int $durationMinutes, array &$allScheduledPhases): array
     {
         $checkTime = $earliestStartTime->copy();
+        $iteration = 0;
+        $maxIterations = 365; // max 1 anno di tentativi
 
         while (true) {
-            // Usa dayOfWeekIso (1=Lunedì, 7=Domenica) per coerenza con lo standard DB
-            $currentDayOfWeek = $checkTime->dayOfWeekIso;
+            $iteration++;
+            if ($iteration > $maxIterations) {
+                // Nessuno slot trovato in un anno: esci e segnala errore
+                return [
+                    'start' => null,
+                    'end' => null,
+                    'error' => 'Nessuno slot disponibile per questa fase in 1 anno',
+                ]; 
+            }
 
-            // Cerca il prossimo slot di tempo lavorativo valido
-            $availability = $workstation->availabilities()
-                ->where('day_of_week', $currentDayOfWeek)
-                ->first();
+            $currentDayOfWeek = $checkTime->dayOfWeekIso; // 1=Lunedì, 7=Domenica
+
+            $availability = $workstation->availabilities()->where('day_of_week', $currentDayOfWeek)->first();
 
             if (!$availability) {
-                // Se oggi non c'è disponibilità (es. weekend), salta all'inizio del giorno dopo.
+                // Debug: nessuna disponibilità trovata per questo giorno
+                // dd('Nessuna disponibilità trovata', $workstation->id, $currentDayOfWeek);
                 $checkTime->addDay()->startOfDay();
                 continue;
             }
-            
+
             $workingStart = Carbon::parse($checkTime->format('Y-m-d') . ' ' . $availability->start_time);
             $workingEnd = Carbon::parse($checkTime->format('Y-m-d') . ' ' . $availability->end_time);
 
-            // Se siamo prima dell'orario di inizio lavoro, spostiamoci all'inizio.
-            if ($checkTime < $workingStart) {
-                $checkTime = $workingStart;
-            }
-
-            // Se abbiamo superato l'orario di fine lavoro, passiamo al giorno dopo.
+            if ($checkTime < $workingStart) $checkTime = $workingStart;
             if ($checkTime >= $workingEnd) {
                 $checkTime->addDay()->startOfDay();
                 continue;
             }
-            
-            // Controlla se la fase può essere completata entro l'orario di lavoro
+
             $proposedEndTime = $checkTime->copy()->addMinutes($durationMinutes);
             if ($proposedEndTime > $workingEnd) {
-                // Non c'è abbastanza tempo oggi, passa al giorno dopo.
                 $checkTime->addDay()->startOfDay();
                 continue;
             }
 
-            // Controlla la sovrapposizione con altre fasi già schedulate
-            $isOverlapping = false;
-            foreach ($allScheduledPhases as $scheduledPhase) {
-                if ($scheduledPhase['workstation_id'] === $workstation->id) {
-                    $existingStart = Carbon::parse($scheduledPhase['scheduled_start_time']);
-                    $existingEnd = Carbon::parse($scheduledPhase['scheduled_end_time']);
+            // Ordina le fasi schedulate per ottimizzare la ricerca
+            usort($allScheduledPhases, fn($a, $b) => strcmp($a['scheduled_start_time'], $b['scheduled_start_time']));
 
-                    if ($checkTime < $existingEnd && $proposedEndTime > $existingStart) {
-                        $isOverlapping = true;
-                        $checkTime = $existingEnd; // Salta alla fine della fase che crea conflitto
-                        break;
-                    }
+            $conflict = false;
+            foreach ($allScheduledPhases as $phase) {
+                if ($phase['workstation_id'] !== $workstation->id) continue;
+
+                $existingStart = Carbon::parse($phase['scheduled_start_time']);
+                $existingEnd = Carbon::parse($phase['scheduled_end_time']);
+
+                if ($checkTime < $existingEnd && $proposedEndTime > $existingStart) {
+                    $checkTime = $existingEnd; // Salta alla fine del conflitto
+                    $conflict = true;
+                    break; 
                 }
             }
 
-            if (!$isOverlapping) {
-                return ['start' => $checkTime, 'end' => $proposedEndTime];
+            if ($conflict) {
+                continue; // Riavvia il ciclo while con il nuovo checkTime
             }
+
+            // Debug: slot trovato
+            // dd('Slot trovato', [
+            //     'workstation_id' => $workstation->id,
+            //     'checkTime' => $checkTime,
+            //     'proposedEndTime' => $proposedEndTime,
+            // ]);
+
+            return ['start' => $checkTime, 'end' => $proposedEndTime];
         }
     }
 

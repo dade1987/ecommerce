@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 /**
  * Modello per movimenti di inventario
@@ -16,12 +17,14 @@ class InventoryMovement extends Model
     protected $table = 'logistic_inventory_movements';
     
     protected $fillable = [
-        'logistic_product_id',
+        'internal_product_id',
         'from_warehouse_id',
         'to_warehouse_id',
         'movement_type',
-        'quantita',
+        'quantity',
         'note',
+        'distance_km',
+        'transport_mode',
         'production_order_id',
         'origine_automatica',
     ];
@@ -30,12 +33,14 @@ class InventoryMovement extends Model
         'origine_automatica' => 'boolean',
     ];
 
-    /**
-     * Relazione con il prodotto logistico
-     */
-    public function logisticProduct(): BelongsTo
+    public function internalProduct(): BelongsTo
     {
-        return $this->belongsTo(LogisticProduct::class);
+        return $this->belongsTo(InternalProduct::class);
+    }
+
+    public function productTwins(): BelongsToMany
+    {
+        return $this->belongsToMany(ProductTwin::class, 'inventory_movement_product_twin');
     }
 
     /**

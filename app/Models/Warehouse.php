@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -10,19 +11,30 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class Warehouse extends Model
 {
+    use HasFactory;
+
     protected $table = 'logistic_warehouses';
-    
+
     protected $fillable = [
-        'nome',
-        'tipo',
+        'name',
+        'type',
+        'is_final_destination',
     ];
+
+    /**
+     * ProductTwin attualmente presenti in questo magazzino
+     */
+    public function currentTwins(): HasMany
+    {
+        return $this->hasMany(\App\Models\ProductTwin::class, 'current_warehouse_id', 'id');
+    }
 
     /**
      * Movimenti in entrata verso questo magazzino
      */
     public function incomingMovements(): HasMany
     {
-        return $this->hasMany(InventoryMovement::class, 'to_warehouse_id');
+        return $this->hasMany(InventoryMovement::class, 'to_warehouse_id', 'id');
     }
 
     /**
@@ -30,17 +42,6 @@ class Warehouse extends Model
      */
     public function outgoingMovements(): HasMany
     {
-        return $this->hasMany(InventoryMovement::class, 'from_warehouse_id');
-    }
-
-    /**
-     * Tutti i movimenti collegati a questo magazzino
-     */
-    public function allMovements(): HasMany
-    {
-        return $this->hasMany(InventoryMovement::class, 'to_warehouse_id')
-            ->union(
-                $this->hasMany(InventoryMovement::class, 'from_warehouse_id')
-            );
+        return $this->hasMany(InventoryMovement::class, 'from_warehouse_id', 'id');
     }
 }
