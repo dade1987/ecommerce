@@ -236,6 +236,54 @@ class FullProductionDemoSeederNew extends Seeder
                 'updated_at' => $pressatura_phase->end_time,
             ]);
         }
+
+        // Aggiungi ordini futuri per il Gantt
+        $this->command->info('📅 Seeding future orders for Gantt...');
+        $this->seedFutureOrdersForGantt();
+    }
+
+    private function seedFutureOrdersForGantt()
+    {
+        $start_date = Carbon::now()->addDays(1);
+        $end_date = Carbon::now()->addDays(7);
+
+        for ($date = $start_date; $date->lte($end_date); $date->addDay()) {
+            $order_qty = rand(1, 3);
+            $production_order = ProductionOrder::create([
+                'customer' => 'Cliente Futuro ' . $date->format('Y-m-d'),
+                'order_date' => $date,
+                'status' => 'in_attesa',
+                'priority' => rand(0, 1),
+                'bom_id' => 1,
+                'quantity' => $order_qty,
+                'notes' => 'Ordine futuro per Gantt',
+                'internal_product_id' => 1,
+            ]);
+
+            // Fase di taglio - non completata
+            ProductionPhase::create([
+                'production_order_id' => $production_order->id,
+                'workstation_id' => 1,
+                'name' => 'Taglio',
+                'estimated_duration' => 60 * $order_qty,
+                'setup_time' => 15,
+                'scheduled_start_time' => null, // Sarà calcolato da AdvancedSchedulingService
+                'scheduled_end_time' => null,   // Sarà calcolato da AdvancedSchedulingService
+                'is_completed' => 0,
+            ]);
+
+            // Fase di pressatura - non completata
+            ProductionPhase::create([
+                'production_order_id' => $production_order->id,
+                'workstation_id' => 2,
+                'name' => 'Pressatura',
+                'estimated_duration' => 60 * $order_qty,
+                'setup_time' => 15,
+                'scheduled_start_time' => null, // Sarà calcolato da AdvancedSchedulingService
+                'scheduled_end_time' => null,   // Sarà calcolato da AdvancedSchedulingService
+                'is_completed' => 0,
+            ]);
+        }
     }
 
     private function truncateTables()
