@@ -19,16 +19,17 @@ class AvailabilitiesRelationManager extends RelationManager
         return $form
             ->schema([
                 Forms\Components\Select::make('day_of_week')
-                    ->label('Giorno della Settimana')
+                    ->label(__('workstation_availability.day_of_week'))
                     ->options([
-                        'lunedi' => 'Lunedì',
-                        'martedi' => 'Martedì',
-                        'mercoledi' => 'Mercoledì',
-                        'giovedi' => 'Giovedì',
-                        'venerdi' => 'Venerdì',
-                        'sabato' => 'Sabato',
-                        'domenica' => 'Domenica',
-                    ]),
+                        'monday' => __('workstation_availability.monday'),
+                        'tuesday' => __('workstation_availability.tuesday'),
+                        'wednesday' => __('workstation_availability.wednesday'),
+                        'thursday' => __('workstation_availability.thursday'),
+                        'friday' => __('workstation_availability.friday'),
+                        'saturday' => __('workstation_availability.saturday'),
+                        'sunday' => __('workstation_availability.sunday'),
+                    ])
+                    ->required(),
                 Forms\Components\TimePicker::make('start_time')
                     ->label('Orario Inizio')
                     ->required(),

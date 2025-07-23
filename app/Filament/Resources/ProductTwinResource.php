@@ -36,6 +36,10 @@ public static function getNavigationGroup(): string
     {
         return $table
             ->columns([
+                Tables\Columns\TextColumn::make('uuid')
+                    ->label('UUID')
+                    ->searchable()
+                    ->copyable(),
                 Tables\Columns\TextColumn::make('internalProduct.name')
                     ->label(__('filament-traceability.Prodotto'))
                     ->searchable(),
@@ -61,14 +65,17 @@ public static function getNavigationGroup(): string
                     ->dateTime()
                     ->sortable(),
             ])
-            ->filters([
-                //
-            ])
             ->actions([
-                Tables\Actions\ViewAction::make(),
+                Tables\Actions\EditAction::make(),
+                Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
-                //
+                Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\DeleteBulkAction::make(),
+                ]),
+            ])
+            ->emptyStateActions([
+                Tables\Actions\CreateAction::make(),
             ]);
     }
     

@@ -33,6 +33,27 @@ class InventoryMovement extends Model
         'origine_automatica' => 'boolean',
     ];
 
+    protected static function boot()
+    {
+        parent::boot();
+        static::deleting(function ($movement) {
+            // Cancella tutti i ProductTwin creati da questo carico
+            foreach ($movement->productTwins as $twin) {
+                if (isset($twin->metadata['carico_inventory_movement_id']) && $twin->metadata['carico_inventory_movement_id'] == $movement->id) {
+                    // Elimina tutti i movimenti di inventario successivi collegati a questo ProductTwin
+                    foreach ($twin->inventoryMovements as $otherMovement) {
+                        if ($otherMovement->id != $movement->id) {
+                            $otherMovement->delete();
+                        }
+                    }
+                    $twin->delete();
+                }
+            }
+            // Rimuovi anche i collegamenti nella tabella pivot
+            $movement->productTwins()->detach();
+        });
+    }
+
     public function internalProduct(): BelongsTo
     {
         return $this->belongsTo(InternalProduct::class);

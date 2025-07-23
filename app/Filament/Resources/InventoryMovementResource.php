@@ -60,18 +60,11 @@ public static function getPluralModelLabel(): string
                     ->visible(fn (Get $get) => in_array($get('movement_type'), ['scarico', 'trasferimento']))
                     ->required(fn (Get $get) => in_array($get('movement_type'), ['scarico', 'trasferimento'])),
 
-                Forms\Components\Select::make('internal_product_id_for_twins')
-                    ->label(__('filament-logistics.Prodotto'))
-                    ->options(InternalProduct::query()->pluck('name', 'id'))
-                    ->live()
-                    ->visible(fn (Get $get) => in_array($get('movement_type'), ['scarico', 'trasferimento']))
-                    ->dehydrated(false),
-
                 Forms\Components\CheckboxList::make('product_twins')
                     ->label(__('filament-logistics.Prodotti Specifici (Digital Twin)'))
                     ->options(function (Get $get): Collection {
                         $warehouseId = $get('from_warehouse_id');
-                        $internalProductId = $get('internal_product_id_for_twins');
+                        $internalProductId = $get('internal_product_id');
                         if (!$warehouseId || !$internalProductId) {
                             return collect();
                         }
@@ -87,11 +80,9 @@ public static function getPluralModelLabel(): string
                 // Fields for LOAD
                 Forms\Components\Select::make('internal_product_id')
                     ->label(__('filament-logistics.Prodotto'))
-                    ->relationship('internalProduct', 'name')
-                    ->searchable()
-                    ->preload()
-                    ->visible(fn (Get $get) => $get('movement_type') === 'carico')
-                    ->required(fn (Get $get) => $get('movement_type') === 'carico'),
+                    ->options(\App\Models\InternalProduct::all()->pluck('name', 'id'))
+                    ->live()
+                    ->required(),
                 
                 Forms\Components\TextInput::make('quantity')
                     ->label(__('filament-logistics.Quantità'))

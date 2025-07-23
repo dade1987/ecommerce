@@ -35,6 +35,10 @@ class BomResource extends Resource
     {
         return $form
             ->schema([
+                Forms\Components\Select::make('internal_product_id')
+                    ->label(__('filament-production.Prodotto'))
+                    ->options(\App\Models\InternalProduct::all()->mapWithKeys(fn($p) => [$p->id => $p->name . ' (' . $p->code . ')']))
+                    ->required(),
                 Forms\Components\TextInput::make('internal_code')
                     ->label(__('filament-production.Codice Interno'))
                     ->required()
@@ -63,9 +67,15 @@ class BomResource extends Resource
     {
         return $table
             ->columns([
+                Tables\Columns\TextColumn::make('internalProduct.name')
+                    ->label(__('filament-production.Prodotto'))
+                    ->searchable(),
                 Tables\Columns\TextColumn::make('internal_code')
                     ->label(__('filament-production.Codice Interno'))
                     ->searchable(),
+                Tables\Columns\TextColumn::make('materials')
+                    ->label(__('filament-production.Materiali'))
+                    ->formatStateUsing(fn($state) => is_array($state) ? collect($state)->pluck('material_type')->join(', ') : ''),
                 Tables\Columns\TextColumn::make('created_at')
                     ->label(__('filament-production.Data Creazione'))
                     ->dateTime()
