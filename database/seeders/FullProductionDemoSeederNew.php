@@ -178,26 +178,62 @@ class FullProductionDemoSeederNew extends Seeder
                 'internal_product_id' => 1,
             ]);
 
-            ProductionPhase::create([
+            $taglio_phase = ProductionPhase::create([
                 'production_order_id' => $production_order->id,
                 'workstation_id' => 1,
                 'name' => 'Taglio',
                 'estimated_duration' => 60 * $order_qty,
                 'setup_time' => 15,
+                'start_time' => $date->copy()->addHours(8),
+                'end_time' => $date->copy()->addHours(8)->addMinutes(15 + (60 * $order_qty)),
                 'scheduled_start_time' => $date->copy()->addHours(8),
                 'scheduled_end_time' => $date->copy()->addHours(8)->addMinutes(15 + (60 * $order_qty)),
                 'is_completed' => 1,
             ]);
 
-            ProductionPhase::create([
+            OperatorFeedback::create([
+                'titolo' => 'Feedback fase Taglio',
+                'descrizione' => 'Feedback automatico per la fase di taglio del ' . $date->format('Y-m-d'),
+                'status' => 'done',
+                'metadata' => json_encode([
+                    'production_phase_id' => $taglio_phase->id,
+                    'user_id' => 1,
+                    'produced_quantity' => $order_qty,
+                    'scrap_quantity' => 0,
+                    'start_time' => $taglio_phase->start_time,
+                    'end_time' => $taglio_phase->end_time,
+                ]),
+                'created_at' => $taglio_phase->end_time,
+                'updated_at' => $taglio_phase->end_time,
+            ]);
+
+            $pressatura_phase = ProductionPhase::create([
                 'production_order_id' => $production_order->id,
                 'workstation_id' => 2,
                 'name' => 'Pressatura',
                 'estimated_duration' => 60 * $order_qty,
                 'setup_time' => 15,
+                'start_time' => $date->copy()->addHours(10),
+                'end_time' => $date->copy()->addHours(10)->addMinutes(15 + (60 * $order_qty)),
                 'scheduled_start_time' => $date->copy()->addHours(10),
                 'scheduled_end_time' => $date->copy()->addHours(10)->addMinutes(15 + (60 * $order_qty)),
                 'is_completed' => 1,
+            ]);
+
+            OperatorFeedback::create([
+                'titolo' => 'Feedback fase Pressatura',
+                'descrizione' => 'Feedback automatico per la fase di pressatura del ' . $date->format('Y-m-d'),
+                'status' => 'done',
+                'metadata' => json_encode([
+                    'production_phase_id' => $pressatura_phase->id,
+                    'user_id' => 1,
+                    'produced_quantity' => $order_qty,
+                    'scrap_quantity' => 0,
+                    'start_time' => $pressatura_phase->start_time,
+                    'end_time' => $pressatura_phase->end_time,
+                ]),
+                'created_at' => $pressatura_phase->end_time,
+                'updated_at' => $pressatura_phase->end_time,
             ]);
         }
     }

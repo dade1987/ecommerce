@@ -5,6 +5,7 @@ namespace App\Services\Production;
 use App\Models\Workstation;
 use Carbon\Carbon;
 use App\Models\ProductionPhase;
+use App\Models\OperatorFeedback;
 
 class OeeService
 {
@@ -20,34 +21,56 @@ class OeeService
         $startDate = $startDate ?? now()->subMonth();
         $endDate = $endDate ?? now();
 
-        // 1. Availability: (Tempo di funzionamento effettivo / Tempo pianificato)
-        $totalPlannedMinutes = $workstation->availabilities()
-            ->get()
-            ->sum(function ($availability) use ($startDate, $endDate) {
-                return Carbon::parse($availability->start_time)->diffInMinutes(Carbon::parse($availability->end_time)) * $startDate->diffInDaysFiltered(fn (Carbon $date) => $date->isWeekday(), $endDate);
-            });
-
-        $actualRunTimeMinutes = ProductionPhase::where('workstation_id', $workstation->id)
+        $phases = ProductionPhase::where('workstation_id', $workstation->id)
             ->whereBetween('end_time', [$startDate, $endDate])
-            ->sum('estimated_duration'); // Usiamo la durata stimata come approssimazione del tempo di ciclo
+            ->get();
+
+        if ($phases->isEmpty()) {
+            return [
+                'availability' => 0,
+                'performance' => 0,
+                'quality' => 0,
+                'oee' => 0,
+            ];
+        }
+
+        // 1. Availability
+        $totalPlannedMinutes = $workstation->getPlannedProductiveMinutes($startDate, $endDate);
+        
+        $actualRunTimeMinutes = $phases->sum(function ($phase) {
+            if ($phase->start_time && $phase->end_time) {
+                return Carbon::parse($phase->start_time)->diffInMinutes(Carbon::parse($phase->end_time));
+            }
+            return 0;
+        });
 
         $availability = ($totalPlannedMinutes > 0) ? ($actualRunTimeMinutes / $totalPlannedMinutes) : 0;
 
-        // 2. Performance: (Produzione effettiva / Produzione teorica nel tempo di funzionamento)
-        $totalUnitsProduced = ProductionPhase::where('workstation_id', $workstation->id)
-            ->whereBetween('end_time', [$startDate, $endDate])
-            ->with('productionOrder')
-            ->get()
-            ->sum('productionOrder.quantity'); // Questo è un'approssimazione, sarebbe meglio avere pezzi/fase
-            
-        $idealCycleTimeMinutes = $workstation->time_per_unit;
-        $theoreticalProduction = ($idealCycleTimeMinutes > 0) ? ($actualRunTimeMinutes / $idealCycleTimeMinutes) : 0;
+        // 2. Performance & 3. Quality
+        $totalUnitsProduced = 0;
+        $totalScrap = 0;
         
-        $performance = ($theoreticalProduction > 0) ? ($totalUnitsProduced / $theoreticalProduction) : 0;
+        $phaseIds = $phases->pluck('id')->toArray();
+        $feedbacks = OperatorFeedback::whereBetween('created_at', [$startDate, $endDate])->get();
+        foreach ($feedbacks as $feedback) {
+            $meta = json_decode($feedback->metadata, true);
+            if (isset($meta['production_phase_id']) && in_array($meta['production_phase_id'], $phaseIds)) {
+                $totalUnitsProduced += $meta['produced_quantity'] ?? 0;
+                $totalScrap += $meta['scrap_quantity'] ?? 0;
+            }
+        }
+        $totalProcessed = $totalUnitsProduced + $totalScrap;
+        
+        $idealCycleTimeMinutes = $workstation->time_per_unit; 
+        
+        if ($idealCycleTimeMinutes > 0 && $actualRunTimeMinutes > 0) {
+            $theoreticalProduction = $actualRunTimeMinutes / $idealCycleTimeMinutes;
+            $performance = ($theoreticalProduction > 0) ? ($totalProcessed / $theoreticalProduction) : 0;
+        } else {
+            $performance = 0;
+        }
 
-        // 3. Quality: (Pezzi buoni / Pezzi totali)
-        // Simplificato: usiamo l'error_rate della workstation
-        $quality = 1 - ($workstation->error_rate / 100);
+        $quality = ($totalProcessed > 0) ? ($totalUnitsProduced / $totalProcessed) : 0;
 
         $oee = $availability * $performance * $quality;
 
