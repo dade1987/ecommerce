@@ -45,9 +45,34 @@ class ProductionPhasesRelationManager extends RelationManager
                     ->numeric()
                     ->default(0)
                     ->required(),
+                Forms\Components\TextInput::make('actual_duration')
+                    ->label('Durata Effettiva (minuti)')
+                    ->numeric()
+                    ->helperText('Compilare solo quando la fase è completata'),
+                Forms\Components\DateTimePicker::make('scheduled_start_time')
+                    ->label('Inizio Pianificato')
+                    ->helperText('Orario di inizio pianificato per questa fase'),
+                Forms\Components\DateTimePicker::make('scheduled_end_time')
+                    ->label('Fine Pianificata')
+                    ->helperText('Orario di fine pianificato per questa fase'),
+                Forms\Components\DateTimePicker::make('start_time')
+                    ->label('Inizio Effettivo')
+                    ->helperText('Orario di inizio effettivo (compilare quando si inizia)'),
+                Forms\Components\DateTimePicker::make('end_time')
+                    ->label('Fine Effettiva')
+                    ->helperText('Orario di fine effettivo (compilare quando si completa)'),
                 Forms\Components\Toggle::make('is_maintenance')
                     ->label('Fase di Manutenzione')
                     ->inline(false),
+                Forms\Components\Toggle::make('is_completed')
+                    ->label('Fase Completata')
+                    ->inline(false)
+                    ->helperText('Segna come completata quando la fase è terminata'),
+                Forms\Components\Textarea::make('notes')
+                    ->label('Note')
+                    ->rows(3)
+                    ->maxLength(1000)
+                    ->helperText('Note aggiuntive sulla fase di produzione'),
             ])
             ->columns(2);
     }
@@ -57,35 +82,72 @@ class ProductionPhasesRelationManager extends RelationManager
         return $table
             ->recordTitleAttribute('name')
             ->columns([
-                Tables\Columns\TextColumn::make('name'),
-                Tables\Columns\TextColumn::make('workstation.name')->label('Postazione'),
-                Tables\Columns\TextColumn::make('estimated_duration')->label('Durata Stim. (min)'),
+                Tables\Columns\TextColumn::make('name')
+                    ->label('Nome Fase')
+                    ->searchable()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('workstation.name')
+                    ->label('Postazione')
+                    ->searchable()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('estimated_duration')
+                    ->label('Durata Stim. (min)')
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('setup_time')
                     ->label('Setup (min)')
                     ->sortable(),
                 Tables\Columns\IconColumn::make('is_maintenance')
                     ->label('Manutenzione')
                     ->boolean(),
-                Tables\Columns\TextColumn::make('scheduled_start_time')->label('Inizio Pianificato')->dateTime(),
-                Tables\Columns\TextColumn::make('scheduled_end_time')->label('Fine Pianificata')->dateTime(),
-                Tables\Columns\TextColumn::make('start_time')->label('Inizio Effettivo')->dateTime()->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('end_time')->label('Fine Effettiva')->dateTime()->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\IconColumn::make('is_completed')->label('Completata')->boolean(),
+                Tables\Columns\TextColumn::make('scheduled_start_time')
+                    ->label('Inizio Pianificato')
+                    ->dateTime()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('scheduled_end_time')
+                    ->label('Fine Pianificata')
+                    ->dateTime()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('start_time')
+                    ->label('Inizio Effettivo')
+                    ->dateTime()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('end_time')
+                    ->label('Fine Effettiva')
+                    ->dateTime()
+                    ->sortable(),
+                Tables\Columns\IconColumn::make('is_completed')
+                    ->label('Completata')
+                    ->boolean(),
+                Tables\Columns\TextColumn::make('actual_duration')
+                    ->label('Durata Effettiva (min)')
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('notes')
+                    ->label('Note')
+                    ->limit(50),
             ])
             ->filters([
-                //
+                Tables\Filters\SelectFilter::make('workstation_id')
+                    ->label('Postazione')
+                    ->options(Workstation::all()->pluck('name', 'id')),
+                Tables\Filters\TernaryFilter::make('is_maintenance')
+                    ->label('Solo Manutenzione'),
+                Tables\Filters\TernaryFilter::make('is_completed')
+                    ->label('Solo Completate'),
             ])
             ->headerActions([
                 Tables\Actions\CreateAction::make(),
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\EditAction::make()
+                    ->modalHeading('Modifica Fase di Produzione')
+                    ->modalDescription('Modifica tutti i dettagli della fase di produzione'),
                 Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
-            ]);
+            ])
+            ->defaultSort('scheduled_start_time', 'asc');
     }
 } 

@@ -20,16 +20,19 @@ class ListWarehouses extends ListRecords
 
     protected function getTableQuery(): Builder|null
     {
+        // Conta i product twins spostati in entrata e uscita
         return parent::getTableQuery()
-            ->withSum([
+            ->withCount([
                 'incomingMovements as incomingMovements_count' => function ($query) {
-                    $query->selectRaw('coalesce(sum(quantity),0)');
+                    $query->join('inventory_movement_product_twin as impt', 'impt.inventory_movement_id', '=', 'logistic_inventory_movements.id')
+                        ->selectRaw('count(impt.product_twin_id)')
+                        ->groupBy('logistic_inventory_movements.to_warehouse_id');
                 },
                 'outgoingMovements as outgoingMovements_count' => function ($query) {
-                    $query->selectRaw('coalesce(sum(quantity),0)');
+                    $query->join('inventory_movement_product_twin as impt', 'impt.inventory_movement_id', '=', 'logistic_inventory_movements.id')
+                        ->selectRaw('count(impt.product_twin_id)')
+                        ->groupBy('logistic_inventory_movements.from_warehouse_id');
                 },
-            ], 'quantity')
-            ->withCount([
                 // Conta i ProductTwin attualmente presenti in magazzino
                 'currentTwins as twins_count' => function ($query) {
                     $query->selectRaw('count(*)');
