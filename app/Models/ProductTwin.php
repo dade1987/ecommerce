@@ -51,4 +51,9 @@ class ProductTwin extends Model
     {
         return $this->belongsToMany(InventoryMovement::class, 'inventory_movement_product_twin');
     }
+
+    public function invoiceItems(): BelongsToMany
+    {
+        return $this->belongsToMany(InvoiceItem::class, 'invoice_item_product_twin');
+    }
 }
