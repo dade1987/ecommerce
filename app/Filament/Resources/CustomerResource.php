@@ -34,7 +34,7 @@ class CustomerResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->withCount(['feedback', 'appointments']);
+        return parent::getEloquentQuery()->withCount(['feedback', 'appointments', 'fidelityCards']);
     }
 
     public static function form(Form $form): Form
@@ -145,6 +145,9 @@ class CustomerResource extends Resource
                 Tables\Columns\TextColumn::make('appointments_count')
                     ->label('Appuntamenti')
                     ->sortable(),
+                Tables\Columns\TextColumn::make('fidelity_cards_count')
+                    ->label('Fidelity Card')
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('customerGroup.name')
                     ->label('Gruppo Cliente')
                     ->sortable()
@@ -188,6 +191,21 @@ class CustomerResource extends Resource
                         }
                         if ($state === false) {
                             return $query->doesntHave('appointments');
+                        }
+                        return $query;
+                    }),
+                Tables\Filters\TernaryFilter::make('has_fidelity_cards')
+                    ->label('Ha Fidelity Card')
+                    ->boolean()
+                    ->placeholder('Tutti')
+                    ->trueLabel('Sì')
+                    ->falseLabel('No')
+                    ->query(function (Builder $query, $state): Builder {
+                        if ($state === true) {
+                            return $query->has('fidelityCards');
+                        }
+                        if ($state === false) {
+                            return $query->doesntHave('fidelityCards');
                         }
                         return $query;
                     }),
@@ -255,6 +273,7 @@ class CustomerResource extends Resource
         return [
             RelationManagers\FeedbackRelationManager::class,
             RelationManagers\AppointmentsRelationManager::class,
+            RelationManagers\FidelityCardRelationManager::class,
         ];
     }
 
