@@ -62,42 +62,55 @@ document.addEventListener('DOMContentLoaded', function() {
     const descriptionElement = document.getElementById('perche-description');
     if (!descriptionElement) return;
 
-    const content = descriptionElement.innerHTML;
+    const originalContent = descriptionElement.innerHTML;
     const searchTerm = 'core business';
-    const index = content.toLowerCase().indexOf(searchTerm.toLowerCase());
     
-    if (index === -1) return;
+    const searchRegex = new RegExp(searchTerm, 'i');
+    const match = originalContent.match(searchRegex);
+    
+    if (!match) return;
 
-    const endIndex = index + searchTerm.length;
+    const index = match.index;
+    const actualTerm = match[0];
+    const endIndex = index + actualTerm.length;
     
-    const visibleText = content.slice(0, endIndex);
-    const hiddenText = content.slice(endIndex);
+    const visibleText = originalContent.slice(0, endIndex);
+    const hiddenText = originalContent.slice(endIndex);
     
-    // Pulisci il contenuto originale per ricostruirlo
     descriptionElement.innerHTML = '';
 
-    // Aggiungi la parte visibile
     const visibleSpan = document.createElement('span');
     visibleSpan.innerHTML = visibleText;
     descriptionElement.appendChild(visibleSpan);
 
-    // Aggiungi la parte nascosta, wrappata in uno span
+    const readMoreLink = document.createElement('a');
+    readMoreLink.href = '#';
+    readMoreLink.className = 'text-blue-600 hover:text-blue-800 font-medium underline cursor-pointer ml-2';
+    readMoreLink.innerText = 'Continua a Leggere...';
+    descriptionElement.appendChild(readMoreLink);
+
     const hiddenSpan = document.createElement('span');
     hiddenSpan.innerHTML = hiddenText;
     hiddenSpan.style.display = 'none';
     descriptionElement.appendChild(hiddenSpan);
 
-    // Aggiungi il container del link "Continua a Leggere..."
-    const linkContainer = document.createElement('span');
-    linkContainer.innerHTML = '<a href="#" class="text-blue-600 hover:text-blue-800 font-medium underline cursor-pointer">Continua a Leggere...</a>';
-    descriptionElement.appendChild(linkContainer);
+    const readLessLink = document.createElement('a');
+    readLessLink.href = '#';
+    readLessLink.className = 'text-blue-600 hover:text-blue-800 font-medium underline cursor-pointer ml-2';
+    readLessLink.innerText = 'Leggi di Meno';
+    hiddenSpan.appendChild(document.createElement('br'));
+    hiddenSpan.appendChild(readLessLink);
     
-    const readMoreLink = linkContainer.querySelector('a');
-
     readMoreLink.addEventListener('click', function(event) {
-        event.preventDefault(); // Impedisce il comportamento di default del link (es. saltare in cima alla pagina)
-        hiddenSpan.style.display = 'inline'; // Mostra il testo nascosto
-        linkContainer.style.display = 'none'; // Nasconde il link "Continua a Leggere..."
+        event.preventDefault();
+        hiddenSpan.style.display = 'inline';
+        readMoreLink.style.display = 'none';
+    });
+
+    readLessLink.addEventListener('click', function(event) {
+        event.preventDefault();
+        hiddenSpan.style.display = 'none';
+        readMoreLink.style.display = 'inline';
     });
 });
 </script>
