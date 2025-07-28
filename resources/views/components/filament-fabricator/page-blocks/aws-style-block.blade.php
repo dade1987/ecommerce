@@ -89,7 +89,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Aggiungi il container del link "Continua a Leggere..."
     const linkContainer = document.createElement('span');
-    linkContainer.innerHTML = '<br><br><a href="#" class="text-blue-600 hover:text-blue-800 font-medium underline cursor-pointer">Continua a Leggere...</a>';
+    linkContainer.innerHTML = '<br><a href="#" class="text-blue-600 hover:text-blue-800 font-medium underline cursor-pointer">Continua a Leggere...</a>';
     descriptionElement.appendChild(linkContainer);
     
     const readMoreLink = linkContainer.querySelector('a');
