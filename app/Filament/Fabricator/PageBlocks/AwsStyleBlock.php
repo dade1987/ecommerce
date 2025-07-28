@@ -1,0 +1,107 @@
+<?php
+
+namespace App\Filament\Fabricator\PageBlocks;
+
+use Filament\Forms\Components\Builder\Block;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\RichEditor;
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Section;
+use Awcodes\Curator\Components\Forms\CuratorPicker;
+use Z3d0X\FilamentFabricator\PageBlocks\PageBlock;
+use Illuminate\Contracts\View\View;
+
+class AwsStyleBlock extends PageBlock
+{
+    public static function getBlockSchema(): Block
+    {
+        return Block::make('aws-style-block')
+            ->label('Blocco Stile AWS')
+            ->schema([
+                // Sezione "Perché AWS?"
+                Section::make('sezione_perche')
+                    ->label('Sezione "Perché?"')
+                    ->schema([
+                        TextInput::make('perche_title')
+                            ->label('Titolo principale')
+                            ->default('Perché AWS?')
+                            ->required(),
+                        
+                        RichEditor::make('perche_description')
+                            ->label('Descrizione')
+                            ->default('AWS è la piattaforma cloud più completa e ampiamente utilizzata al mondo, con milioni di clienti attivi che utilizzano centinaia di servizi per ridurre i costi, diventare più agili e innovare più velocemente.')
+                            ->required()
+                            ->columnSpanFull(),
+                        
+                        // Repeater per gli accordion
+                        Repeater::make('accordion_items')
+                            ->label('Elementi Accordion')
+                            ->schema([
+                                TextInput::make('title')
+                                    ->label('Titolo elemento')
+                                    ->required(),
+                                RichEditor::make('content')
+                                    ->label('Contenuto elemento')
+                                    ->required(),
+                            ])
+                            ->minItems(1)
+                            ->maxItems(10)
+                            ->defaultItems(5)
+                            ->default([
+                                [
+                                    'title' => 'Il più ampio e approfondito set di funzionalità cloud',
+                                    'content' => 'AWS offre oltre 200 servizi cloud completi da data center globali. Che tu abbia bisogno di calcolo, storage, database, networking, analytics, machine learning, intelligenza artificiale, IoT, mobile, sicurezza, hybrid, media, o applicazioni, AWS ha i servizi per aiutarti a muoverti più velocemente, ridurre i costi IT e scalare le tue applicazioni.',
+                                ],
+                                [
+                                    'title' => 'La più grande community di clienti e partner',
+                                    'content' => 'Milioni di clienti attivi utilizzano AWS ogni mese in oltre 190 paesi. La community AWS include startup in rapida crescita, grandi aziende e agenzie governative leader. I partner AWS includono migliaia di system integrators che si specializzano in servizi AWS e decine di migliaia di rivenditori indipendenti di software che rendono la loro tecnologia disponibile su AWS.',
+                                ],
+                                [
+                                    'title' => 'Sicurezza sulla quale poter contare',
+                                    'content' => 'AWS è progettato per essere la piattaforma cloud più flessibile e sicura disponibile oggi. La nostra infrastruttura core è costruita per soddisfare i requisiti di sicurezza per militari, banche globali e altre organizzazioni altamente sensibili. Questo è supportato da un ampio set di servizi di sicurezza cloud che ti aiutano a soddisfare i tuoi requisiti di sicurezza.',
+                                ],
+                                [
+                                    'title' => 'Innovazione che accelera la trasformazione',
+                                    'content' => 'AWS ha costantemente innovato dal 2006, introducendo servizi che definiscono il cloud computing. AWS ha più servizi e più funzionalità all\'interno di quei servizi rispetto a qualsiasi altro provider cloud, inclusi calcolo, storage, database, networking, data lake e analytics, machine learning e intelligenza artificiale, IoT, mobile, sicurezza, hybrid, media, e applicazioni.',
+                                ],
+                                [
+                                    'title' => 'Maggiore esperienza operativa comprovata',
+                                    'content' => 'AWS ha più esperienza operativa a livello globale rispetto a qualsiasi altro provider cloud, con milioni di clienti attivi che utilizzano centinaia di milioni di istanze AWS ogni mese. AWS ha la più grande community di clienti e partner, con migliaia di system integrators che si specializzano in servizi AWS e centinaia di migliaia di rivenditori indipendenti di software.',
+                                ],
+                            ])
+                            ->columnSpanFull(),
+                    ])
+                    ->collapsible()
+                    ->collapsed(false),
+
+                // Sezione "Rete globale"
+                Section::make('sezione_rete')
+                    ->label('Sezione "Rete Globale"')
+                    ->schema([
+                        TextInput::make('rete_title')
+                            ->label('Titolo sezione rete')
+                            ->default('Rete globale delle Regioni AWS')
+                            ->required(),
+                        
+                        RichEditor::make('rete_description')
+                            ->label('Descrizione rete globale')
+                            ->default('Il cloud AWS si estende su 114 zone di disponibilità in 36 regioni geografiche, con progetti annunciati per altre 16 zone di disponibilità e altre cinque regioni AWS in Nuova Zelanda, Regno dell\'Arabia Saudita, Taiwan, Cile e AWS European Sovereign Cloud.')
+                            ->required()
+                            ->columnSpanFull(),
+                        
+                        CuratorPicker::make('rete_image')
+                            ->label('Immagine mappa globale')
+                            ->helperText('Immagine della mappa mondiale con le regioni evidenziate'),
+                    ])
+                    ->collapsible()
+                    ->collapsed(false),
+            ]);
+    }
+
+    public static function mutateData(array $data): array
+    {
+        return $data;
+    }
+
+
+} 
