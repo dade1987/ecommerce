@@ -60,44 +60,46 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const descriptionElement = document.getElementById('perche-description');
-    if (descriptionElement) {
-        const content = descriptionElement.innerHTML;
-        const searchTerm = 'core business';
-        const index = content.toLowerCase().indexOf(searchTerm.toLowerCase());
-        
-        if (index !== -1) {
-            // Trova la fine della parola "core business"
-            const endIndex = index + searchTerm.length;
-            
-            // Separa il testo visibile da quello nascosto
-            const visibleText = content.slice(0, endIndex);
-            const hiddenText = content.slice(endIndex);
-            
-            // Crea il link "Continua a Leggere..." su una nuova riga
-            const linkElement = '<br><a href="#" class="text-blue-600 hover:text-blue-800 font-medium underline cursor-pointer" onclick="showHiddenText(this)">Continua a Leggere...</a>';
-            
-            // Crea il contenitore per il testo nascosto
-            const hiddenTextContainer = '<div class="hidden-text" style="display: none;">' + hiddenText + '</div>';
-            
-            // Ricostruisci il contenuto
-            const newContent = visibleText + linkElement + hiddenTextContainer;
-            descriptionElement.innerHTML = newContent;
-        }
-    }
-});
+    if (!descriptionElement) return;
 
-function showHiddenText(linkElement) {
-    // Trova il contenitore del testo nascosto
-    const hiddenTextContainer = linkElement.nextElementSibling;
+    const content = descriptionElement.innerHTML;
+    const searchTerm = 'core business';
+    const index = content.toLowerCase().indexOf(searchTerm.toLowerCase());
     
-    if (hiddenTextContainer && hiddenTextContainer.classList.contains('hidden-text')) {
-        // Mostra il testo nascosto
-        hiddenTextContainer.style.display = 'block';
-        
-        // Nascondi il link
-        linkElement.style.display = 'none';
-    }
-}
+    if (index === -1) return;
+
+    const endIndex = index + searchTerm.length;
+    
+    const visibleText = content.slice(0, endIndex);
+    const hiddenText = content.slice(endIndex);
+    
+    // Pulisci il contenuto originale per ricostruirlo
+    descriptionElement.innerHTML = '';
+
+    // Aggiungi la parte visibile
+    const visibleSpan = document.createElement('span');
+    visibleSpan.innerHTML = visibleText;
+    descriptionElement.appendChild(visibleSpan);
+
+    // Aggiungi la parte nascosta, wrappata in uno span
+    const hiddenSpan = document.createElement('span');
+    hiddenSpan.innerHTML = hiddenText;
+    hiddenSpan.style.display = 'none';
+    descriptionElement.appendChild(hiddenSpan);
+
+    // Aggiungi il container del link "Continua a Leggere..."
+    const linkContainer = document.createElement('span');
+    linkContainer.innerHTML = '<br><br><a href="#" class="text-blue-600 hover:text-blue-800 font-medium underline cursor-pointer">Continua a Leggere...</a>';
+    descriptionElement.appendChild(linkContainer);
+    
+    const readMoreLink = linkContainer.querySelector('a');
+
+    readMoreLink.addEventListener('click', function(event) {
+        event.preventDefault(); // Impedisce il comportamento di default del link (es. saltare in cima alla pagina)
+        hiddenSpan.style.display = 'inline'; // Mostra il testo nascosto
+        linkContainer.style.display = 'none'; // Nasconde il link "Continua a Leggere..."
+    });
+});
 </script>
 
  
