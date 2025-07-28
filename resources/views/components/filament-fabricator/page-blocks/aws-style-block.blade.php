@@ -69,15 +69,35 @@ document.addEventListener('DOMContentLoaded', function() {
             // Trova la fine della parola "core business"
             const endIndex = index + searchTerm.length;
             
-            // Crea il link "Continua a Leggere..."
-            const linkElement = '<a href="#" class="text-blue-600 hover:text-blue-800 font-medium underline ml-2">Continua a Leggere...</a>';
+            // Separa il testo visibile da quello nascosto
+            const visibleText = content.slice(0, endIndex);
+            const hiddenText = content.slice(endIndex);
             
-            // Inserisci il link dopo "core business"
-            const newContent = content.slice(0, endIndex) + linkElement + content.slice(endIndex);
+            // Crea il link "Continua a Leggere..." su una nuova riga
+            const linkElement = '<br><a href="#" class="text-blue-600 hover:text-blue-800 font-medium underline cursor-pointer" onclick="showHiddenText(this)">Continua a Leggere...</a>';
+            
+            // Crea il contenitore per il testo nascosto
+            const hiddenTextContainer = '<div class="hidden-text" style="display: none;">' + hiddenText + '</div>';
+            
+            // Ricostruisci il contenuto
+            const newContent = visibleText + linkElement + hiddenTextContainer;
             descriptionElement.innerHTML = newContent;
         }
     }
 });
+
+function showHiddenText(linkElement) {
+    // Trova il contenitore del testo nascosto
+    const hiddenTextContainer = linkElement.nextElementSibling;
+    
+    if (hiddenTextContainer && hiddenTextContainer.classList.contains('hidden-text')) {
+        // Mostra il testo nascosto
+        hiddenTextContainer.style.display = 'block';
+        
+        // Nascondi il link
+        linkElement.style.display = 'none';
+    }
+}
 </script>
 
  
