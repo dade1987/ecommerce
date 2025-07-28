@@ -11,7 +11,7 @@
                 <h2 class="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl mb-8">
                     {{ $percheTitle }}
                 </h2>
-                <div class="prose prose-lg text-gray-600 leading-relaxed">
+                <div class="prose prose-lg text-gray-600 leading-relaxed" id="perche-description">
                     {!! $percheDescription !!}
                 </div>
             </div>
@@ -56,5 +56,28 @@
 
     </div>
 </section>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const descriptionElement = document.getElementById('perche-description');
+    if (descriptionElement) {
+        const content = descriptionElement.innerHTML;
+        const searchTerm = 'core business';
+        const index = content.toLowerCase().indexOf(searchTerm.toLowerCase());
+        
+        if (index !== -1) {
+            // Trova la fine della parola "core business"
+            const endIndex = index + searchTerm.length;
+            
+            // Crea il link "Continua a Leggere..."
+            const linkElement = '<a href="#" class="text-blue-600 hover:text-blue-800 font-medium underline ml-2">Continua a Leggere...</a>';
+            
+            // Inserisci il link dopo "core business"
+            const newContent = content.slice(0, endIndex) + linkElement + content.slice(endIndex);
+            descriptionElement.innerHTML = newContent;
+        }
+    }
+});
+</script>
 
  
