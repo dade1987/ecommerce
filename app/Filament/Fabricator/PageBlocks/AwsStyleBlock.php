@@ -108,28 +108,6 @@ class AwsStyleBlock extends PageBlock
                     ->collapsible()
                     ->collapsed(false),
 
-                // Sezione "Rete globale"
-                Section::make('sezione_rete')
-                    ->label('Sezione "Rete Globale"')
-                    ->schema([
-                        TextInput::make('rete_title')
-                            ->label('Titolo sezione rete')
-                            ->default('Rete globale delle Regioni AWS')
-                            ->required(),
-                        
-                        RichEditor::make('rete_description')
-                            ->label('Descrizione rete globale')
-                            ->default('Il cloud AWS si estende su 114 zone di disponibilità in 36 regioni geografiche, con progetti annunciati per altre 16 zone di disponibilità e altre cinque regioni AWS in Nuova Zelanda, Regno dell\'Arabia Saudita, Taiwan, Cile e AWS European Sovereign Cloud.')
-                            ->required()
-                            ->columnSpanFull(),
-                        
-                        CuratorPicker::make('rete_image')
-                            ->label('Immagine mappa globale')
-                            ->helperText('Immagine della mappa mondiale con le regioni evidenziate'),
-                    ])
-                    ->collapsible()
-                    ->collapsed(false),
-            ]);
     }
 
     public static function mutateData(array $data): array
