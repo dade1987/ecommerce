@@ -13,7 +13,7 @@
 
     <!-- Chat Window -->
     <div x-show="open" x-cloak 
-         class="w-96 h-[70vh] bg-[#343541] rounded-lg shadow-xl flex flex-col"
+         class="w-80 h-[60vh] bg-white rounded-lg shadow-xl flex flex-col border border-gray-300"
          x-transition:enter="transition ease-out duration-300"
          x-transition:enter-start="opacity-0 transform translate-y-4"
          x-transition:enter-end="opacity-100 transform translate-y-0"
@@ -22,28 +22,28 @@
          x-transition:leave-end="opacity-0 transform translate-y-4">
 
         <!-- Header -->
-        <div class="p-4 flex items-center justify-between gap-3 bg-[#40414f] rounded-t-lg">
+        <div class="p-3 flex items-center justify-between gap-3 bg-gray-100 rounded-t-lg border-b border-gray-200">
             <div class="flex items-center gap-3">
                 <img id="teamLogo" src="/images/logoai.jpeg" alt="{{ __('enjoy-work.company_logo_alt') }}" 
-                     class="w-10 h-10 rounded-full object-cover border-2 border-gray-500">
-                <h1 id="teamName" class="font-sans text-xl text-white">EnjoyWork</h1>
+                     class="w-8 h-8 rounded-full object-cover border border-gray-300">
+                <h1 id="teamName" class="font-sans text-lg font-semibold text-gray-800">EnjoyWork</h1>
             </div>
-            <button @click="open = false" class="text-gray-400 hover:text-white">
+            <button @click="open = false" class="text-gray-500 hover:text-gray-800">
                  <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
         </div>
 
         <!-- Messages -->
-        <div id="messages" class="flex-1 overflow-y-auto px-4 text-white space-y-4 py-4">
+        <div id="messages" class="flex-1 overflow-y-auto px-4 text-gray-800 space-y-4 py-4">
             <!-- Dynamic messages -->
         </div>
 
         <!-- Footer -->
-        <div class="p-4 border-t border-[#4f4f58] bg-[#343541] rounded-b-lg">
-            <div class="flex w-full rounded-md overflow-hidden bg-[#40414f] border border-[#565869]">
+        <div class="p-2 border-t border-gray-200 bg-white rounded-b-lg">
+            <div class="flex w-full rounded-md overflow-hidden bg-white border border-gray-300">
                 <input id="userInput" type="text" placeholder="{{ __('enjoy-work.input_placeholder') }}"
-                       class="flex-1 p-3 text-white bg-transparent focus:outline-none placeholder-gray-400">
-                <button id="sendButton" class="bg-[#40414f] px-4 text-white border-l border-[#565869] hover:bg-[#565869]">
+                       class="flex-1 p-3 text-gray-800 bg-white focus:outline-none placeholder-gray-500">
+                <button id="sendButton" class="bg-gray-100 px-4 text-gray-700 border-l border-gray-300 hover:bg-gray-200">
                     {{ __('enjoy-work.send_button') }}
                 </button>
             </div>
@@ -155,8 +155,8 @@ document.addEventListener('DOMContentLoaded', function() {
     function addMessageToChat(message) {
         const messageElement = document.createElement('div');
         messageElement.className = message.role === 'user'
-            ? 'message user self-end w-full ml-[5%] bg-[#3b4b58] text-[#d1d5db] border border-[#565869] px-4 py-3 rounded-md'
-            : 'message bot self-start w-full bg-[#40414f] text-[#e8e8ea] border border-[#565869] px-4 py-3 rounded-md';
+            ? 'message user self-end max-w-[85%] bg-blue-500 text-white px-4 py-2 rounded-lg'
+            : 'message bot self-start max-w-[85%] bg-gray-100 text-gray-800 px-4 py-2 rounded-lg';
         messageElement.innerHTML = message.content;
         messagesElement.appendChild(messageElement);
         messagesElement.scrollTop = messagesElement.scrollHeight;
@@ -164,7 +164,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function addTypingIndicator() {
         const typingElement = document.createElement('div');
-        typingElement.className = 'message bot self-start w-full bg-[#40414f] text-white border border-[#565869] px-4 py-3 rounded-md italic opacity-80';
+        typingElement.className = 'message bot self-start max-w-[85%] bg-gray-100 text-gray-500 px-4 py-2 rounded-lg italic';
         typingElement.textContent = translations.typing_indicator_text;
         messagesElement.appendChild(typingElement);
         messagesElement.scrollTop = messagesElement.scrollHeight;
