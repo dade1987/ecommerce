@@ -27,13 +27,13 @@ class AwsStyleBlock extends PageBlock
                             ->label('Titolo principale')
                             ->default('Perché AWS?')
                             ->required(),
-                        
+
                         RichEditor::make('perche_description')
                             ->label('Descrizione')
                             ->default('AWS è la piattaforma cloud più completa e ampiamente utilizzata al mondo, con milioni di clienti attivi che utilizzano centinaia di servizi per ridurre i costi, diventare più agili e innovare più velocemente.')
                             ->required()
                             ->columnSpanFull(),
-                        
+
                         // Repeater per gli accordion
                         Repeater::make('accordion_items')
                             ->label('Elementi Accordion')
@@ -65,7 +65,7 @@ class AwsStyleBlock extends PageBlock
                                     ->default('heroicon-o-server')
                                     ->searchable()
                                     ->required(),
-                                
+
                                 TextInput::make('title')
                                     ->label('Titolo elemento')
                                     ->required(),
@@ -108,12 +108,11 @@ class AwsStyleBlock extends PageBlock
                     ->collapsible()
                     ->collapsed(false),
 
+            ]);
     }
 
     public static function mutateData(array $data): array
     {
         return $data;
     }
-
-
-} 
+}
