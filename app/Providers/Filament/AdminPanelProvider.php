@@ -155,6 +155,9 @@ class AdminPanelProvider extends PanelProvider
 
                         // Iterate through all pages to include custom pages
                         foreach (Filament::getPages() as $page) {
+                            if ($page === Pages\Dashboard::class) {
+                                continue;
+                            }
                             $group = $page::getNavigationGroup();
                             $items = $page::getNavigationItems();
 
