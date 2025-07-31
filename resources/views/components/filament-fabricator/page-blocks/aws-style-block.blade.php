@@ -136,7 +136,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!descriptionElement) return;
 
     const originalContent = descriptionElement.innerHTML;
-    const searchTerm = 'core business';
+    const searchTerm = 'READ MORE';
     
     const searchRegex = new RegExp(searchTerm, 'i');
     const match = originalContent.match(searchRegex);
@@ -147,7 +147,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const actualTerm = match[0];
     const endIndex = index + actualTerm.length;
     
-    const visibleText = originalContent.slice(0, endIndex);
+    const visibleText = originalContent.slice(0, index);
     const hiddenText = originalContent.slice(endIndex);
     
     descriptionElement.innerHTML = '';
@@ -156,10 +156,14 @@ document.addEventListener('DOMContentLoaded', function() {
     visibleSpan.innerHTML = visibleText;
     descriptionElement.appendChild(visibleSpan);
 
+    const locale = '{{ app()->getLocale() }}';
+    const readMoreText = locale === 'it' ? 'Continua a Leggere...' : 'Read More...';
+    const readLessText = locale === 'it' ? 'Leggi di Meno' : 'Read Less';
+
     const readMoreLink = document.createElement('a');
     readMoreLink.href = '#';
     readMoreLink.className = 'text-blue-600 hover:text-blue-800 font-medium underline cursor-pointer ml-2';
-    readMoreLink.innerText = 'Continua a Leggere...';
+    readMoreLink.innerText = readMoreText;
     descriptionElement.appendChild(readMoreLink);
 
     const hiddenSpan = document.createElement('span');
@@ -170,7 +174,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const readLessLink = document.createElement('a');
     readLessLink.href = '#';
     readLessLink.className = 'text-blue-600 hover:text-blue-800 font-medium underline cursor-pointer ml-2';
-    readLessLink.innerText = 'Leggi di Meno';
+    readLessLink.innerText = readLessText;
     hiddenSpan.appendChild(document.createElement('br'));
     hiddenSpan.appendChild(readLessLink);
     
