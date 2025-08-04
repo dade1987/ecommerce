@@ -124,6 +124,10 @@
                         </div>
                     </div>
                 @endforeach
+
+                <div class="mt-8">
+                    @livewire('open-calendar-button')
+                </div>
             </div>
         </div>
 
