@@ -1,0 +1,28 @@
+<?php
+
+return [
+    'full_name' => 'Full Name',
+    'full_name_placeholder' => 'Full Name',
+    'email' => 'Email',
+    'email_placeholder' => 'example@domain.com',
+    'subject' => 'Subject',
+    'subject_placeholder' => 'Write the subject',
+    'message' => 'Message',
+    'message_placeholder' => 'Write your message',
+    'privacy_policy_agreement' => 'I have read and accept the',
+    'privacy_policy' => 'privacy policy',
+    'submit' => 'Submit',
+    'privacy_policy_title' => 'Privacy Policy',
+    'data_controller_title' => 'Data Controller',
+    'processing_purpose_title' => 'Purpose of Processing',
+    'processing_purpose_text' => 'Your personal data, voluntarily provided by filling out the contact form, will be processed to respond to the requests sent.',
+    'legal_basis_title' => 'Legal Basis for Processing',
+    'legal_basis_text' => 'The data processing is based on your express consent, pursuant to art. 6, par. 1, lett. a) of the GDPR.',
+    'processing_methods_title' => 'Processing Methods',
+    'processing_methods_text' => 'The data will be processed lawfully, fairly, and transparently, using IT and telematic tools, with logic strictly related to the purposes indicated above. Suitable security measures are adopted to prevent the loss, unauthorized access, or improper use of the data.',
+    'data_subject_rights_title' => 'Rights of the Data Subject',
+    'data_subject_rights_text' => 'Pursuant to articles 15-22 of the GDPR, you have the right to access your personal data, request its correction or cancellation, object to the processing, revoke consent at any time, request the limitation of processing, and data portability.',
+    'exercise_rights_text' => 'To exercise your rights, you can send a request to the Data Controller at the email address: [insert email] or at the address indicated above.',
+    'close' => 'Close',
+    'message_sent' => 'Message Sent',
+]; 

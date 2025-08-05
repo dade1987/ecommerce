@@ -1,0 +1,28 @@
+<?php
+
+return [
+    'full_name' => 'Nome Completo',
+    'full_name_placeholder' => 'Nome Completo',
+    'email' => 'Email',
+    'email_placeholder' => 'example@domain.com',
+    'subject' => 'Oggetto',
+    'subject_placeholder' => "Scrivi l'oggetto",
+    'message' => 'Messaggio',
+    'message_placeholder' => 'Scrivi il messaggio',
+    'privacy_policy_agreement' => "Ho letto e accetto l'",
+    'privacy_policy' => 'informativa sulla privacy',
+    'submit' => 'Invia',
+    'privacy_policy_title' => 'Informativa Privacy',
+    'data_controller_title' => 'Titolare del Trattamento dei Dati',
+    'processing_purpose_title' => 'Finalità del Trattamento',
+    'processing_purpose_text' => 'I Suoi dati personali, forniti volontariamente tramite la compilazione del form di contatto, saranno trattati per rispondere alle richieste inviate.',
+    'legal_basis_title' => 'Base Giuridica del Trattamento',
+    'legal_basis_text' => "Il trattamento dei dati è basato sul Suo consenso espresso, ai sensi dell'art. 6, par. 1, lett. a) del GDPR.",
+    'processing_methods_title' => 'Modalità del Trattamento',
+    'processing_methods_text' => "I dati saranno trattati in modo lecito, corretto e trasparente, mediante strumenti informatici e telematici, con logiche strettamente correlate alle finalità sopra indicate. Sono adottate misure di sicurezza idonee a prevenire la perdita, l'accesso non autorizzato o l'uso improprio dei dati.",
+    'data_subject_rights_title' => "Diritti dell'Interessato",
+    'data_subject_rights_text' => "Ai sensi degli artt. 15-22 del GDPR, Lei ha il diritto di accedere ai Suoi dati personali, richiederne la rettifica o la cancellazione, opporsi al trattamento, revocare il consenso in qualsiasi momento, richiedere la limitazione del trattamento e la portabilità dei dati.",
+    'exercise_rights_text' => "Per esercitare i Suoi diritti, può inviare una richiesta al Titolare del Trattamento all'indirizzo email: [inserire email] o al recapito sopra indicato.",
+    'close' => 'Chiudi',
+    'message_sent' => 'Messaggio Inviato',
+]; 

@@ -36,7 +36,7 @@ class ContactForm extends Component
             Notification::route('mail', $email)->notify(new SendEmailNotification($this->form_data));
         }
 
-        session()->flash('message', 'Messaggio Inviato');
+        session()->flash('message', __('contact-form.message_sent'));
     }
 
     public function openPrivacyModal()
