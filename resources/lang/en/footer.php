@@ -8,4 +8,5 @@ return [
     'contact' => 'contact',
     'vat_number' => 'VAT Number',
     'tax_code' => 'Tax Code',
+    'eu_digitalization' => 'Software according to European tenders for digitalization',
 ]; 

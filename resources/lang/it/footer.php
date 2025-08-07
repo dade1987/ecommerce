@@ -8,4 +8,5 @@ return [
     'contact' => 'contatto',
     'vat_number' => 'P.IVA',
     'tax_code' => 'C.F.',
+    'eu_digitalization' => 'Software secondo i bandi Europei per la digitalizzazione',
 ]; 
