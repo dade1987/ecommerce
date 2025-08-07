@@ -16,7 +16,7 @@ return [
     'partial_scan_message' => 'The scan took longer than expected and was stopped. The results shown may be incomplete.',
     'risk_assessment_title' => 'Estimated Risk Assessment',
     'high_risk_title' => 'High Risk Detected',
-    'high_risk_message' => 'Your site has critical issues that could expose it to attacks. Contact us for a free consultation.',
+    'high_risk_message' => 'Your site has critical issues that could expose it to attacks. We invite you to contact your Digital Security Provider. In case of EMERGENCIES Contact us for a free consultation.',
     'low_risk_title' => 'Situation Under Control',
     'low_risk_message' => 'No immediate critical issues were detected, but security is an ongoing process. Contact us for a thorough check-up.',
     'attention_areas_title' => 'Attention Areas',

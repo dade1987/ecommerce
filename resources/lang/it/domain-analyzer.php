@@ -16,7 +16,7 @@ return [
     'partial_scan_message' => "La scansione ha richiesto più tempo del previsto ed è stata interrotta. I risultati mostrati potrebbero essere incompleti.",
     'risk_assessment_title' => 'Valutazione del Rischio Stimato',
     'high_risk_title' => 'Rischio Elevato Rilevato',
-    'high_risk_message' => 'Il tuo sito presenta delle criticità che potrebbero esporlo ad attacchi. Contattaci per una consulenza gratuita.',
+    'high_risk_message' => 'Il tuo sito presenta delle criticità che potrebbero esporlo ad attacchi. Ti invitiamo a contattare il tuo Fornitore di Sicurezza Digitale. In caso di URGENZE Contattaci per una consulenza gratuita.',
     'low_risk_title' => 'Situazione Sotto Controllo',
     'low_risk_message' => 'Non sono state rilevate criticità immediate, ma la sicurezza è un processo continuo. Contattaci per un check-up approfondito.',
     'attention_areas_title' => 'Aree di Attenzione',
