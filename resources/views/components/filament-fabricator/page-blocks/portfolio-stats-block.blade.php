@@ -1,17 +1,13 @@
 @aware(['page'])
-<section class="py-5 bg-light">
-    <div class="container">
-        <div class="row g-4 text-center">
-            @if($stats)
+<section class="bg-gray-100 dark:bg-gray-900 py-12">
+    <div class="container mx-auto px-4">
+        <div class="grid gap-8 text-center sm:grid-cols-2 lg:grid-cols-4">
+            @if(!empty($stats))
                 @foreach($stats as $stat)
-                    <div class="col-md-3">
-                        <div class="card border-0 shadow-sm h-100">
-                            <div class="card-body">
-                                <i class="{{ $stat['icon'] }} fs-1 {{ $stat['icon_color_class'] }} mb-3"></i>
-                                <h3 class="fw-bold {{ $stat['number_color_class'] }}">{{ $stat['number'] }}</h3>
-                                <p class="text-muted mb-0">{{ $stat['label'] }}</p>
-                            </div>
-                        </div>
+                    <div class="p-6 bg-white rounded-lg shadow-md dark:bg-gray-800">
+                        <i class="{{ $stat['icon'] }} text-4xl {{ $stat['icon_color_class'] ?? 'text-violet-600' }} dark:{{ $stat['icon_color_class'] ?? 'text-violet-400' }} mb-4 inline-block"></i>
+                        <h3 class="text-3xl font-bold {{ $stat['number_color_class'] ?? 'text-gray-900' }} dark:{{ $stat['number_color_class'] ?? 'text-white' }}">{{ $stat['number'] }}</h3>
+                        <p class="text-gray-500 dark:text-gray-400 mt-2">{{ $stat['label'] }}</p>
                     </div>
                 @endforeach
             @endif
