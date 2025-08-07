@@ -14,20 +14,18 @@
                                 @foreach($images as $image)
                                     '{{ $image->url }}',
                                 @endforeach
-                            ]
-                        }" 
-                        @click.window="
-                            if ($event.target.closest('.cursor-pointer')) {
-                                isLightboxOpen = true; 
-                                lightboxImage = images[activeSlide - 1];
+                            ],
+                            openLightbox() {
+                                this.lightboxImage = this.images[this.activeSlide - 1];
+                                this.isLightboxOpen = true;
                             }
-                        "
+                        }" 
                         class="relative">
                         <div class="overflow-hidden rounded-lg shadow-lg">
                             <div class="flex transition-transform duration-500 ease-in-out" :style="'transform: translateX(-' + (activeSlide - 1) * 100 + '%)'">
                                 @foreach($images as $image)
                                     <div class="w-full flex-shrink-0">
-                                        <div class="cursor-pointer">
+                                        <div @click="openLightbox()" class="cursor-pointer">
                                             <x-curator-glider
                                                 :media="$image"
                                                 class="w-full h-auto object-cover"
