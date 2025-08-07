@@ -5,16 +5,21 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
             <div class="@if($alignment === 'right') md:order-last @endif">
                 @if(!empty($images) && $images->count() > 0)
-                    <div x-data="{ activeSlide: 1, totalSlides: {{ $images->count() }} }" class="relative">
-                        {{-- Images --}}
-                        @foreach($images as $image)
-                            <div x-show="activeSlide === {{ $loop->index + 1 }}" class="duration-300 ease-in-out" x-transition:enter.opacity.duration.300ms x-transition:leave.opacity.duration.300ms>
-                                <x-curator-glider
-                                    :media="$image"
-                                    class="w-full h-auto rounded-lg shadow-lg object-cover"
-                                />
+                    <div x-data="{ activeSlide: 1, totalSlides: {{ $images->count() }}, isLightboxOpen: false, lightboxImage: '' }" class="relative">
+                        <div class="overflow-hidden rounded-lg shadow-lg">
+                            <div class="flex transition-transform duration-500 ease-in-out" :style="'transform: translateX(-' + (activeSlide - 1) * 100 + '%)'">
+                                @foreach($images as $image)
+                                    <div class="w-full flex-shrink-0">
+                                        <div @click="isLightboxOpen = true; lightboxImage = '{{ $image->url }}'" class="cursor-pointer">
+                                            <x-curator-glider
+                                                :media="$image"
+                                                class="w-full h-auto object-cover"
+                                            />
+                                        </div>
+                                    </div>
+                                @endforeach
                             </div>
-                        @endforeach
+                        </div>
 
                         {{-- Prev/Next Buttons --}}
                         @if ($images->count() > 1)
@@ -26,14 +31,26 @@
                                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                                 </button>
                             </div>
+                        @endif
 
-                            {{-- Dots --}}
+                        {{-- Dots --}}
+                        @if ($images->count() > 1)
                             <div class="absolute bottom-4 left-0 right-0 flex justify-center space-x-2">
                                 @foreach($images as $image)
                                     <button @click="activeSlide = {{ $loop->index + 1 }}" :class="{'bg-white scale-125': activeSlide === {{ $loop->index + 1 }}, 'bg-white/50': activeSlide !== {{ $loop->index + 1 }}}" class="w-3 h-3 rounded-full hover:bg-white focus:outline-none transition-transform"></button>
                                 @endforeach
                             </div>
                         @endif
+
+                        {{-- Lightbox --}}
+                        <div x-show="isLightboxOpen" @keydown.escape.window="isLightboxOpen = false" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50" style="display: none;">
+                            <div @click.away="isLightboxOpen = false" class="relative">
+                                <img :src="lightboxImage" alt="Zoomed image" class="max-w-full max-h-[90vh] rounded-lg">
+                                <button @click="isLightboxOpen = false" class="absolute top-2 right-2 text-white bg-black bg-opacity-50 rounded-full p-2">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 @endif
             </div>
