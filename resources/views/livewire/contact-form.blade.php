@@ -1,4 +1,4 @@
-<div>
+<div id="contact-form">
     <div class="flex items-center justify-center p-12">
         <div class="mx-auto w-full max-w-[550px]">
             <form method="POST" wire:submit.prevent="send">

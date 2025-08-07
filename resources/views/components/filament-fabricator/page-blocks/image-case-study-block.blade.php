@@ -45,6 +45,13 @@
                 <div class="prose dark:prose-invert max-w-none text-gray-600 dark:text-gray-300">
                     {!! $description !!}
                 </div>
+
+                <div class="mt-6 flex flex-wrap gap-4">
+                    @livewire('open-calendar-button', ['text' => __('frontend.book_call'), 'style' => 'primary'])
+                    <a href="#contact-form" class="inline-block px-6 py-3 text-base font-semibold text-white bg-gray-600 rounded-lg shadow-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition">
+                        {{ __('frontend.contact_us') }}
+                    </a>
+                </div>
             </div>
         </div>
     </div>
