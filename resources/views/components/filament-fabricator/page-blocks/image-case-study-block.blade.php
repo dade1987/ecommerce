@@ -23,11 +23,11 @@
 
                         {{-- Prev/Next Buttons --}}
                         @if ($images->count() > 1)
-                            <div class="absolute inset-0 flex items-center justify-between">
-                                <button @click="activeSlide = (activeSlide === 1) ? totalSlides : activeSlide - 1" class="text-white bg-black bg-opacity-30 hover:bg-opacity-50 rounded-full p-2 transition">
+                            <div class="absolute inset-0 flex items-center justify-between p-4 pointer-events-none">
+                                <button @click="activeSlide = (activeSlide === 1) ? totalSlides : activeSlide - 1" class="text-white bg-black bg-opacity-30 hover:bg-opacity-50 rounded-full p-2 transition pointer-events-auto">
                                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
                                 </button>
-                                <button @click="activeSlide = (activeSlide % totalSlides) + 1" class="text-white bg-black bg-opacity-30 hover:bg-opacity-50 rounded-full p-2 transition">
+                                <button @click="activeSlide = (activeSlide % totalSlides) + 1" class="text-white bg-black bg-opacity-30 hover:bg-opacity-50 rounded-full p-2 transition pointer-events-auto">
                                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                                 </button>
                             </div>
