@@ -4,9 +4,9 @@
     <div class="container mx-auto px-4">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
             <div class="@if($alignment === 'right') md:order-last @endif">
-                @if(!empty($images))
+                @if(!empty($images) && $images->count() > 0)
                     <x-curator-glider
-                        :media="$images"
+                        :glideable="$images"
                         class="rounded-lg shadow-lg"
                     />
                 @endif

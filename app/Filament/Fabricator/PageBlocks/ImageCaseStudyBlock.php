@@ -3,6 +3,7 @@
 namespace App\Filament\Fabricator\PageBlocks;
 
 use Awcodes\Curator\Components\Forms\CuratorPicker;
+use Awcodes\Curator\Models\Media;
 use Filament\Forms\Components\Builder\Block;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
@@ -41,5 +42,18 @@ class ImageCaseStudyBlock extends PageBlock
     public static function getLayout(): string
     {
         return 'image-case-study-block';
+    }
+
+    public static function mutateData(array $data): array
+    {
+        if (isset($data['images']) && is_array($data['images'])) {
+            $data['images'] = Media::whereIn('id', $data['images'])
+                ->get()
+                ->sortBy(function ($media) use ($data) {
+                    return array_search($media->id, $data['images']);
+                });
+        }
+
+        return $data;
     }
 } 
