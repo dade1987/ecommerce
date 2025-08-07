@@ -5,15 +5,22 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
             <div class="@if($alignment === 'right') md:order-last @endif">
                 @if(!empty($images) && $images->count() > 0)
-                    <div x-data="{ activeSlide: 1, totalSlides: {{ $images->count() }}, isLightboxOpen: false, lightboxImage: '', imageUrls: {{ $images->pluck('url')->toJson() }} }" class="relative">
+                    <div x-data="{ activeSlide: 1, totalSlides: {{ $images->count() }}, isLightboxOpen: false, lightboxImage: '' }" class="relative">
                         <div class="overflow-hidden rounded-lg shadow-lg">
                             <div class="flex transition-transform duration-500 ease-in-out" :style="'transform: translateX(-' + (activeSlide - 1) * 100 + '%)'">
                                 @foreach($images as $image)
                                     <div class="w-full flex-shrink-0">
-                                        <div @click="isLightboxOpen = true; lightboxImage = imageUrls[{{ $loop->index }}]" class="cursor-pointer">
+                                        <div class="cursor-pointer" x-ref="imageContainer{{ $loop->index }}">
                                             <x-curator-glider
                                                 :media="$image"
                                                 class="w-full h-auto object-cover"
+                                                @click="
+                                                    const img = $refs.imageContainer{{ $loop->index }}.querySelector('img');
+                                                    if (img) {
+                                                        isLightboxOpen = true; 
+                                                        lightboxImage = img.src;
+                                                    }
+                                                "
                                             />
                                         </div>
                                     </div>
