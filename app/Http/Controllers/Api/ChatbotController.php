@@ -531,29 +531,167 @@ class ChatbotController extends Controller
             $builder = Faq::where('team_id', $team->id)
                 ->where('active', true);
 
-            // Prova ricerca fulltext (preferita)
+            // Parametri di soglia (configurabili via env)
+            $useEmbeddings = (bool) env('OPENAI_USE_EMBEDDINGS', false);
+            $semanticThreshold = (float) env('FAQ_SEMANTIC_THRESHOLD', 0.85);
+            $lexicalThreshold = (float) env('FAQ_LEXICAL_THRESHOLD', 0.60);
+
+            // Recupera una rosa di candidati ordinati per rilevanza
+            $candidates = collect();
             try {
-                $faq = $builder
+                $candidates = $builder
                     ->select(['question', 'answer'])
+                    ->selectRaw('MATCH(question, answer) AGAINST(? IN NATURAL LANGUAGE MODE) AS relevance', [$query])
                     ->whereRaw('MATCH(question, answer) AGAINST(? IN NATURAL LANGUAGE MODE)', [$query])
-                    ->orderByRaw('MATCH(question, answer) AGAINST(? IN NATURAL LANGUAGE MODE) DESC', [$query])
-                    ->first();
+                    ->orderByDesc('relevance')
+                    ->limit(5)
+                    ->get();
             } catch (\Throwable $e) {
-                // Se per qualche motivo FULLTEXT non è disponibile, fallback a LIKE
-                Log::warning('findFaqAnswer: FULLTEXT non disponibile, uso fallback LIKE', ['error' => $e->getMessage()]);
-                $faq = $builder
+                Log::warning('findFaqAnswer: FULLTEXT non disponibile, fallback LIKE', ['error' => $e->getMessage()]);
+                $candidates = $builder
                     ->where(function ($q) use ($query) {
                         $q->where('question', 'like', '%'.$query.'%')
                           ->orWhere('answer', 'like', '%'.$query.'%');
                     })
-                    ->first();
+                    ->limit(5)
+                    ->get(['question', 'answer']);
             }
 
-            return $faq ? $faq->only(['question', 'answer']) : null;
+            if ($candidates->isEmpty()) {
+                return null;
+            }
+
+            $best = null;
+            $bestScore = -1.0;
+
+            foreach ($candidates as $faq) {
+                $q = (string) $faq->question;
+                $a = (string) $faq->answer;
+
+                // Similarità semantica (se attivata) con fallback lessicale
+                $scoreQuestion = $useEmbeddings ? ($this->tryEmbeddingSimilarity($query, $q) ?? $this->computeLexicalSimilarity($query, $q)) : $this->computeLexicalSimilarity($query, $q);
+                $scoreAnswer = $useEmbeddings ? ($this->tryEmbeddingSimilarity($query, $a) ?? $this->computeLexicalSimilarity($query, $a)) : $this->computeLexicalSimilarity($query, $a);
+
+                // Pesa maggiormente la domanda della FAQ
+                $score = max($scoreQuestion * 0.7 + $scoreAnswer * 0.3, $scoreQuestion);
+
+                if ($score > $bestScore) {
+                    $bestScore = $score;
+                    $best = $faq;
+                }
+            }
+
+            // Applica soglia adeguata al metodo usato
+            $threshold = $useEmbeddings ? $semanticThreshold : $lexicalThreshold;
+            if ($best && $bestScore >= $threshold) {
+                Log::info('findFaqAnswer: FAQ selezionata con score', ['score' => $bestScore, 'threshold' => $threshold, 'question' => $best->question]);
+                return $best->only(['question', 'answer']);
+            }
+
+            Log::info('findFaqAnswer: Nessuna FAQ supera la soglia', ['bestScore' => $bestScore, 'threshold' => $threshold]);
+            return null;
         } catch (\Throwable $e) {
             Log::error('findFaqAnswer: Errore inatteso durante la ricerca FAQ', ['error' => $e->getMessage()]);
             return null;
         }
+    }
+
+    /**
+     * Calcola una similarità lessicale [0..1] robusta a stopword.
+     * Combina Jaccard e containment su token con lunghezza >= 4.
+     */
+    private function computeLexicalSimilarity(string $textA, string $textB): float
+    {
+        $tokensA = $this->tokenizeAndFilter($textA);
+        $tokensB = $this->tokenizeAndFilter($textB);
+
+        if (empty($tokensA) || empty($tokensB)) {
+            return 0.0;
+        }
+
+        $setA = array_unique($tokensA);
+        $setB = array_unique($tokensB);
+
+        $intersection = array_values(array_intersect($setA, $setB));
+        $union = array_values(array_unique(array_merge($setA, $setB)));
+
+        $jaccard = count($union) > 0 ? count($intersection) / count($union) : 0.0;
+        $containment = min(count($setA), count($setB)) > 0 ? count($intersection) / min(count($setA), count($setB)) : 0.0;
+
+        // Ponderazione semplice: penalizza match deboli, premia copertura
+        $score = 0.5 * $jaccard + 0.5 * $containment;
+        return max(0.0, min(1.0, $score));
+    }
+
+    private function tokenizeAndFilter(string $text): array
+    {
+        $normalized = mb_strtolower($text);
+        $normalized = preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $normalized);
+        $parts = preg_split('/\s+/', trim($normalized));
+        $stopwords = $this->getItalianStopwords();
+        $filtered = [];
+        foreach ($parts as $tok) {
+            if ($tok === '' || in_array($tok, $stopwords, true)) {
+                continue;
+            }
+            // Considera solo parole informative
+            if (mb_strlen($tok) >= 4) {
+                $filtered[] = $tok;
+            }
+        }
+        return $filtered;
+    }
+
+    private function getItalianStopwords(): array
+    {
+        return [
+            'a','ad','al','allo','alla','ai','agli','alle','anche','avere','da','dal','dallo','dalla','dai','dagli','dalle','dei','degli','delle','del','dell','dello','della',
+            'di','e','ed','che','chi','con','col','coi','come','dove','dunque','era','erano','essere','faccio','fai','fa','fanno','fate','fatto','fui','fu','furono','gli','il','lo','la','i','le',
+            'in','nel','nello','nella','nei','negli','nelle','ma','mi','mia','mie','miei','mio','ne','non','o','od','per','perché','più','poi','quale','quali','qual','quanta','quanto','quanti','quante',
+            'quasi','questo','questa','questi','queste','quello','quella','quelli','quelle','se','sei','si','sì','sia','siamo','siete','sono','su','sul','sullo','sulla','sui','sugli','sulle','tra','fra',
+            'tu','tua','tue','tuo','tutti','tutte','tutto','un','uno','una','uno','va','vai','vado','vanno','voi','vostro','vostra','vostri','vostre','io','loro','noi','voi','dite','sono','buongiorno'
+        ];
+    }
+
+    /**
+     * Similarità via embedding, con catch su errori/reti e ritorno null.
+     */
+    private function tryEmbeddingSimilarity(string $textA, string $textB): ?float
+    {
+        try {
+            if (!$this->client) {
+                return null;
+            }
+            // Model embedding moderno
+            $resp = $this->client->embeddings()->create([
+                'model' => 'text-embedding-3-small',
+                'input' => [$textA, $textB],
+            ]);
+            $vecA = $resp->data[0]->embedding ?? null;
+            $vecB = $resp->data[1]->embedding ?? null;
+            if (!$vecA || !$vecB) {
+                return null;
+            }
+            return $this->cosineSimilarity($vecA, $vecB);
+        } catch (\Throwable $e) {
+            Log::warning('tryEmbeddingSimilarity: fallback per errore embeddings', ['error' => $e->getMessage()]);
+            return null;
+        }
+    }
+
+    private function cosineSimilarity(array $a, array $b): float
+    {
+        $dot = 0.0; $normA = 0.0; $normB = 0.0;
+        $len = min(count($a), count($b));
+        for ($i = 0; $i < $len; $i++) {
+            $dot += $a[$i] * $b[$i];
+            $normA += $a[$i] * $a[$i];
+            $normB += $b[$i] * $b[$i];
+        }
+        if ($normA <= 0.0 || $normB <= 0.0) {
+            return 0.0;
+        }
+        return $dot / (sqrt($normA) * sqrt($normB));
     }
 
     /**
