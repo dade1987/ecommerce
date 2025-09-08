@@ -92,6 +92,26 @@ class ChatbotController extends Controller
             ]);
         }
 
+        // Prima di procedere con l'assistente, verifica se la domanda corrisponde a una FAQ
+        $faqMatch = $this->findFaqAnswer($teamSlug, $userInput);
+        if ($faqMatch) {
+            Log::info('handleChat: Risposta trovata nelle FAQ', ['question' => $faqMatch['question']]);
+
+            $faqAnswer = $faqMatch['answer'];
+
+            // Salva il messaggio del chatbot (risposta FAQ) nel modello Quoter
+            Quoter::create([
+                'thread_id' => $threadId,
+                'role'      => 'chatbot',
+                'content'   => $faqAnswer,
+            ]);
+
+            return response()->json([
+                'message'   => $this->formatResponseContent($faqAnswer),
+                'thread_id' => $threadId,
+            ]);
+        }
+
         // Crea e gestisci il run con i vari tool disponibili
         $run = $this->client->threads()->runs()->create(
             threadId: $threadId,
@@ -488,6 +508,52 @@ class ChatbotController extends Controller
             ->toArray();
         Log::info('fetchFAQs: FAQ ricevute', ['faqData' => $faqs]);
         return $faqs;
+    }
+
+    /**
+     * Trova una risposta FAQ pertinente alla query per il team indicato.
+     * Restituisce ['question' => ..., 'answer' => ...] oppure null se non trovata.
+     */
+    private function findFaqAnswer(?string $teamSlug, ?string $query): ?array
+    {
+        try {
+            Log::info('findFaqAnswer: Avvio ricerca FAQ', ['teamSlug' => $teamSlug, 'query' => $query]);
+
+            if (!$teamSlug || !$query || trim($query) === '') {
+                return null;
+            }
+
+            $team = Team::where('slug', $teamSlug)->first();
+            if (!$team) {
+                return null;
+            }
+
+            $builder = Faq::where('team_id', $team->id)
+                ->where('active', true);
+
+            // Prova ricerca fulltext (preferita)
+            try {
+                $faq = $builder
+                    ->select(['question', 'answer'])
+                    ->whereRaw('MATCH(question, answer) AGAINST(? IN NATURAL LANGUAGE MODE)', [$query])
+                    ->orderByRaw('MATCH(question, answer) AGAINST(? IN NATURAL LANGUAGE MODE) DESC', [$query])
+                    ->first();
+            } catch (\Throwable $e) {
+                // Se per qualche motivo FULLTEXT non è disponibile, fallback a LIKE
+                Log::warning('findFaqAnswer: FULLTEXT non disponibile, uso fallback LIKE', ['error' => $e->getMessage()]);
+                $faq = $builder
+                    ->where(function ($q) use ($query) {
+                        $q->where('question', 'like', '%'.$query.'%')
+                          ->orWhere('answer', 'like', '%'.$query.'%');
+                    })
+                    ->first();
+            }
+
+            return $faq ? $faq->only(['question', 'answer']) : null;
+        } catch (\Throwable $e) {
+            Log::error('findFaqAnswer: Errore inatteso durante la ricerca FAQ', ['error' => $e->getMessage()]);
+            return null;
+        }
     }
 
     /**
