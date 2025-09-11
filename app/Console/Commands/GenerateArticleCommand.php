@@ -147,9 +147,6 @@ class GenerateArticleCommand extends Command
                 GenerateArticleJob::dispatch($keyword, $location, $internalLinksList);
                 $this->info("Job dispatched for keyword: \"{$keyword} a {$location}\"");
                 $jobCount++;
-                if ($jobCount >= 3) {
-                    break 2; // Pubblica al massimo 3 location al giorno
-                }
             }
         }
         // Aggiorna la lista dei comuni pubblicati
