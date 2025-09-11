@@ -80,7 +80,7 @@ class GenerateArticleCommand extends Command
                 if (is_array($data)) {
                     $comuni = collect($data)
                         ->filter(function ($comune) {
-                            return isset($comune['regione']) && in_array($comune['regione'], ['Lombardia', 'Veneto'], true);
+                            return isset($comune['regione']['nome']) && in_array($comune['regione']['nome'], ['Lombardia', 'Veneto'], true);
                         })
                         ->map(function ($comune) {
                             return [
