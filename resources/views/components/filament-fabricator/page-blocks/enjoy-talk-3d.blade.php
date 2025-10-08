@@ -1,0 +1,841 @@
+<div class="flex flex-col h-screen w-screen bg-[#0f172a]">
+  <div class="p-4 flex items-center gap-3">
+    <img id="teamLogo" src="/images/logoai.jpeg" alt="EnjoyTalk 3D" class="w-10 h-10 rounded-full object-cover border border-slate-600">
+    <h1 class="font-sans text-2xl text-white">EnjoyTalk 3D</h1>
+  </div>
+
+  <!-- Canvas Avatar 3D -->
+  <div class="flex-1 flex items-center justify-center p-4">
+    <div class="relative">
+      <div id="avatarStage" class="bg-[#111827] border border-slate-700 rounded-md overflow-hidden"
+           style="width: 600px; height: 400px; min-width: 320px; min-height: 180px;"></div>
+      
+      <!-- Fumetto di pensiero -->
+      <div id="thinkingBubble" class="hidden absolute top-4 left-1/2 transform -translate-x-1/2 bg-white rounded-lg px-4 py-2 shadow-lg border border-gray-300">
+        <div class="text-gray-700 text-sm font-medium">💭 Sto pensando...</div>
+        <div class="absolute bottom-0 left-1/2 transform translate-y-full -translate-x-1/2">
+          <div class="w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-white"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Controlli -->
+  <div class="fixed bottom-0 left-0 w-full border-t border-slate-700 bg-[#0f172a]">
+    <div class="px-4 py-4">
+      <div class="flex w-full gap-2 items-center">
+        <input id="textInput" type="text" placeholder="Scrivi la tua domanda o usa il microfono..." class="flex-1 p-3 text-white bg-[#111827] border border-slate-700 rounded-md placeholder-slate-400 focus:border-indigo-500 focus:outline-none" />
+        <button id="sendBtn" class="px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors">📤 Invia</button>
+        <button id="micBtn" class="px-4 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-md transition-colors">🎤 Parla</button>
+      </div>
+      <div class="mt-2 flex items-center gap-3 text-slate-300 text-sm">
+        <label class="inline-flex items-center gap-2 cursor-pointer select-none">
+          <input id="useBrowserTts" type="checkbox" class="accent-indigo-600" />
+          <span>Usa TTS del browser (italiano)</span>
+        </label>
+        <span id="browserTtsStatus" class="opacity-70"></span>
+      </div>
+      <div id="liveText" class="hidden mt-3 text-slate-300 min-h-[1.5rem]"></div>
+    </div>
+  </div>
+  <audio id="ttsPlayer" class="hidden" playsinline></audio>
+</div>
+
+<script type="module">
+// Precarica Three r160 + GLTFLoader come ES Modules e risolvi prima di eseguire il resto dello script
+window.THREE_READY = (async () => {
+  try {
+    const THREE_mod = await import('https://esm.sh/three@0.160.0');
+    const { GLTFLoader } = await import('https://esm.sh/three@0.160.0/examples/jsm/loaders/GLTFLoader.js');
+    window.THREE = THREE_mod;
+    window.GLTFLoader = GLTFLoader;
+    console.log('Three+GLTFLoader via esm.sh');
+    return true;
+  } catch (e) {
+    try {
+      const THREE_mod = await import('https://unpkg.com/three@0.160.0/build/three.module.js');
+      const { GLTFLoader } = await import('https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js?module');
+      window.THREE = THREE_mod;
+      window.GLTFLoader = GLTFLoader;
+      console.log('Three+GLTFLoader via unpkg (?module)');
+      return true;
+    } catch (e2) {
+      console.error('Impossibile importare Three/GLTFLoader come ES modules', e2);
+      return false;
+    }
+  }
+})();
+</script>
+
+<!-- Rimosso Laravel Echo - usa solo streaming SSE nativo -->
+
+<script>
+document.addEventListener('DOMContentLoaded', async function() {
+  // Attendi il preload dei moduli
+  try { if (window.THREE_READY && window.THREE_READY.then) { await Promise.race([window.THREE_READY, new Promise(r => setTimeout(r, 3000))]); } } catch {}
+  const sendBtn = document.getElementById('sendBtn');
+  const micBtn = document.getElementById('micBtn');
+  const input = document.getElementById('textInput');
+  const liveText = document.getElementById('liveText');
+  const ttsPlayer = document.getElementById('ttsPlayer');
+  const thinkingBubble = document.getElementById('thinkingBubble');
+  const useBrowserTts = document.getElementById('useBrowserTts');
+  const browserTtsStatus = document.getElementById('browserTtsStatus');
+  const teamSlug = window.location.pathname.split('/').pop();
+  const urlParams = new URLSearchParams(window.location.search);
+  const uuid = urlParams.get('uuid');
+  const locale = '{{ app()->getLocale() }}';
+  let threadId = null;
+  let assistantThreadId = null;
+  let humanoid = null, jawBone = null;
+  let morphMesh = null, morphIndex = -1, morphValue = 0;
+
+  // Three.js avatar minimale (testa + mandibola)
+  let THREELoaded = false;
+  let scene, camera, renderer, head, jaw, animationId, analyser, dataArray, audioCtx, mediaNode;
+
+  // TTS queue
+  let bufferText = '';
+  let ttsBuffer = ''; // Buffer separato per TTS
+  let speakQueue = [];
+  let isSpeaking = false;
+  let lastSpokenTail = '';
+  let lastSentToTts = '';
+  let ttsProcessedLength = 0; // Traccia quanto del testo è già stato processato per TTS
+  let ttsFirstChunkSent = false;
+  let ttsKickTimer = null;
+  let ttsTick = null;
+  let ttsRequestQueue = [];
+  let ttsRequestInFlight = false;
+  // Ampiezza sintetica per TTS del browser (non fornisce audio samples)
+  let speechAmp = 0;
+  let speechAmpTarget = 0;
+  let speechAmpTimer = null;
+
+  // Sanifica testo per TTS (niente markdown/asterischi/URL/decimali ",00")
+  function sanitizeForTts(input) {
+    let t = stripHtml(input || '');
+    // Rimuovi markdown semplice
+    t = t.replace(/\*\*(.*?)\*\*/g, '$1');
+    t = t.replace(/\*(.*?)\*/g, '$1');
+    t = t.replace(/`+/g, '');
+    // Rimuovi URL
+    t = t.replace(/https?:\/\/\S+/gi, '');
+    // Rimuovi bullet / numerazioni
+    t = t.replace(/^[\-\*•]\s+/gm, '');
+    t = t.replace(/^\d+\.\s+/gm, '');
+    // Rimuovi decimali ",00" o ".00"
+    t = t.replace(/(\d+)[\.,]00\b/g, '$1');
+    // Comprimi punteggiatura e spazi
+    t = t.replace(/[\s\u00A0]+/g, ' ').trim();
+    // Evita ripetizioni di punti/virgole
+    t = t.replace(/([\.!?,;:]){2,}/g, '$1');
+    return t;
+  }
+  initThree();
+
+  // Auto-spunta TTS del browser su Chrome se disponibile
+  try {
+    const ua = navigator.userAgent || '';
+    const isChrome = !!window.chrome && /Chrome\/\d+/.test(ua) && !/Edg\//.test(ua) && !/OPR\//.test(ua) && !/Brave/i.test(ua);
+    if (isChrome && 'speechSynthesis' in window && useBrowserTts) {
+      useBrowserTts.checked = true;
+      browserTtsStatus.textContent = 'TTS browser attivo (Chrome)';
+    }
+  } catch {}
+
+  // Rimosso chat history: messaggi non più renderizzati, manteniamo solo TTS e indicatori
+
+  function startStream(message) {
+    if (!message || message.trim() === '') return;
+    
+    console.log('TTS: Starting new conversation, resetting state');
+    
+    // Chat history rimossa: nessun messaggio renderizzato, manteniamo solo TTS
+    
+    // Mostra fumetto "Sto pensando..."
+    thinkingBubble.classList.remove('hidden');
+    
+    // Reset per nuova conversazione
+    bufferText = '';
+    ttsBuffer = '';
+    lastSentToTts = '';
+    lastSpokenTail = '';
+    ttsProcessedLength = 0;
+    ttsFirstChunkSent = false;
+    if (ttsKickTimer) { try { clearTimeout(ttsKickTimer); } catch {} ttsKickTimer = null; }
+    if (ttsTick) { try { clearInterval(ttsTick); } catch {} ttsTick = null; }
+    
+    // Ferma audio corrente e pulisci coda
+    if (ttsPlayer && !ttsPlayer.paused) {
+      ttsPlayer.pause();
+      ttsPlayer.currentTime = 0;
+    }
+    
+    // Pulisci coda TTS
+    speakQueue.forEach(item => URL.revokeObjectURL(item.url));
+    speakQueue = [];
+    isSpeaking = false;
+    
+    let collected = '';
+    let aiMessageDiv = null; // Riferimento al div del messaggio AI
+    const params = new URLSearchParams({ message, team: teamSlug, uuid: uuid || '', locale });
+    if (threadId) params.set('thread_id', threadId);
+    if (assistantThreadId) params.set('assistant_thread_id', assistantThreadId);
+    const evtSource = new EventSource(`/api/chatbot/stream?${params.toString()}`);
+    let done = false;
+    let firstToken = true;
+    // Tick ad alta frequenza per tentare TTS chunking, indipendente dal ritmo dei token
+    if (!ttsTick) {
+      ttsTick = setInterval(() => {
+        try { checkForTtsChunks(); } catch {}
+      }, 120);
+    }
+
+    evtSource.addEventListener('message', (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        if (data.token) {
+          // Controlla se è un thread_id
+          try {
+            const tok = JSON.parse(data.token);
+            if (tok && tok.thread_id) {
+              threadId = tok.thread_id;
+              return; // non mettere in coda questo token
+            }
+            if (tok && tok.assistant_thread_id) {
+              assistantThreadId = tok.assistant_thread_id;
+              return;
+            }
+          } catch (parseErr) {
+            // Non è JSON, è un token normale
+          }
+          
+          if (firstToken) { 
+            firstToken = false; 
+            // Nascondi fumetto "Sto pensando..."
+            thinkingBubble.classList.add('hidden');
+            // Nessuna chat history
+            // Early kick disabilitato per evitare frasi tronche
+            if (ttsKickTimer) { try { clearTimeout(ttsKickTimer); } catch {} }
+            ttsKickTimer = null;
+          }
+          
+          collected += data.token;
+          ttsBuffer += data.token;
+          
+          // Chat history rimossa: nessun aggiornamento UI del testo AI
+          
+          // Controlla se abbiamo chunk da inviare al TTS (completamente separato dalla chat)
+          checkForTtsChunks();
+        }
+      } catch (msgErr) {
+        console.warn('Message parse error:', msgErr);
+      }
+    });
+
+    evtSource.addEventListener('error', () => {
+      evtSource.close();
+    });
+
+    evtSource.addEventListener('done', () => {
+      evtSource.close();
+      done = true; 
+      // Nascondi fumetto se ancora visibile
+      thinkingBubble.classList.add('hidden');
+      // Invia tutto il testo TTS rimanente
+      if (ttsBuffer.trim().length > 0) { 
+        const remainingText = stripHtml(ttsBuffer).trim();
+        if (remainingText.length > 0) {
+          console.log('TTS: Sending remaining text:', remainingText.substring(0, 50) + '...');
+          sendToTts(remainingText);
+        }
+        ttsBuffer = '';
+      }
+      if (ttsTick) { try { clearInterval(ttsTick); } catch {} ttsTick = null; }
+    });
+  }
+
+  sendBtn.addEventListener('click', async () => {
+    // Sblocca l'audio prima di inviare
+    try {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') await audioCtx.resume();
+    } catch {}
+    startStream(input.value);
+    input.value = '';
+  });
+
+  input.addEventListener('keyup', async (e) => {
+    if (e.key === 'Enter') {
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') await audioCtx.resume();
+      } catch {}
+      startStream(input.value);
+      input.value = '';
+    }
+  });
+
+  // TODO: integrare Web Speech API per dettatura e TTS/visemi per avatar
+  micBtn.addEventListener('click', async () => {
+    try {
+      // Sblocca audio autoplay sui browser
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') await audioCtx.resume();
+      } catch {}
+      const rec = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+      rec.lang = locale || 'it-IT';
+      rec.interimResults = false;
+      rec.maxAlternatives = 1;
+      rec.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        startStream(transcript);
+      };
+      rec.onerror = () => {};
+      rec.start();
+    } catch (err) {
+      alert('Riconoscimento vocale non disponibile in questo browser.');
+    }
+  });
+
+  function initThree() {
+    // Carica Three dal CDN se non presente
+    if (!window.THREE) {
+      const s = document.createElement('script');
+      s.src = 'https://unpkg.com/three@0.160.0/build/three.min.js';
+      s.onload = () => { THREELoaded = true; setupScene(); };
+      document.head.appendChild(s);
+    } else {
+      THREELoaded = true;
+      setupScene();
+    }
+  }
+
+  function setupScene() {
+    const stage = document.getElementById('avatarStage');
+    const rect = stage.getBoundingClientRect();
+    let width = Math.floor(rect.width);
+    let height = Math.floor(rect.height);
+    if (!width || width < 10 || !height || height < 10) {
+      width = 800; height = 450; // fallback quando i CSS non sono caricati
+      stage.style.width = width + 'px';
+      stage.style.height = height + 'px';
+    }
+
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color('#111827');
+
+    camera = new THREE.PerspectiveCamera(35, width / height, 0.1, 100);
+    camera.position.set(0, 0.5, 3);
+
+    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setSize(width, height);
+    stage.innerHTML = '';
+    stage.appendChild(renderer.domElement);
+    renderer.domElement.style.width = '100%';
+    renderer.domElement.style.height = '100%';
+
+    const light = new THREE.DirectionalLight(0xffffff, 1.0);
+    light.position.set(1, 2, 3);
+    scene.add(light);
+    scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+
+    // Testa
+    const headGeom = new THREE.SphereGeometry(0.6, 32, 32);
+    const headMat = new THREE.MeshStandardMaterial({ color: 0x8fa7ff, roughness: 0.6, metalness: 0.0 });
+    head = new THREE.Mesh(headGeom, headMat);
+    head.position.y = 0.2;
+    scene.add(head);
+
+    // Mandibola semplice (box)
+    const jawGeom = new THREE.BoxGeometry(0.8, 0.25, 0.6);
+    const jawMat = new THREE.MeshStandardMaterial({ color: 0x9bb0ff, roughness: 0.6 });
+    jaw = new THREE.Mesh(jawGeom, jawMat);
+    jaw.position.y = -0.25;
+    jaw.position.z = 0.0;
+    // Punto di rotazione attorno alla "cerniera"
+    jaw.geometry.translate(0, 0.12, 0);
+    scene.add(jaw);
+
+    console.log('setupScene: start, THREE present =', !!window.THREE);
+    animate();
+    // Ridimensionamento reattivo
+    window.addEventListener('resize', onResize);
+    if ('ResizeObserver' in window) {
+      const ro = new ResizeObserver(onResize);
+      ro.observe(stage);
+    }
+
+    // Prova a caricare un avatar umanoide (se presente in /images/humanoid.glb)
+    setTimeout(loadHumanoid, 0);
+  }
+
+  function onResize() {
+    if (!renderer || !camera) return;
+    const stage = document.getElementById('avatarStage');
+    const rect = stage.getBoundingClientRect();
+    let width = Math.floor(rect.width);
+    let height = Math.floor(rect.height);
+    if (!width || width < 10 || !height || height < 10) {
+      width = 800; height = 450;
+      stage.style.width = width + 'px';
+      stage.style.height = height + 'px';
+    }
+    renderer.setSize(width, height);
+    camera.aspect = width / height;
+    camera.updateProjectionMatrix();
+  }
+
+  function animate() {
+    animationId = requestAnimationFrame(animate);
+    // Idle breathing
+    head.position.y = 0.2 + Math.sin(performance.now() / 1200) * 0.01;
+
+    // Se l'audio sta suonando, usa l'ampiezza per aprire la mandibola
+    let amp = 0;
+    if (useBrowserTts && useBrowserTts.checked && 'speechSynthesis' in window && window.speechSynthesis.speaking) {
+      // Smoothing verso il target sintetico
+      speechAmp += (speechAmpTarget - speechAmp) * 0.2;
+      amp = Math.max(0, Math.min(1, speechAmp));
+    } else if (analyser && dataArray) {
+      analyser.getByteTimeDomainData(dataArray);
+      let sum = 0;
+      for (let i = 0; i < dataArray.length; i++) {
+        const v = (dataArray[i] - 128) / 128.0;
+        sum += v * v;
+      }
+      const rms = Math.sqrt(sum / dataArray.length);
+      amp = Math.min(1, rms * 8);
+    }
+    // Animazione lip-sync su avatar umanoide o fallback geometrico
+    const open = -amp * 0.5;
+    if (morphMesh && morphIndex >= 0 && Array.isArray(morphMesh.morphTargetInfluences)) {
+      morphValue = morphValue * 0.82 + Math.min(1, amp * 3.0) * 0.18;
+      morphMesh.morphTargetInfluences[morphIndex] = morphValue;
+    }
+    if (jawBone) {
+      if (jawBone.type === 'Bone') {
+        // Bone: ruota leggermente
+        jawBone.rotation.x = open * 0.3;
+      } else if (jawBone.type === 'SkinnedMesh') {
+        // SkinnedMesh: scala leggermente su Y per simulare apertura bocca
+        const baseScale = 1.2;
+        jawBone.scale.y = baseScale + amp * 0.05;
+      }
+    } else if (jaw) {
+      // Fallback geometrico
+      jaw.rotation.x = open;
+    }
+
+    renderer.render(scene, camera);
+  }
+
+  function checkForTtsChunks() {
+    const clean = stripHtml(ttsBuffer);
+    if (!clean || clean.length < 2) return;
+
+    const boundaryIndex = findSentenceBoundary(clean);
+    if (boundaryIndex <= 0) return;
+
+    const chunk = clean.slice(0, boundaryIndex).trim();
+    if (!chunk || chunk.length < 4) return;
+
+    if (speakQueue.some(item => item.text === chunk)) {
+      // Avanza comunque il buffer per evitare ripetizioni
+      ttsBuffer = clean.slice(boundaryIndex).trim();
+      return;
+    }
+
+    console.log('TTS: Sending sentence:', chunk.substring(0, 80) + '...');
+    sendToTts(chunk);
+    lastSentToTts = chunk;
+
+    // Mantieni buffer come porzione non ancora pronunciata
+    ttsBuffer = clean.slice(boundaryIndex).trim();
+  }
+
+  function findSentenceBoundary(text) {
+    // Restituisce indice (>=1) dopo il delimitatore di frase dell'ULTIMA frase completa trovata partendo dall'inizio
+    // Delimitatori: . ! ? … (gestisce anche ...)
+    // Evita abbreviazioni comuni (it) e numeri decimali
+    const abbreviations = [
+      'es','ecc','etc','sig','sigg','sigra','sig.na','sig.ra','dott','ing','avv','prof','dr','dottssa','srl','spa','s.p.a','s.r.l','p.es','nr','n','art','cap','ca','vs','no'
+    ];
+
+    let i = 0;
+    let lastSafe = -1;
+    while (i < text.length) {
+      const ch = text[i];
+      const next = i + 1 < text.length ? text[i + 1] : '';
+      const prev = i - 1 >= 0 ? text[i - 1] : '';
+
+      let isBoundary = false;
+      let endIndex = i + 1;
+
+      if (ch === '.' || ch === '!' || ch === '?' || ch === '…') {
+        // Gestisci ellissi ...
+        if (ch === '.' && text.slice(i, i + 3) === '...') {
+          endIndex = i + 3;
+          isBoundary = true;
+          i = i + 3;
+        } else {
+          // Evita numeri decimali tipo 3.14
+          const nextNonSpaceIdx = findNextNonSpace(text, i + 1);
+          const prevNonSpaceIdx = findPrevNonSpace(text, i - 1);
+          const nextCh = nextNonSpaceIdx >= 0 ? text[nextNonSpaceIdx] : '';
+          const prevCh = prevNonSpaceIdx >= 0 ? text[prevNonSpaceIdx] : '';
+          const decimalLike = ch === '.' && /[0-9]/.test(prevCh) && /[0-9]/.test(nextCh);
+
+          // Evita abbreviazioni (token prima del punto)
+          let abbrevLike = false;
+          if (ch === '.') {
+            const startTok = findTokenStart(text, i - 1);
+            const token = text.slice(startTok, i).toLowerCase().replace(/\./g, '');
+            if (token.length > 0 && abbreviations.includes(token)) {
+              abbrevLike = true;
+            }
+          }
+
+          if (!decimalLike && !abbrevLike) {
+            isBoundary = true;
+            i = i + 1;
+          } else {
+            i = i + 1;
+          }
+        }
+
+        if (isBoundary) {
+          // Richiedi un separatore successivo (spazio/virgolette) e magari maiuscola all'inizio della prossima frase
+          const afterIdx = findNextNonSpace(text, endIndex);
+          const afterChunk = afterIdx >= 0 ? text.slice(afterIdx, afterIdx + 2) : '';
+          const nextIsUpper = afterIdx >= 0 ? /[A-ZÀ-Ý\(\["'“”‘’]/.test(text[afterIdx]) : true;
+          if (afterIdx < 0 || nextIsUpper || text[afterIdx - 1] === '\n') {
+            lastSafe = endIndex;
+          }
+        }
+      } else {
+        i++;
+      }
+    }
+
+    return lastSafe; // -1 se non trovato
+  }
+
+  function findNextNonSpace(s, start) {
+    for (let k = start; k < s.length; k++) {
+      if (!/\s/.test(s[k])) return k;
+    }
+    return -1;
+  }
+
+  function findPrevNonSpace(s, start) {
+    for (let k = start; k >= 0; k--) {
+      if (!/\s/.test(s[k])) return k;
+    }
+    return -1;
+  }
+
+  function findTokenStart(s, idx) {
+    let k = idx;
+    while (k >= 0 && /[\p{L}\p{N}\.]/u.test(s[k])) { k--; }
+    return k + 1;
+  }
+  
+  // Funzione legacy mantenuta per compatibilità ma non più utilizzata
+  function checkForCompleteSentence() {
+    // Questa funzione non è più utilizzata - il TTS ora usa checkForTtsChunks
+  }
+
+  function sendToTts(text) {
+    const norm = sanitizeForTts(text);
+    if (!norm || norm.length < 3) return;
+    if (speakQueue.some(item => item.text === norm)) return;
+
+    // Se uso TTS del browser, non fare richiesta API; enqueue diretto
+    if (useBrowserTts && useBrowserTts.checked && 'speechSynthesis' in window) {
+      speakQueue.push({ url: null, text: norm });
+      if (!isSpeaking) playNextInQueue();
+      return;
+    }
+
+    // Accoda la richiesta TTS cloud ed esegui in modo strettamente sequenziale
+    ttsRequestQueue.push(norm);
+    processTtsQueue();
+  }
+
+  async function processTtsQueue() {
+    if (ttsRequestInFlight) return;
+    const next = ttsRequestQueue.shift();
+    if (!next) return;
+    ttsRequestInFlight = true;
+    try {
+      console.log('TTS: Requesting audio for:', next.substring(0, 80));
+      const res = await fetch('/api/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: next, locale: 'it-IT', format: 'mp3' })
+      });
+      if (!res.ok) throw new Error(`TTS API ${res.status}`);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      speakQueue.push({ url, text: next });
+      if (!isSpeaking) playNextInQueue();
+    } catch (err) {
+      console.error('TTS request failed:', err);
+    } finally {
+      ttsRequestInFlight = false;
+      // Continua con la prossima richiesta senza attendere altro
+      if (ttsRequestQueue.length > 0) processTtsQueue();
+    }
+  }
+
+  function sendToTtsIfNew() {
+    const clean = stripHtml(bufferText);
+    if (!clean) return;
+    const norm = clean.replace(/\s+/g,' ').trim();
+    if (!norm || norm.length < 3) return;
+    
+    // Controlla se il testo è già stato parlato
+    if (lastSpokenTail.includes(norm)) {
+      console.log('TTS: Skipping already spoken text:', norm.substring(0, 50));
+      return;
+    }
+    
+    // Controlla se è già in coda
+    if (speakQueue.some(item => item.text === norm)) {
+      console.log('TTS: Skipping text already in queue:', norm.substring(0, 50));
+      return;
+    }
+    
+    console.log('TTS: Sending remaining text:', norm.substring(0, 100));
+    sendToTts(norm);
+  }
+
+  function enqueueSpeak(text) {
+    // Usa la stessa logica di sendToTts per consistenza
+    sendToTts(text);
+  }
+
+  function playNextInQueue() {
+    if (!speakQueue.length) { 
+      isSpeaking = false; 
+      console.log('TTS: Queue empty, stopping');
+      return; 
+    }
+    
+    isSpeaking = true;
+    const item = speakQueue.shift();
+    console.log('TTS: Playing:', item.text.substring(0, 50), '... Queue remaining:', speakQueue.length);
+
+    if (useBrowserTts && useBrowserTts.checked && 'speechSynthesis' in window) {
+      try {
+        const utter = new SpeechSynthesisUtterance(item.text);
+        utter.lang = 'it-IT';
+        utter.rate = 1.0;
+        utter.pitch = 1.0;
+        utter.volume = 1.0;
+        const voices = window.speechSynthesis.getVoices();
+        // Selezione voce femminile italiana, se disponibile
+        const prefNames = ['Google italiano', 'Microsoft', 'Elsa', 'Lucia', 'Carla', 'Silvia', 'Alice'];
+        let itVoices = voices.filter(v => /it[-_]/i.test(v.lang));
+        let femaleVoices = itVoices.filter(v => /female|donna|feminine/i.test(v.name + ' ' + (v.voiceURI || '')));
+        let chosen = femaleVoices[0]
+          || itVoices.find(v => prefNames.some(n => (v.name || '').includes(n)))
+          || itVoices[0]
+          || voices.find(v => /Italian/i.test(v.name))
+          || voices[0];
+        if (chosen) utter.voice = chosen;
+        browserTtsStatus.textContent = chosen ? `Voce: ${chosen.name}` : 'Voce IT non trovata (usa default)';
+        // Genera un pattern di ampiezza fittizio durante la parlata
+        function startSpeechAmp() {
+          stopSpeechAmp();
+          speechAmp = 0;
+          speechAmpTimer = setInterval(() => {
+            // Modula il target in base a semplice ritmo
+            const now = performance.now();
+            const base = (Math.sin(now / 120) + 1) * 0.35; // 0..0.7
+            const jitter = Math.random() * 0.15; // 0..0.15
+            speechAmpTarget = Math.min(1, base + jitter);
+          }, 60);
+        }
+        function stopSpeechAmp() {
+          if (speechAmpTimer) { clearInterval(speechAmpTimer); speechAmpTimer = null; }
+          speechAmpTarget = 0;
+        }
+
+        utter.onstart = () => { startSpeechAmp(); };
+        utter.onend = () => {
+          stopSpeechAmp();
+          lastSpokenTail = (lastSpokenTail + ' ' + item.text).slice(-400);
+          lastSentToTts = '';
+          playNextInQueue();
+        };
+        utter.onerror = () => {
+          stopSpeechAmp();
+          console.warn('Browser TTS error, fallback audio element');
+          // Fallback su audio element se disponibile
+          if (item.url) {
+            ttsPlayer.src = item.url;
+            ttsPlayer.play().catch(() => { isSpeaking = false; });
+          } else {
+            isSpeaking = false;
+            playNextInQueue();
+          }
+        };
+        window.speechSynthesis.speak(utter);
+        return; // Non usare audio element se usiamo il TTS del browser
+      } catch (e) {
+        console.warn('speechSynthesis fallback to audio element', e);
+      }
+    }
+
+    ttsPlayer.src = item.url;
+
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume().catch(() => {});
+    }
+    if (!mediaNode) {
+      mediaNode = audioCtx.createMediaElementSource(ttsPlayer);
+      analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 2048;
+      dataArray = new Uint8Array(analyser.fftSize);
+      mediaNode.connect(analyser);
+      analyser.connect(audioCtx.destination);
+    }
+
+    const onEnded = () => {
+      URL.revokeObjectURL(item.url);
+      // Aggiorna coda parlato (mantieni solo ultimi 400 caratteri)
+      lastSpokenTail = (lastSpokenTail + ' ' + item.text).slice(-400);
+      console.log('TTS: Finished playing:', item.text.substring(0, 50));
+      
+      ttsPlayer.removeEventListener('ended', onEnded);
+      playNextInQueue();
+    };
+    
+    const onError = () => {
+      console.error('TTS: Playback error for:', item.text.substring(0, 50));
+      URL.revokeObjectURL(item.url);
+      ttsPlayer.removeEventListener('ended', onEnded);
+      ttsPlayer.removeEventListener('error', onError);
+      isSpeaking = false;
+      playNextInQueue();
+    };
+    
+    ttsPlayer.addEventListener('ended', onEnded);
+    ttsPlayer.addEventListener('error', onError);
+    
+    ttsPlayer.play().catch((err) => { 
+      console.error('TTS: Play failed:', err);
+      isSpeaking = false; 
+      onError();
+    });
+  }
+
+
+  function stripHtml(html) {
+    const tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    return (tmp.textContent || tmp.innerText || '').replace(/\s+/g, ' ').trim();
+  }
+
+  function loadHumanoid() {
+    try {
+      const LoaderCtor = window.THREE?.GLTFLoader || window.GLTFLoader;
+      if (!window.THREE || !LoaderCtor) {
+        console.warn('GLTFLoader non presente. THREE:', !!window.THREE, 'GLTFLoader:', !!LoaderCtor);
+        return;
+      }
+      function doLoad() {
+        try {
+          const loader = new LoaderCtor();
+          const humanoidUrl = "{{ asset('images/readyplayerme.glb') }}" + "?v=" + Date.now();
+          console.log('Carico humanoid GLB da', humanoidUrl);
+          loader.load(humanoidUrl, (gltf) => {
+            humanoid = gltf.scene;
+            humanoid.position.set(0, -0.3, 0);
+            humanoid.scale.set(1.2, 1.2, 1.2);
+            scene.add(humanoid);
+            fitCameraToObject(camera, humanoid, 1.4);
+            humanoid.traverse((obj) => {
+              const name = (obj.name || '').toLowerCase();
+              if (!jawBone && (name.includes('jaw') || name.includes('mixamorigjaw'))) {
+                jawBone = obj;
+              }
+              if (!jawBone && (name.includes('head') || name.includes('mixamorighead'))) {
+                jawBone = obj;
+              }
+              if (!jawBone && (name.includes('neck_joint_2') || (name.includes('neck') && obj.type === 'Bone'))) {
+                jawBone = obj;
+              }
+              if (!jawBone && (name.includes('wolf3d_head') || name.includes('wolf3d_teeth'))) {
+                jawBone = obj;
+              }
+              // Log diagnostico: mesh e morph targets disponibili
+              if (obj.isMesh) {
+                try {
+                  const keys = obj.morphTargetDictionary ? Object.keys(obj.morphTargetDictionary) : [];
+                  console.log('Mesh:', obj.name, 'hasMorph:', !!obj.morphTargetDictionary, 'keys:', keys);
+                } catch {}
+              }
+              if (obj.isMesh && obj.morphTargetDictionary && obj.morphTargetInfluences) {
+                const dict = obj.morphTargetDictionary;
+                if (dict['jawOpen'] !== undefined && (/wolf3d_head/i.test(obj.name) || !morphMesh)) {
+                  morphMesh = obj; morphIndex = dict['jawOpen'];
+                  console.log('Morph target trovato:', 'jawOpen', 'index:', morphIndex, 'on', obj.name);
+                } else if (!morphMesh) {
+                  const candidates = ['JawOpen','mouthOpen','viseme_aa','viseme_AA','v_aa'];
+                  for (const key of candidates) {
+                    if (dict[key] !== undefined) { morphMesh = obj; morphIndex = dict[key]; console.log('Morph target trovato:', key, 'index:', morphIndex, 'on', obj.name); break; }
+                  }
+                }
+              }
+            });
+            // Zoom sul volto se presente (Wolf3D_Head)
+            try {
+              let headMesh = null;
+              humanoid.traverse((obj) => { if (!headMesh && /wolf3d_head/i.test(obj.name)) headMesh = obj; });
+              if (headMesh) { fitCameraToObject(camera, headMesh, 1.2); }
+            } catch {}
+            if (!jawBone) {
+              humanoid.traverse((obj) => { if (!jawBone && obj.type === 'SkinnedMesh') jawBone = obj; });
+            }
+            head.visible = false; jaw.visible = false;
+          }, undefined, (err) => { console.warn('Impossibile caricare humanoid.glb', err); });
+        } catch (e) {
+          console.warn('Errore GLTFLoader/doLoad', e);
+        }
+      }
+      doLoad();
+    } catch (e) {
+      console.warn('Errore loadHumanoid()', e);
+    }
+  }
+
+  function fitCameraToObject(camera, object, offset = 1.25) {
+    const box = new THREE.Box3().setFromObject(object);
+    const size = box.getSize(new THREE.Vector3());
+    const center = box.getCenter(new THREE.Vector3());
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const fov = camera.fov * (Math.PI / 180);
+    let cameraZ = Math.abs(maxDim / 2 * Math.tan(fov * 2));
+    cameraZ *= offset;
+    camera.position.z = center.z + cameraZ;
+    camera.position.y = center.y + size.y * 0.1;
+    camera.lookAt(center);
+    const minZ = box.min.z;
+    const cameraToFarEdge = (minZ < 0) ? -minZ + cameraZ : cameraZ - minZ;
+    camera.far = cameraToFarEdge * 3;
+    camera.updateProjectionMatrix();
+  }
+});
+</script>
+
+
+

@@ -3,6 +3,8 @@
 use App\Http\Controllers\Api\CalzaturieroController;
 use App\Http\Controllers\Api\ChatbotController;
 use App\Http\Controllers\Api\SommelierApiController;
+use App\Http\Controllers\Api\RealtimeChatController;
+use App\Http\Controllers\Api\TtsController;
 use App\Http\Controllers\Api\SommelierChatbotController;
 use App\Http\Controllers\QuoterController;
 use App\Http\Controllers\Api\TestController;
@@ -132,6 +134,8 @@ Route::post('/calzaturiero/process-order/{slug}', [CalzaturieroController::class
 // Assicurati di sostituire "/path/to/your/file.pdf" con il percorso effettivo del file PDF che vuoi caricare.
 
 Route::post('/chatbot', [ChatbotController::class, 'handleChat']);
+Route::get('/chatbot/stream', [RealtimeChatController::class, 'stream']);
+Route::post('/tts', [TtsController::class, 'synthesize']);
 
 // Endpoint per il chatbot sommelier
 Route::post('sommelier/chat', [SommelierChatbotController::class, 'handleChat']);

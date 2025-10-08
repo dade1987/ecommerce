@@ -8,6 +8,7 @@ use App\Http\Controllers\TagController;
 use Illuminate\Support\Facades\Route;
 use App\Models\Warehouse;
 use App\Models\InventoryMovement;
+use Illuminate\Support\Facades\View;
 
 use App\Http\Controllers\DebugMediaController;
 
@@ -51,6 +52,11 @@ Route::middleware('auth')->group(function () {
 
 //Route::resource('articles', ArticleController::class);
 //Route::resource('tags', TagController::class);
+
+// Rotta rapida per testare EnjoyTalk 3D come pagina standalone
+Route::get('/enjoy-talk-3d/{team?}', function ($team = null) {
+    return View::make('components.filament-fabricator.page-blocks.enjoy-talk-3d');
+});
 
 Route::get('{container0}/{item0?}/{container1?}/{item1?}/{container2?}/{item2?}', [PageController::class, 'index']);
 

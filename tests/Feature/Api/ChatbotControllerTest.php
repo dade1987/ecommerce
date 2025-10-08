@@ -197,6 +197,7 @@ class ChatbotControllerTest extends TestCase
         $this->assertTrue(method_exists($controller, 'createOrder'));
         $this->assertTrue(method_exists($controller, 'submitUserData'));
         $this->assertTrue(method_exists($controller, 'fetchFAQs'));
+        $this->assertTrue(method_exists($controller, 'findFaqAnswer'));
         $this->assertTrue(method_exists($controller, 'scrapeSite'));
         $this->assertTrue(method_exists($controller, 'formatResponseContent'));
     }
@@ -215,6 +216,7 @@ class ChatbotControllerTest extends TestCase
             'createOrder',
             'submitUserData',
             'fetchFAQs',
+            'findFaqAnswer',
             'scrapeSite',
             'formatResponseContent'
         ];
@@ -256,6 +258,33 @@ class ChatbotControllerTest extends TestCase
 
         // Should handle missing team gracefully
         $this->assertTrue(in_array($response->status(), [200, 400, 422]));
+    }
+
+    /** @test */
+    public function test_handle_chat_uses_faq_when_available()
+    {
+        // Prepara una FAQ
+        \App\Models\Faq::factory()->create([
+            'team_id' => $this->team->id,
+            'question' => 'Quali sono gli orari?',
+            'answer' => 'Siamo aperti dalle 9 alle 18.',
+            'active' => true,
+        ]);
+
+        $response = $this->actingAs($this->user)
+            ->postJson('/api/chatbot/handle-chat', [
+                'message' => 'Mi dite gli orari?',
+                'team' => 'test-team'
+            ]);
+
+        $response->assertStatus(200)
+            ->assertJsonFragment(['message' => 'Siamo aperti dalle 9 alle 18.']);
+
+        // Verifica che sia stato salvato anche nel Quoter come risposta chatbot
+        $this->assertDatabaseHas('quoters', [
+            'role' => 'chatbot',
+            'content' => 'Siamo aperti dalle 9 alle 18.'
+        ]);
     }
 
     /** @test */

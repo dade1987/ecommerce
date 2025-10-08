@@ -12,20 +12,7 @@
     <link rel="icon" href="{{ asset('images/logo15.png') }}" type="image/jpeg">
     <link rel="apple-touch-icon" href="{{ asset('images/logo15.png') }}">
 
-    <script>
-        function initApollo() {
-            var n = Math.random().toString(36).substring(7),
-                o = document.createElement("script");
-            o.src = "https://assets.apollo.io/micro/website-tracker/tracker.iife.js?nocache=" + n, o.async = !0, o.defer = !0,
-                o.onload = function() {
-                    window.trackingFunctions.onLoad({
-                        appId: "686782e53a3b60001962910d"
-                    })
-                },
-                document.head.appendChild(o)
-        }
-        initApollo();
-    </script>
+    
 
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-D7G8J1GF0M"></script>
@@ -122,6 +109,9 @@ In your html page, add the snippet and call gtag_report_conversion when someone 
         }
     </script>
     @stack('structured-data')
+
+    <script id="vtag-ai-js" async src="https://r2.leadsy.ai/tag.js" data-pid="RNcqSF30wzzZrjOY"
+        data-version="062024"></script>
 
 </head>
 

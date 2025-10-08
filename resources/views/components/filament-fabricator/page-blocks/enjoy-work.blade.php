@@ -6,6 +6,7 @@
     <img id="teamLogo" src="/images/logoai.jpeg" alt="{{ __('enjoy-work.company_logo_alt') }}" 
          class="w-12 h-12 rounded-full object-cover border border-gray-500">
     <h1 id="teamName" class="font-sans text-3xl text-white">EnjoyWork</h1>
+    <a href="/enjoy-talk-3d" class="ml-auto px-3 py-2 text-sm bg-emerald-600 hover:bg-emerald-700 text-white rounded-md">EnjoyTalk 3D</a>
   </div>
 
   <!-- Bottoni di risposte rapide -->
