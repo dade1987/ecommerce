@@ -127,7 +127,10 @@ document.addEventListener('DOMContentLoaded', async function() {
     } catch { return fallback; }
   }
   const navLang = (navigator.language || (navigator.languages && navigator.languages[0]) || '').trim();
-  const recLang = normalizeLangTag(urlLang || locale || navLang || 'it-IT', 'it-IT');
+  const rawLang = (urlLang || locale || navLang || 'it-IT');
+  let recLang = normalizeLangTag(rawLang, 'it-IT');
+  // Forza italiano se il tag in ingresso indica italiano (alcuni device rifiutano 'it')
+  try { if (/^it(\b|[-_])/i.test(rawLang) || rawLang.toLowerCase() === 'it') recLang = 'it-IT'; } catch {}
   let threadId = null;
   let assistantThreadId = null;
   let humanoid = null, jawBone = null;
