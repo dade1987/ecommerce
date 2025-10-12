@@ -371,13 +371,18 @@ document.addEventListener('DOMContentLoaded', async function() {
       });
       evtSource.addEventListener('error', () => {
         const state = evtSource.readyState; // 0=CONNECTING,1=OPEN,2=CLOSED
-        try { console.error('SSE: error/closed', { attempt: sseRetryCount + 1, readyState: state }); } catch {}
-        // Se il browser sta riconnettendo o la connessione è ancora OPEN, non chiudere manualmente
-        if (state !== 2 && !done) {
-          return;
-        }
+        try {
+          if (state === 2) {
+            console.error('SSE: closed', { attempt: sseRetryCount + 1, readyState: state });
+          } else {
+            console.warn('SSE: transient error', { attempt: sseRetryCount + 1, readyState: state });
+          }
+        } catch {}
+        // Se non è CLOSED e non abbiamo finito, lascia che il browser gestisca la riconnessione
+        if (state !== 2 && !done) { return; }
         try { evtSource.close(); } catch {}
         currentEvtSource = null;
+        if (sseConnectWatchdog) { try { clearTimeout(sseConnectWatchdog); } catch {} sseConnectWatchdog = null; }
         // Retry se nessun token ricevuto
         if (!done && collected.length === 0 && sseRetryCount < 2) {
           sseRetryCount++;
@@ -394,6 +399,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         done = true;
         thinkingBubble.classList.add('hidden');
         try { console.log('SSE: done event received'); } catch {}
+        if (sseConnectWatchdog) { try { clearTimeout(sseConnectWatchdog); } catch {} sseConnectWatchdog = null; }
         if (ttsBuffer.trim().length > 0) {
           const remainingText = stripHtml(ttsBuffer).trim();
           if (remainingText.length > 0) { console.log('TTS: Sending remaining text:', remainingText.substring(0, 50) + '...'); sendToTts(remainingText); }
@@ -407,18 +413,26 @@ document.addEventListener('DOMContentLoaded', async function() {
       evtSource = new EventSource(`/api/chatbot/stream?${params.toString()}`);
       currentEvtSource = evtSource;
       bindSse();
-      // Watchdog: se non arrivano token entro 3.5s, ritenta una volta
-      if (sseConnectWatchdog) { clearTimeout(sseConnectWatchdog); }
-      sseConnectWatchdog = setTimeout(() => {
-        if (collected.length === 0 && sseRetryCount < 2 && !done) {
-          sseRetryCount++;
-          try { evtSource.close(); } catch {}
-          currentEvtSource = null;
-          const delay = 200 * sseRetryCount;
-          console.warn('SSE: connect watchdog retry', { attempt: sseRetryCount });
-          setTimeout(() => { openSse(); }, delay);
-        }
-      }, 3500);
+      // Watchdog solo su Android: se non arrivano token dopo un po', ritenta
+      if (isAndroid) {
+        if (sseConnectWatchdog) { clearTimeout(sseConnectWatchdog); }
+        sseConnectWatchdog = setTimeout(() => {
+          try {
+            const state = evtSource.readyState; // 0/1/2
+            if (collected.length === 0 && !done && sseRetryCount < 2 && (state === 0 || state === 2)) {
+              sseRetryCount++;
+              try { evtSource.close(); } catch {}
+              currentEvtSource = null;
+              const delay = 280 * sseRetryCount;
+              console.warn('SSE: connect watchdog retry', { attempt: sseRetryCount });
+              setTimeout(() => { openSse(); }, delay);
+            }
+          } finally {
+            try { clearTimeout(sseConnectWatchdog); } catch {}
+            sseConnectWatchdog = null;
+          }
+        }, 6000);
+      }
     }
     openSse();
   }
