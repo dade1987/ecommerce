@@ -333,11 +333,12 @@ document.addEventListener('DOMContentLoaded', async function() {
     
     let collected = '';
     let aiMessageDiv = null; // Riferimento al div del messaggio AI
-    const params = new URLSearchParams({ message, team: teamSlug, uuid: uuid || '', locale });
+    const params = new URLSearchParams({ message, team: teamSlug, uuid: uuid || '', locale, ts: String(Date.now()) });
     let done = false;
     let firstToken = true;
     let sseRetryCount = 0;
     let evtSource = null;
+    let sseConnectWatchdog = null;
     // Tick ad alta frequenza per tentare TTS chunking, indipendente dal ritmo dei token
     if (!ttsTick) {
       ttsTick = setInterval(() => {
@@ -359,6 +360,8 @@ document.addEventListener('DOMContentLoaded', async function() {
               thinkingBubble.classList.add('hidden');
               if (ttsKickTimer) { try { clearTimeout(ttsKickTimer); } catch {} }
               ttsKickTimer = null;
+              // Abbiamo ricevuto dati: annulla watchdog di connessione
+              if (sseConnectWatchdog) { clearTimeout(sseConnectWatchdog); sseConnectWatchdog = null; }
             }
             collected += data.token;
             ttsBuffer += data.token;
@@ -367,13 +370,18 @@ document.addEventListener('DOMContentLoaded', async function() {
         } catch (msgErr) { console.warn('Message parse error:', msgErr); }
       });
       evtSource.addEventListener('error', () => {
-        try { console.error('SSE: error/closed', { attempt: sseRetryCount + 1, readyState: evtSource.readyState }); } catch {}
+        const state = evtSource.readyState; // 0=CONNECTING,1=OPEN,2=CLOSED
+        try { console.error('SSE: error/closed', { attempt: sseRetryCount + 1, readyState: state }); } catch {}
+        // Se il browser sta riconnettendo o la connessione è ancora OPEN, non chiudere manualmente
+        if (state !== 2 && !done) {
+          return;
+        }
         try { evtSource.close(); } catch {}
         currentEvtSource = null;
         // Retry se nessun token ricevuto
         if (!done && collected.length === 0 && sseRetryCount < 2) {
           sseRetryCount++;
-          const delay = 200 * sseRetryCount;
+          const delay = 220 * sseRetryCount;
           setTimeout(() => { openSse(); }, delay);
           return;
         }
@@ -399,6 +407,18 @@ document.addEventListener('DOMContentLoaded', async function() {
       evtSource = new EventSource(`/api/chatbot/stream?${params.toString()}`);
       currentEvtSource = evtSource;
       bindSse();
+      // Watchdog: se non arrivano token entro 3.5s, ritenta una volta
+      if (sseConnectWatchdog) { clearTimeout(sseConnectWatchdog); }
+      sseConnectWatchdog = setTimeout(() => {
+        if (collected.length === 0 && sseRetryCount < 2 && !done) {
+          sseRetryCount++;
+          try { evtSource.close(); } catch {}
+          currentEvtSource = null;
+          const delay = 200 * sseRetryCount;
+          console.warn('SSE: connect watchdog retry', { attempt: sseRetryCount });
+          setTimeout(() => { openSse(); }, delay);
+        }
+      }, 3500);
     }
     openSse();
   }
