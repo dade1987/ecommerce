@@ -112,6 +112,9 @@ document.addEventListener('DOMContentLoaded', async function() {
   const uuid = urlParams.get('uuid');
   const locale = '{{ app()->getLocale() }}';
   const debugEnabled = urlParams.get('debug') === '1';
+  const ua = navigator.userAgent || '';
+  const isAndroid = /Android/i.test(ua);
+  const isChrome = !!window.chrome && /Chrome\/\d+/.test(ua) && !/Edg\//.test(ua) && !/OPR\//.test(ua) && !/Brave/i.test(ua);
   let threadId = null;
   let assistantThreadId = null;
   let humanoid = null, jawBone = null;
@@ -217,7 +220,7 @@ document.addEventListener('DOMContentLoaded', async function() {
       });
     } catch {}
     // First line
-    appendDebugLine('info', ['Debug overlay enabled', { ua: navigator.userAgent, locale, hasWebSpeech: !!(window.SpeechRecognition||window.webkitSpeechRecognition) }]);
+    appendDebugLine('info', ['Debug overlay enabled', { ua: navigator.userAgent, locale, isAndroid, isChrome, hasWebSpeech: !!(window.SpeechRecognition||window.webkitSpeechRecognition) }]);
   }
 
   // Sanifica testo per TTS (niente markdown/asterischi/URL/decimali ",00")
@@ -461,16 +464,51 @@ document.addEventListener('DOMContentLoaded', async function() {
       if (!Rec) throw new Error('Web Speech API non disponibile');
       recognition = new Rec();
       recognition.lang = locale || 'it-IT';
-      recognition.interimResults = false;
+      // Android spesso consegna eventi solo con interim/continuous attivi
+      recognition.interimResults = isAndroid ? true : false;
+      recognition.continuous = isAndroid ? true : false;
       recognition.maxAlternatives = 1;
+      let recognitionWatchdogTimer = null;
+      let lastResultAt = 0;
+      function clearRecWatchdog() { if (recognitionWatchdogTimer) { clearTimeout(recognitionWatchdogTimer); recognitionWatchdogTimer = null; } }
+      function startRecWatchdog() {
+        clearRecWatchdog();
+        recognitionWatchdogTimer = setTimeout(() => {
+          console.warn('SPEECH: watchdog timeout (no result), restarting');
+          try { recognition.stop(); recognition.abort && recognition.abort(); } catch {}
+          setTimeout(() => { try { recognition.start(); console.log('SPEECH: restarted by watchdog'); } catch (e) { console.error('SPEECH: restart failed', e); } }, 250);
+        }, 8000);
+      }
       recognition.onstart = () => { isListening = true; setListeningUI(true); console.log('SPEECH: onstart'); };
-      recognition.onerror = (e) => { console.error('SPEECH: onerror', e && (e.error || e.message) || e); isListening = false; setListeningUI(false); };
-      recognition.onend = () => { isListening = false; setListeningUI(false); console.log('SPEECH: onend'); };
+      recognition.onaudiostart = () => { console.log('SPEECH: onaudiostart'); };
+      recognition.onsoundstart = () => { console.log('SPEECH: onsoundstart'); };
+      recognition.onspeechstart = () => { console.log('SPEECH: onspeechstart'); startRecWatchdog(); };
+      recognition.onspeechend = () => { console.log('SPEECH: onspeechend'); clearRecWatchdog(); };
+      recognition.onsoundend = () => { console.log('SPEECH: onsoundend'); };
+      recognition.onaudioend = () => { console.log('SPEECH: onaudioend'); };
+      recognition.onnomatch = (e) => { console.warn('SPEECH: onnomatch', e && e.message || ''); };
+      recognition.onerror = (e) => { console.error('SPEECH: onerror', e && (e.error || e.message) || e); isListening = false; setListeningUI(false); clearRecWatchdog(); };
+      recognition.onend = () => { isListening = false; setListeningUI(false); console.log('SPEECH: onend'); clearRecWatchdog(); };
       recognition.onresult = (event) => {
-        const transcript = event.results[0][0].transcript;
-        console.log('SPEECH: onresult', { transcript });
-        isListening = false; setListeningUI(false);
-        startStream(transcript);
+        try {
+          lastResultAt = Date.now();
+          const res = event.results;
+          const last = res[res.length - 1];
+          const transcript = last[0].transcript;
+          const isFinal = last.isFinal === true || !recognition.interimResults;
+          console.log('SPEECH: onresult', { transcript, isFinal, resultIndex: event.resultIndex, length: res.length });
+          if (debugEnabled && liveText) {
+            liveText.classList.remove('hidden');
+            liveText.textContent = transcript + (isFinal ? '' : ' …');
+          }
+          if (isFinal) {
+            isListening = false; setListeningUI(false);
+            if (debugEnabled && liveText) setTimeout(() => { try { liveText.classList.add('hidden'); liveText.textContent = ''; } catch {} }, 800);
+            startStream(transcript);
+          }
+        } catch (err) {
+          console.error('SPEECH: onresult handler failed', err);
+        }
       };
       console.log('SPEECH: start()');
       recognition.start();
