@@ -1,15 +1,18 @@
-<div class="flex flex-col h-screen w-screen bg-[#0f172a]">
-  <div class="p-4 flex items-center gap-3">
-    <img id="teamLogo" src="/images/logoai.jpeg" alt="EnjoyTalk 3D" class="w-10 h-10 rounded-full object-cover border border-slate-600">
-    <h1 class="font-sans text-2xl text-white">EnjoyTalk 3D</h1>
+<div class="flex flex-col min-h-[100dvh] w-full bg-[#0f172a] pb-[96px] sm:pb-0">
+  <div class="px-4 py-4">
+    <div class="mx-auto w-full max-w-[520px] flex items-center gap-3">
+      <img id="teamLogo" src="/images/logoai.jpeg" alt="EnjoyTalk 3D" class="w-10 h-10 rounded-full object-cover border border-slate-600">
+      <h1 class="font-sans text-2xl text-white">EnjoyTalk 3D</h1>
+    </div>
   </div>
 
   <!-- Canvas Avatar 3D -->
   <div class="flex-1 flex items-center justify-center p-4">
-    <div class="relative">
-      <div id="avatarStage" class="bg-[#111827] border border-slate-700 rounded-md overflow-hidden"
-           style="width: 600px; height: 400px; min-width: 320px; min-height: 180px;"></div>
-      
+    <div class="relative w-full">
+      <div class="mx-auto w-full max-w-[520px] px-3 sm:px-0">
+        <div id="avatarStage" class="bg-[#111827] border border-slate-700 rounded-md overflow-hidden w-full h-auto max-h-[calc(100dvh-220px)] aspect-[3/4]"></div>
+      </div>
+
       <!-- Fumetto di pensiero -->
       <div id="thinkingBubble" class="hidden absolute top-4 left-1/2 transform -translate-x-1/2 bg-white rounded-lg px-4 py-2 shadow-lg border border-gray-300">
         <div class="text-gray-700 text-sm font-medium">💭 Sto pensando...</div>
@@ -21,21 +24,23 @@
   </div>
 
   <!-- Controlli -->
-  <div class="fixed bottom-0 left-0 w-full border-t border-slate-700 bg-[#0f172a]">
-    <div class="px-4 py-4">
-      <div class="flex w-full gap-2 items-center">
-        <input id="textInput" type="text" placeholder="Scrivi la tua domanda o usa il microfono..." class="flex-1 p-3 text-white bg-[#111827] border border-slate-700 rounded-md placeholder-slate-400 focus:border-indigo-500 focus:outline-none" />
-        <button id="sendBtn" class="px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors">📤 Invia</button>
-        <button id="micBtn" class="px-4 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-md transition-colors">🎤 Parla</button>
+  <div id="controlsBar" class="fixed bottom-0 left-0 w-full border-t border-slate-700 bg-[#0f172a] z-20 pb-[env(safe-area-inset-bottom)]">
+    <div class="px-3 py-3 sm:px-4 sm:py-4">
+      <div class="mx-auto w-full max-w-[520px] px-3 sm:px-0">
+        <div class="flex flex-wrap w-full gap-2 items-center min-w-0">
+          <input id="textInput" type="text" placeholder="Scrivi la tua domanda o usa il microfono..." class="flex-1 min-w-0 px-3 py-3 bg-[#111827] text-white border border-slate-700 rounded-md placeholder-slate-400 focus:border-indigo-500 focus:outline-none text-[15px] sm:text-base" />
+          <button id="sendBtn" class="px-3 py-3 sm:px-4 sm:py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors whitespace-nowrap text-sm sm:text-base">📤 Invia</button>
+          <button id="micBtn" class="px-3 py-3 sm:px-4 sm:py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-md transition-colors whitespace-nowrap text-sm sm:text-base">🎤 Parla</button>
+        </div>
+        <div class="mt-2 flex items-center gap-3 text-slate-300 text-xs sm:text-sm">
+          <label class="inline-flex items-center gap-2 cursor-pointer select-none">
+            <input id="useBrowserTts" type="checkbox" class="accent-indigo-600" />
+            <span>Usa TTS del browser (italiano)</span>
+          </label>
+          <span id="browserTtsStatus" class="opacity-70"></span>
+        </div>
+        <div id="liveText" class="hidden mt-3 text-slate-300 min-h-[1.5rem]"></div>
       </div>
-      <div class="mt-2 flex items-center gap-3 text-slate-300 text-sm">
-        <label class="inline-flex items-center gap-2 cursor-pointer select-none">
-          <input id="useBrowserTts" type="checkbox" class="accent-indigo-600" />
-          <span>Usa TTS del browser (italiano)</span>
-        </label>
-        <span id="browserTtsStatus" class="opacity-70"></span>
-      </div>
-      <div id="liveText" class="hidden mt-3 text-slate-300 min-h-[1.5rem]"></div>
     </div>
   </div>
   <audio id="ttsPlayer" class="hidden" playsinline></audio>
@@ -316,8 +321,9 @@ document.addEventListener('DOMContentLoaded', async function() {
   function setupScene() {
     const stage = document.getElementById('avatarStage');
     const rect = stage.getBoundingClientRect();
-    let width = Math.floor(rect.width);
-    let height = Math.floor(rect.height);
+    // Usa dimensioni CSS (con aspect-ratio) come base; fallback per vecchi browser
+    let width = Math.floor((rect.width && rect.width > 0) ? rect.width : Math.min(window.innerWidth || 360, 520));
+    let height = Math.floor((rect.height && rect.height > 0) ? rect.height : Math.round(width * 4 / 3));
     if (!width || width < 10 || !height || height < 10) {
       width = 800; height = 450; // fallback quando i CSS non sono caricati
       stage.style.width = width + 'px';
@@ -325,13 +331,13 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     scene = new THREE.Scene();
-    scene.background = new THREE.Color('#111827');
+    scene.background = new THREE.Color('#0f172a');
 
     camera = new THREE.PerspectiveCamera(35, width / height, 0.1, 100);
     camera.position.set(0, 0.5, 3);
 
     renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
     renderer.setSize(width, height);
     stage.innerHTML = '';
     stage.appendChild(renderer.domElement);
@@ -376,9 +382,10 @@ document.addEventListener('DOMContentLoaded', async function() {
   function onResize() {
     if (!renderer || !camera) return;
     const stage = document.getElementById('avatarStage');
+    const controls = document.getElementById('controlsBar');
     const rect = stage.getBoundingClientRect();
-    let width = Math.floor(rect.width);
-    let height = Math.floor(rect.height);
+    let width = Math.floor((rect.width && rect.width > 0) ? rect.width : Math.min(window.innerWidth || 360, 520));
+    let height = Math.floor((rect.height && rect.height > 0) ? rect.height : Math.round(width * 4 / 3));
     if (!width || width < 10 || !height || height < 10) {
       width = 800; height = 450;
       stage.style.width = width + 'px';
@@ -387,6 +394,12 @@ document.addEventListener('DOMContentLoaded', async function() {
     renderer.setSize(width, height);
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
+    // Evita che la barra comandi sovrapponga il canvas: aggiusta padding inferiore dinamico
+    try {
+      const controlsRect = controls ? controls.getBoundingClientRect() : null;
+      const pad = controlsRect ? Math.ceil(controlsRect.height) : 0;
+      document.body.style.setProperty('--controls-pad', pad + 'px');
+    } catch {}
   }
 
   function animate() {
