@@ -101,6 +101,9 @@ document.addEventListener('DOMContentLoaded', async function() {
   let morphMesh = null, morphIndex = -1, morphValue = 0;
   let isListening = false, recognition = null, mediaMicStream = null;
   let currentEvtSource = null; // Stream SSE attivo da chiudere se necessario
+  // Stato SR (fallback Android)
+  let srLastTranscript = '';
+  let srHadFinal = false;
 
   // Three.js avatar minimale (testa + mandibola)
   let THREELoaded = false;
@@ -370,6 +373,7 @@ document.addEventListener('DOMContentLoaded', async function() {
       recognition = new Rec();
       recognition.lang = locale || 'it-IT';
       recognition.interimResults = true;
+      try { recognition.continuous = false; } catch {}
       recognition.maxAlternatives = 1;
       recognition.onstart = () => { isListening = true; setListeningUI(true); dbg('SR onstart'); };
       recognition.onaudiostart = () => { dbg('SR onaudiostart'); };
@@ -379,8 +383,22 @@ document.addEventListener('DOMContentLoaded', async function() {
       recognition.onsoundend = () => { dbg('SR onsoundend'); };
       recognition.onaudioend = () => { dbg('SR onaudioend'); };
       recognition.onnomatch = (e) => { dbg('SR onnomatch'); };
-      recognition.onerror = (e) => { console.warn('Speech error', e); dbg('SR onerror', { error: e?.error, message: e?.message }); isListening = false; setListeningUI(false); };
-      recognition.onend = () => { dbg('SR onend'); isListening = false; setListeningUI(false); };
+      recognition.onerror = (e) => { console.warn('Speech error', e); dbg('SR onerror', { error: e?.error, message: e?.message }); };
+      recognition.onend = () => {
+        dbg('SR onend');
+        isListening = false; setListeningUI(false);
+        // Fallback Android: se non abbiamo avuto un final, usa l'ultimo interim
+        try {
+          const text = (srHadFinal ? '' : srLastTranscript || '').trim();
+          if (text && text.length > 1) {
+            dbg('SR fallback using interim', { text });
+            startStream(text);
+          }
+        } catch {}
+        // reset stato
+        srLastTranscript = '';
+        srHadFinal = false;
+      };
       recognition.onresult = (event) => {
         try {
           const idx = event.resultIndex || 0;
@@ -388,7 +406,11 @@ document.addEventListener('DOMContentLoaded', async function() {
           const transcript = res && res[0] && res[0].transcript ? res[0].transcript : '';
           const isFinal = res ? res.isFinal : true;
           dbg('SR onresult', { transcript, isFinal });
-          if (!isFinal) return; // aspetta finale su Android
+          if (!isFinal) {
+            srLastTranscript = transcript || srLastTranscript;
+            return;
+          }
+          srHadFinal = true;
           isListening = false; setListeningUI(false);
           startStream(transcript);
         } catch (e) {
