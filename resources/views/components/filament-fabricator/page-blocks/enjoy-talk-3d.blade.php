@@ -94,20 +94,12 @@ document.addEventListener('DOMContentLoaded', async function() {
   const urlParams = new URLSearchParams(window.location.search);
   const uuid = urlParams.get('uuid');
   const locale = '{{ app()->getLocale() }}';
-  const debugMode = (urlParams.get('debug') === '1');
   let threadId = null;
   let assistantThreadId = null;
   let humanoid = null, jawBone = null;
   let morphMesh = null, morphIndex = -1, morphValue = 0;
   let isListening = false, recognition = null, mediaMicStream = null;
   let currentEvtSource = null; // Stream SSE attivo da chiudere se necessario
-  // Stato SR (fallback Android)
-  let srLastTranscript = '';
-  let srHadFinal = false;
-  let srAccumulated = '';
-  let srSilenceTimer = null;
-  let srStartAt = 0;
-  let srSpeechAt = 0;
 
   // Three.js avatar minimale (testa + mandibola)
   let THREELoaded = false;
@@ -152,19 +144,6 @@ document.addEventListener('DOMContentLoaded', async function() {
     return t;
   }
   initThree();
-  if (debugMode && liveText) { liveText.classList.remove('hidden'); liveText.classList.add('text-[12px]'); }
-
-  function dbg(label, payload) {
-    try {
-      const time = new Date().toLocaleTimeString();
-      const line = `[${time}] ${label}` + (payload !== undefined ? ` ${JSON.stringify(payload)}` : '');
-      if (debugMode) {
-        const el = liveText;
-        el.textContent = (line + '\n' + (el.textContent || ''));
-      }
-      console.log(label, payload ?? '');
-    } catch {}
-  }
 
   // Auto-spunta TTS del browser su Chrome se disponibile
   try {
@@ -268,13 +247,11 @@ document.addEventListener('DOMContentLoaded', async function() {
     });
 
     evtSource.addEventListener('error', () => {
-      dbg('SSE error');
       evtSource.close();
       currentEvtSource = null;
     });
 
     evtSource.addEventListener('done', () => {
-      dbg('SSE done');
       evtSource.close();
       done = true; 
       // Nascondi fumetto se ancora visibile
@@ -320,7 +297,6 @@ document.addEventListener('DOMContentLoaded', async function() {
     } catch {}
     speakQueue.forEach(item => { if (item.url) try { URL.revokeObjectURL(item.url); } catch {} });
     speakQueue = []; ttsRequestQueue = []; isSpeaking = false;
-    dbg('stopAllSpeechOutput');
   }
 
   function setListeningUI(active) {
@@ -362,7 +338,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
     // Ferma eventuale parlato e stream corrente
     await stopAllSpeechOutput();
-    try { if (currentEvtSource) { currentEvtSource.close(); currentEvtSource = null; dbg('Closed SSE before listening'); } } catch {}
+    try { if (currentEvtSource) { currentEvtSource.close(); currentEvtSource = null; } } catch {}
 
     // Sblocca l'audio (Android)
     try { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === 'suspended') await audioCtx.resume(); } catch {}
@@ -376,90 +352,20 @@ document.addEventListener('DOMContentLoaded', async function() {
       if (!Rec) throw new Error('Web Speech API non disponibile');
       recognition = new Rec();
       recognition.lang = locale || 'it-IT';
-      recognition.interimResults = true;
-      try { recognition.continuous = false; } catch {}
+      recognition.interimResults = false;
       recognition.maxAlternatives = 1;
-      recognition.onstart = () => { 
-        isListening = true; setListeningUI(true); dbg('SR onstart');
-        srAccumulated = ''; srLastTranscript = ''; srHadFinal = false; srStartAt = Date.now(); srSpeechAt = 0;
-        // Timeout massimo ascolto (Android a volte resta appeso)
-        if (srSilenceTimer) { clearTimeout(srSilenceTimer); srSilenceTimer = null; }
-        srSilenceTimer = setTimeout(() => { 
-          try { recognition.stop(); } catch {}
-          dbg('SR auto-stop (max window)');
-        }, 9000);
-      };
-      recognition.onaudiostart = () => { dbg('SR onaudiostart'); };
-      recognition.onsoundstart = () => { dbg('SR onsoundstart'); };
-      recognition.onspeechstart = () => { 
-        dbg('SR onspeechstart'); 
-        srSpeechAt = Date.now();
-        // Se inizia parlato, programma stop breve dopo fine parlato
-      };
-      recognition.onspeechend = () => { 
-        dbg('SR onspeechend'); 
-        // Chiudi poco dopo per forzare il final su Android
-        try { setTimeout(() => { try { recognition.stop(); } catch {} }, 250); } catch {}
-      };
-      recognition.onsoundend = () => { dbg('SR onsoundend'); };
-      recognition.onaudioend = () => { dbg('SR onaudioend'); };
-      recognition.onnomatch = (e) => { dbg('SR onnomatch'); };
-      recognition.onerror = (e) => { console.warn('Speech error', e); dbg('SR onerror', { error: e?.error, message: e?.message }); };
-      recognition.onend = () => {
-        dbg('SR onend');
-        isListening = false; setListeningUI(false);
-        // Fallback Android: se non abbiamo avuto un final, usa l'ultimo interim
-        try {
-          const pref = (srHadFinal ? '' : (srAccumulated || srLastTranscript || ''));
-          const text = (pref || '').trim();
-          if (text && text.length > 1) {
-            dbg('SR fallback using interim', { text });
-            startStream(text);
-          }
-        } catch {}
-        // reset stato
-        srLastTranscript = '';
-        srHadFinal = false;
-        srAccumulated = '';
-        if (srSilenceTimer) { clearTimeout(srSilenceTimer); srSilenceTimer = null; }
-      };
+      recognition.onstart = () => { isListening = true; setListeningUI(true); };
+      recognition.onerror = (e) => { console.warn('Speech error', e); isListening = false; setListeningUI(false); };
+      recognition.onend = () => { isListening = false; setListeningUI(false); };
       recognition.onresult = (event) => {
-        try {
-          let transcript = '';
-          let isFinal = false;
-          for (let i = event.resultIndex; i < event.results.length; i++) {
-            const res = event.results[i];
-            if (res && res[0] && res[0].transcript) {
-              transcript += res[0].transcript;
-              if (res.isFinal) isFinal = true;
-            }
-          }
-          transcript = (transcript || '').trim();
-          dbg('SR onresult', { transcript, isFinal });
-          if (transcript) {
-            srLastTranscript = transcript;
-            srAccumulated = transcript; // preferisci il più lungo disponibile
-          }
-          if (!isFinal) return;
-          srHadFinal = true;
-          isListening = false; setListeningUI(false);
-          startStream(transcript);
-        } catch (e) {
-          dbg('SR onresult parse error');
-        }
+        const transcript = event.results[0][0].transcript;
+        isListening = false; setListeningUI(false);
+        startStream(transcript);
       };
-      recognition.start(); dbg('SR start called');
+      recognition.start();
     } catch (err) {
       console.warn('Riconoscimento vocale non disponibile o errore', err);
-      dbg('SR exception', { error: String(err && err.message || err) });
       alert('Riconoscimento vocale non disponibile in questo browser.');
-    }
-  });
-
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden && isListening && recognition) {
-      try { recognition.stop(); } catch {}
-      isListening = false; setListeningUI(false); dbg('SR stopped due to visibilitychange');
     }
   });
 
