@@ -24,6 +24,23 @@
       <div id="listeningBadge" class="hidden absolute top-4 right-4 bg-rose-600/90 text-white text-xs font-semibold px-2.5 py-1 rounded-md shadow animate-pulse">
         🎤 Ascolto...
       </div>
+      <!-- Debug Overlay (mostrato con ?debug=1) -->
+      <div id="debugOverlay" class="hidden absolute left-1/2 -translate-x-1/2 top-3 z-10 w-full max-w-[520px] px-3 sm:px-0"
+           style="pointer-events:auto;">
+        <div class="bg-black/70 backdrop-blur-sm border border-slate-600 rounded-md overflow-hidden shadow-lg">
+          <div class="flex items-center justify-between px-3 py-2 border-b border-slate-700 bg-black/60 sticky top-0">
+            <div class="text-slate-200 text-xs font-semibold">Debug</div>
+            <div class="flex items-center gap-2">
+              <button id="debugClear" class="text-[11px] px-2 py-1 bg-slate-700/70 hover:bg-slate-600 text-white rounded">Pulisci</button>
+              <button id="debugClose" class="text-[11px] px-2 py-1 bg-slate-700/70 hover:bg-slate-600 text-white rounded">Chiudi</button>
+            </div>
+          </div>
+          <div class="max-h-[50vh] sm:max-h-[60vh] overflow-auto p-2 text-[11px] font-mono text-slate-200 leading-relaxed"
+               style="margin-bottom: calc(var(--controls-pad, 0px));">
+            <div id="debugContent" class="space-y-1"></div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -94,6 +111,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   const urlParams = new URLSearchParams(window.location.search);
   const uuid = urlParams.get('uuid');
   const locale = '{{ app()->getLocale() }}';
+  const debugEnabled = urlParams.get('debug') === '1';
   let threadId = null;
   let assistantThreadId = null;
   let humanoid = null, jawBone = null;
@@ -122,6 +140,85 @@ document.addEventListener('DOMContentLoaded', async function() {
   let speechAmp = 0;
   let speechAmpTarget = 0;
   let speechAmpTimer = null;
+
+  // Debug overlay wiring
+  const debugOverlay = document.getElementById('debugOverlay');
+  const debugContent = document.getElementById('debugContent');
+  const debugCloseBtn = document.getElementById('debugClose');
+  const debugClearBtn = document.getElementById('debugClear');
+  const originalConsole = { log: console.log, warn: console.warn, error: console.error, info: console.info };
+
+  function formatForLog(arg) {
+    try {
+      if (arg instanceof Error) {
+        return (arg.stack || (arg.name + ': ' + arg.message));
+      }
+      if (typeof arg === 'object') {
+        return JSON.stringify(arg, (k, v) => {
+          if (v instanceof Node) return `[Node ${v.nodeName}]`;
+          if (v === window) return '[Window]';
+          if (v === document) return '[Document]';
+          return v;
+        });
+      }
+      return String(arg);
+    } catch (_) {
+      try { return String(arg); } catch { return '[unserializable]'; }
+    }
+  }
+
+  function appendDebugLine(type, args) {
+    if (!debugEnabled || !debugContent) return;
+    const time = new Date().toLocaleTimeString();
+    const line = document.createElement('div');
+    line.className = 'whitespace-pre-wrap break-words';
+    try {
+      const msg = Array.from(args || []).map(formatForLog).join(' ');
+      line.textContent = `[${time}] ${type.toUpperCase()} ${msg}`;
+    } catch {
+      line.textContent = `[${time}] ${type.toUpperCase()} [log append failed]`;
+    }
+    debugContent.appendChild(line);
+    // Trim to last 400 lines
+    try {
+      const max = 400;
+      while (debugContent.childNodes.length > max) {
+        debugContent.removeChild(debugContent.firstChild);
+      }
+    } catch {}
+    // Scroll to bottom
+    try { debugContent.parentElement.scrollTop = debugContent.parentElement.scrollHeight; } catch {}
+  }
+
+  function initDebugOverlay() {
+    if (!debugEnabled) return;
+    try { debugOverlay?.classList.remove('hidden'); } catch {}
+    try {
+      debugCloseBtn?.addEventListener('click', () => { debugOverlay.classList.add('hidden'); });
+      debugClearBtn?.addEventListener('click', () => { if (debugContent) debugContent.innerHTML = ''; });
+    } catch {}
+    // Mirror console methods
+    try {
+      ['log','warn','error','info'].forEach((m) => {
+        console[m] = function(...a) {
+          try { appendDebugLine(m, a); } catch {}
+          try { originalConsole[m].apply(console, a); } catch {}
+        };
+      });
+    } catch {}
+    // Window-level errors
+    try {
+      window.addEventListener('error', (e) => {
+        appendDebugLine('windowError', [e.message, `${e.filename}:${e.lineno}:${e.colno}`]);
+      });
+      window.addEventListener('unhandledrejection', (e) => {
+        const r = e.reason;
+        appendDebugLine('promiseRejection', [r && (r.stack || r.message) || String(r)]);
+      });
+    } catch {}
+    // First line
+    appendDebugLine('info', ['Debug overlay enabled', { ua: navigator.userAgent, locale, hasWebSpeech: !!(window.SpeechRecognition||window.webkitSpeechRecognition) }]);
+  }
 
   // Sanifica testo per TTS (niente markdown/asterischi/URL/decimali ",00")
   function sanitizeForTts(input) {
@@ -157,10 +254,14 @@ document.addEventListener('DOMContentLoaded', async function() {
 
   // Rimosso chat history: messaggi non più renderizzati, manteniamo solo TTS e indicatori
 
+  // Init debug overlay (at end, so it captures later console logs too)
+  initDebugOverlay();
+
   function startStream(message) {
     if (!message || message.trim() === '') return;
     
     console.log('TTS: Starting new conversation, resetting state');
+    try { console.log('SSE: connecting', { team: teamSlug, uuid, locale }); } catch {}
     
     // Chat history rimossa: nessun messaggio renderizzato, manteniamo solo TTS
     
@@ -249,6 +350,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     evtSource.addEventListener('error', () => {
       evtSource.close();
       currentEvtSource = null;
+      try { console.error('SSE: error/closed'); } catch {}
     });
 
     evtSource.addEventListener('done', () => {
@@ -256,6 +358,7 @@ document.addEventListener('DOMContentLoaded', async function() {
       done = true; 
       // Nascondi fumetto se ancora visibile
       thinkingBubble.classList.add('hidden');
+      try { console.log('SSE: done event received'); } catch {}
       // Invia tutto il testo TTS rimanente
       if (ttsBuffer.trim().length > 0) { 
         const remainingText = stripHtml(ttsBuffer).trim();
