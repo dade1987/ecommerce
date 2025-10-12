@@ -94,6 +94,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   const urlParams = new URLSearchParams(window.location.search);
   const uuid = urlParams.get('uuid');
   const locale = '{{ app()->getLocale() }}';
+  const debugMode = (urlParams.get('debug') === '1');
   let threadId = null;
   let assistantThreadId = null;
   let humanoid = null, jawBone = null;
@@ -144,6 +145,19 @@ document.addEventListener('DOMContentLoaded', async function() {
     return t;
   }
   initThree();
+  if (debugMode && liveText) { liveText.classList.remove('hidden'); liveText.classList.add('text-[12px]'); }
+
+  function dbg(label, payload) {
+    try {
+      const time = new Date().toLocaleTimeString();
+      const line = `[${time}] ${label}` + (payload !== undefined ? ` ${JSON.stringify(payload)}` : '');
+      if (debugMode) {
+        const el = liveText;
+        el.textContent = (line + '\n' + (el.textContent || ''));
+      }
+      console.log(label, payload ?? '');
+    } catch {}
+  }
 
   // Auto-spunta TTS del browser su Chrome se disponibile
   try {
@@ -247,11 +261,13 @@ document.addEventListener('DOMContentLoaded', async function() {
     });
 
     evtSource.addEventListener('error', () => {
+      dbg('SSE error');
       evtSource.close();
       currentEvtSource = null;
     });
 
     evtSource.addEventListener('done', () => {
+      dbg('SSE done');
       evtSource.close();
       done = true; 
       // Nascondi fumetto se ancora visibile
@@ -297,6 +313,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     } catch {}
     speakQueue.forEach(item => { if (item.url) try { URL.revokeObjectURL(item.url); } catch {} });
     speakQueue = []; ttsRequestQueue = []; isSpeaking = false;
+    dbg('stopAllSpeechOutput');
   }
 
   function setListeningUI(active) {
@@ -338,7 +355,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
     // Ferma eventuale parlato e stream corrente
     await stopAllSpeechOutput();
-    try { if (currentEvtSource) { currentEvtSource.close(); currentEvtSource = null; } } catch {}
+    try { if (currentEvtSource) { currentEvtSource.close(); currentEvtSource = null; dbg('Closed SSE before listening'); } } catch {}
 
     // Sblocca l'audio (Android)
     try { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === 'suspended') await audioCtx.resume(); } catch {}
@@ -352,20 +369,44 @@ document.addEventListener('DOMContentLoaded', async function() {
       if (!Rec) throw new Error('Web Speech API non disponibile');
       recognition = new Rec();
       recognition.lang = locale || 'it-IT';
-      recognition.interimResults = false;
+      recognition.interimResults = true;
       recognition.maxAlternatives = 1;
-      recognition.onstart = () => { isListening = true; setListeningUI(true); };
-      recognition.onerror = (e) => { console.warn('Speech error', e); isListening = false; setListeningUI(false); };
-      recognition.onend = () => { isListening = false; setListeningUI(false); };
+      recognition.onstart = () => { isListening = true; setListeningUI(true); dbg('SR onstart'); };
+      recognition.onaudiostart = () => { dbg('SR onaudiostart'); };
+      recognition.onsoundstart = () => { dbg('SR onsoundstart'); };
+      recognition.onspeechstart = () => { dbg('SR onspeechstart'); };
+      recognition.onspeechend = () => { dbg('SR onspeechend'); };
+      recognition.onsoundend = () => { dbg('SR onsoundend'); };
+      recognition.onaudioend = () => { dbg('SR onaudioend'); };
+      recognition.onnomatch = (e) => { dbg('SR onnomatch'); };
+      recognition.onerror = (e) => { console.warn('Speech error', e); dbg('SR onerror', { error: e?.error, message: e?.message }); isListening = false; setListeningUI(false); };
+      recognition.onend = () => { dbg('SR onend'); isListening = false; setListeningUI(false); };
       recognition.onresult = (event) => {
-        const transcript = event.results[0][0].transcript;
-        isListening = false; setListeningUI(false);
-        startStream(transcript);
+        try {
+          const idx = event.resultIndex || 0;
+          const res = event.results[idx];
+          const transcript = res && res[0] && res[0].transcript ? res[0].transcript : '';
+          const isFinal = res ? res.isFinal : true;
+          dbg('SR onresult', { transcript, isFinal });
+          if (!isFinal) return; // aspetta finale su Android
+          isListening = false; setListeningUI(false);
+          startStream(transcript);
+        } catch (e) {
+          dbg('SR onresult parse error');
+        }
       };
-      recognition.start();
+      recognition.start(); dbg('SR start called');
     } catch (err) {
       console.warn('Riconoscimento vocale non disponibile o errore', err);
+      dbg('SR exception', { error: String(err && err.message || err) });
       alert('Riconoscimento vocale non disponibile in questo browser.');
+    }
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && isListening && recognition) {
+      try { recognition.stop(); } catch {}
+      isListening = false; setListeningUI(false); dbg('SR stopped due to visibilitychange');
     }
   });
 
