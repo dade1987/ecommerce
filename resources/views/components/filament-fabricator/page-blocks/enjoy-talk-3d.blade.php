@@ -420,11 +420,13 @@ document.addEventListener('DOMContentLoaded', async function() {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return true; // Non bloccare se non disponibile
       // Chiedi il permesso in anticipo; chiuderemo subito lo stream
       if (!mediaMicStream) {
+        console.log('MIC: requesting permission');
         mediaMicStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true } });
         // Rilascia subito
         try { mediaMicStream.getTracks().forEach(t => t.stop()); } catch {}
         mediaMicStream = null;
       }
+      console.log('MIC: permission OK');
       return true;
     } catch (e) {
       console.warn('Mic permission denied or error', e);
@@ -437,6 +439,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     if (isListening && recognition) {
       try { recognition.stop(); recognition.abort && recognition.abort(); } catch {}
       isListening = false; setListeningUI(false);
+      console.log('MIC: listening stopped by user');
       return;
     }
     // Ferma eventuale parlato e stream corrente
@@ -444,7 +447,10 @@ document.addEventListener('DOMContentLoaded', async function() {
     try { if (currentEvtSource) { currentEvtSource.close(); currentEvtSource = null; } } catch {}
 
     // Sblocca l'audio (Android)
-    try { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === 'suspended') await audioCtx.resume(); } catch {}
+    try {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') { await audioCtx.resume(); console.log('AUDIO: context resumed'); }
+    } catch (e) { console.warn('AUDIO: failed to init/resume', e); }
 
     // Verifica permesso microfono (Android spesso non mostra prompt con WebSpeech)
     const ok = await ensureMicPermission();
@@ -457,14 +463,16 @@ document.addEventListener('DOMContentLoaded', async function() {
       recognition.lang = locale || 'it-IT';
       recognition.interimResults = false;
       recognition.maxAlternatives = 1;
-      recognition.onstart = () => { isListening = true; setListeningUI(true); };
-      recognition.onerror = (e) => { console.warn('Speech error', e); isListening = false; setListeningUI(false); };
-      recognition.onend = () => { isListening = false; setListeningUI(false); };
+      recognition.onstart = () => { isListening = true; setListeningUI(true); console.log('SPEECH: onstart'); };
+      recognition.onerror = (e) => { console.error('SPEECH: onerror', e && (e.error || e.message) || e); isListening = false; setListeningUI(false); };
+      recognition.onend = () => { isListening = false; setListeningUI(false); console.log('SPEECH: onend'); };
       recognition.onresult = (event) => {
         const transcript = event.results[0][0].transcript;
+        console.log('SPEECH: onresult', { transcript });
         isListening = false; setListeningUI(false);
         startStream(transcript);
       };
+      console.log('SPEECH: start()');
       recognition.start();
     } catch (err) {
       console.warn('Riconoscimento vocale non disponibile o errore', err);
