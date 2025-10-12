@@ -137,8 +137,8 @@ document.addEventListener('DOMContentLoaded', async function() {
   let morphMesh = null, morphIndex = -1, morphValue = 0;
   let isListening = false, recognition = null, mediaMicStream = null;
   let currentEvtSource = null; // Stream SSE attivo da chiudere se necessario
-  let isSseActive = false;
-
+  let isStartingStream = false;
+  
   // Three.js avatar minimale (testa + mandibola)
   let THREELoaded = false;
   let scene, camera, renderer, head, jaw, animationId, analyser, dataArray, audioCtx, mediaNode;
@@ -279,6 +279,9 @@ document.addEventListener('DOMContentLoaded', async function() {
 
   function startStream(message) {
     if (!message || message.trim() === '') return;
+    if (isStartingStream) { console.warn('SSE: start already in progress'); return; }
+    isStartingStream = true;
+    setTimeout(() => { isStartingStream = false; }, 800);
     
     console.log('TTS: Starting new conversation, resetting state');
     try { console.log('SSE: connecting', { team: teamSlug, uuid, locale }); } catch {}
@@ -288,18 +291,15 @@ document.addEventListener('DOMContentLoaded', async function() {
     // Mostra fumetto "Sto pensando..."
     thinkingBubble.classList.remove('hidden');
     
-    // Chiudi qualsiasi stream precedente
-    try { if (currentEvtSource) { currentEvtSource.close(); currentEvtSource = null; isSseActive = false; } } catch {}
-    // Reset per nuova conversazione
+    // Chiudi eventuale stream precedente e resetta per nuova conversazione
+    try { if (currentEvtSource) { currentEvtSource.close(); currentEvtSource = null; } } catch {}
     bufferText = '';
     ttsBuffer = '';
     lastSentToTts = '';
     lastSpokenTail = '';
     ttsProcessedLength = 0;
     ttsFirstChunkSent = false;
-    // Resetta i thread id (niente history)
-    threadId = null;
-    assistantThreadId = null;
+    threadId = null; assistantThreadId = null;
     if (ttsKickTimer) { try { clearTimeout(ttsKickTimer); } catch {} ttsKickTimer = null; }
     if (ttsTick) { try { clearInterval(ttsTick); } catch {} ttsTick = null; }
     
@@ -317,90 +317,73 @@ document.addEventListener('DOMContentLoaded', async function() {
     let collected = '';
     let aiMessageDiv = null; // Riferimento al div del messaggio AI
     const params = new URLSearchParams({ message, team: teamSlug, uuid: uuid || '', locale });
-    if (threadId) params.set('thread_id', threadId);
-    if (assistantThreadId) params.set('assistant_thread_id', assistantThreadId);
-    const evtSource = new EventSource(`/api/chatbot/stream?${params.toString()}`);
-    currentEvtSource = evtSource;
-    isSseActive = true;
     let done = false;
     let firstToken = true;
+    let sseRetryCount = 0;
+    let evtSource = null;
     // Tick ad alta frequenza per tentare TTS chunking, indipendente dal ritmo dei token
     if (!ttsTick) {
       ttsTick = setInterval(() => {
         try { checkForTtsChunks(); } catch {}
       }, 120);
     }
-
-    evtSource.addEventListener('message', (e) => {
-      try {
-        const data = JSON.parse(e.data);
-        if (data.token) {
-          // Controlla se è un thread_id
-          try {
-            const tok = JSON.parse(data.token);
-            if (tok && tok.thread_id) {
-              threadId = tok.thread_id;
-              return; // non mettere in coda questo token
+    function bindSse() {
+      evtSource.addEventListener('message', (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          if (data.token) {
+            try {
+              const tok = JSON.parse(data.token);
+              if (tok && tok.thread_id) { threadId = tok.thread_id; return; }
+              if (tok && tok.assistant_thread_id) { assistantThreadId = tok.assistant_thread_id; return; }
+            } catch {}
+            if (firstToken) {
+              firstToken = false;
+              thinkingBubble.classList.add('hidden');
+              if (ttsKickTimer) { try { clearTimeout(ttsKickTimer); } catch {} }
+              ttsKickTimer = null;
             }
-            if (tok && tok.assistant_thread_id) {
-              assistantThreadId = tok.assistant_thread_id;
-              return;
-            }
-          } catch (parseErr) {
-            // Non è JSON, è un token normale
+            collected += data.token;
+            ttsBuffer += data.token;
+            checkForTtsChunks();
           }
-          
-          if (firstToken) { 
-            firstToken = false; 
-            // Nascondi fumetto "Sto pensando..."
-            thinkingBubble.classList.add('hidden');
-            // Nessuna chat history
-            // Early kick disabilitato per evitare frasi tronche
-            if (ttsKickTimer) { try { clearTimeout(ttsKickTimer); } catch {} }
-            ttsKickTimer = null;
-          }
-          
-          collected += data.token;
-          ttsBuffer += data.token;
-          
-          // Chat history rimossa: nessun aggiornamento UI del testo AI
-          
-          // Controlla se abbiamo chunk da inviare al TTS (completamente separato dalla chat)
-          checkForTtsChunks();
+        } catch (msgErr) { console.warn('Message parse error:', msgErr); }
+      });
+      evtSource.addEventListener('error', () => {
+        try { console.error('SSE: error/closed', { attempt: sseRetryCount + 1, readyState: evtSource.readyState }); } catch {}
+        try { evtSource.close(); } catch {}
+        currentEvtSource = null;
+        // Retry se nessun token ricevuto
+        if (!done && collected.length === 0 && sseRetryCount < 2) {
+          sseRetryCount++;
+          const delay = 200 * sseRetryCount;
+          setTimeout(() => { openSse(); }, delay);
+          return;
         }
-      } catch (msgErr) {
-        console.warn('Message parse error:', msgErr);
-      }
-    });
-
-    evtSource.addEventListener('error', () => {
-      try { console.error('SSE: error/closed'); } catch {}
-      try { evtSource.close(); } catch {}
-      currentEvtSource = null;
-      isSseActive = false;
-      // Nascondi indicatori e ferma tick TTS
-      try { thinkingBubble.classList.add('hidden'); } catch {}
-      if (ttsTick) { try { clearInterval(ttsTick); } catch {} ttsTick = null; }
-    });
-
-    evtSource.addEventListener('done', () => {
-      try { evtSource.close(); } catch {}
-      done = true; 
-      // Nascondi fumetto se ancora visibile
-      thinkingBubble.classList.add('hidden');
-      try { console.log('SSE: done event received'); } catch {}
-      isSseActive = false;
-      // Invia tutto il testo TTS rimanente
-      if (ttsBuffer.trim().length > 0) { 
-        const remainingText = stripHtml(ttsBuffer).trim();
-        if (remainingText.length > 0) {
-          console.log('TTS: Sending remaining text:', remainingText.substring(0, 50) + '...');
-          sendToTts(remainingText);
+        // Cleanup
+        thinkingBubble.classList.add('hidden');
+        if (ttsTick) { try { clearInterval(ttsTick); } catch {} ttsTick = null; }
+      });
+      evtSource.addEventListener('done', () => {
+        try { evtSource.close(); } catch {}
+        done = true;
+        thinkingBubble.classList.add('hidden');
+        try { console.log('SSE: done event received'); } catch {}
+        if (ttsBuffer.trim().length > 0) {
+          const remainingText = stripHtml(ttsBuffer).trim();
+          if (remainingText.length > 0) { console.log('TTS: Sending remaining text:', remainingText.substring(0, 50) + '...'); sendToTts(remainingText); }
+          ttsBuffer = '';
         }
-        ttsBuffer = '';
-      }
-      if (ttsTick) { try { clearInterval(ttsTick); } catch {} ttsTick = null; }
-    });
+        if (ttsTick) { try { clearInterval(ttsTick); } catch {} ttsTick = null; }
+      });
+    }
+    function openSse() {
+      try { if (currentEvtSource) currentEvtSource.close(); } catch {}
+      evtSource = new EventSource(`/api/chatbot/stream?${params.toString()}`);
+      currentEvtSource = evtSource;
+      bindSse();
+    }
+    openSse();
   }
 
   sendBtn.addEventListener('click', async () => {
@@ -543,11 +526,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             isListening = false; setListeningUI(false);
             if (debugEnabled && liveText) setTimeout(() => { try { liveText.classList.add('hidden'); liveText.textContent = ''; } catch {} }, 800);
             const safe = (transcript || '').trim();
-            if (safe.length === 0) {
-              console.warn('SPEECH: final transcript empty, not starting stream');
-            } else {
-              startStream(safe);
-            }
+            if (!safe) { console.warn('SPEECH: final transcript empty, not starting stream'); return; }
+            if (isAndroid) { setTimeout(() => startStream(safe), 220); } else { startStream(safe); }
           }
         } catch (err) {
           console.error('SPEECH: onresult handler failed', err);
