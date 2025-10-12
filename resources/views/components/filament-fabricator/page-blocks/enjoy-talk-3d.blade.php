@@ -137,6 +137,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   let morphMesh = null, morphIndex = -1, morphValue = 0;
   let isListening = false, recognition = null, mediaMicStream = null;
   let currentEvtSource = null; // Stream SSE attivo da chiudere se necessario
+  let isSseActive = false;
 
   // Three.js avatar minimale (testa + mandibola)
   let THREELoaded = false;
@@ -287,6 +288,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     // Mostra fumetto "Sto pensando..."
     thinkingBubble.classList.remove('hidden');
     
+    // Chiudi qualsiasi stream precedente
+    try { if (currentEvtSource) { currentEvtSource.close(); currentEvtSource = null; isSseActive = false; } } catch {}
     // Reset per nuova conversazione
     bufferText = '';
     ttsBuffer = '';
@@ -294,6 +297,9 @@ document.addEventListener('DOMContentLoaded', async function() {
     lastSpokenTail = '';
     ttsProcessedLength = 0;
     ttsFirstChunkSent = false;
+    // Resetta i thread id (niente history)
+    threadId = null;
+    assistantThreadId = null;
     if (ttsKickTimer) { try { clearTimeout(ttsKickTimer); } catch {} ttsKickTimer = null; }
     if (ttsTick) { try { clearInterval(ttsTick); } catch {} ttsTick = null; }
     
@@ -315,6 +321,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     if (assistantThreadId) params.set('assistant_thread_id', assistantThreadId);
     const evtSource = new EventSource(`/api/chatbot/stream?${params.toString()}`);
     currentEvtSource = evtSource;
+    isSseActive = true;
     let done = false;
     let firstToken = true;
     // Tick ad alta frequenza per tentare TTS chunking, indipendente dal ritmo dei token
@@ -367,17 +374,22 @@ document.addEventListener('DOMContentLoaded', async function() {
     });
 
     evtSource.addEventListener('error', () => {
-      evtSource.close();
-      currentEvtSource = null;
       try { console.error('SSE: error/closed'); } catch {}
+      try { evtSource.close(); } catch {}
+      currentEvtSource = null;
+      isSseActive = false;
+      // Nascondi indicatori e ferma tick TTS
+      try { thinkingBubble.classList.add('hidden'); } catch {}
+      if (ttsTick) { try { clearInterval(ttsTick); } catch {} ttsTick = null; }
     });
 
     evtSource.addEventListener('done', () => {
-      evtSource.close();
+      try { evtSource.close(); } catch {}
       done = true; 
       // Nascondi fumetto se ancora visibile
       thinkingBubble.classList.add('hidden');
       try { console.log('SSE: done event received'); } catch {}
+      isSseActive = false;
       // Invia tutto il testo TTS rimanente
       if (ttsBuffer.trim().length > 0) { 
         const remainingText = stripHtml(ttsBuffer).trim();
