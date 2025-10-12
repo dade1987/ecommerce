@@ -31,6 +31,7 @@
           <div class="flex items-center justify-between px-3 py-2 border-b border-slate-700 bg-black/60 sticky top-0">
             <div class="text-slate-200 text-xs font-semibold">Debug</div>
             <div class="flex items-center gap-2">
+              <button id="debugCopy" class="text-[11px] px-2 py-1 bg-slate-700/70 hover:bg-slate-600 text-white rounded">Copia</button>
               <button id="debugClear" class="text-[11px] px-2 py-1 bg-slate-700/70 hover:bg-slate-600 text-white rounded">Pulisci</button>
               <button id="debugClose" class="text-[11px] px-2 py-1 bg-slate-700/70 hover:bg-slate-600 text-white rounded">Chiudi</button>
             </div>
@@ -166,6 +167,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   const debugContent = document.getElementById('debugContent');
   const debugCloseBtn = document.getElementById('debugClose');
   const debugClearBtn = document.getElementById('debugClear');
+  const debugCopyBtn = document.getElementById('debugCopy');
   const originalConsole = { log: console.log, warn: console.warn, error: console.error, info: console.info };
 
   function formatForLog(arg) {
@@ -216,6 +218,21 @@ document.addEventListener('DOMContentLoaded', async function() {
     try {
       debugCloseBtn?.addEventListener('click', () => { debugOverlay.classList.add('hidden'); });
       debugClearBtn?.addEventListener('click', () => { if (debugContent) debugContent.innerHTML = ''; });
+      debugCopyBtn?.addEventListener('click', async () => {
+        try {
+          const lines = Array.from(debugContent?.children || []).map(n => (n.textContent || ''));
+          const text = lines.join('\n');
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(text);
+          } else {
+            const ta = document.createElement('textarea');
+            ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+          }
+          console.log('DEBUG: logs copied', { lines: lines.length });
+        } catch (e) {
+          console.error('DEBUG: copy failed', e);
+        }
+      });
     } catch {}
     // Mirror console methods
     try {
