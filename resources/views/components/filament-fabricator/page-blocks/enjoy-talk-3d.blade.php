@@ -466,7 +466,7 @@ document.addEventListener('DOMContentLoaded', async function() {
       recognition.lang = locale || 'it-IT';
       // Android spesso consegna eventi solo con interim/continuous attivi
       recognition.interimResults = isAndroid ? true : false;
-      recognition.continuous = isAndroid ? true : false;
+      recognition.continuous = isAndroid ? false : false;
       recognition.maxAlternatives = 1;
       let recognitionWatchdogTimer = null;
       let lastResultAt = 0;
@@ -479,7 +479,11 @@ document.addEventListener('DOMContentLoaded', async function() {
           setTimeout(() => { try { recognition.start(); console.log('SPEECH: restarted by watchdog'); } catch (e) { console.error('SPEECH: restart failed', e); } }, 250);
         }, 8000);
       }
-      recognition.onstart = () => { isListening = true; setListeningUI(true); console.log('SPEECH: onstart'); };
+      recognition.onstart = async () => {
+        isListening = true; setListeningUI(true); console.log('SPEECH: onstart');
+        // Sospendi output audio per evitare conflitti con input mic su Android
+        try { if (audioCtx && audioCtx.state === 'running') { await audioCtx.suspend(); console.log('AUDIO: context suspended for recognition'); } } catch (e) { console.warn('AUDIO: suspend failed', e); }
+      };
       recognition.onaudiostart = () => { console.log('SPEECH: onaudiostart'); };
       recognition.onsoundstart = () => { console.log('SPEECH: onsoundstart'); };
       recognition.onspeechstart = () => { console.log('SPEECH: onspeechstart'); startRecWatchdog(); };
@@ -487,8 +491,14 @@ document.addEventListener('DOMContentLoaded', async function() {
       recognition.onsoundend = () => { console.log('SPEECH: onsoundend'); };
       recognition.onaudioend = () => { console.log('SPEECH: onaudioend'); };
       recognition.onnomatch = (e) => { console.warn('SPEECH: onnomatch', e && e.message || ''); };
-      recognition.onerror = (e) => { console.error('SPEECH: onerror', e && (e.error || e.message) || e); isListening = false; setListeningUI(false); clearRecWatchdog(); };
-      recognition.onend = () => { isListening = false; setListeningUI(false); console.log('SPEECH: onend'); clearRecWatchdog(); };
+      recognition.onerror = async (e) => {
+        console.error('SPEECH: onerror', e && (e.error || e.message) || e); isListening = false; setListeningUI(false); clearRecWatchdog();
+        try { if (audioCtx && audioCtx.state === 'suspended') { await audioCtx.resume(); console.log('AUDIO: context resumed after error'); } } catch (er) { console.warn('AUDIO: resume after error failed', er); }
+      };
+      recognition.onend = async () => {
+        isListening = false; setListeningUI(false); console.log('SPEECH: onend'); clearRecWatchdog();
+        try { if (audioCtx && audioCtx.state === 'suspended') { await audioCtx.resume(); console.log('AUDIO: context resumed after end'); } } catch (er) { console.warn('AUDIO: resume after end failed', er); }
+      };
       recognition.onresult = (event) => {
         try {
           lastResultAt = Date.now();
@@ -504,7 +514,12 @@ document.addEventListener('DOMContentLoaded', async function() {
           if (isFinal) {
             isListening = false; setListeningUI(false);
             if (debugEnabled && liveText) setTimeout(() => { try { liveText.classList.add('hidden'); liveText.textContent = ''; } catch {} }, 800);
-            startStream(transcript);
+            const safe = (transcript || '').trim();
+            if (safe.length === 0) {
+              console.warn('SPEECH: final transcript empty, not starting stream');
+            } else {
+              startStream(safe);
+            }
           }
         } catch (err) {
           console.error('SPEECH: onresult handler failed', err);
