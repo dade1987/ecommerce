@@ -316,7 +316,6 @@ document.addEventListener('DOMContentLoaded', async function() {
     lastSpokenTail = '';
     ttsProcessedLength = 0;
     ttsFirstChunkSent = false;
-    threadId = null; assistantThreadId = null;
     if (ttsKickTimer) { try { clearTimeout(ttsKickTimer); } catch {} ttsKickTimer = null; }
     if (ttsTick) { try { clearInterval(ttsTick); } catch {} ttsTick = null; }
     
@@ -334,6 +333,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     let collected = '';
     let aiMessageDiv = null; // Riferimento al div del messaggio AI
     const params = new URLSearchParams({ message, team: teamSlug, uuid: uuid || '', locale, ts: String(Date.now()) });
+    if (threadId) params.set('thread_id', threadId);
+    if (assistantThreadId) params.set('assistant_thread_id', assistantThreadId);
     let done = false;
     let firstToken = true;
     let sseRetryCount = 0;
@@ -412,6 +413,7 @@ document.addEventListener('DOMContentLoaded', async function() {
       try { if (currentEvtSource) currentEvtSource.close(); } catch {}
       evtSource = new EventSource(`/api/chatbot/stream?${params.toString()}`);
       currentEvtSource = evtSource;
+      try { console.log('SSE: connecting', { team: teamSlug, uuid, locale, threadId, assistantThreadId }); } catch {}
       bindSse();
       // Watchdog solo su Android: se non arrivano token dopo un po', ritenta
       if (isAndroid) {
