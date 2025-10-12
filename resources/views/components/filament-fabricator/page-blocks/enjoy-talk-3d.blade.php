@@ -20,6 +20,10 @@
           <div class="w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-white"></div>
         </div>
       </div>
+      <!-- Badge ascolto microfono -->
+      <div id="listeningBadge" class="hidden absolute top-4 right-4 bg-rose-600/90 text-white text-xs font-semibold px-2.5 py-1 rounded-md shadow animate-pulse">
+        🎤 Ascolto...
+      </div>
     </div>
   </div>
 
@@ -28,7 +32,7 @@
     <div class="px-3 py-3 sm:px-4 sm:py-4">
       <div class="mx-auto w-full max-w-[520px] px-3 sm:px-0">
         <div class="flex flex-wrap w-full gap-2 items-center min-w-0">
-          <input id="textInput" type="text" placeholder="Scrivi la tua domanda o usa il microfono..." class="flex-1 min-w-0 px-3 py-3 bg-[#111827] text-white border border-slate-700 rounded-md placeholder-slate-400 focus:border-indigo-500 focus:outline-none text-[15px] sm:text-base" />
+          <input id="textInput" type="text" placeholder="Scrivi la domanda..." class="flex-1 min-w-0 px-3 py-3 bg-[#111827] text-white border border-slate-700 rounded-md placeholder-slate-400 focus:border-indigo-500 focus:outline-none text-[15px] sm:text-base" />
           <button id="sendBtn" class="px-3 py-3 sm:px-4 sm:py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors whitespace-nowrap text-sm sm:text-base">📤 Invia</button>
           <button id="micBtn" class="px-3 py-3 sm:px-4 sm:py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-md transition-colors whitespace-nowrap text-sm sm:text-base">🎤 Parla</button>
         </div>
@@ -94,6 +98,8 @@ document.addEventListener('DOMContentLoaded', async function() {
   let assistantThreadId = null;
   let humanoid = null, jawBone = null;
   let morphMesh = null, morphIndex = -1, morphValue = 0;
+  let isListening = false, recognition = null, mediaMicStream = null;
+  let currentEvtSource = null; // Stream SSE attivo da chiudere se necessario
 
   // Three.js avatar minimale (testa + mandibola)
   let THREELoaded = false;
@@ -188,6 +194,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     if (threadId) params.set('thread_id', threadId);
     if (assistantThreadId) params.set('assistant_thread_id', assistantThreadId);
     const evtSource = new EventSource(`/api/chatbot/stream?${params.toString()}`);
+    currentEvtSource = evtSource;
     let done = false;
     let firstToken = true;
     // Tick ad alta frequenza per tentare TTS chunking, indipendente dal ritmo dei token
@@ -241,6 +248,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     evtSource.addEventListener('error', () => {
       evtSource.close();
+      currentEvtSource = null;
     });
 
     evtSource.addEventListener('done', () => {
@@ -282,25 +290,81 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
   });
 
-  // TODO: integrare Web Speech API per dettatura e TTS/visemi per avatar
-  micBtn.addEventListener('click', async () => {
+  async function stopAllSpeechOutput() {
+    try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch {}
     try {
-      // Sblocca audio autoplay sui browser
-      try {
-        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        if (audioCtx.state === 'suspended') await audioCtx.resume();
-      } catch {}
-      const rec = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-      rec.lang = locale || 'it-IT';
-      rec.interimResults = false;
-      rec.maxAlternatives = 1;
-      rec.onresult = (event) => {
+      if (ttsPlayer && !ttsPlayer.paused) { ttsPlayer.pause(); ttsPlayer.currentTime = 0; }
+    } catch {}
+    speakQueue.forEach(item => { if (item.url) try { URL.revokeObjectURL(item.url); } catch {} });
+    speakQueue = []; ttsRequestQueue = []; isSpeaking = false;
+  }
+
+  function setListeningUI(active) {
+    const badge = document.getElementById('listeningBadge');
+    if (active) {
+      badge.classList.remove('hidden');
+      micBtn.classList.remove('bg-rose-600');
+      micBtn.classList.add('bg-emerald-600','ring-2','ring-emerald-400','animate-pulse');
+    } else {
+      badge.classList.add('hidden');
+      micBtn.classList.add('bg-rose-600');
+      micBtn.classList.remove('bg-emerald-600','ring-2','ring-emerald-400','animate-pulse');
+    }
+  }
+
+  async function ensureMicPermission() {
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return true; // Non bloccare se non disponibile
+      // Chiedi il permesso in anticipo; chiuderemo subito lo stream
+      if (!mediaMicStream) {
+        mediaMicStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true } });
+        // Rilascia subito
+        try { mediaMicStream.getTracks().forEach(t => t.stop()); } catch {}
+        mediaMicStream = null;
+      }
+      return true;
+    } catch (e) {
+      console.warn('Mic permission denied or error', e);
+      return false;
+    }
+  }
+
+  micBtn.addEventListener('click', async () => {
+    // Toggle ascolto
+    if (isListening && recognition) {
+      try { recognition.stop(); recognition.abort && recognition.abort(); } catch {}
+      isListening = false; setListeningUI(false);
+      return;
+    }
+    // Ferma eventuale parlato e stream corrente
+    await stopAllSpeechOutput();
+    try { if (currentEvtSource) { currentEvtSource.close(); currentEvtSource = null; } } catch {}
+
+    // Sblocca l'audio (Android)
+    try { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === 'suspended') await audioCtx.resume(); } catch {}
+
+    // Verifica permesso microfono (Android spesso non mostra prompt con WebSpeech)
+    const ok = await ensureMicPermission();
+    if (!ok) { alert('Permesso microfono negato. Abilitalo nelle impostazioni del browser.'); return; }
+
+    try {
+      const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!Rec) throw new Error('Web Speech API non disponibile');
+      recognition = new Rec();
+      recognition.lang = locale || 'it-IT';
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+      recognition.onstart = () => { isListening = true; setListeningUI(true); };
+      recognition.onerror = (e) => { console.warn('Speech error', e); isListening = false; setListeningUI(false); };
+      recognition.onend = () => { isListening = false; setListeningUI(false); };
+      recognition.onresult = (event) => {
         const transcript = event.results[0][0].transcript;
+        isListening = false; setListeningUI(false);
         startStream(transcript);
       };
-      rec.onerror = () => {};
-      rec.start();
+      recognition.start();
     } catch (err) {
+      console.warn('Riconoscimento vocale non disponibile o errore', err);
       alert('Riconoscimento vocale non disponibile in questo browser.');
     }
   });
@@ -399,6 +463,13 @@ document.addEventListener('DOMContentLoaded', async function() {
       const controlsRect = controls ? controls.getBoundingClientRect() : null;
       const pad = controlsRect ? Math.ceil(controlsRect.height) : 0;
       document.body.style.setProperty('--controls-pad', pad + 'px');
+    } catch {}
+
+    // Fix barra bianca sotto su Android (forza height dello stage entro viewport reale)
+    try {
+      const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+      const maxH = Math.max(320, Math.floor(vh - (controls?.offsetHeight || 0) - 180));
+      stage.style.maxHeight = maxH + 'px';
     } catch {}
   }
 
