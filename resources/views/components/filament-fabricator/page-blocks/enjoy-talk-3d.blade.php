@@ -104,6 +104,10 @@ document.addEventListener('DOMContentLoaded', async function() {
   // Stato SR (fallback Android)
   let srLastTranscript = '';
   let srHadFinal = false;
+  let srAccumulated = '';
+  let srSilenceTimer = null;
+  let srStartAt = 0;
+  let srSpeechAt = 0;
 
   // Three.js avatar minimale (testa + mandibola)
   let THREELoaded = false;
@@ -375,11 +379,28 @@ document.addEventListener('DOMContentLoaded', async function() {
       recognition.interimResults = true;
       try { recognition.continuous = false; } catch {}
       recognition.maxAlternatives = 1;
-      recognition.onstart = () => { isListening = true; setListeningUI(true); dbg('SR onstart'); };
+      recognition.onstart = () => { 
+        isListening = true; setListeningUI(true); dbg('SR onstart');
+        srAccumulated = ''; srLastTranscript = ''; srHadFinal = false; srStartAt = Date.now(); srSpeechAt = 0;
+        // Timeout massimo ascolto (Android a volte resta appeso)
+        if (srSilenceTimer) { clearTimeout(srSilenceTimer); srSilenceTimer = null; }
+        srSilenceTimer = setTimeout(() => { 
+          try { recognition.stop(); } catch {}
+          dbg('SR auto-stop (max window)');
+        }, 9000);
+      };
       recognition.onaudiostart = () => { dbg('SR onaudiostart'); };
       recognition.onsoundstart = () => { dbg('SR onsoundstart'); };
-      recognition.onspeechstart = () => { dbg('SR onspeechstart'); };
-      recognition.onspeechend = () => { dbg('SR onspeechend'); };
+      recognition.onspeechstart = () => { 
+        dbg('SR onspeechstart'); 
+        srSpeechAt = Date.now();
+        // Se inizia parlato, programma stop breve dopo fine parlato
+      };
+      recognition.onspeechend = () => { 
+        dbg('SR onspeechend'); 
+        // Chiudi poco dopo per forzare il final su Android
+        try { setTimeout(() => { try { recognition.stop(); } catch {} }, 250); } catch {}
+      };
       recognition.onsoundend = () => { dbg('SR onsoundend'); };
       recognition.onaudioend = () => { dbg('SR onaudioend'); };
       recognition.onnomatch = (e) => { dbg('SR onnomatch'); };
@@ -389,7 +410,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         isListening = false; setListeningUI(false);
         // Fallback Android: se non abbiamo avuto un final, usa l'ultimo interim
         try {
-          const text = (srHadFinal ? '' : srLastTranscript || '').trim();
+          const pref = (srHadFinal ? '' : (srAccumulated || srLastTranscript || ''));
+          const text = (pref || '').trim();
           if (text && text.length > 1) {
             dbg('SR fallback using interim', { text });
             startStream(text);
@@ -398,18 +420,27 @@ document.addEventListener('DOMContentLoaded', async function() {
         // reset stato
         srLastTranscript = '';
         srHadFinal = false;
+        srAccumulated = '';
+        if (srSilenceTimer) { clearTimeout(srSilenceTimer); srSilenceTimer = null; }
       };
       recognition.onresult = (event) => {
         try {
-          const idx = event.resultIndex || 0;
-          const res = event.results[idx];
-          const transcript = res && res[0] && res[0].transcript ? res[0].transcript : '';
-          const isFinal = res ? res.isFinal : true;
-          dbg('SR onresult', { transcript, isFinal });
-          if (!isFinal) {
-            srLastTranscript = transcript || srLastTranscript;
-            return;
+          let transcript = '';
+          let isFinal = false;
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            const res = event.results[i];
+            if (res && res[0] && res[0].transcript) {
+              transcript += res[0].transcript;
+              if (res.isFinal) isFinal = true;
+            }
           }
+          transcript = (transcript || '').trim();
+          dbg('SR onresult', { transcript, isFinal });
+          if (transcript) {
+            srLastTranscript = transcript;
+            srAccumulated = transcript; // preferisci il più lungo disponibile
+          }
+          if (!isFinal) return;
           srHadFinal = true;
           isListening = false; setListeningUI(false);
           startStream(transcript);
