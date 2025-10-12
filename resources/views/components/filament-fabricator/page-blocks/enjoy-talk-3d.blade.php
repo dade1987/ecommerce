@@ -115,6 +115,19 @@ document.addEventListener('DOMContentLoaded', async function() {
   const ua = navigator.userAgent || '';
   const isAndroid = /Android/i.test(ua);
   const isChrome = !!window.chrome && /Chrome\/\d+/.test(ua) && !/Edg\//.test(ua) && !/OPR\//.test(ua) && !/Brave/i.test(ua);
+  const urlLang = (urlParams.get('lang') || '').trim();
+  function normalizeLangTag(tag, fallback) {
+    try {
+      const t = (tag || '').replace('_','-').trim();
+      if (!t) return fallback;
+      // Normalizza in BCP47 semplice (xx-YY)
+      const parts = t.split('-');
+      if (parts.length === 1) return parts[0].toLowerCase();
+      return parts[0].toLowerCase() + '-' + parts[1].toUpperCase();
+    } catch { return fallback; }
+  }
+  const navLang = (navigator.language || (navigator.languages && navigator.languages[0]) || '').trim();
+  const recLang = normalizeLangTag(urlLang || locale || navLang || 'it-IT', 'it-IT');
   let threadId = null;
   let assistantThreadId = null;
   let humanoid = null, jawBone = null;
@@ -220,7 +233,7 @@ document.addEventListener('DOMContentLoaded', async function() {
       });
     } catch {}
     // First line
-    appendDebugLine('info', ['Debug overlay enabled', { ua: navigator.userAgent, locale, isAndroid, isChrome, hasWebSpeech: !!(window.SpeechRecognition||window.webkitSpeechRecognition) }]);
+    appendDebugLine('info', ['Debug overlay enabled', { ua: navigator.userAgent, locale, recLang, isAndroid, isChrome, hasWebSpeech: !!(window.SpeechRecognition||window.webkitSpeechRecognition) }]);
   }
 
   // Sanifica testo per TTS (niente markdown/asterischi/URL/decimali ",00")
@@ -463,7 +476,7 @@ document.addEventListener('DOMContentLoaded', async function() {
       const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!Rec) throw new Error('Web Speech API non disponibile');
       recognition = new Rec();
-      recognition.lang = locale || 'it-IT';
+      recognition.lang = recLang || 'it-IT';
       // Android spesso consegna eventi solo con interim/continuous attivi
       recognition.interimResults = isAndroid ? true : false;
       recognition.continuous = isAndroid ? false : false;
@@ -525,7 +538,7 @@ document.addEventListener('DOMContentLoaded', async function() {
           console.error('SPEECH: onresult handler failed', err);
         }
       };
-      console.log('SPEECH: start()');
+      console.log('SPEECH: start()', { lang: recognition.lang });
       recognition.start();
     } catch (err) {
       console.warn('Riconoscimento vocale non disponibile o errore', err);
