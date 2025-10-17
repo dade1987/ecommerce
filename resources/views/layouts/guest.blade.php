@@ -47,8 +47,7 @@
     <!-- Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
-    <script id="vtag-ai-js" async src="https://r2.leadsy.ai/tag.js" data-pid="RNcqSF30wzzZrjOY"
-        data-version="062024"></script>
+   
 </head>
 
 <body class="font-sans text-gray-900 antialiased">

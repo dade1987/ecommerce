@@ -1958,8 +1958,7 @@
         }
     </style>
 
-    <script id="vtag-ai-js" async src="https://r2.leadsy.ai/tag.js" data-pid="RNcqSF30wzzZrjOY"
-        data-version="062024"></script>
+    
 </head>
 
 <body data-bs-theme="dark">

@@ -43,7 +43,7 @@ class ProcessEmailJob implements ShouldQueue
             $response = $openAiClient->chat()->create([
                 'model' => 'gpt-4o', // Using a newer model that is better with JSON
                 'messages' => [
-                    ['role' => 'system', 'content' => 'You are an intelligent assistant that analyzes emails. Provide a concise analysis in Italian, which includes a summary and key points. Also, assign a priority level from 1 to 10. ALWAYS respond with a valid JSON object in the format: {"analysis": "...", "priority": X}. Do not include any other text or markdown.'],
+                    ['role' => 'system', 'content' => 'Sei un assistente intelligente che analizza le email. Fornisci un\'analisi concisa in italiano, che includa un riepilogo e i punti chiave. Inoltre, assegna un livello di priorità da 1 a 10. Rispondi SEMPRE con un oggetto JSON valido nel formato: {"analysis": "...", "priority": X}. Non includere altro testo o markdown.'],
                     ['role' => 'user', 'content' => $prompt],
                 ],
                 'response_format' => ['type' => 'json_object'], // Force JSON output

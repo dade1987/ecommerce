@@ -36,10 +36,20 @@ class FetchEmailsCommand extends Command
             $client->connect();
             $this->info('Connection successful.');
 
+            $this->info('Accessing INBOX folder...');
             $folder = $client->getFolder('INBOX');
-            $messages = $folder->messages()->unseen()->get();
+            $this->info('INBOX folder accessed.');
 
-            $this->info("Found {$messages->count()} unseen emails.");
+            $this->info('Fetching recent unseen messages...');
+            // Recupera solo le email non lette degli ultimi 7 giorni
+            $since = now()->subDays(7);
+            $messages = $folder->query()
+                ->unseen()
+                ->since($since)
+                ->limit(20)
+                ->get();
+
+            $this->info("Found {$messages->count()} unseen emails from the last 7 days.");
 
             foreach ($messages as $message) {
                 try {
