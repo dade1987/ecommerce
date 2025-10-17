@@ -1,4 +1,4 @@
-<div class="flex flex-col min-h-[100dvh] w-full bg-[#0f172a] pb-[96px] sm:pb-0">
+<div id="enjoyTalkRoot" class="flex flex-col min-h-[100dvh] w-full bg-[#0f172a] pb-[96px] sm:pb-0" data-heygen-api-key="{{ config('services.heygen.api_key') }}" data-heygen-server-url="{{ config('services.heygen.server_url') }}">
   <div class="px-4 py-4">
     <div class="mx-auto w-full max-w-[520px] flex items-center gap-3">
       <img id="teamLogo" src="/images/logoai.jpeg" alt="EnjoyTalk 3D" class="w-10 h-10 rounded-full object-cover border border-slate-600">
@@ -11,6 +11,8 @@
     <div class="relative w-full">
       <div class="mx-auto w-full max-w-[520px] px-3 sm:px-0">
         <div id="avatarStage" class="bg-[#111827] border border-slate-700 rounded-md overflow-hidden w-full h-auto max-h-[calc(100dvh-220px)] aspect-[3/4]"></div>
+        <video id="heygenVideo" class="hidden w-full h-auto max-h-[calc(100dvh-220px)] rounded-md border border-slate-700 bg-black" autoplay playsinline></video>
+        <audio id="heygenAudio" class="hidden" autoplay></audio>
       </div>
 
       <!-- Fumetto di pensiero -->
@@ -56,10 +58,15 @@
         </div>
         <div class="mt-2 flex items-center gap-3 text-slate-300 text-xs sm:text-sm">
           <label class="inline-flex items-center gap-2 cursor-pointer select-none">
+            <input id="useVideoAvatar" type="checkbox" class="accent-indigo-600" checked />
+            <span>Video Avatar</span>
+          </label>
+          <label class="inline-flex items-center gap-2 cursor-pointer select-none">
             <input id="useBrowserTts" type="checkbox" class="accent-indigo-600" />
             <span>Usa TTS del browser (italiano)</span>
           </label>
           <span id="browserTtsStatus" class="opacity-70"></span>
+          <span id="videoAvatarStatus" class="opacity-70"></span>
           <label class="inline-flex items-center gap-2 cursor-pointer select-none ml-auto">
             <input id="useAdvancedLipsync" type="checkbox" class="accent-emerald-600" />
             <span>LipSync avanzato (WebAudio)</span>
@@ -100,6 +107,8 @@ window.THREE_READY = (async () => {
 
 <!-- Rimosso Laravel Echo - usa solo streaming SSE nativo -->
 
+<script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
+
 <script>
 document.addEventListener('DOMContentLoaded', async function() {
   // Attendi il preload dei moduli
@@ -111,13 +120,24 @@ document.addEventListener('DOMContentLoaded', async function() {
   const ttsPlayer = document.getElementById('ttsPlayer');
   const thinkingBubble = document.getElementById('thinkingBubble');
   const useBrowserTts = document.getElementById('useBrowserTts');
+  const useVideoAvatar = document.getElementById('useVideoAvatar');
   const browserTtsStatus = document.getElementById('browserTtsStatus');
+  const videoAvatarStatus = document.getElementById('videoAvatarStatus');
   const useAdvancedLipsync = document.getElementById('useAdvancedLipsync');
+  const heygenVideo = document.getElementById('heygenVideo');
+  const heygenAudio = document.getElementById('heygenAudio');
   const teamSlug = window.location.pathname.split('/').pop();
   const urlParams = new URLSearchParams(window.location.search);
   const uuid = urlParams.get('uuid');
   const locale = '{{ app()->getLocale() }}';
   const debugEnabled = urlParams.get('debug') === '1';
+  const rootEl = document.getElementById('enjoyTalkRoot');
+  const HEYGEN_CONFIG = {
+    apiKey: (rootEl?.dataset?.heygenApiKey) || '',
+    serverUrl: (rootEl?.dataset?.heygenServerUrl) || 'https://api.heygen.com'
+  };
+  const heygenAvatar = (urlParams.get('avatar') || '').trim();
+  const heygenVoice = (urlParams.get('voice') || '').trim();
   const ua = navigator.userAgent || '';
   const isAndroid = /Android/i.test(ua);
   const isChrome = !!window.chrome && /Chrome\/\d+/.test(ua) && !/Edg\//.test(ua) && !/OPR\//.test(ua) && !/Brave/i.test(ua);
@@ -234,6 +254,9 @@ document.addEventListener('DOMContentLoaded', async function() {
   let speechAmpTimer = null;
   // FFT cache for lipsync when using cloud TTS (audio element)
   let freqData = null;
+
+  // HeyGen Streaming state
+  let heygen = { sessionInfo: null, room: null, mediaStream: null, sessionToken: null, connecting: false, started: false };
 
   // Debug overlay wiring
   const debugOverlay = document.getElementById('debugOverlay');
@@ -352,12 +375,14 @@ document.addEventListener('DOMContentLoaded', async function() {
   }
   initThree();
 
-  // Auto-spunta TTS del browser su Chrome se disponibile
+  // Auto-selezioni TTS di default
   try {
     const ua = navigator.userAgent || '';
     const isChrome = !!window.chrome && /Chrome\/\d+/.test(ua) && !/Edg\//.test(ua) && !/OPR\//.test(ua) && !/Brave/i.test(ua);
-    // Default: abilita automaticamente TTS del browser
-    if (isChrome && 'speechSynthesis' in window && useBrowserTts) {
+    // Default: Video Avatar attivo
+    if (useVideoAvatar) { useVideoAvatar.checked = true; }
+    // Abilita automaticamente TTS del browser solo se Video Avatar non è attivo
+    if (!useVideoAvatar?.checked && isChrome && 'speechSynthesis' in window && useBrowserTts) {
       useBrowserTts.checked = true;
       browserTtsStatus.textContent = 'TTS browser attivo (Chrome)';
     }
@@ -368,6 +393,41 @@ document.addEventListener('DOMContentLoaded', async function() {
       ensureMeydaLoaded().then(() => startMeydaAnalyzer()).catch(() => {});
     }
   } catch {}
+  // Toggle Video Avatar visibility and session management
+  try {
+    useVideoAvatar?.addEventListener('change', async () => {
+      if (useVideoAvatar.checked) {
+        document.getElementById('avatarStage')?.classList.add('hidden');
+        heygenVideo?.classList.remove('hidden');
+        try { await heygenEnsureSession(); } catch (e) { console.error('HEYGEN: ensure session failed', e); }
+        // Try user-gesture playback unlock on first interaction
+        const unlock = async () => {
+          try { await heygenVideo?.play(); } catch {}
+          try { await heygenAudio?.play(); } catch {}
+          document.removeEventListener('click', unlock);
+          document.removeEventListener('touchstart', unlock);
+        };
+        document.addEventListener('click', unlock, { once: true });
+        document.addEventListener('touchstart', unlock, { once: true });
+      } else {
+        heygenVideo?.classList.add('hidden');
+        document.getElementById('avatarStage')?.classList.remove('hidden');
+        try { await heygenClose(); } catch {}
+      }
+    });
+    // Ensure initial state
+    if (useVideoAvatar?.checked) {
+      document.getElementById('avatarStage')?.classList.add('hidden');
+      heygenVideo?.classList.remove('hidden');
+      try { await heygenEnsureSession(); } catch {}
+      // Ensure autoplay after initial tracks
+      setTimeout(async () => {
+        try { if (heygenVideo?.srcObject && heygenVideo.paused) await heygenVideo.play(); } catch {}
+        try { if (heygenAudio?.srcObject && heygenAudio.paused) await heygenAudio.play(); } catch {}
+      }, 800);
+    }
+  } catch {}
+
 
   // Toggle advanced lipsync
   try {
@@ -1127,6 +1187,12 @@ document.addEventListener('DOMContentLoaded', async function() {
     if (!norm || norm.length < 3) return;
     if (speakQueue.some(item => item.text === norm)) return;
 
+    // If Video Avatar mode, send to HeyGen streaming (repeat)
+    if (useVideoAvatar && useVideoAvatar.checked) {
+      try { heygenSendRepeat(norm); } catch (e) { console.error('HEYGEN repeat failed', e); }
+      return;
+    }
+
     // Se la checkbox TTS è selezionata e c'è speechSynthesis, usa TTS del browser
     if (useBrowserTts && useBrowserTts.checked && 'speechSynthesis' in window) {
       speakQueue.push({ url: null, text: norm });
@@ -1294,6 +1360,129 @@ document.addEventListener('DOMContentLoaded', async function() {
       isSpeaking = false; 
       onError();
     });
+  }
+
+  async function heygenEnsureSession() {
+    if (heygen.started || heygen.connecting) return;
+    heygen.connecting = true;
+    try {
+      if (!HEYGEN_CONFIG.apiKey || !HEYGEN_CONFIG.serverUrl) {
+        videoAvatarStatus && (videoAvatarStatus.textContent = 'Config mancante');
+        throw new Error('HEYGEN config missing');
+      }
+      // Create session token
+      const tokRes = await fetch(`${HEYGEN_CONFIG.serverUrl}/v1/streaming.create_token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Api-Key': HEYGEN_CONFIG.apiKey },
+      });
+      const tokJson = await tokRes.json();
+      heygen.sessionToken = tokJson?.data?.token;
+      if (!heygen.sessionToken) throw new Error('No session token');
+      videoAvatarStatus && (videoAvatarStatus.textContent = 'Token OK');
+
+      // Create new streaming session
+      const body = {
+        quality: 'high',
+        version: 'v2',
+        video_encoding: 'H264',
+      };
+      if (heygenAvatar) body.avatar_name = heygenAvatar;
+      if (heygenVoice) body.voice = { voice_id: heygenVoice, rate: 1.0 };
+      const newRes = await fetch(`${HEYGEN_CONFIG.serverUrl}/v1/streaming.new`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${heygen.sessionToken}` },
+        body: JSON.stringify(body),
+      });
+      const newJson = await newRes.json();
+      heygen.sessionInfo = newJson?.data;
+      if (!heygen.sessionInfo?.session_id) throw new Error('No session info');
+
+      // LiveKit room
+      heygen.room = new LivekitClient.Room({ adaptiveStream: false, dynacast: true, videoCaptureDefaults: { resolution: LivekitClient.VideoPresets.h720.resolution } });
+      heygen.mediaStream = new MediaStream();
+      heygen.room.on(LivekitClient.RoomEvent.TrackSubscribed, async (track, publication, participant) => {
+        try {
+          if (track.kind === 'video') {
+            heygen.mediaStream.addTrack(track.mediaStreamTrack);
+            if (heygenVideo) {
+              heygenVideo.srcObject = heygen.mediaStream;
+              heygenVideo.muted = true;
+              await heygenVideo.play().catch(() => {});
+            }
+            videoAvatarStatus && (videoAvatarStatus.textContent = 'Video connesso');
+          }
+          if (track.kind === 'audio') {
+            // Route audio to a separate element to avoid autoplay locks
+            const audioStream = new MediaStream([track.mediaStreamTrack]);
+            if (heygenAudio) {
+              heygenAudio.srcObject = audioStream;
+              await heygenAudio.play().catch(() => {});
+            }
+            videoAvatarStatus && (videoAvatarStatus.textContent = 'Audio connesso');
+          }
+        } catch (e) { console.warn('HEYGEN: TrackSubscribed handler failed', e); }
+      });
+      heygen.room.on(LivekitClient.RoomEvent.TrackUnsubscribed, (track) => {
+        const mt = track.mediaStreamTrack; if (mt) heygen.mediaStream.removeTrack(mt);
+      });
+      await heygen.room.prepareConnection(heygen.sessionInfo.url, heygen.sessionInfo.access_token);
+
+      // Start streaming
+      await fetch(`${HEYGEN_CONFIG.serverUrl}/v1/streaming.start`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${heygen.sessionToken}` },
+        body: JSON.stringify({ session_id: heygen.sessionInfo.session_id }),
+      });
+      // Open WS to keep session alive and receive events
+      try {
+        const params = new URLSearchParams({ session_id: heygen.sessionInfo.session_id, session_token: heygen.sessionToken, silence_response: 'true', stt_language: 'en' });
+        const wsUrl = `wss://${new URL(HEYGEN_CONFIG.serverUrl).hostname}/v1/ws/streaming.chat?${params}`;
+        heygen.ws = new WebSocket(wsUrl);
+        heygen.ws.addEventListener('message', (evt) => { /* no-op; could log */ });
+      } catch {}
+      await heygen.room.connect(heygen.sessionInfo.url, heygen.sessionInfo.access_token);
+      // Attempt to resume playback after connect
+      try { if (heygenVideo?.srcObject && heygenVideo.paused) { await heygenVideo.play(); } } catch {}
+      try { if (heygenAudio?.srcObject && heygenAudio.paused) { await heygenAudio.play(); } } catch {}
+      heygen.started = true;
+      videoAvatarStatus && (videoAvatarStatus.textContent = 'Connesso');
+    } catch (e) {
+      console.error('HEYGEN: init failed', e);
+    } finally {
+      heygen.connecting = false;
+    }
+  }
+
+  async function heygenSendRepeat(text) {
+    try {
+      await heygenEnsureSession();
+      if (!heygen.sessionInfo?.session_id) return;
+      await fetch(`${HEYGEN_CONFIG.serverUrl}/v1/streaming.task`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${heygen.sessionToken}` },
+        body: JSON.stringify({ session_id: heygen.sessionInfo.session_id, text, task_type: 'repeat' }),
+      });
+    } catch (e) {
+      console.error('HEYGEN: repeat failed', e);
+    }
+  }
+
+  async function heygenClose() {
+    try {
+      if (heygen.sessionInfo?.session_id) {
+        await fetch(`${HEYGEN_CONFIG.serverUrl}/v1/streaming.stop`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${heygen.sessionToken}` },
+          body: JSON.stringify({ session_id: heygen.sessionInfo.session_id }),
+        });
+      }
+    } catch {}
+    try { if (heygen.ws && heygen.ws.readyState < 2) heygen.ws.close(); } catch {}
+    try { if (heygen.room) heygen.room.disconnect(); } catch {}
+    if (heygenVideo) { try { heygenVideo.pause(); } catch {}; heygenVideo.srcObject = null; }
+    if (heygenAudio) { try { heygenAudio.pause(); } catch {}; heygenAudio.srcObject = null; }
+    heygen = { sessionInfo: null, room: null, mediaStream: null, sessionToken: null, connecting: false, started: false };
+    videoAvatarStatus && (videoAvatarStatus.textContent = '');
   }
 
 

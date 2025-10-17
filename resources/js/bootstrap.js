@@ -31,9 +31,10 @@ window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 //     enabledTransports: ['ws', 'wss'],
 // });
 
-import { Livewire, Alpine } from '../../vendor/livewire/livewire/dist/livewire.esm';
+// Livewire e Alpine vengono inclusi tramite gli script Blade (@livewireScripts/@filamentScripts).
+// Evita doppie istanze rimuovendo l'import ESM. Registra solo il plugin quando Alpine è pronto.
 import focus from '@alpinejs/focus'
-window.Alpine = Alpine;
-Alpine.plugin(focus)
-//Alpine.start();
-Livewire.start()
+
+document.addEventListener('alpine:init', () => {
+    window.Alpine.plugin(focus)
+})

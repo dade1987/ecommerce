@@ -45,4 +45,9 @@ return [
         ],
     ],
 
+    'heygen' => [
+        'api_key' => env('HEYGEN_API_KEY'),
+        'server_url' => env('HEYGEN_SERVER_URL', 'https://api.heygen.com'),
+    ],
+
 ];
