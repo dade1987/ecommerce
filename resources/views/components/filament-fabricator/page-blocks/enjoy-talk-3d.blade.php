@@ -248,6 +248,7 @@
     let visemeSchedule = [];
     const textVisemeEnabled = true;
     let cloudAudioSpeaking = false;
+
     // Stato ampiezza audio con envelope per evitare bocca troppo aperta e jitter
     let audioAmp = 0; // 0..1
     const AMP_ATTACK = 0.25; // risposta a salire (più alto = più reattivo)
@@ -260,6 +261,10 @@
     let eyeMesh = null;
     let nextBlinkAt = performance.now() + 1200 + Math.random() * 2000;
     let blinkPhase = 0; // 0..1 (chiusura-apertura)
+    // Forza chiusura completa (ignora minLipSeparation) per breve tempo (ms)
+    let forceFullCloseUntil = 0;
+    let syllablePulseUntil = 0; // finestra di chiusura corrente
+    let nextSyllablePulseAt = 0; // debouncing
     // Config lipsync: separazione minima e limiti di chiusura
     const lipConfig = {
       restJawOpen: 0.12, // apertura a riposo
@@ -284,8 +289,14 @@
           Math.max(40, totalDurationMs / chars) :
           baseDur;
         let accEnd = (visemeSchedule.length > 0 ? visemeSchedule[visemeSchedule.length - 1].end : start);
-        for (const chRaw of clean) {
-          const ch = chRaw.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+        // Dividi il testo in sillabe approssimative per l'italiano
+        const syllables = clean.toLowerCase()
+          .replace(/[^a-z\s]/g, '')
+          .replace(/([aeiou])[aeiou]+/g, '$1')
+          .match(/[^aeiou]*[aeiou]+/g) || [];
+
+        for (const syl of syllables) {
           const t = {
             jawOpen: 0,
             mouthFunnel: 0,
@@ -294,26 +305,45 @@
             mouthSmileR: 0,
             mouthClose: 0
           };
-          if ('ou'.includes(ch)) {
-            t.mouthFunnel = 1.0;
-            t.mouthPucker = 0.85;
-            t.jawOpen = 0.2;
-          } else if (ch === 'a') {
-            t.jawOpen = 0.6;
-          } else if ('ei'.includes(ch)) {
-            t.mouthSmileL = 0.55;
-            t.mouthSmileR = 0.55;
-            t.jawOpen = 0.35;
-          } else if ('bmp'.includes(ch)) {
-            t.mouthClose = 0.9;
-          } else if (/[.,;:!?]/.test(ch)) {
-            t.mouthClose = 0.6;
-          } else {
-            t.jawOpen = 0.25;
+
+          // Sillabe che richiedono labbra arrotondate
+          if (syl.includes('o') || syl.includes('u')) {
+            t.mouthFunnel = 0.8;
+            t.mouthPucker = 0.6;
+            t.jawOpen = 0.3;
           }
-          const charDur = /[.,;:!?]/.test(ch) ? dur * 1.6 : (ch === ' ' ? dur * 0.6 : dur);
+          // Sillabe aperte con 'a'
+          else if (syl.includes('a')) {
+            t.jawOpen = 0.6;
+            t.mouthSmileL = 0.2;
+            t.mouthSmileR = 0.2;
+          }
+          // Sillabe con 'e' o 'i' (sorriso)
+          else if (syl.includes('e') || syl.includes('i')) {
+            t.mouthSmileL = 0.4;
+            t.mouthSmileR = 0.4;
+            t.jawOpen = 0.35;
+          }
+
+          // Consonanti occlusive che chiudono la bocca
+          if (syl.startsWith('p') || syl.startsWith('b') || syl.startsWith('m')) {
+            t.mouthClose = 0.9;
+            t.jawOpen *= 0.5;
+          }
+          // Consonanti dentali
+          else if (syl.startsWith('t') || syl.startsWith('d') || syl.startsWith('n')) {
+            t.mouthClose = 0.6;
+            t.jawOpen *= 0.7;
+          }
+          // Consonanti fricative
+          else if (syl.startsWith('f') || syl.startsWith('v') || syl.startsWith('s')) {
+            t.mouthFunnel = Math.max(t.mouthFunnel, 0.3);
+            t.jawOpen *= 0.8;
+          }
+
+          const sylDur = dur * (syl.length * 0.8); // Durata proporzionale alla lunghezza della sillaba
           const s = accEnd;
-          const e = s + charDur;
+          const e = s + sylDur;
           visemeSchedule.push({
             start: s,
             end: e,
@@ -321,6 +351,30 @@
           });
           accEnd = e;
         }
+
+        // Gestione punteggiatura e pause
+        for (const ch of clean) {
+          if (/[.,;:!?]/.test(ch)) {
+            const t = {
+              jawOpen: 0,
+              mouthFunnel: 0,
+              mouthPucker: 0,
+              mouthSmileL: 0,
+              mouthSmileR: 0,
+              mouthClose: 0.6
+            };
+            const pauseDur = dur * 1.6;
+            const s = accEnd;
+            const e = s + pauseDur;
+            visemeSchedule.push({
+              start: s,
+              end: e,
+              targets: t
+            });
+            accEnd = e;
+          }
+        }
+
         // limita schedule per evitare code troppo lunghe
         if (visemeSchedule.length > 120) visemeSchedule = visemeSchedule.slice(-120);
       } catch {}
@@ -1224,22 +1278,22 @@
         if (window.OrbitControls) {
           window.__orbit = new window.OrbitControls(camera, renderer.domElement);
           renderer.domElement.style.touchAction = 'none';
-        __orbit.enableDamping = true;
-        __orbit.dampingFactor = 0.08;
-        __orbit.enableZoom = true;
-        __orbit.zoomSpeed = 1.0;
-        __orbit.enablePan = true;
-        __orbit.enableRotate = false; // disabilita rotazione con drag
-        __orbit.screenSpacePanning = true;
+          __orbit.enableDamping = true;
+          __orbit.dampingFactor = 0.08;
+          __orbit.enableZoom = true;
+          __orbit.zoomSpeed = 1.0;
+          __orbit.enablePan = true;
+          __orbit.enableRotate = false; // disabilita rotazione con drag
+          __orbit.screenSpacePanning = true;
           __orbit.minDistance = 0.1;
           __orbit.maxDistance = 12;
           // Mappa: trascinamento con sinistro = dolly (avvicina/allontana), rotazione con centrale, pan con destro
           if (window.THREE && window.THREE.MOUSE) {
-          __orbit.mouseButtons = {
-            LEFT: window.THREE.MOUSE.DOLLY,
-            MIDDLE: window.THREE.MOUSE.ROTATE,
-            RIGHT: window.THREE.MOUSE.PAN,
-          };
+            __orbit.mouseButtons = {
+              LEFT: window.THREE.MOUSE.DOLLY,
+              MIDDLE: window.THREE.MOUSE.ROTATE,
+              RIGHT: window.THREE.MOUSE.PAN,
+            };
           }
           __orbit.target.set(0, 0.2, 0);
           __orbit.update();
@@ -1304,32 +1358,35 @@
     }
 
     function animate() {
+      const forcedClosing = (performance.now() < (forceFullCloseUntil || 0));
+
       animationId = requestAnimationFrame(animate);
       // Idle breathing
       head.position.y = 0.2 + Math.sin(performance.now() / 1200) * 0.01;
-    // Micro-movimenti facciali per realismo quando non parla
-    try {
-      const talking = cloudAudioSpeaking || (window.speechSynthesis && window.speechSynthesis.speaking);
-      if (!talking && Array.isArray(visemeMeshes) && visemeMeshes.length > 0) {
-        const t = performance.now() * 0.001;
-        const microSmile = 0.02 + 0.015 * Math.sin(t * 0.6 + 1.1);
-        const microPucker = 0.01 + 0.01 * Math.sin(t * 0.8 + 0.4);
-        for (const vm of visemeMeshes) {
-          const infl = vm.mesh && vm.mesh.morphTargetInfluences;
-          const idxs = vm.indices || {};
-          if (!infl) continue;
-          if (idxs.mouthSmileL >= 0) infl[idxs.mouthSmileL] = Math.max(0, Math.min(0.05, microSmile));
-          if (idxs.mouthSmileR >= 0) infl[idxs.mouthSmileR] = Math.max(0, Math.min(0.05, microSmile));
-          if (idxs.mouthPucker >= 0) infl[idxs.mouthPucker] = Math.max(0, Math.min(0.04, microPucker));
+      // Micro-movimenti facciali per realismo quando non parla (sorriso leggero)
+      try {
+        const talking = cloudAudioSpeaking || (window.speechSynthesis && window.speechSynthesis.speaking);
+        if (!talking && Array.isArray(visemeMeshes) && visemeMeshes.length > 0) {
+          const t = performance.now() * 0.001;
+          const baseSmile = 0.06; // sorriso di riposo
+          const microSmile = baseSmile + 0.012 * Math.sin(t * 0.6 + 1.1);
+          const microPucker = 0.006 + 0.006 * Math.sin(t * 0.8 + 0.4);
+          for (const vm of visemeMeshes) {
+            const infl = vm.mesh && vm.mesh.morphTargetInfluences;
+            const idxs = vm.indices || {};
+            if (!infl) continue;
+            if (idxs.mouthSmileL >= 0) infl[idxs.mouthSmileL] = Math.max(0, Math.min(0.10, microSmile));
+            if (idxs.mouthSmileR >= 0) infl[idxs.mouthSmileR] = Math.max(0, Math.min(0.10, microSmile));
+            if (idxs.mouthPucker >= 0) infl[idxs.mouthPucker] = Math.max(0, Math.min(0.03, microPucker));
+          }
         }
-      }
-    } catch {}
+      } catch {}
 
       // Se l'audio sta suonando, usa l'ampiezza per aprire la mandibola
       let amp = 0;
       if (useBrowserTts && useBrowserTts.checked && 'speechSynthesis' in window && window.speechSynthesis.speaking) {
         // Forza uso audio cloud o WebAudio per lipsync: se abbiamo analyser, usalo
-        if (analyser && dataArray) {
+        if (analyser && dataArray && !forcedClosing) {
           // prosegui sotto con branch analyser
         } else {
           amp = 0; // nessun drive senza analyser
@@ -1364,35 +1421,61 @@
           const sr = (audioCtx && audioCtx.sampleRate) ? audioCtx.sampleRate : 44100;
           const nyquist = sr / 2;
           const binHz = nyquist / freqData.length;
+          // Calcola centroid e bande di energia
+          let lowSum = 0,
+            midSum = 0,
+            highSum = 0,
+            totalSum = 0;
+          const LOW_MAX = 300,
+            MID_MAX = 2000;
           for (let i = 0; i < freqData.length; i++) {
             const mag = freqData[i];
             if (mag <= 0) continue;
             const f = i * binHz;
             num += f * mag;
             den += mag;
+            totalSum += mag;
+            if (f <= LOW_MAX) lowSum += mag;
+            else if (f <= MID_MAX) midSum += mag;
+            else highSum += mag;
           }
           const centroid = den > 0 ? (num / den) : 0;
           const normC = Math.max(0, Math.min(1, centroid / 3500));
           const zcr = zc / dataArray.length; // ~0..0.5
           // Heuristics for visemes (rounded vs wide vowels, closures)
-          // Feature mapping più selettivo
+          // Feature mapping esponenziale per ampiezze
+          const k = 3.2; // fattore esponenziale
+          const lowN = totalSum > 0 ? (lowSum / totalSum) : 0;
+          const midN = totalSum > 0 ? (midSum / totalSum) : 0;
+          const highN = totalSum > 0 ? (highSum / totalSum) : 0;
+          const eLow = 1 - Math.exp(-k * Math.max(0, lowN));
+          const eMid = 1 - Math.exp(-k * Math.max(0, midN));
+          const eHigh = 1 - Math.exp(-k * Math.max(0, highN));
           const rounded = Math.max(0, 1.0 - normC); // vocali tonde (O/U)
           const wide = Math.max(0, normC - 0.32); // vocali larghe (E/I)
           const closeLike = Math.max(0, (0.05 - zcr) * 9); // chiusure/pausa
           const lowAmp = amp < 0.08;
           // Stima banda centrale (A) ~ centroid medio
           const midBand = Math.max(0, 1 - Math.abs(normC - 0.28) / 0.22); // picco ~0.28
-          const MAX_JAW_OPEN = 0.60;
-          const jawVal = Math.min(
+          // Ampiezze esponenziali: basse freq → apertura, alte freq → chiusura
+          const MAX_JAW_OPEN = 0.45;
+          let jawVal = Math.min(
             MAX_JAW_OPEN,
-            Math.max(0.08, 1.35 * amp + 0.45 * midBand - 0.30 * rounded)
+            Math.max(0.06, 1.05 * eLow + 0.40 * midBand - 0.25 * rounded)
           );
-          // Rafforza O/U ma riduci se sembra A (midBand alto) per non tornare in O
+          // Rafforza O/U ma riduci se sembra A (midBand alto)
           const roundBoost = rounded * (1 - 0.6 * midBand);
-          const funnelVal = lowAmp ? 0 : Math.min(1, Math.max(0, roundBoost * Math.max(0, (amp - 0.10)) * 2.0 + rounded * 0.25));
-          const puckerVal = lowAmp ? 0 : Math.min(1, Math.max(0, roundBoost * Math.max(0, (amp - 0.10)) * 1.5 + rounded * 0.15));
-          const smileVal = Math.max(0, wide * (0.55 + amp * 0.40));
-          const closeVal = lowAmp ? 0.05 : Math.max(0, closeLike * (1 - amp) * 0.60);
+          let funnelVal = lowAmp ? 0 : Math.min(0.45, Math.max(0, roundBoost * (eLow * 0.9) + rounded * 0.18));
+          let puckerVal = lowAmp ? 0 : Math.min(0.38, Math.max(0, roundBoost * (eLow * 0.7) + rounded * 0.12));
+          // Accentuazione per vocali O/U (rounded alto)
+          const oBoost = Math.min(0.35, Math.pow(Math.max(0, rounded), 1.2) * (0.28 + 0.6 * (amp || 0)));
+          funnelVal = Math.min(0.8, funnelVal + oBoost);
+          puckerVal = Math.min(0.6, puckerVal + oBoost * 0.6);
+          const smileVal = Math.max(0, Math.min(0.30, (eMid + wide * 0.5) * 0.35));
+          // Chiusura meno aggressiva da alte frequenze e pause
+          let closeVal = lowAmp ? 0.04 : Math.max(0, Math.min(0.40, (eHigh * 0.25) + closeLike * 0.30 * (1 - amp)));
+          // Durante alte-freq, riduci jawOpen ma in modo più lieve
+          jawVal = Math.max(lipConfig.minLipSeparation, jawVal * (1 - 0.35 * eHigh));
           visemeTargets = {
             jawOpen: jawVal,
             mouthFunnel: funnelVal,
@@ -1409,7 +1492,7 @@
         } catch {}
       }
       // Priorità ai visemi testuali se pianificati (disabilitato se textVisemeEnabled=false)
-      if (textVisemeEnabled) {
+      if (textVisemeEnabled && !forcedClosing) {
         const nowT = performance.now();
         visemeSchedule = visemeSchedule.filter(it => it.end > nowT);
         const active = visemeSchedule.find(it => it.start <= nowT && it.end > nowT);
@@ -1427,7 +1510,19 @@
         }
       }
       // Se non abbiamo audio driving (TTS off e nessun analyser), usa lo scheduler testuale (se abilitato)
-      if (textVisemeEnabled && (!analyser || !cloudAudioSpeaking)) {
+      if (textVisemeEnabled && (!analyser || !cloudAudioSpeaking) && !forcedClosing) {
+        // Se in chiusura forzata, sovrascrivi i target a bocca chiusa
+        if (forcedClosing) {
+          visemeTargets = {
+            jawOpen: 0,
+            mouthFunnel: 0,
+            mouthPucker: 0,
+            mouthSmileL: 0,
+            mouthSmileR: 0,
+            mouthClose: 0
+          };
+          visemeActiveUntil = performance.now() + 60;
+        }
         const nowT = performance.now();
         // purge passati
         visemeSchedule = visemeSchedule.filter(it => it.end > nowT);
@@ -1445,6 +1540,8 @@
           visemeActiveUntil = nowT + 120;
         }
       }
+      // Niente euristiche: seguiamo la pipeline lipsync esistente (text viseme o audio analyser)
+
       // Animazione lip-sync su avatar umanoide o fallback geometrico
       const now = performance.now();
       const restJawOpen = lipConfig.restJawOpen; // piccola apertura a riposo per evitare sovrapposizione labbra
@@ -1473,12 +1570,17 @@
           let jaw = Math.min(1, Math.max(0, visemeTargets.jawOpen + (cloudAudioSpeaking ? 0 : restJawOpen)));
           const roundness = Math.min(1, visemeTargets.mouthFunnel + visemeTargets.mouthPucker);
           const closeSuppression = Math.max(0, 1 - jaw * 1.5 - roundness * 0.9);
-          let constrainedClose = 0; // disattiva chiusura per evitare sovrapposizione
-          // Se desideri riattivare qualche chiusura controllata, rimuovi la riga sopra e usa la successiva:
-          // let constrainedClose = Math.min(lipConfig.maxMouthClose, visemeTargets.mouthClose * closeSuppression);
-          // Imporre separazione minima: se la chiusura tende a superare la soglia, aumenta jaw
-          if (constrainedClose > lipConfig.closeThresholdForSeparation) {
-            jaw = Math.max(jaw, lipConfig.minLipSeparation);
+          // Abilita chiusura controllata
+          let constrainedClose = Math.min(lipConfig.maxMouthClose, (visemeTargets.mouthClose || 0) * closeSuppression);
+          // Imporre separazione minima: se la chiusura tende a superare la soglia, aumenta jaw (salvo chiusura forzata)
+          if (!(performance.now() < forceFullCloseUntil)) {
+            if (constrainedClose > lipConfig.closeThresholdForSeparation) {
+              jaw = Math.max(jaw, lipConfig.minLipSeparation);
+            }
+          } else {
+            // In chiusura forzata, chiudi solo con la mandibola (no mouthClose)
+            jaw = Math.min(jaw, 0.005);
+            constrainedClose = 0;
           }
           appliedJaw = jaw;
           setIdx(vm.indices.jawOpen, jaw * 0.9, 'jawOpen');
@@ -1813,8 +1915,17 @@
             // Reset immediato alla posa neutra
             try {
               visemeSchedule = [];
-              visemeTargets = { jawOpen: lipConfig.minLipSeparation, mouthFunnel: 0, mouthPucker: 0, mouthSmileL: 0, mouthSmileR: 0, mouthClose: 0 };
-              visemeActiveUntil = performance.now() + 120;
+              // Forza chiusura completa per un istante (solo jaw), mouthClose=0
+              visemeTargets = {
+                jawOpen: 0,
+                mouthFunnel: 0,
+                mouthPucker: 0,
+                mouthSmileL: 0,
+                mouthSmileR: 0,
+                mouthClose: 0
+              };
+              forceFullCloseUntil = performance.now() + 220;
+              visemeActiveUntil = performance.now() + 180;
               visemeStrength = 0;
               // Azzeriamo anche gli influences se disponibili
               if (Array.isArray(visemeMeshes)) {
@@ -1822,12 +1933,24 @@
                   const infl = vm.mesh && vm.mesh.morphTargetInfluences;
                   const idxs = vm.indices || {};
                   if (!infl) continue;
-                  try { if (idxs.mouthFunnel >= 0) infl[idxs.mouthFunnel] = 0; } catch {}
-                  try { if (idxs.mouthPucker >= 0) infl[idxs.mouthPucker] = 0; } catch {}
-                  try { if (idxs.mouthSmileL >= 0) infl[idxs.mouthSmileL] = 0; } catch {}
-                  try { if (idxs.mouthSmileR >= 0) infl[idxs.mouthSmileR] = 0; } catch {}
-                  try { if (idxs.mouthClose >= 0) infl[idxs.mouthClose] = 0; } catch {}
-                  try { if (idxs.jawOpen >= 0) infl[idxs.jawOpen] = Math.max(0, lipConfig.minLipSeparation * 0.6); } catch {}
+                  try {
+                    if (idxs.mouthFunnel >= 0) infl[idxs.mouthFunnel] = 0;
+                  } catch {}
+                  try {
+                    if (idxs.mouthPucker >= 0) infl[idxs.mouthPucker] = 0;
+                  } catch {}
+                  try {
+                    if (idxs.mouthSmileL >= 0) infl[idxs.mouthSmileL] = 0;
+                  } catch {}
+                  try {
+                    if (idxs.mouthSmileR >= 0) infl[idxs.mouthSmileR] = 0;
+                  } catch {}
+                  try {
+                    if (idxs.mouthClose >= 0) infl[idxs.mouthClose] = 0;
+                  } catch {}
+                  try {
+                    if (idxs.jawOpen >= 0) infl[idxs.jawOpen] = 0;
+                  } catch {}
                 }
               }
               if (humanoid && humanoid.updateMatrixWorld) humanoid.updateMatrixWorld(true);
@@ -1890,16 +2013,17 @@
         cloudAudioSpeaking = false;
         // Stop immediato dei visemi testuali
         visemeSchedule = [];
-        // Porta a posa neutra sicura (leggera apertura)
+        // Forza chiusura completa per un istante alla fine (solo jaw)
         visemeTargets = {
-          jawOpen: lipConfig.minLipSeparation,
+          jawOpen: 0,
           mouthFunnel: 0,
           mouthPucker: 0,
           mouthSmileL: 0,
           mouthSmileR: 0,
           mouthClose: 0
         };
-        visemeActiveUntil = performance.now() + 120;
+        forceFullCloseUntil = performance.now() + 220;
+        visemeActiveUntil = performance.now() + 180;
         // Azzeramento influences diretto per tutti i morph registrati
         try {
           if (Array.isArray(visemeMeshes)) {
@@ -1912,7 +2036,7 @@
               if (idxs.mouthSmileL >= 0) infl[idxs.mouthSmileL] = 0;
               if (idxs.mouthSmileR >= 0) infl[idxs.mouthSmileR] = 0;
               if (idxs.mouthClose >= 0) infl[idxs.mouthClose] = 0;
-              if (idxs.jawOpen >= 0) infl[idxs.jawOpen] = Math.max(0, lipConfig.minLipSeparation * 0.6);
+              if (idxs.jawOpen >= 0) infl[idxs.jawOpen] = 0;
             }
           }
           if (humanoid && humanoid.updateMatrixWorld) humanoid.updateMatrixWorld(true);
@@ -2060,7 +2184,8 @@
           const wsUrl = `wss://${new URL(HEYGEN_CONFIG.serverUrl).hostname}/v1/ws/streaming.chat?${params}`;
           heygen.ws = new WebSocket(wsUrl);
           heygen.ws.addEventListener('message', (evt) => {
-            /* no-op; could log */ });
+            /* no-op; could log */
+          });
         } catch {}
         await heygen.room.connect(heygen.sessionInfo.url, heygen.sessionInfo.access_token);
         // Attempt to resume playback after connect
@@ -2215,25 +2340,20 @@
     function onMeydaFeatures(features) {
       try {
         if (!features) return;
-        const rms = Math.max(0, Math.min(1, (features.rms || 0)));
-        const zcr = features.zcr || 0; // 0..1
-        const sc = features.spectralCentroid || 0; // Hz
-        const mfcc = features.mfcc || [];
+        const rms = features.rms;
+        const zcr = features.zcr;
+        const sc = features.spectralCentroid;
+        const mfcc = features.mfcc;
 
         // Heuristic viseme mapping:
         // - jawOpen by energy (rms)
         // - funnel/pucker by low centroid (rounded vowels)
         // - smile by higher centroid + certain MFCC patterns
-        const normCentroid = Math.max(0, Math.min(1, sc / 4000));
-        const rounded = Math.max(0, 1 - normCentroid); // low centroid => rounded
-        const wide = Math.max(0, normCentroid - 0.3);
-        const stopLike = Math.max(0, (0.2 - zcr) * 2); // lower zcr ~ closures
-
-        const jaw = Math.min(1, rms * 2.2);
-        const funnel = Math.max(0, rounded * 0.8 * rms);
-        const pucker = Math.max(0, (rounded * 0.6 + (mfcc[0] ? 0.1 : 0)) * rms);
-        const smile = Math.max(0, wide * 0.8 * rms);
-        const close = Math.max(0, stopLike * 0.7);
+        const jaw = Math.min(1, features.rms * 2.0);
+        const funnel = Math.max(0, (1 - features.spectralCentroid / 4000) * 0.7 * features.rms);
+        const pucker = Math.max(0, (1 - features.spectralCentroid / 4000) * 0.5 * features.rms);
+        const smile = Math.max(0, (features.spectralCentroid / 4000 - 0.3) * 0.6 * features.rms);
+        const close = Math.max(0, (0.2 - features.zcr) * 1.2);
 
         visemeTargets = {
           jawOpen: jaw,
@@ -2559,6 +2679,130 @@
             window.__orbit.update();
           } catch {}
         }
+
+        // =========================
+        // Enjoy3D API (Facade)
+        // Organizzazione in moduli per una lettura ordinata del codice
+        // Pattern: Facade + Controller groupings (scene/model/lipsync/tts/ui/debug)
+        // =========================
+        // Controller ES6: non alterano il flusso esistente; raggruppano funzioni per lettura/riuso
+        class SceneController {
+          // deps: { fitCameraToObject: Function }
+          constructor(deps = {}) {
+            this.deps = deps;
+          }
+          initThree() {
+            return initThree();
+          }
+          setupScene() {
+            return setupScene();
+          }
+          onResize() {
+            return onResize();
+          }
+          animate() {
+            return animate();
+          }
+          fitCameraToObject(cam, obj, offset) {
+            return this.deps.fitCameraToObject ? this.deps.fitCameraToObject(cam, obj, offset) : fitCameraToObject(cam, obj, offset);
+          }
+        }
+        class ModelController {
+          loadHumanoid() {
+            return loadHumanoid();
+          }
+        }
+        class LipsyncController {
+          ensureMeydaLoaded() {
+            return ensureMeydaLoaded();
+          }
+          startMeydaAnalyzer() {
+            return startMeydaAnalyzer();
+          }
+          stopMeydaAnalyzer() {
+            return stopMeydaAnalyzer();
+          }
+          onMeydaFeatures(features) {
+            return onMeydaFeatures(features);
+          }
+        }
+        class TtsController {
+          sendToTts(text) {
+            return sendToTts(text);
+          }
+          processTtsQueue() {
+            return processTtsQueue();
+          }
+          playNextInQueue() {
+            return playNextInQueue();
+          }
+          sendToTtsIfNew() {
+            return sendToTtsIfNew();
+          }
+        }
+        class UiController {
+          initDebugOverlay() {
+            return initDebugOverlay();
+          }
+        }
+
+        try {
+          window.Enjoy3D = {
+            scene: {
+              initThree,
+              setupScene,
+              onResize,
+              animate,
+              fitCameraToObject,
+            },
+            model: {
+              loadHumanoid,
+            },
+            lipsync: {
+              onMeydaFeatures,
+              ensureMeydaLoaded,
+              startMeydaAnalyzer,
+              stopMeydaAnalyzer,
+            },
+            tts: {
+              sendToTts,
+              processTtsQueue,
+              playNextInQueue,
+              sendToTtsIfNew,
+            },
+            ui: {
+              initDebugOverlay,
+            },
+            state: {
+              get camera() {
+                return camera;
+              },
+              get scene() {
+                return scene;
+              },
+              get renderer() {
+                return renderer;
+              },
+              get humanoid() {
+                return humanoid;
+              },
+              get visemeMeshes() {
+                return visemeMeshes;
+              },
+            },
+            // Controller istanziati
+            controllers: {
+              scene: new SceneController({
+                fitCameraToObject
+              }),
+              model: new ModelController(),
+              lipsync: new LipsyncController(),
+              tts: new TtsController(),
+              ui: new UiController(),
+            },
+          };
+          console.log('Enjoy3D API ready:', Object.keys(window.Enjoy3D));
+        } catch {}
         try {
           console.log('CAM fitCameraToObject', {
             pos: camera.position.toArray(),
