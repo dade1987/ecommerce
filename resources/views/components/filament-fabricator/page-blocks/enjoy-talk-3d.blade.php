@@ -28,7 +28,7 @@
       </div>
       <!-- Debug Overlay (mostrato con ?debug=1) -->
       <div id="debugOverlay" class="hidden absolute left-1/2 -translate-x-1/2 top-3 z-10 w-full max-w-[520px] px-3 sm:px-0"
-        style="pointer-events:auto;">
+           style="pointer-events:auto;">
         <div class="bg-black/70 backdrop-blur-sm border border-slate-600 rounded-md overflow-hidden shadow-lg">
           <div class="flex items-center justify-between px-3 py-2 border-b border-slate-700 bg-black/60 sticky top-0">
             <div class="text-slate-200 text-xs font-semibold">Debug</div>
@@ -39,7 +39,7 @@
             </div>
           </div>
           <div class="max-h-[50vh] sm:max-h-[60vh] overflow-auto p-2 text-[11px] font-mono text-slate-200 leading-relaxed"
-            style="margin-bottom: calc(var(--controls-pad, 0px));">
+               style="margin-bottom: calc(var(--controls-pad, 0px));">
             <div id="debugContent" class="space-y-1"></div>
           </div>
         </div>
@@ -80,10 +80,10 @@
 </div>
 
 <script type="module">
-  // Precarica Three r160 + GLTFLoader come ES Modules e risolvi prima di eseguire il resto dello script
-  window.THREE_READY = (async () => {
-    try {
-      const THREE_mod = await import('https://esm.sh/three@0.160.0');
+// Precarica Three r160 + GLTFLoader come ES Modules e risolvi prima di eseguire il resto dello script
+window.THREE_READY = (async () => {
+  try {
+    const THREE_mod = await import('https://esm.sh/three@0.160.0');
       const {
         GLTFLoader
       } = await import('https://esm.sh/three@0.160.0/examples/jsm/loaders/GLTFLoader.js');
@@ -93,15 +93,15 @@
       const {
         OrbitControls
       } = await import('https://esm.sh/three@0.160.0/examples/jsm/controls/OrbitControls.js');
-      window.THREE = THREE_mod;
-      window.GLTFLoader = GLTFLoader;
+    window.THREE = THREE_mod;
+    window.GLTFLoader = GLTFLoader;
       window.FBXLoader = FBXLoader;
       window.OrbitControls = OrbitControls;
-      console.log('Three+GLTFLoader via esm.sh');
-      return true;
-    } catch (e) {
-      try {
-        const THREE_mod = await import('https://unpkg.com/three@0.160.0/build/three.module.js');
+    console.log('Three+GLTFLoader via esm.sh');
+    return true;
+  } catch (e) {
+    try {
+      const THREE_mod = await import('https://unpkg.com/three@0.160.0/build/three.module.js');
         const {
           GLTFLoader
         } = await import('https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js?module');
@@ -111,18 +111,18 @@
         const {
           OrbitControls
         } = await import('https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js?module');
-        window.THREE = THREE_mod;
-        window.GLTFLoader = GLTFLoader;
+      window.THREE = THREE_mod;
+      window.GLTFLoader = GLTFLoader;
         window.FBXLoader = FBXLoader;
         window.OrbitControls = OrbitControls;
-        console.log('Three+GLTFLoader via unpkg (?module)');
-        return true;
-      } catch (e2) {
-        console.error('Impossibile importare Three/GLTFLoader come ES modules', e2);
-        return false;
-      }
+      console.log('Three+GLTFLoader via unpkg (?module)');
+      return true;
+    } catch (e2) {
+      console.error('Impossibile importare Three/GLTFLoader come ES modules', e2);
+      return false;
     }
-  })();
+  }
+})();
 </script>
 
 <!-- Rimosso Laravel Echo - usa solo streaming SSE nativo -->
@@ -130,42 +130,42 @@
 <script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
 
 <script>
-  document.addEventListener('DOMContentLoaded', async function() {
-    // Attendi il preload dei moduli
+document.addEventListener('DOMContentLoaded', async function() {
+  // Attendi il preload dei moduli
     try {
       if (window.THREE_READY && window.THREE_READY.then) {
         await Promise.race([window.THREE_READY, new Promise(r => setTimeout(r, 3000))]);
       }
     } catch {}
-    const sendBtn = document.getElementById('sendBtn');
-    const micBtn = document.getElementById('micBtn');
-    const input = document.getElementById('textInput');
-    const liveText = document.getElementById('liveText');
-    const ttsPlayer = document.getElementById('ttsPlayer');
-    const thinkingBubble = document.getElementById('thinkingBubble');
-    const useBrowserTts = document.getElementById('useBrowserTts');
-    const useVideoAvatar = document.getElementById('useVideoAvatar');
-    const browserTtsStatus = document.getElementById('browserTtsStatus');
-    const videoAvatarStatus = document.getElementById('videoAvatarStatus');
-    const useAdvancedLipsync = document.getElementById('useAdvancedLipsync');
-    const heygenVideo = document.getElementById('heygenVideo');
-    const heygenAudio = document.getElementById('heygenAudio');
-    const teamSlug = window.location.pathname.split('/').pop();
-    const urlParams = new URLSearchParams(window.location.search);
-    const uuid = urlParams.get('uuid');
-    const locale = '{{ app()->getLocale() }}';
-    const debugEnabled = urlParams.get('debug') === '1';
-    const rootEl = document.getElementById('enjoyTalkRoot');
-    const HEYGEN_CONFIG = {
-      apiKey: (rootEl?.dataset?.heygenApiKey) || '',
-      serverUrl: (rootEl?.dataset?.heygenServerUrl) || 'https://api.heygen.com'
-    };
-    const heygenAvatar = (urlParams.get('avatar') || '').trim();
-    const heygenVoice = (urlParams.get('voice') || '').trim();
-    const ua = navigator.userAgent || '';
-    const isAndroid = /Android/i.test(ua);
-    const isChrome = !!window.chrome && /Chrome\/\d+/.test(ua) && !/Edg\//.test(ua) && !/OPR\//.test(ua) && !/Brave/i.test(ua);
-    const urlLang = (urlParams.get('lang') || '').trim();
+  const sendBtn = document.getElementById('sendBtn');
+  const micBtn = document.getElementById('micBtn');
+  const input = document.getElementById('textInput');
+  const liveText = document.getElementById('liveText');
+  const ttsPlayer = document.getElementById('ttsPlayer');
+  const thinkingBubble = document.getElementById('thinkingBubble');
+  const useBrowserTts = document.getElementById('useBrowserTts');
+  const useVideoAvatar = document.getElementById('useVideoAvatar');
+  const browserTtsStatus = document.getElementById('browserTtsStatus');
+  const videoAvatarStatus = document.getElementById('videoAvatarStatus');
+  const useAdvancedLipsync = document.getElementById('useAdvancedLipsync');
+  const heygenVideo = document.getElementById('heygenVideo');
+  const heygenAudio = document.getElementById('heygenAudio');
+  const teamSlug = window.location.pathname.split('/').pop();
+  const urlParams = new URLSearchParams(window.location.search);
+  const uuid = urlParams.get('uuid');
+  const locale = '{{ app()->getLocale() }}';
+  const debugEnabled = urlParams.get('debug') === '1';
+  const rootEl = document.getElementById('enjoyTalkRoot');
+  const HEYGEN_CONFIG = {
+    apiKey: (rootEl?.dataset?.heygenApiKey) || '',
+    serverUrl: (rootEl?.dataset?.heygenServerUrl) || 'https://api.heygen.com'
+  };
+  const heygenAvatar = (urlParams.get('avatar') || '').trim();
+  const heygenVoice = (urlParams.get('voice') || '').trim();
+  const ua = navigator.userAgent || '';
+  const isAndroid = /Android/i.test(ua);
+  const isChrome = !!window.chrome && /Chrome\/\d+/.test(ua) && !/Edg\//.test(ua) && !/OPR\//.test(ua) && !/Brave/i.test(ua);
+  const urlLang = (urlParams.get('lang') || '').trim();
     // Config opzionale per asse e segno della mandibola (rig senza morph)
     const jawAxisParam = (urlParams.get('jaw_axis') || '').toLowerCase();
     const jawAxis = (jawAxisParam === 'y' || jawAxisParam === 'z') ? jawAxisParam : 'x';
@@ -177,27 +177,27 @@
     const headDistParam = parseFloat(urlParams.get('head_dist') || '');
     const headFovParam = parseFloat(urlParams.get('head_fov') || '');
 
-    function normalizeLangTag(tag, fallback) {
-      try {
+  function normalizeLangTag(tag, fallback) {
+    try {
         const t = (tag || '').replace('_', '-').trim();
-        if (!t) return fallback;
-        // Normalizza in BCP47 semplice (xx-YY)
-        const parts = t.split('-');
-        if (parts.length === 1) return parts[0].toLowerCase();
-        return parts[0].toLowerCase() + '-' + parts[1].toUpperCase();
+      if (!t) return fallback;
+      // Normalizza in BCP47 semplice (xx-YY)
+      const parts = t.split('-');
+      if (parts.length === 1) return parts[0].toLowerCase();
+      return parts[0].toLowerCase() + '-' + parts[1].toUpperCase();
       } catch {
         return fallback;
       }
-    }
-    const navLang = (navigator.language || (navigator.languages && navigator.languages[0]) || '').trim();
-    const rawLang = (urlLang || locale || navLang || 'it-IT');
-    let recLang = normalizeLangTag(rawLang, 'it-IT');
-    // Forza italiano se il tag in ingresso indica italiano (alcuni device rifiutano 'it')
+  }
+  const navLang = (navigator.language || (navigator.languages && navigator.languages[0]) || '').trim();
+  const rawLang = (urlLang || locale || navLang || 'it-IT');
+  let recLang = normalizeLangTag(rawLang, 'it-IT');
+  // Forza italiano se il tag in ingresso indica italiano (alcuni device rifiutano 'it')
     try {
       if (/^it(\b|[-_])/i.test(rawLang) || rawLang.toLowerCase() === 'it') recLang = 'it-IT';
     } catch {}
-    let threadId = null;
-    let assistantThreadId = null;
+  let threadId = null;
+  let assistantThreadId = null;
     let humanoid = null,
       jawBone = null,
       headBone = null,
@@ -207,7 +207,7 @@
     let morphMesh = null,
       morphIndex = -1,
       morphValue = 0;
-    // Viseme support (browser TTS only): indices for relevant morph targets
+  // Viseme support (browser TTS only): indices for relevant morph targets
     const visemeIndices = {
       jawOpen: -1,
       mouthFunnel: -1,
@@ -216,9 +216,9 @@
       mouthSmileR: -1,
       mouthClose: -1
     };
-    let visemeActiveUntil = 0;
-    let visemeStrength = 0; // 0..1 current blend magnitude
-    // Stato precedente per smoothing e deadband
+  let visemeActiveUntil = 0;
+  let visemeStrength = 0; // 0..1 current blend magnitude
+  // Stato precedente per smoothing e deadband
     let lastVisemes = {
       jawOpen: 0,
       mouthFunnel: 0,
@@ -243,30 +243,30 @@
       mouthSmileR: 0,
       mouthClose: 0
     };
-    let visemeMeshes = [];
-    // Scheduler visemi testuali (DISABILITATO: usiamo lipsync da audio)
-    let visemeSchedule = [];
-    const textVisemeEnabled = true;
-    let cloudAudioSpeaking = false;
+  let visemeMeshes = [];
+  // Scheduler visemi testuali (DISABILITATO: usiamo lipsync da audio)
+  let visemeSchedule = [];
+  const textVisemeEnabled = true;
+  let cloudAudioSpeaking = false;
 
-    // Stato ampiezza audio con envelope per evitare bocca troppo aperta e jitter
-    let audioAmp = 0; // 0..1
-    const AMP_ATTACK = 0.25; // risposta a salire (più alto = più reattivo)
-    const AMP_RELEASE = 0.08; // risposta a scendere (più basso = rilascio lento)
-    // Blink/eyes morph indices (opzionali)
+  // Stato ampiezza audio con envelope per evitare bocca troppo aperta e jitter
+  let audioAmp = 0; // 0..1
+  const AMP_ATTACK = 0.25; // risposta a salire (più alto = più reattivo)
+  const AMP_RELEASE = 0.08; // risposta a scendere (più basso = rilascio lento)
+  // Blink/eyes morph indices (opzionali)
     const eyeIndices = {
       eyeBlinkLeft: -1,
       eyeBlinkRight: -1
     };
-    let eyeMesh = null;
-    let nextBlinkAt = performance.now() + 1200 + Math.random() * 2000;
-    let blinkPhase = 0; // 0..1 (chiusura-apertura)
+  let eyeMesh = null;
+  let nextBlinkAt = performance.now() + 1200 + Math.random() * 2000;
+  let blinkPhase = 0; // 0..1 (chiusura-apertura)
     // Forza chiusura completa (ignora minLipSeparation) per breve tempo (ms)
     let forceFullCloseUntil = 0;
     let syllablePulseUntil = 0; // finestra di chiusura corrente
     let nextSyllablePulseAt = 0; // debouncing
-    // Config lipsync: separazione minima e limiti di chiusura
-    const lipConfig = {
+  // Config lipsync: separazione minima e limiti di chiusura
+  const lipConfig = {
       restJawOpen: 0.12, // apertura a riposo
       minLipSeparation: 0.07, // separazione minima obbligatoria
       maxMouthClose: 0.35, // limite massimo di chiusura
@@ -276,19 +276,19 @@
       jawSmoothingAlpha: 0.12, // smoothing per bone/geom jaw (più basso = più lento)
     };
 
-    function enqueueTextVisemes(text, totalDurationMs = null, startAtMs = null) {
-      try {
-        if (!text || typeof text !== 'string') return;
-        const now = performance.now();
-        const start = (typeof startAtMs === 'number' ? startAtMs : now);
-        // stima durata per carattere
-        const clean = String(text).replace(/\s+/g, ' ').trim();
-        const chars = Math.max(1, clean.length);
-        const baseDur = 95;
+  function enqueueTextVisemes(text, totalDurationMs = null, startAtMs = null) {
+    try {
+      if (!text || typeof text !== 'string') return;
+      const now = performance.now();
+      const start = (typeof startAtMs === 'number' ? startAtMs : now);
+      // stima durata per carattere
+      const clean = String(text).replace(/\s+/g, ' ').trim();
+      const chars = Math.max(1, clean.length);
+      const baseDur = 95;
         const dur = (typeof totalDurationMs === 'number' && isFinite(totalDurationMs) && totalDurationMs > 200) ?
           Math.max(40, totalDurationMs / chars) :
           baseDur;
-        let accEnd = (visemeSchedule.length > 0 ? visemeSchedule[visemeSchedule.length - 1].end : start);
+      let accEnd = (visemeSchedule.length > 0 ? visemeSchedule[visemeSchedule.length - 1].end : start);
 
         // Dividi il testo in sillabe approssimative per l'italiano
         const syllables = clean.toLowerCase()
@@ -342,15 +342,15 @@
           }
 
           const sylDur = dur * (syl.length * 0.8); // Durata proporzionale alla lunghezza della sillaba
-          const s = accEnd;
+        const s = accEnd;
           const e = s + sylDur;
           visemeSchedule.push({
             start: s,
             end: e,
             targets: t
           });
-          accEnd = e;
-        }
+        accEnd = e;
+      }
 
         // Gestione punteggiatura e pause
         for (const ch of clean) {
@@ -375,44 +375,44 @@
           }
         }
 
-        // limita schedule per evitare code troppo lunghe
-        if (visemeSchedule.length > 120) visemeSchedule = visemeSchedule.slice(-120);
-      } catch {}
-    }
+      // limita schedule per evitare code troppo lunghe
+      if (visemeSchedule.length > 120) visemeSchedule = visemeSchedule.slice(-120);
+    } catch {}
+  }
     let isListening = false,
       recognition = null,
       mediaMicStream = null;
-    let currentEvtSource = null; // Stream SSE attivo da chiudere se necessario
-    let isStartingStream = false;
-
-    // Three.js avatar minimale (testa + mandibola)
-    let THREELoaded = false;
-    let scene, camera, renderer, head, jaw, animationId, analyser, dataArray, audioCtx, mediaNode;
+  let currentEvtSource = null; // Stream SSE attivo da chiudere se necessario
+  let isStartingStream = false;
+  
+  // Three.js avatar minimale (testa + mandibola)
+  let THREELoaded = false;
+  let scene, camera, renderer, head, jaw, animationId, analyser, dataArray, audioCtx, mediaNode;
     let meyda = null,
       meydaAnalyzer = null;
-    let advancedLipsyncOn = false;
+  let advancedLipsyncOn = false;
 
-    // TTS queue
-    let bufferText = '';
-    let ttsBuffer = ''; // Buffer separato per TTS
-    let speakQueue = [];
-    let isSpeaking = false;
-    let lastSpokenTail = '';
-    let lastSentToTts = '';
-    let ttsProcessedLength = 0; // Traccia quanto del testo è già stato processato per TTS
-    let ttsFirstChunkSent = false;
-    let ttsKickTimer = null;
-    let ttsTick = null;
-    let ttsRequestQueue = [];
-    let ttsRequestInFlight = false;
-    // Ampiezza sintetica per TTS del browser (non fornisce audio samples)
-    let speechAmp = 0;
-    let speechAmpTarget = 0;
-    let speechAmpTimer = null;
-    // FFT cache for lipsync when using cloud TTS (audio element)
-    let freqData = null;
+  // TTS queue
+  let bufferText = '';
+  let ttsBuffer = ''; // Buffer separato per TTS
+  let speakQueue = [];
+  let isSpeaking = false;
+  let lastSpokenTail = '';
+  let lastSentToTts = '';
+  let ttsProcessedLength = 0; // Traccia quanto del testo è già stato processato per TTS
+  let ttsFirstChunkSent = false;
+  let ttsKickTimer = null;
+  let ttsTick = null;
+  let ttsRequestQueue = [];
+  let ttsRequestInFlight = false;
+  // Ampiezza sintetica per TTS del browser (non fornisce audio samples)
+  let speechAmp = 0;
+  let speechAmpTarget = 0;
+  let speechAmpTimer = null;
+  // FFT cache for lipsync when using cloud TTS (audio element)
+  let freqData = null;
 
-    // HeyGen Streaming state
+  // HeyGen Streaming state
     let heygen = {
       sessionInfo: null,
       room: null,
@@ -422,12 +422,12 @@
       started: false
     };
 
-    // Debug overlay wiring
-    const debugOverlay = document.getElementById('debugOverlay');
-    const debugContent = document.getElementById('debugContent');
-    const debugCloseBtn = document.getElementById('debugClose');
-    const debugClearBtn = document.getElementById('debugClear');
-    const debugCopyBtn = document.getElementById('debugCopy');
+  // Debug overlay wiring
+  const debugOverlay = document.getElementById('debugOverlay');
+  const debugContent = document.getElementById('debugContent');
+  const debugCloseBtn = document.getElementById('debugClose');
+  const debugClearBtn = document.getElementById('debugClear');
+  const debugCopyBtn = document.getElementById('debugCopy');
     const originalConsole = {
       log: console.log,
       warn: console.warn,
@@ -435,56 +435,56 @@
       info: console.info
     };
 
-    function formatForLog(arg) {
-      try {
-        if (arg instanceof Error) {
-          return (arg.stack || (arg.name + ': ' + arg.message));
-        }
-        if (typeof arg === 'object') {
-          return JSON.stringify(arg, (k, v) => {
-            if (v instanceof Node) return `[Node ${v.nodeName}]`;
-            if (v === window) return '[Window]';
-            if (v === document) return '[Document]';
-            return v;
-          });
-        }
-        return String(arg);
-      } catch (_) {
+  function formatForLog(arg) {
+    try {
+      if (arg instanceof Error) {
+        return (arg.stack || (arg.name + ': ' + arg.message));
+      }
+      if (typeof arg === 'object') {
+        return JSON.stringify(arg, (k, v) => {
+          if (v instanceof Node) return `[Node ${v.nodeName}]`;
+          if (v === window) return '[Window]';
+          if (v === document) return '[Document]';
+          return v;
+        });
+      }
+      return String(arg);
+    } catch (_) {
         try {
           return String(arg);
         } catch {
           return '[unserializable]';
         }
-      }
     }
+  }
 
-    function appendDebugLine(type, args) {
-      if (!debugEnabled || !debugContent) return;
-      const time = new Date().toLocaleTimeString();
-      const line = document.createElement('div');
-      line.className = 'whitespace-pre-wrap break-words';
-      try {
-        const msg = Array.from(args || []).map(formatForLog).join(' ');
-        line.textContent = `[${time}] ${type.toUpperCase()} ${msg}`;
-      } catch {
-        line.textContent = `[${time}] ${type.toUpperCase()} [log append failed]`;
+  function appendDebugLine(type, args) {
+    if (!debugEnabled || !debugContent) return;
+    const time = new Date().toLocaleTimeString();
+    const line = document.createElement('div');
+    line.className = 'whitespace-pre-wrap break-words';
+    try {
+      const msg = Array.from(args || []).map(formatForLog).join(' ');
+      line.textContent = `[${time}] ${type.toUpperCase()} ${msg}`;
+    } catch {
+      line.textContent = `[${time}] ${type.toUpperCase()} [log append failed]`;
+    }
+    debugContent.appendChild(line);
+    // Trim to last 400 lines
+    try {
+      const max = 400;
+      while (debugContent.childNodes.length > max) {
+        debugContent.removeChild(debugContent.firstChild);
       }
-      debugContent.appendChild(line);
-      // Trim to last 400 lines
-      try {
-        const max = 400;
-        while (debugContent.childNodes.length > max) {
-          debugContent.removeChild(debugContent.firstChild);
-        }
-      } catch {}
-      // Scroll to bottom
+    } catch {}
+    // Scroll to bottom
       try {
         debugContent.parentElement.scrollTop = debugContent.parentElement.scrollHeight;
       } catch {}
-    }
+  }
 
-    function initDebugOverlay() {
-      if (!debugEnabled) return;
+  function initDebugOverlay() {
+    if (!debugEnabled) return;
       try {
         debugOverlay?.classList.remove('hidden');
       } catch {}
@@ -495,14 +495,14 @@
         debugClearBtn?.addEventListener('click', () => {
           if (debugContent) debugContent.innerHTML = '';
         });
-        debugCopyBtn?.addEventListener('click', async () => {
-          try {
-            const lines = Array.from(debugContent?.children || []).map(n => (n.textContent || ''));
-            const text = lines.join('\n');
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-              await navigator.clipboard.writeText(text);
-            } else {
-              const ta = document.createElement('textarea');
+      debugCopyBtn?.addEventListener('click', async () => {
+        try {
+          const lines = Array.from(debugContent?.children || []).map(n => (n.textContent || ''));
+          const text = lines.join('\n');
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(text);
+          } else {
+            const ta = document.createElement('textarea');
               ta.value = text;
               document.body.appendChild(ta);
               ta.select();
@@ -512,35 +512,35 @@
             console.log('DEBUG: logs copied', {
               lines: lines.length
             });
-          } catch (e) {
-            console.error('DEBUG: copy failed', e);
-          }
-        });
-      } catch {}
-      // Mirror console methods
-      try {
+        } catch (e) {
+          console.error('DEBUG: copy failed', e);
+        }
+      });
+    } catch {}
+    // Mirror console methods
+    try {
         ['log', 'warn', 'error', 'info'].forEach((m) => {
-          console[m] = function(...a) {
+        console[m] = function(...a) {
             try {
               appendDebugLine(m, a);
             } catch {}
             try {
               originalConsole[m].apply(console, a);
             } catch {}
-          };
-        });
-      } catch {}
-      // Window-level errors
-      try {
-        window.addEventListener('error', (e) => {
-          appendDebugLine('windowError', [e.message, `${e.filename}:${e.lineno}:${e.colno}`]);
-        });
-        window.addEventListener('unhandledrejection', (e) => {
-          const r = e.reason;
-          appendDebugLine('promiseRejection', [r && (r.stack || r.message) || String(r)]);
-        });
-      } catch {}
-      // First line
+        };
+      });
+    } catch {}
+    // Window-level errors
+    try {
+      window.addEventListener('error', (e) => {
+        appendDebugLine('windowError', [e.message, `${e.filename}:${e.lineno}:${e.colno}`]);
+      });
+      window.addEventListener('unhandledrejection', (e) => {
+        const r = e.reason;
+        appendDebugLine('promiseRejection', [r && (r.stack || r.message) || String(r)]);
+      });
+    } catch {}
+    // First line
       appendDebugLine('info', ['Debug overlay enabled', {
         ua: navigator.userAgent,
         locale,
@@ -549,135 +549,135 @@
         isChrome,
         hasWebSpeech: !!(window.SpeechRecognition || window.webkitSpeechRecognition)
       }]);
-    }
+  }
 
-    // Sanifica testo per TTS (niente markdown/asterischi/URL/decimali ",00")
-    function sanitizeForTts(input) {
-      let t = stripHtml(input || '');
-      // Rimuovi markdown semplice
-      t = t.replace(/\*\*(.*?)\*\*/g, '$1');
-      t = t.replace(/\*(.*?)\*/g, '$1');
-      t = t.replace(/`+/g, '');
-      // Rimuovi URL
-      t = t.replace(/https?:\/\/\S+/gi, '');
-      // Rimuovi bullet / numerazioni
-      t = t.replace(/^[\-\*•]\s+/gm, '');
-      t = t.replace(/^\d+\.\s+/gm, '');
-      // Rimuovi decimali ",00" o ".00"
-      t = t.replace(/(\d+)[\.,]00\b/g, '$1');
-      // Comprimi punteggiatura e spazi
-      t = t.replace(/[\s\u00A0]+/g, ' ').trim();
-      // Evita ripetizioni di punti/virgole
-      t = t.replace(/([\.!?,;:]){2,}/g, '$1');
-      return t;
-    }
-    initThree();
+  // Sanifica testo per TTS (niente markdown/asterischi/URL/decimali ",00")
+  function sanitizeForTts(input) {
+    let t = stripHtml(input || '');
+    // Rimuovi markdown semplice
+    t = t.replace(/\*\*(.*?)\*\*/g, '$1');
+    t = t.replace(/\*(.*?)\*/g, '$1');
+    t = t.replace(/`+/g, '');
+    // Rimuovi URL
+    t = t.replace(/https?:\/\/\S+/gi, '');
+    // Rimuovi bullet / numerazioni
+    t = t.replace(/^[\-\*•]\s+/gm, '');
+    t = t.replace(/^\d+\.\s+/gm, '');
+    // Rimuovi decimali ",00" o ".00"
+    t = t.replace(/(\d+)[\.,]00\b/g, '$1');
+    // Comprimi punteggiatura e spazi
+    t = t.replace(/[\s\u00A0]+/g, ' ').trim();
+    // Evita ripetizioni di punti/virgole
+    t = t.replace(/([\.!?,;:]){2,}/g, '$1');
+    return t;
+  }
+  initThree();
 
-    // Auto-selezioni TTS di default
-    try {
+  // Auto-selezioni TTS di default
+  try {
       // Default: Video Avatar disattivo, TTS browser attivo se supportato
       if (useVideoAvatar) {
         useVideoAvatar.checked = false;
       }
       if ('speechSynthesis' in window && useBrowserTts) {
-        useBrowserTts.checked = true;
+      useBrowserTts.checked = true;
         browserTtsStatus && (browserTtsStatus.textContent = 'TTS browser attivo');
-      }
-      // Abilita di default LipSync avanzato su Chrome o in debug
+    }
+    // Abilita di default LipSync avanzato su Chrome o in debug
       const ua = navigator.userAgent || '';
       const isChrome = !!window.chrome && /Chrome\/\d+/.test(ua) && !/Edg\//.test(ua) && !/OPR\//.test(ua) && !/Brave/i.test(ua);
-      if ((isChrome || debugEnabled) && useAdvancedLipsync) {
-        useAdvancedLipsync.checked = true;
-        advancedLipsyncOn = true;
-        ensureMeydaLoaded().then(() => startMeydaAnalyzer()).catch(() => {});
-      }
-    } catch {}
-    // Toggle Video Avatar visibility and session management
-    try {
-      useVideoAvatar?.addEventListener('change', async () => {
-        if (useVideoAvatar.checked) {
-          document.getElementById('avatarStage')?.classList.add('hidden');
-          heygenVideo?.classList.remove('hidden');
+    if ((isChrome || debugEnabled) && useAdvancedLipsync) {
+      useAdvancedLipsync.checked = true;
+      advancedLipsyncOn = true;
+      ensureMeydaLoaded().then(() => startMeydaAnalyzer()).catch(() => {});
+    }
+  } catch {}
+  // Toggle Video Avatar visibility and session management
+  try {
+    useVideoAvatar?.addEventListener('change', async () => {
+      if (useVideoAvatar.checked) {
+        document.getElementById('avatarStage')?.classList.add('hidden');
+        heygenVideo?.classList.remove('hidden');
           try {
             await heygenEnsureSession();
           } catch (e) {
             console.error('HEYGEN: ensure session failed', e);
           }
-          // Try user-gesture playback unlock on first interaction
-          const unlock = async () => {
+        // Try user-gesture playback unlock on first interaction
+        const unlock = async () => {
             try {
               await heygenVideo?.play();
             } catch {}
             try {
               await heygenAudio?.play();
             } catch {}
-            document.removeEventListener('click', unlock);
-            document.removeEventListener('touchstart', unlock);
-          };
+          document.removeEventListener('click', unlock);
+          document.removeEventListener('touchstart', unlock);
+        };
           document.addEventListener('click', unlock, {
             once: true
           });
           document.addEventListener('touchstart', unlock, {
             once: true
           });
-        } else {
-          heygenVideo?.classList.add('hidden');
-          document.getElementById('avatarStage')?.classList.remove('hidden');
+      } else {
+        heygenVideo?.classList.add('hidden');
+        document.getElementById('avatarStage')?.classList.remove('hidden');
           try {
             await heygenClose();
           } catch {}
-        }
-      });
-      // Ensure initial state
-      if (useVideoAvatar?.checked) {
-        document.getElementById('avatarStage')?.classList.add('hidden');
-        heygenVideo?.classList.remove('hidden');
+      }
+    });
+    // Ensure initial state
+    if (useVideoAvatar?.checked) {
+      document.getElementById('avatarStage')?.classList.add('hidden');
+      heygenVideo?.classList.remove('hidden');
         try {
           await heygenEnsureSession();
         } catch {}
-        // Ensure autoplay after initial tracks
-        setTimeout(async () => {
+      // Ensure autoplay after initial tracks
+      setTimeout(async () => {
           try {
             if (heygenVideo?.srcObject && heygenVideo.paused) await heygenVideo.play();
           } catch {}
           try {
             if (heygenAudio?.srcObject && heygenAudio.paused) await heygenAudio.play();
           } catch {}
-        }, 800);
+      }, 800);
+    }
+  } catch {}
+
+
+  // Toggle advanced lipsync
+  try {
+    useAdvancedLipsync?.addEventListener('change', async () => {
+      advancedLipsyncOn = !!useAdvancedLipsync.checked;
+      if (advancedLipsyncOn) {
+        await ensureMeydaLoaded();
+        startMeydaAnalyzer();
+      } else {
+        stopMeydaAnalyzer();
       }
-    } catch {}
+    });
+  } catch {}
 
+  // Rimosso chat history: messaggi non più renderizzati, manteniamo solo TTS e indicatori
 
-    // Toggle advanced lipsync
-    try {
-      useAdvancedLipsync?.addEventListener('change', async () => {
-        advancedLipsyncOn = !!useAdvancedLipsync.checked;
-        if (advancedLipsyncOn) {
-          await ensureMeydaLoaded();
-          startMeydaAnalyzer();
-        } else {
-          stopMeydaAnalyzer();
-        }
-      });
-    } catch {}
+  // Init debug overlay (at end, so it captures later console logs too)
+  initDebugOverlay();
 
-    // Rimosso chat history: messaggi non più renderizzati, manteniamo solo TTS e indicatori
-
-    // Init debug overlay (at end, so it captures later console logs too)
-    initDebugOverlay();
-
-    function startStream(message) {
-      if (!message || message.trim() === '') return;
+  function startStream(message) {
+    if (!message || message.trim() === '') return;
       if (isStartingStream) {
         console.warn('SSE: start already in progress');
         return;
       }
-      isStartingStream = true;
+    isStartingStream = true;
       setTimeout(() => {
         isStartingStream = false;
       }, 800);
-
-      console.log('TTS: Starting new conversation, resetting state');
+    
+    console.log('TTS: Starting new conversation, resetting state');
       try {
         console.log('SSE: connecting', {
           team: teamSlug,
@@ -685,25 +685,25 @@
           locale
         });
       } catch {}
-
-      // Chat history rimossa: nessun messaggio renderizzato, manteniamo solo TTS
-
-      // Mostra fumetto "Sto pensando..."
-      thinkingBubble.classList.remove('hidden');
-
-      // Chiudi eventuale stream precedente e resetta per nuova conversazione
+    
+    // Chat history rimossa: nessun messaggio renderizzato, manteniamo solo TTS
+    
+    // Mostra fumetto "Sto pensando..."
+    thinkingBubble.classList.remove('hidden');
+    
+    // Chiudi eventuale stream precedente e resetta per nuova conversazione
       try {
         if (currentEvtSource) {
           currentEvtSource.close();
           currentEvtSource = null;
         }
       } catch {}
-      bufferText = '';
-      ttsBuffer = '';
-      lastSentToTts = '';
-      lastSpokenTail = '';
-      ttsProcessedLength = 0;
-      ttsFirstChunkSent = false;
+    bufferText = '';
+    ttsBuffer = '';
+    lastSentToTts = '';
+    lastSpokenTail = '';
+    ttsProcessedLength = 0;
+    ttsFirstChunkSent = false;
       if (ttsKickTimer) {
         try {
           clearTimeout(ttsKickTimer);
@@ -716,20 +716,20 @@
         } catch {}
         ttsTick = null;
       }
-
-      // Ferma audio corrente e pulisci coda
-      if (ttsPlayer && !ttsPlayer.paused) {
-        ttsPlayer.pause();
-        ttsPlayer.currentTime = 0;
-      }
-
-      // Pulisci coda TTS
-      speakQueue.forEach(item => URL.revokeObjectURL(item.url));
-      speakQueue = [];
-      isSpeaking = false;
-
-      let collected = '';
-      let aiMessageDiv = null; // Riferimento al div del messaggio AI
+    
+    // Ferma audio corrente e pulisci coda
+    if (ttsPlayer && !ttsPlayer.paused) {
+      ttsPlayer.pause();
+      ttsPlayer.currentTime = 0;
+    }
+    
+    // Pulisci coda TTS
+    speakQueue.forEach(item => URL.revokeObjectURL(item.url));
+    speakQueue = [];
+    isSpeaking = false;
+    
+    let collected = '';
+    let aiMessageDiv = null; // Riferimento al div del messaggio AI
       const params = new URLSearchParams({
         message,
         team: teamSlug,
@@ -737,29 +737,29 @@
         locale,
         ts: String(Date.now())
       });
-      if (threadId) params.set('thread_id', threadId);
-      if (assistantThreadId) params.set('assistant_thread_id', assistantThreadId);
-      let done = false;
-      let firstToken = true;
-      let sseRetryCount = 0;
-      let evtSource = null;
-      let sseConnectWatchdog = null;
-      // Tick ad alta frequenza per tentare TTS chunking, indipendente dal ritmo dei token
-      if (!ttsTick) {
-        ttsTick = setInterval(() => {
+    if (threadId) params.set('thread_id', threadId);
+    if (assistantThreadId) params.set('assistant_thread_id', assistantThreadId);
+    let done = false;
+    let firstToken = true;
+    let sseRetryCount = 0;
+    let evtSource = null;
+    let sseConnectWatchdog = null;
+    // Tick ad alta frequenza per tentare TTS chunking, indipendente dal ritmo dei token
+    if (!ttsTick) {
+      ttsTick = setInterval(() => {
           try {
             checkForTtsChunks();
           } catch {}
-        }, 120);
-      }
+      }, 120);
+    }
 
-      function bindSse() {
-        evtSource.addEventListener('message', (e) => {
-          try {
-            const data = JSON.parse(e.data);
-            if (data.token) {
-              try {
-                const tok = JSON.parse(data.token);
+    function bindSse() {
+      evtSource.addEventListener('message', (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          if (data.token) {
+            try {
+              const tok = JSON.parse(data.token);
                 if (tok && tok.thread_id) {
                   threadId = tok.thread_id;
                   return;
@@ -768,83 +768,83 @@
                   assistantThreadId = tok.assistant_thread_id;
                   return;
                 }
-              } catch {}
-              if (firstToken) {
-                firstToken = false;
-                thinkingBubble.classList.add('hidden');
+            } catch {}
+            if (firstToken) {
+              firstToken = false;
+              thinkingBubble.classList.add('hidden');
                 if (ttsKickTimer) {
                   try {
                     clearTimeout(ttsKickTimer);
                   } catch {}
                 }
-                ttsKickTimer = null;
-                // Abbiamo ricevuto dati: annulla watchdog di connessione
+              ttsKickTimer = null;
+              // Abbiamo ricevuto dati: annulla watchdog di connessione
                 if (sseConnectWatchdog) {
                   clearTimeout(sseConnectWatchdog);
                   sseConnectWatchdog = null;
                 }
-              }
-              collected += data.token;
-              ttsBuffer += data.token;
-              checkForTtsChunks();
             }
+            collected += data.token;
+            ttsBuffer += data.token;
+            checkForTtsChunks();
+          }
           } catch (msgErr) {
             console.warn('Message parse error:', msgErr);
           }
-        });
-        evtSource.addEventListener('error', () => {
-          const state = evtSource.readyState; // 0=CONNECTING,1=OPEN,2=CLOSED
-          try {
-            if (state === 2) {
+      });
+      evtSource.addEventListener('error', () => {
+        const state = evtSource.readyState; // 0=CONNECTING,1=OPEN,2=CLOSED
+        try {
+          if (state === 2) {
               console.error('SSE: closed', {
                 attempt: sseRetryCount + 1,
                 readyState: state
               });
-            } else {
+          } else {
               console.warn('SSE: transient error', {
                 attempt: sseRetryCount + 1,
                 readyState: state
               });
-            }
-          } catch {}
-          // Se non è CLOSED e non abbiamo finito, lascia che il browser gestisca la riconnessione
+          }
+        } catch {}
+        // Se non è CLOSED e non abbiamo finito, lascia che il browser gestisca la riconnessione
           if (state !== 2 && !done) {
             return;
           }
           try {
             evtSource.close();
           } catch {}
-          currentEvtSource = null;
+        currentEvtSource = null;
           if (sseConnectWatchdog) {
             try {
               clearTimeout(sseConnectWatchdog);
             } catch {}
             sseConnectWatchdog = null;
           }
-          // Retry se nessun token ricevuto
-          if (!done && collected.length === 0 && sseRetryCount < 2) {
-            sseRetryCount++;
-            const delay = 220 * sseRetryCount;
+        // Retry se nessun token ricevuto
+        if (!done && collected.length === 0 && sseRetryCount < 2) {
+          sseRetryCount++;
+          const delay = 220 * sseRetryCount;
             setTimeout(() => {
               openSse();
             }, delay);
-            return;
-          }
-          // Cleanup
-          thinkingBubble.classList.add('hidden');
+          return;
+        }
+        // Cleanup
+        thinkingBubble.classList.add('hidden');
           if (ttsTick) {
             try {
               clearInterval(ttsTick);
             } catch {}
             ttsTick = null;
           }
-        });
-        evtSource.addEventListener('done', () => {
+      });
+      evtSource.addEventListener('done', () => {
           try {
             evtSource.close();
           } catch {}
-          done = true;
-          thinkingBubble.classList.add('hidden');
+        done = true;
+        thinkingBubble.classList.add('hidden');
           try {
             console.log('SSE: done event received');
           } catch {}
@@ -854,14 +854,14 @@
             } catch {}
             sseConnectWatchdog = null;
           }
-          if (ttsBuffer.trim().length > 0) {
-            const remainingText = stripHtml(ttsBuffer).trim();
+        if (ttsBuffer.trim().length > 0) {
+          const remainingText = stripHtml(ttsBuffer).trim();
             if (remainingText.length > 0) {
               console.log('TTS: Sending remaining text:', remainingText.substring(0, 50) + '...');
               sendToTts(remainingText);
             }
-            ttsBuffer = '';
-          }
+          ttsBuffer = '';
+        }
           if (ttsTick) {
             try {
               clearInterval(ttsTick);
@@ -871,12 +871,12 @@
         });
       }
 
-      function openSse() {
+    function openSse() {
         try {
           if (currentEvtSource) currentEvtSource.close();
         } catch {}
-        evtSource = new EventSource(`/api/chatbot/stream?${params.toString()}`);
-        currentEvtSource = evtSource;
+      evtSource = new EventSource(`/api/chatbot/stream?${params.toString()}`);
+      currentEvtSource = evtSource;
         try {
           console.log('SSE: connecting', {
             team: teamSlug,
@@ -886,66 +886,66 @@
             assistantThreadId
           });
         } catch {}
-        bindSse();
-        // Watchdog solo su Android: se non arrivano token dopo un po', ritenta
-        if (isAndroid) {
+      bindSse();
+      // Watchdog solo su Android: se non arrivano token dopo un po', ritenta
+      if (isAndroid) {
           if (sseConnectWatchdog) {
             clearTimeout(sseConnectWatchdog);
           }
-          sseConnectWatchdog = setTimeout(() => {
-            try {
-              const state = evtSource.readyState; // 0/1/2
-              if (collected.length === 0 && !done && sseRetryCount < 2 && (state === 0 || state === 2)) {
-                sseRetryCount++;
+        sseConnectWatchdog = setTimeout(() => {
+          try {
+            const state = evtSource.readyState; // 0/1/2
+            if (collected.length === 0 && !done && sseRetryCount < 2 && (state === 0 || state === 2)) {
+              sseRetryCount++;
                 try {
                   evtSource.close();
                 } catch {}
-                currentEvtSource = null;
-                const delay = 280 * sseRetryCount;
+              currentEvtSource = null;
+              const delay = 280 * sseRetryCount;
                 console.warn('SSE: connect watchdog retry', {
                   attempt: sseRetryCount
                 });
                 setTimeout(() => {
                   openSse();
                 }, delay);
-              }
-            } finally {
+            }
+          } finally {
               try {
                 clearTimeout(sseConnectWatchdog);
               } catch {}
-              sseConnectWatchdog = null;
-            }
-          }, 6000);
-        }
+            sseConnectWatchdog = null;
+          }
+        }, 6000);
       }
-      openSse();
     }
+    openSse();
+  }
 
-    sendBtn.addEventListener('click', async () => {
-      // Sblocca l'audio prima di inviare
-      try {
+  sendBtn.addEventListener('click', async () => {
+    // Sblocca l'audio prima di inviare
+    try {
         if (!audioCtx) audioCtx = new(window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') await audioCtx.resume();
+    } catch {}
+    startStream(input.value);
+    input.value = '';
+  });
+
+  input.addEventListener('keyup', async (e) => {
+    if (e.key === 'Enter') {
+      try {
+          if (!audioCtx) audioCtx = new(window.AudioContext || window.webkitAudioContext)();
         if (audioCtx.state === 'suspended') await audioCtx.resume();
       } catch {}
       startStream(input.value);
       input.value = '';
-    });
+    }
+  });
 
-    input.addEventListener('keyup', async (e) => {
-      if (e.key === 'Enter') {
-        try {
-          if (!audioCtx) audioCtx = new(window.AudioContext || window.webkitAudioContext)();
-          if (audioCtx.state === 'suspended') await audioCtx.resume();
-        } catch {}
-        startStream(input.value);
-        input.value = '';
-      }
-    });
-
-    async function stopAllSpeechOutput() {
-      try {
+  async function stopAllSpeechOutput() {
+    try {
         if (window.speechSynthesis) window.speechSynthesis.cancel();
-      } catch {}
+    } catch {}
       try {
         if (ttsPlayer && !ttsPlayer.paused) {
           ttsPlayer.pause();
@@ -960,60 +960,60 @@
       speakQueue = [];
       ttsRequestQueue = [];
       isSpeaking = false;
-    }
+  }
 
-    function setListeningUI(active) {
-      const badge = document.getElementById('listeningBadge');
-      if (active) {
-        badge.classList.remove('hidden');
-        micBtn.classList.remove('bg-rose-600');
+  function setListeningUI(active) {
+    const badge = document.getElementById('listeningBadge');
+    if (active) {
+      badge.classList.remove('hidden');
+      micBtn.classList.remove('bg-rose-600');
         micBtn.classList.add('bg-emerald-600', 'ring-2', 'ring-emerald-400', 'animate-pulse');
-      } else {
-        badge.classList.add('hidden');
-        micBtn.classList.add('bg-rose-600');
+    } else {
+      badge.classList.add('hidden');
+      micBtn.classList.add('bg-rose-600');
         micBtn.classList.remove('bg-emerald-600', 'ring-2', 'ring-emerald-400', 'animate-pulse');
-      }
     }
+  }
 
-    async function ensureMicPermission() {
-      try {
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return true; // Non bloccare se non disponibile
-        // Chiedi il permesso in anticipo; chiuderemo subito lo stream
-        if (!mediaMicStream) {
-          console.log('MIC: requesting permission');
+  async function ensureMicPermission() {
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return true; // Non bloccare se non disponibile
+      // Chiedi il permesso in anticipo; chiuderemo subito lo stream
+      if (!mediaMicStream) {
+        console.log('MIC: requesting permission');
           mediaMicStream = await navigator.mediaDevices.getUserMedia({
             audio: {
               echoCancellation: true
             }
           });
-          // Rilascia subito
+        // Rilascia subito
           try {
             mediaMicStream.getTracks().forEach(t => t.stop());
           } catch {}
-          mediaMicStream = null;
-        }
-        console.log('MIC: permission OK');
-        return true;
-      } catch (e) {
-        console.warn('Mic permission denied or error', e);
-        return false;
+        mediaMicStream = null;
       }
+      console.log('MIC: permission OK');
+      return true;
+    } catch (e) {
+      console.warn('Mic permission denied or error', e);
+      return false;
     }
+  }
 
-    micBtn.addEventListener('click', async () => {
-      // Toggle ascolto
-      if (isListening && recognition) {
+  micBtn.addEventListener('click', async () => {
+    // Toggle ascolto
+    if (isListening && recognition) {
         try {
           recognition.stop();
           recognition.abort && recognition.abort();
         } catch {}
         isListening = false;
         setListeningUI(false);
-        console.log('MIC: listening stopped by user');
-        return;
-      }
-      // Ferma eventuale parlato e stream corrente
-      await stopAllSpeechOutput();
+      console.log('MIC: listening stopped by user');
+      return;
+    }
+    // Ferma eventuale parlato e stream corrente
+    await stopAllSpeechOutput();
       try {
         if (currentEvtSource) {
           currentEvtSource.close();
@@ -1021,8 +1021,8 @@
         }
       } catch {}
 
-      // Sblocca l'audio (Android)
-      try {
+    // Sblocca l'audio (Android)
+    try {
         if (!audioCtx) audioCtx = new(window.AudioContext || window.webkitAudioContext)();
         if (audioCtx.state === 'suspended') {
           await audioCtx.resume();
@@ -1032,24 +1032,24 @@
         console.warn('AUDIO: failed to init/resume', e);
       }
 
-      // Verifica permesso microfono (Android spesso non mostra prompt con WebSpeech)
-      const ok = await ensureMicPermission();
+    // Verifica permesso microfono (Android spesso non mostra prompt con WebSpeech)
+    const ok = await ensureMicPermission();
       if (!ok) {
         alert('Permesso microfono negato. Abilitalo nelle impostazioni del browser.');
         return;
       }
 
-      try {
-        const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!Rec) throw new Error('Web Speech API non disponibile');
-        recognition = new Rec();
-        recognition.lang = recLang || 'it-IT';
-        // Android spesso consegna eventi solo con interim/continuous attivi
-        recognition.interimResults = isAndroid ? true : false;
-        recognition.continuous = isAndroid ? false : false;
-        recognition.maxAlternatives = 1;
-        let recognitionWatchdogTimer = null;
-        let lastResultAt = 0;
+    try {
+      const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!Rec) throw new Error('Web Speech API non disponibile');
+      recognition = new Rec();
+      recognition.lang = recLang || 'it-IT';
+      // Android spesso consegna eventi solo con interim/continuous attivi
+      recognition.interimResults = isAndroid ? true : false;
+      recognition.continuous = isAndroid ? false : false;
+      recognition.maxAlternatives = 1;
+      let recognitionWatchdogTimer = null;
+      let lastResultAt = 0;
 
         function clearRecWatchdog() {
           if (recognitionWatchdogTimer) {
@@ -1058,10 +1058,10 @@
           }
         }
 
-        function startRecWatchdog() {
-          clearRecWatchdog();
-          recognitionWatchdogTimer = setTimeout(() => {
-            console.warn('SPEECH: watchdog timeout (no result), restarting');
+      function startRecWatchdog() {
+        clearRecWatchdog();
+        recognitionWatchdogTimer = setTimeout(() => {
+          console.warn('SPEECH: watchdog timeout (no result), restarting');
             try {
               recognition.stop();
               recognition.abort && recognition.abort();
@@ -1074,13 +1074,13 @@
                 console.error('SPEECH: restart failed', e);
               }
             }, 250);
-          }, 8000);
-        }
-        recognition.onstart = async () => {
+        }, 8000);
+      }
+      recognition.onstart = async () => {
           isListening = true;
           setListeningUI(true);
           console.log('SPEECH: onstart');
-          // Sospendi output audio per evitare conflitti con input mic su Android
+        // Sospendi output audio per evitare conflitti con input mic su Android
           try {
             if (audioCtx && audioCtx.state === 'running') {
               await audioCtx.suspend();
@@ -1113,7 +1113,7 @@
         recognition.onnomatch = (e) => {
           console.warn('SPEECH: onnomatch', e && e.message || '');
         };
-        recognition.onerror = async (e) => {
+      recognition.onerror = async (e) => {
           console.error('SPEECH: onerror', e && (e.error || e.message) || e);
           isListening = false;
           setListeningUI(false);
@@ -1126,8 +1126,8 @@
           } catch (er) {
             console.warn('AUDIO: resume after error failed', er);
           }
-        };
-        recognition.onend = async () => {
+      };
+      recognition.onend = async () => {
           isListening = false;
           setListeningUI(false);
           console.log('SPEECH: onend');
@@ -1140,25 +1140,25 @@
           } catch (er) {
             console.warn('AUDIO: resume after end failed', er);
           }
-        };
-        recognition.onresult = (event) => {
-          try {
-            lastResultAt = Date.now();
-            const res = event.results;
-            const last = res[res.length - 1];
-            const transcript = last[0].transcript;
-            const isFinal = last.isFinal === true || !recognition.interimResults;
+      };
+      recognition.onresult = (event) => {
+        try {
+          lastResultAt = Date.now();
+          const res = event.results;
+          const last = res[res.length - 1];
+          const transcript = last[0].transcript;
+          const isFinal = last.isFinal === true || !recognition.interimResults;
             console.log('SPEECH: onresult', {
               transcript,
               isFinal,
               resultIndex: event.resultIndex,
               length: res.length
             });
-            if (debugEnabled && liveText) {
-              liveText.classList.remove('hidden');
-              liveText.textContent = transcript + (isFinal ? '' : ' …');
-            }
-            if (isFinal) {
+          if (debugEnabled && liveText) {
+            liveText.classList.remove('hidden');
+            liveText.textContent = transcript + (isFinal ? '' : ' …');
+          }
+          if (isFinal) {
               isListening = false;
               setListeningUI(false);
               if (debugEnabled && liveText) setTimeout(() => {
@@ -1167,7 +1167,7 @@
                   liveText.textContent = '';
                 } catch {}
               }, 800);
-              const safe = (transcript || '').trim();
+            const safe = (transcript || '').trim();
               if (!safe) {
                 console.warn('SPEECH: final transcript empty, not starting stream');
                 return;
@@ -1177,52 +1177,52 @@
               } else {
                 startStream(safe);
               }
-            }
-          } catch (err) {
-            console.error('SPEECH: onresult handler failed', err);
           }
-        };
+        } catch (err) {
+          console.error('SPEECH: onresult handler failed', err);
+        }
+      };
         console.log('SPEECH: start()', {
           lang: recognition.lang
         });
-        recognition.start();
-      } catch (err) {
-        console.warn('Riconoscimento vocale non disponibile o errore', err);
-        alert('Riconoscimento vocale non disponibile in questo browser.');
-      }
-    });
+      recognition.start();
+    } catch (err) {
+      console.warn('Riconoscimento vocale non disponibile o errore', err);
+      alert('Riconoscimento vocale non disponibile in questo browser.');
+    }
+  });
 
-    function initThree() {
-      // Carica Three dal CDN se non presente
-      if (!window.THREE) {
-        const s = document.createElement('script');
-        s.src = 'https://unpkg.com/three@0.160.0/build/three.min.js';
+  function initThree() {
+    // Carica Three dal CDN se non presente
+    if (!window.THREE) {
+      const s = document.createElement('script');
+      s.src = 'https://unpkg.com/three@0.160.0/build/three.min.js';
         s.onload = () => {
           THREELoaded = true;
           setupScene();
         };
-        document.head.appendChild(s);
-      } else {
-        THREELoaded = true;
-        setupScene();
-      }
+      document.head.appendChild(s);
+    } else {
+      THREELoaded = true;
+      setupScene();
     }
+  }
 
-    function setupScene() {
-      const stage = document.getElementById('avatarStage');
-      const rect = stage.getBoundingClientRect();
-      // Usa dimensioni CSS (con aspect-ratio) come base; fallback per vecchi browser
-      let width = Math.floor((rect.width && rect.width > 0) ? rect.width : Math.min(window.innerWidth || 360, 520));
-      let height = Math.floor((rect.height && rect.height > 0) ? rect.height : Math.round(width * 4 / 3));
-      if (!width || width < 10 || !height || height < 10) {
+  function setupScene() {
+    const stage = document.getElementById('avatarStage');
+    const rect = stage.getBoundingClientRect();
+    // Usa dimensioni CSS (con aspect-ratio) come base; fallback per vecchi browser
+    let width = Math.floor((rect.width && rect.width > 0) ? rect.width : Math.min(window.innerWidth || 360, 520));
+    let height = Math.floor((rect.height && rect.height > 0) ? rect.height : Math.round(width * 4 / 3));
+    if (!width || width < 10 || !height || height < 10) {
         width = 800;
         height = 450; // fallback quando i CSS non sono caricati
-        stage.style.width = width + 'px';
-        stage.style.height = height + 'px';
-      }
+      stage.style.width = width + 'px';
+      stage.style.height = height + 'px';
+    }
 
-      scene = new THREE.Scene();
-      scene.background = new THREE.Color('#0f172a');
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color('#0f172a');
 
       camera = new THREE.PerspectiveCamera(2, width / height, 0.1, 100);
       camera.position.set(0, 0.5, 2);
@@ -1236,43 +1236,43 @@
       renderer = new THREE.WebGLRenderer({
         antialias: true
       });
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
-      renderer.setSize(width, height);
-      stage.innerHTML = '';
-      stage.appendChild(renderer.domElement);
-      renderer.domElement.style.width = '100%';
-      renderer.domElement.style.height = '100%';
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
+    renderer.setSize(width, height);
+    stage.innerHTML = '';
+    stage.appendChild(renderer.domElement);
+    renderer.domElement.style.width = '100%';
+    renderer.domElement.style.height = '100%';
 
-      const light = new THREE.DirectionalLight(0xffffff, 1.0);
-      light.position.set(1, 2, 3);
-      scene.add(light);
-      scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+    const light = new THREE.DirectionalLight(0xffffff, 1.0);
+    light.position.set(1, 2, 3);
+    scene.add(light);
+    scene.add(new THREE.AmbientLight(0xffffff, 0.4));
 
-      // Testa
-      const headGeom = new THREE.SphereGeometry(0.6, 32, 32);
+    // Testa
+    const headGeom = new THREE.SphereGeometry(0.6, 32, 32);
       const headMat = new THREE.MeshStandardMaterial({
         color: 0x8fa7ff,
         roughness: 0.6,
         metalness: 0.0
       });
-      head = new THREE.Mesh(headGeom, headMat);
-      head.position.y = 0.2;
-      scene.add(head);
+    head = new THREE.Mesh(headGeom, headMat);
+    head.position.y = 0.2;
+    scene.add(head);
 
-      // Mandibola semplice (box)
-      const jawGeom = new THREE.BoxGeometry(0.8, 0.25, 0.6);
+    // Mandibola semplice (box)
+    const jawGeom = new THREE.BoxGeometry(0.8, 0.25, 0.6);
       const jawMat = new THREE.MeshStandardMaterial({
         color: 0x9bb0ff,
         roughness: 0.6
       });
-      jaw = new THREE.Mesh(jawGeom, jawMat);
-      jaw.position.y = -0.25;
-      jaw.position.z = 0.0;
-      // Punto di rotazione attorno alla "cerniera"
-      jaw.geometry.translate(0, 0.12, 0);
-      scene.add(jaw);
+    jaw = new THREE.Mesh(jawGeom, jawMat);
+    jaw.position.y = -0.25;
+    jaw.position.z = 0.0;
+    // Punto di rotazione attorno alla "cerniera"
+    jaw.geometry.translate(0, 0.12, 0);
+    scene.add(jaw);
 
-      console.log('setupScene: start, THREE present =', !!window.THREE);
+    console.log('setupScene: start, THREE present =', !!window.THREE);
       // OrbitControls
       try {
         if (window.OrbitControls) {
@@ -1314,55 +1314,55 @@
       } catch (e) {
         console.warn('OrbitControls init failed', e);
       }
-      animate();
-      // Ridimensionamento reattivo
-      window.addEventListener('resize', onResize);
-      if ('ResizeObserver' in window) {
-        const ro = new ResizeObserver(onResize);
-        ro.observe(stage);
-      }
-
-      // Prova a caricare un avatar umanoide (se presente in /images/humanoid.glb)
-      setTimeout(loadHumanoid, 0);
+    animate();
+    // Ridimensionamento reattivo
+    window.addEventListener('resize', onResize);
+    if ('ResizeObserver' in window) {
+      const ro = new ResizeObserver(onResize);
+      ro.observe(stage);
     }
 
-    function onResize() {
-      if (!renderer || !camera) return;
-      const stage = document.getElementById('avatarStage');
-      const controls = document.getElementById('controlsBar');
-      const rect = stage.getBoundingClientRect();
-      let width = Math.floor((rect.width && rect.width > 0) ? rect.width : Math.min(window.innerWidth || 360, 520));
-      let height = Math.floor((rect.height && rect.height > 0) ? rect.height : Math.round(width * 4 / 3));
-      if (!width || width < 10 || !height || height < 10) {
+    // Prova a caricare un avatar umanoide (se presente in /images/humanoid.glb)
+    setTimeout(loadHumanoid, 0);
+  }
+
+  function onResize() {
+    if (!renderer || !camera) return;
+    const stage = document.getElementById('avatarStage');
+    const controls = document.getElementById('controlsBar');
+    const rect = stage.getBoundingClientRect();
+    let width = Math.floor((rect.width && rect.width > 0) ? rect.width : Math.min(window.innerWidth || 360, 520));
+    let height = Math.floor((rect.height && rect.height > 0) ? rect.height : Math.round(width * 4 / 3));
+    if (!width || width < 10 || !height || height < 10) {
         width = 800;
         height = 450;
-        stage.style.width = width + 'px';
-        stage.style.height = height + 'px';
-      }
-      renderer.setSize(width, height);
-      camera.aspect = width / height;
-      camera.updateProjectionMatrix();
-      // Evita che la barra comandi sovrapponga il canvas: aggiusta padding inferiore dinamico
-      try {
-        const controlsRect = controls ? controls.getBoundingClientRect() : null;
-        const pad = controlsRect ? Math.ceil(controlsRect.height) : 0;
-        document.body.style.setProperty('--controls-pad', pad + 'px');
-      } catch {}
-
-      // Fix barra bianca sotto su Android (forza height dello stage entro viewport reale)
-      try {
-        const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-        const maxH = Math.max(320, Math.floor(vh - (controls?.offsetHeight || 0) - 180));
-        stage.style.maxHeight = maxH + 'px';
-      } catch {}
+      stage.style.width = width + 'px';
+      stage.style.height = height + 'px';
     }
+    renderer.setSize(width, height);
+    camera.aspect = width / height;
+    camera.updateProjectionMatrix();
+    // Evita che la barra comandi sovrapponga il canvas: aggiusta padding inferiore dinamico
+    try {
+      const controlsRect = controls ? controls.getBoundingClientRect() : null;
+      const pad = controlsRect ? Math.ceil(controlsRect.height) : 0;
+      document.body.style.setProperty('--controls-pad', pad + 'px');
+    } catch {}
 
-    function animate() {
+    // Fix barra bianca sotto su Android (forza height dello stage entro viewport reale)
+    try {
+      const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+      const maxH = Math.max(320, Math.floor(vh - (controls?.offsetHeight || 0) - 180));
+      stage.style.maxHeight = maxH + 'px';
+    } catch {}
+  }
+
+  function animate() {
       const forcedClosing = (performance.now() < (forceFullCloseUntil || 0));
 
-      animationId = requestAnimationFrame(animate);
-      // Idle breathing
-      head.position.y = 0.2 + Math.sin(performance.now() / 1200) * 0.01;
+    animationId = requestAnimationFrame(animate);
+    // Idle breathing
+    head.position.y = 0.2 + Math.sin(performance.now() / 1200) * 0.01;
       // Micro-movimenti facciali per realismo quando non parla (sorriso leggero)
       try {
         const talking = cloudAudioSpeaking || (window.speechSynthesis && window.speechSynthesis.speaking);
@@ -1382,45 +1382,45 @@
         }
       } catch {}
 
-      // Se l'audio sta suonando, usa l'ampiezza per aprire la mandibola
-      let amp = 0;
-      if (useBrowserTts && useBrowserTts.checked && 'speechSynthesis' in window && window.speechSynthesis.speaking) {
-        // Forza uso audio cloud o WebAudio per lipsync: se abbiamo analyser, usalo
+    // Se l'audio sta suonando, usa l'ampiezza per aprire la mandibola
+    let amp = 0;
+    if (useBrowserTts && useBrowserTts.checked && 'speechSynthesis' in window && window.speechSynthesis.speaking) {
+      // Forza uso audio cloud o WebAudio per lipsync: se abbiamo analyser, usalo
         if (analyser && dataArray && !forcedClosing) {
-          // prosegui sotto con branch analyser
-        } else {
-          amp = 0; // nessun drive senza analyser
-        }
+        // prosegui sotto con branch analyser
+      } else {
+        amp = 0; // nessun drive senza analyser
       }
-      if (analyser && dataArray) {
-        // Time-domain RMS for jaw openness
-        analyser.getByteTimeDomainData(dataArray);
+    } 
+    if (analyser && dataArray) {
+      // Time-domain RMS for jaw openness
+      analyser.getByteTimeDomainData(dataArray);
         let sum = 0,
           zc = 0,
           prev = 0;
-        for (let i = 0; i < dataArray.length; i++) {
-          const v = (dataArray[i] - 128) / 128.0;
-          sum += v * v;
-          if (i > 0 && ((v >= 0 && prev < 0) || (v < 0 && prev >= 0))) zc++;
-          prev = v;
+      for (let i = 0; i < dataArray.length; i++) {
+        const v = (dataArray[i] - 128) / 128.0;
+        sum += v * v;
+        if (i > 0 && ((v >= 0 && prev < 0) || (v < 0 && prev >= 0))) zc++;
+        prev = v;
+      }
+      const rms = Math.sqrt(sum / dataArray.length);
+      // Envelope con attack/release per ampiezza più stabile
+      const targetAmp = Math.min(1, rms * 5.5);
+      const a = (targetAmp > audioAmp) ? AMP_ATTACK : AMP_RELEASE;
+      audioAmp = audioAmp * (1 - a) + targetAmp * a;
+      amp = audioAmp;
+      // Simple spectral centroid from frequency bins
+      try {
+        if (!freqData || freqData.length !== analyser.frequencyBinCount) {
+          freqData = new Uint8Array(analyser.frequencyBinCount);
         }
-        const rms = Math.sqrt(sum / dataArray.length);
-        // Envelope con attack/release per ampiezza più stabile
-        const targetAmp = Math.min(1, rms * 5.5);
-        const a = (targetAmp > audioAmp) ? AMP_ATTACK : AMP_RELEASE;
-        audioAmp = audioAmp * (1 - a) + targetAmp * a;
-        amp = audioAmp;
-        // Simple spectral centroid from frequency bins
-        try {
-          if (!freqData || freqData.length !== analyser.frequencyBinCount) {
-            freqData = new Uint8Array(analyser.frequencyBinCount);
-          }
-          analyser.getByteFrequencyData(freqData);
+        analyser.getByteFrequencyData(freqData);
           let num = 0,
             den = 0;
-          const sr = (audioCtx && audioCtx.sampleRate) ? audioCtx.sampleRate : 44100;
-          const nyquist = sr / 2;
-          const binHz = nyquist / freqData.length;
+        const sr = (audioCtx && audioCtx.sampleRate) ? audioCtx.sampleRate : 44100;
+        const nyquist = sr / 2;
+        const binHz = nyquist / freqData.length;
           // Calcola centroid e bande di energia
           let lowSum = 0,
             midSum = 0,
@@ -1428,21 +1428,21 @@
             totalSum = 0;
           const LOW_MAX = 300,
             MID_MAX = 2000;
-          for (let i = 0; i < freqData.length; i++) {
-            const mag = freqData[i];
-            if (mag <= 0) continue;
-            const f = i * binHz;
-            num += f * mag;
-            den += mag;
+        for (let i = 0; i < freqData.length; i++) {
+          const mag = freqData[i];
+          if (mag <= 0) continue;
+          const f = i * binHz;
+          num += f * mag;
+          den += mag;
             totalSum += mag;
             if (f <= LOW_MAX) lowSum += mag;
             else if (f <= MID_MAX) midSum += mag;
             else highSum += mag;
-          }
-          const centroid = den > 0 ? (num / den) : 0;
-          const normC = Math.max(0, Math.min(1, centroid / 3500));
-          const zcr = zc / dataArray.length; // ~0..0.5
-          // Heuristics for visemes (rounded vs wide vowels, closures)
+        }
+        const centroid = den > 0 ? (num / den) : 0;
+        const normC = Math.max(0, Math.min(1, centroid / 3500));
+        const zcr = zc / dataArray.length; // ~0..0.5
+        // Heuristics for visemes (rounded vs wide vowels, closures)
           // Feature mapping esponenziale per ampiezze
           const k = 3.2; // fattore esponenziale
           const lowN = totalSum > 0 ? (lowSum / totalSum) : 0;
@@ -1453,18 +1453,18 @@
           const eHigh = 1 - Math.exp(-k * Math.max(0, highN));
           const rounded = Math.max(0, 1.0 - normC); // vocali tonde (O/U)
           const wide = Math.max(0, normC - 0.32); // vocali larghe (E/I)
-          const closeLike = Math.max(0, (0.05 - zcr) * 9); // chiusure/pausa
-          const lowAmp = amp < 0.08;
-          // Stima banda centrale (A) ~ centroid medio
-          const midBand = Math.max(0, 1 - Math.abs(normC - 0.28) / 0.22); // picco ~0.28
+        const closeLike = Math.max(0, (0.05 - zcr) * 9); // chiusure/pausa
+        const lowAmp = amp < 0.08;
+        // Stima banda centrale (A) ~ centroid medio
+        const midBand = Math.max(0, 1 - Math.abs(normC - 0.28) / 0.22); // picco ~0.28
           // Ampiezze esponenziali: basse freq → apertura, alte freq → chiusura
           const MAX_JAW_OPEN = 0.45;
           let jawVal = Math.min(
-            MAX_JAW_OPEN,
+          MAX_JAW_OPEN,
             Math.max(0.06, 1.05 * eLow + 0.40 * midBand - 0.25 * rounded)
-          );
+        );
           // Rafforza O/U ma riduci se sembra A (midBand alto)
-          const roundBoost = rounded * (1 - 0.6 * midBand);
+        const roundBoost = rounded * (1 - 0.6 * midBand);
           let funnelVal = lowAmp ? 0 : Math.min(0.45, Math.max(0, roundBoost * (eLow * 0.9) + rounded * 0.18));
           let puckerVal = lowAmp ? 0 : Math.min(0.38, Math.max(0, roundBoost * (eLow * 0.7) + rounded * 0.12));
           // Accentuazione per vocali O/U (rounded alto)
@@ -1476,40 +1476,40 @@
           let closeVal = lowAmp ? 0.04 : Math.max(0, Math.min(0.40, (eHigh * 0.25) + closeLike * 0.30 * (1 - amp)));
           // Durante alte-freq, riduci jawOpen ma in modo più lieve
           jawVal = Math.max(lipConfig.minLipSeparation, jawVal * (1 - 0.35 * eHigh));
-          visemeTargets = {
-            jawOpen: jawVal,
-            mouthFunnel: funnelVal,
-            mouthPucker: puckerVal,
-            mouthSmileL: smileVal,
-            mouthSmileR: smileVal,
-            mouthClose: closeVal,
-          };
+        visemeTargets = {
+          jawOpen: jawVal,
+          mouthFunnel: funnelVal,
+          mouthPucker: puckerVal,
+          mouthSmileL: smileVal,
+          mouthSmileR: smileVal,
+          mouthClose: closeVal,
+        };
+        visemeActiveUntil = performance.now() + 200;
+        // assicurati di avere almeno un tempo attivo per i visemi
+        if (!Array.isArray(visemeMeshes) || visemeMeshes.length === 0) {
           visemeActiveUntil = performance.now() + 200;
-          // assicurati di avere almeno un tempo attivo per i visemi
-          if (!Array.isArray(visemeMeshes) || visemeMeshes.length === 0) {
-            visemeActiveUntil = performance.now() + 200;
-          }
-        } catch {}
-      }
-      // Priorità ai visemi testuali se pianificati (disabilitato se textVisemeEnabled=false)
-      if (textVisemeEnabled && !forcedClosing) {
-        const nowT = performance.now();
-        visemeSchedule = visemeSchedule.filter(it => it.end > nowT);
-        const active = visemeSchedule.find(it => it.start <= nowT && it.end > nowT);
-        if (active) {
-          const blend = Math.max(0, Math.min(1, (nowT - active.start) / Math.max(1, (active.end - active.start))));
-          visemeTargets = {
-            jawOpen: active.targets.jawOpen * blend,
-            mouthFunnel: active.targets.mouthFunnel * blend,
-            mouthPucker: active.targets.mouthPucker * blend,
-            mouthSmileL: active.targets.mouthSmileL * blend,
-            mouthSmileR: active.targets.mouthSmileR * blend,
-            mouthClose: active.targets.mouthClose * blend,
-          };
-          visemeActiveUntil = nowT + 120;
         }
+      } catch {}
+    }
+    // Priorità ai visemi testuali se pianificati (disabilitato se textVisemeEnabled=false)
+      if (textVisemeEnabled && !forcedClosing) {
+      const nowT = performance.now();
+      visemeSchedule = visemeSchedule.filter(it => it.end > nowT);
+      const active = visemeSchedule.find(it => it.start <= nowT && it.end > nowT);
+      if (active) {
+        const blend = Math.max(0, Math.min(1, (nowT - active.start) / Math.max(1, (active.end - active.start))));
+        visemeTargets = {
+          jawOpen: active.targets.jawOpen * blend,
+          mouthFunnel: active.targets.mouthFunnel * blend,
+          mouthPucker: active.targets.mouthPucker * blend,
+          mouthSmileL: active.targets.mouthSmileL * blend,
+          mouthSmileR: active.targets.mouthSmileR * blend,
+          mouthClose: active.targets.mouthClose * blend,
+        };
+        visemeActiveUntil = nowT + 120;
       }
-      // Se non abbiamo audio driving (TTS off e nessun analyser), usa lo scheduler testuale (se abilitato)
+    }
+    // Se non abbiamo audio driving (TTS off e nessun analyser), usa lo scheduler testuale (se abilitato)
       if (textVisemeEnabled && (!analyser || !cloudAudioSpeaking) && !forcedClosing) {
         // Se in chiusura forzata, sovrascrivi i target a bocca chiusa
         if (forcedClosing) {
@@ -1523,106 +1523,112 @@
           };
           visemeActiveUntil = performance.now() + 60;
         }
-        const nowT = performance.now();
-        // purge passati
-        visemeSchedule = visemeSchedule.filter(it => it.end > nowT);
-        const active = visemeSchedule.find(it => it.start <= nowT && it.end > nowT);
-        if (active) {
-          const blend = Math.max(0, Math.min(1, (nowT - active.start) / Math.max(1, (active.end - active.start))));
-          visemeTargets = {
-            jawOpen: active.targets.jawOpen * blend,
-            mouthFunnel: active.targets.mouthFunnel * blend,
-            mouthPucker: active.targets.mouthPucker * blend,
-            mouthSmileL: active.targets.mouthSmileL * blend,
-            mouthSmileR: active.targets.mouthSmileR * blend,
-            mouthClose: active.targets.mouthClose * blend,
-          };
-          visemeActiveUntil = nowT + 120;
-        }
+      const nowT = performance.now();
+      // purge passati
+      visemeSchedule = visemeSchedule.filter(it => it.end > nowT);
+      const active = visemeSchedule.find(it => it.start <= nowT && it.end > nowT);
+      if (active) {
+        const blend = Math.max(0, Math.min(1, (nowT - active.start) / Math.max(1, (active.end - active.start))));
+        visemeTargets = {
+          jawOpen: active.targets.jawOpen * blend,
+          mouthFunnel: active.targets.mouthFunnel * blend,
+          mouthPucker: active.targets.mouthPucker * blend,
+          mouthSmileL: active.targets.mouthSmileL * blend,
+          mouthSmileR: active.targets.mouthSmileR * blend,
+          mouthClose: active.targets.mouthClose * blend,
+        };
+        visemeActiveUntil = nowT + 120;
       }
+    }
       // Niente euristiche: seguiamo la pipeline lipsync esistente (text viseme o audio analyser)
+      // Mantieni vivi i visemi finché il TTS del browser sta ancora parlando
+      try {
+        if (useBrowserTts && useBrowserTts.checked && 'speechSynthesis' in window && window.speechSynthesis.speaking) {
+          visemeActiveUntil = performance.now() + 240;
+        }
+      } catch {}
 
-      // Animazione lip-sync su avatar umanoide o fallback geometrico
-      const now = performance.now();
-      const restJawOpen = lipConfig.restJawOpen; // piccola apertura a riposo per evitare sovrapposizione labbra
-      let appliedJaw = null; // valore di apertura usato anche per il bone
-      // Se abbiamo registrato più mesh con target labiali, applica su tutte
-      if ((Array.isArray(visemeMeshes) && visemeMeshes.length > 0 && (visemeActiveUntil > now)) || (!jawBone && morphMesh && morphIndex >= 0)) {
-        // Rallenta crescita forza visemi
-        visemeStrength = visemeStrength * (1 - lipConfig.visemeStrengthAlpha) + lipConfig.visemeStrengthAlpha;
-        for (const vm of visemeMeshes) {
-          const infl = vm.mesh.morphTargetInfluences;
-          if (!infl) continue;
-          // Smoothing con deadband per eliminare tremolio
-          const smooth = (key, target) => {
-            const prev = lastVisemes[key] || 0;
-            const diff = target - prev;
-            if (Math.abs(diff) < (deadband[key] || 0.02)) return prev; // dentro deadband, mantieni
-            const alpha = lipConfig.morphSmoothingBeta; // smoothing configurabile
-            const v = prev * (1 - alpha) + target * alpha;
-            lastVisemes[key] = v;
-            return v;
-          };
+    // Animazione lip-sync su avatar umanoide o fallback geometrico
+    const now = performance.now();
+    const restJawOpen = lipConfig.restJawOpen; // piccola apertura a riposo per evitare sovrapposizione labbra
+    let appliedJaw = null; // valore di apertura usato anche per il bone
+    // Se abbiamo registrato più mesh con target labiali, applica su tutte
+    if ((Array.isArray(visemeMeshes) && visemeMeshes.length > 0 && (visemeActiveUntil > now)) || (!jawBone && morphMesh && morphIndex >= 0)) {
+      // Rallenta crescita forza visemi
+      visemeStrength = visemeStrength * (1 - lipConfig.visemeStrengthAlpha) + lipConfig.visemeStrengthAlpha;
+      for (const vm of visemeMeshes) {
+        const infl = vm.mesh.morphTargetInfluences;
+        if (!infl) continue;
+        // Smoothing con deadband per eliminare tremolio
+        const smooth = (key, target) => {
+          const prev = lastVisemes[key] || 0;
+          const diff = target - prev;
+          if (Math.abs(diff) < (deadband[key] || 0.02)) return prev; // dentro deadband, mantieni
+          const alpha = lipConfig.morphSmoothingBeta; // smoothing configurabile
+          const v = prev * (1 - alpha) + target * alpha;
+          lastVisemes[key] = v;
+          return v;
+        };
           const setIdx = (idx, val, key) => {
             if (idx >= 0) infl[idx] = infl[idx] * 0.7 + Math.max(0, Math.min(1, smooth(key, val) * visemeStrength)) * 0.3;
           };
-          // Vincoli per evitare sovrapposizione labbra
-          let jaw = Math.min(1, Math.max(0, visemeTargets.jawOpen + (cloudAudioSpeaking ? 0 : restJawOpen)));
-          const roundness = Math.min(1, visemeTargets.mouthFunnel + visemeTargets.mouthPucker);
-          const closeSuppression = Math.max(0, 1 - jaw * 1.5 - roundness * 0.9);
+        // Vincoli per evitare sovrapposizione labbra
+        let jaw = Math.min(1, Math.max(0, visemeTargets.jawOpen + (cloudAudioSpeaking ? 0 : restJawOpen)));
+        const roundness = Math.min(1, visemeTargets.mouthFunnel + visemeTargets.mouthPucker);
+        const closeSuppression = Math.max(0, 1 - jaw * 1.5 - roundness * 0.9);
           // Abilita chiusura controllata
           let constrainedClose = Math.min(lipConfig.maxMouthClose, (visemeTargets.mouthClose || 0) * closeSuppression);
           // Imporre separazione minima: se la chiusura tende a superare la soglia, aumenta jaw (salvo chiusura forzata)
           if (!(performance.now() < forceFullCloseUntil)) {
-            if (constrainedClose > lipConfig.closeThresholdForSeparation) {
-              jaw = Math.max(jaw, lipConfig.minLipSeparation);
+        if (constrainedClose > lipConfig.closeThresholdForSeparation) {
+          jaw = Math.max(jaw, lipConfig.minLipSeparation);
             }
           } else {
             // In chiusura forzata, chiudi solo con la mandibola (no mouthClose)
             jaw = Math.min(jaw, 0.005);
             constrainedClose = 0;
-          }
-          appliedJaw = jaw;
-          setIdx(vm.indices.jawOpen, jaw * 0.9, 'jawOpen');
-          setIdx(vm.indices.mouthFunnel, visemeTargets.mouthFunnel * 1.05, 'mouthFunnel');
-          setIdx(vm.indices.mouthPucker, visemeTargets.mouthPucker * 1.0, 'mouthPucker');
-          setIdx(vm.indices.mouthSmileL, visemeTargets.mouthSmileL * 1.05, 'mouthSmileL');
-          setIdx(vm.indices.mouthSmileR, visemeTargets.mouthSmileR * 1.05, 'mouthSmileR');
-          setIdx(vm.indices.mouthClose, constrainedClose, 'mouthClose');
-          // Blink realistico
-          const t = performance.now();
-          if (t >= nextBlinkAt) {
-            blinkPhase = 0.001; // inizia blink
-            nextBlinkAt = t + (2200 + Math.random() * 2200);
-          }
-          if (blinkPhase > 0) {
-            // curva ease-in/out
-            blinkPhase = Math.min(1, blinkPhase + 0.065);
-            const k = blinkPhase <= 0.5 ? (blinkPhase * 2) : (1 - (blinkPhase - 0.5) * 2);
-            const val = Math.pow(Math.max(0, Math.min(1, k)), 1.6);
-            if (eyeMesh && eyeMesh.morphTargetInfluences) {
-              if (eyeIndices.eyeBlinkLeft >= 0) eyeMesh.morphTargetInfluences[eyeIndices.eyeBlinkLeft] = eyeMesh.morphTargetInfluences[eyeIndices.eyeBlinkLeft] * 0.6 + val * 0.4;
-              if (eyeIndices.eyeBlinkRight >= 0) eyeMesh.morphTargetInfluences[eyeIndices.eyeBlinkRight] = eyeMesh.morphTargetInfluences[eyeIndices.eyeBlinkRight] * 0.6 + val * 0.4;
-            } else {
-              if (eyeIndices.eyeBlinkLeft >= 0) infl[eyeIndices.eyeBlinkLeft] = infl[eyeIndices.eyeBlinkLeft] * 0.6 + val * 0.4;
-              if (eyeIndices.eyeBlinkRight >= 0) infl[eyeIndices.eyeBlinkRight] = infl[eyeIndices.eyeBlinkRight] * 0.6 + val * 0.4;
-            }
-            if (blinkPhase >= 1) blinkPhase = 0;
-          }
         }
-      } else if (morphMesh && morphIndex >= 0 && Array.isArray(morphMesh.morphTargetInfluences)) {
-        // Fallback amp → jawOpen only
-        visemeStrength = 0;
-        const target = Math.min(1, amp * 2.0 + (cloudAudioSpeaking ? 0 : restJawOpen * 0.6));
-        morphValue = morphValue * 0.82 + target * 0.18;
-        morphMesh.morphTargetInfluences[morphIndex] = morphValue;
-        appliedJaw = Math.max(target, lipConfig.minLipSeparation);
+        appliedJaw = jaw;
+        setIdx(vm.indices.jawOpen, jaw * 0.9, 'jawOpen');
+        setIdx(vm.indices.mouthFunnel, visemeTargets.mouthFunnel * 1.05, 'mouthFunnel');
+        setIdx(vm.indices.mouthPucker, visemeTargets.mouthPucker * 1.0, 'mouthPucker');
+        setIdx(vm.indices.mouthSmileL, visemeTargets.mouthSmileL * 1.05, 'mouthSmileL');
+        setIdx(vm.indices.mouthSmileR, visemeTargets.mouthSmileR * 1.05, 'mouthSmileR');
+        setIdx(vm.indices.mouthClose, constrainedClose, 'mouthClose');
+        // Blink realistico
+        const t = performance.now();
+        if (t >= nextBlinkAt) {
+          blinkPhase = 0.001; // inizia blink
+          nextBlinkAt = t + (2200 + Math.random() * 2200);
+        }
+        if (blinkPhase > 0) {
+          // curva ease-in/out
+          blinkPhase = Math.min(1, blinkPhase + 0.065);
+          const k = blinkPhase <= 0.5 ? (blinkPhase * 2) : (1 - (blinkPhase - 0.5) * 2);
+          const val = Math.pow(Math.max(0, Math.min(1, k)), 1.6);
+          if (eyeMesh && eyeMesh.morphTargetInfluences) {
+            if (eyeIndices.eyeBlinkLeft >= 0) eyeMesh.morphTargetInfluences[eyeIndices.eyeBlinkLeft] = eyeMesh.morphTargetInfluences[eyeIndices.eyeBlinkLeft] * 0.6 + val * 0.4;
+            if (eyeIndices.eyeBlinkRight >= 0) eyeMesh.morphTargetInfluences[eyeIndices.eyeBlinkRight] = eyeMesh.morphTargetInfluences[eyeIndices.eyeBlinkRight] * 0.6 + val * 0.4;
+          } else {
+            if (eyeIndices.eyeBlinkLeft >= 0) infl[eyeIndices.eyeBlinkLeft] = infl[eyeIndices.eyeBlinkLeft] * 0.6 + val * 0.4;
+            if (eyeIndices.eyeBlinkRight >= 0) infl[eyeIndices.eyeBlinkRight] = infl[eyeIndices.eyeBlinkRight] * 0.6 + val * 0.4;
+          }
+          if (blinkPhase >= 1) blinkPhase = 0;
+        }
       }
-      if (jawBone) {
-        if (jawBone.type === 'Bone') {
-          // Bone: usa apertura vincolata per rispettare separazione minima
-          // Smoothing aggiuntivo per evitare jitter
-          window.__jawBonePrev = window.__jawBonePrev ?? 0;
+    } else if (morphMesh && morphIndex >= 0 && Array.isArray(morphMesh.morphTargetInfluences)) {
+      // Fallback amp → jawOpen only
+      visemeStrength = 0;
+      const target = Math.min(1, amp * 2.0 + (cloudAudioSpeaking ? 0 : restJawOpen * 0.6));
+      morphValue = morphValue * 0.82 + target * 0.18;
+      morphMesh.morphTargetInfluences[morphIndex] = morphValue;
+      appliedJaw = Math.max(target, lipConfig.minLipSeparation);
+    }
+    if (jawBone) {
+      if (jawBone.type === 'Bone') {
+        // Bone: usa apertura vincolata per rispettare separazione minima
+        // Smoothing aggiuntivo per evitare jitter
+        window.__jawBonePrev = window.__jawBonePrev ?? 0;
           // Se non abbiamo calcolato appliedJaw via morph, usa visemi e ampiezza audio come fallback
           const ampDrive = Math.min(1, (typeof audioAmp === 'number' ? audioAmp : 0) * 1.4);
           let jawFromVisemes = Math.max(
@@ -1630,9 +1636,9 @@
             ampDrive
           );
           const jawForBone = Math.max(lipConfig.minLipSeparation, (appliedJaw !== null ? appliedJaw : jawFromVisemes));
-          const a = lipConfig.jawSmoothingAlpha;
-          const jb = window.__jawBonePrev * (1 - a) + jawForBone * a;
-          window.__jawBonePrev = jb;
+        const a = lipConfig.jawSmoothingAlpha;
+        const jb = window.__jawBonePrev * (1 - a) + jawForBone * a;
+        window.__jawBonePrev = jb;
           // Applica rotazione assoluta sull'asse configurato
           const angle = jawSign * (jb * 0.65);
           if (jawAxis === 'x') jawBone.rotation.x = angle;
@@ -1652,178 +1658,178 @@
               headBone.updateMatrixWorld(true);
             }
           } catch {}
-        }
-      } else if (jaw) {
-        // Fallback geometrico
-        window.__jawGeomPrev = window.__jawGeomPrev ?? 0;
-        const jawForBone = Math.max(lipConfig.minLipSeparation, (appliedJaw !== null ? appliedJaw : (amp * 0.9 + (cloudAudioSpeaking ? 0 : restJawOpen * 0.2))));
-        const a = lipConfig.jawSmoothingAlpha;
-        const jb = window.__jawGeomPrev * (1 - a) + jawForBone * a;
-        window.__jawGeomPrev = jb;
-        jaw.rotation.x = -(jb * 0.5);
       }
-
-      renderer.render(scene, camera);
+    } else if (jaw) {
+      // Fallback geometrico
+      window.__jawGeomPrev = window.__jawGeomPrev ?? 0;
+      const jawForBone = Math.max(lipConfig.minLipSeparation, (appliedJaw !== null ? appliedJaw : (amp * 0.9 + (cloudAudioSpeaking ? 0 : restJawOpen * 0.2))));
+      const a = lipConfig.jawSmoothingAlpha;
+      const jb = window.__jawGeomPrev * (1 - a) + jawForBone * a;
+      window.__jawGeomPrev = jb;
+      jaw.rotation.x = -(jb * 0.5);
     }
 
-    function checkForTtsChunks() {
-      const clean = stripHtml(ttsBuffer);
-      if (!clean || clean.length < 2) return;
+    renderer.render(scene, camera);
+  }
 
-      const boundaryIndex = findSentenceBoundary(clean);
-      if (boundaryIndex <= 0) return;
+  function checkForTtsChunks() {
+    const clean = stripHtml(ttsBuffer);
+    if (!clean || clean.length < 2) return;
 
-      const chunk = clean.slice(0, boundaryIndex).trim();
-      if (!chunk || chunk.length < 4) return;
+    const boundaryIndex = findSentenceBoundary(clean);
+    if (boundaryIndex <= 0) return;
 
-      if (speakQueue.some(item => item.text === chunk)) {
-        // Avanza comunque il buffer per evitare ripetizioni
-        ttsBuffer = clean.slice(boundaryIndex).trim();
-        return;
-      }
+    const chunk = clean.slice(0, boundaryIndex).trim();
+    if (!chunk || chunk.length < 4) return;
 
-      console.log('TTS: Sending sentence:', chunk.substring(0, 80) + '...');
-      sendToTts(chunk);
-      lastSentToTts = chunk;
-
-      // Mantieni buffer come porzione non ancora pronunciata
+    if (speakQueue.some(item => item.text === chunk)) {
+      // Avanza comunque il buffer per evitare ripetizioni
       ttsBuffer = clean.slice(boundaryIndex).trim();
+      return;
     }
 
-    function findSentenceBoundary(text) {
-      // Restituisce indice (>=1) dopo il delimitatore di frase dell'ULTIMA frase completa trovata partendo dall'inizio
-      // Delimitatori: . ! ? … (gestisce anche ...)
-      // Evita abbreviazioni comuni (it) e numeri decimali
-      const abbreviations = [
+    console.log('TTS: Sending sentence:', chunk.substring(0, 80) + '...');
+    sendToTts(chunk);
+    lastSentToTts = chunk;
+
+    // Mantieni buffer come porzione non ancora pronunciata
+    ttsBuffer = clean.slice(boundaryIndex).trim();
+  }
+
+  function findSentenceBoundary(text) {
+    // Restituisce indice (>=1) dopo il delimitatore di frase dell'ULTIMA frase completa trovata partendo dall'inizio
+    // Delimitatori: . ! ? … (gestisce anche ...)
+    // Evita abbreviazioni comuni (it) e numeri decimali
+    const abbreviations = [
         'es', 'ecc', 'etc', 'sig', 'sigg', 'sigra', 'sig.na', 'sig.ra', 'dott', 'ing', 'avv', 'prof', 'dr', 'dottssa', 'srl', 'spa', 's.p.a', 's.r.l', 'p.es', 'nr', 'n', 'art', 'cap', 'ca', 'vs', 'no'
-      ];
+    ];
 
-      let i = 0;
-      let lastSafe = -1;
-      while (i < text.length) {
-        const ch = text[i];
-        const next = i + 1 < text.length ? text[i + 1] : '';
-        const prev = i - 1 >= 0 ? text[i - 1] : '';
+    let i = 0;
+    let lastSafe = -1;
+    while (i < text.length) {
+      const ch = text[i];
+      const next = i + 1 < text.length ? text[i + 1] : '';
+      const prev = i - 1 >= 0 ? text[i - 1] : '';
 
-        let isBoundary = false;
-        let endIndex = i + 1;
+      let isBoundary = false;
+      let endIndex = i + 1;
 
-        if (ch === '.' || ch === '!' || ch === '?' || ch === '…') {
-          // Gestisci ellissi ...
-          if (ch === '.' && text.slice(i, i + 3) === '...') {
-            endIndex = i + 3;
-            isBoundary = true;
-            i = i + 3;
-          } else {
-            // Evita numeri decimali tipo 3.14
-            const nextNonSpaceIdx = findNextNonSpace(text, i + 1);
-            const prevNonSpaceIdx = findPrevNonSpace(text, i - 1);
-            const nextCh = nextNonSpaceIdx >= 0 ? text[nextNonSpaceIdx] : '';
-            const prevCh = prevNonSpaceIdx >= 0 ? text[prevNonSpaceIdx] : '';
-            const decimalLike = ch === '.' && /[0-9]/.test(prevCh) && /[0-9]/.test(nextCh);
-
-            // Evita abbreviazioni (token prima del punto)
-            let abbrevLike = false;
-            if (ch === '.') {
-              const startTok = findTokenStart(text, i - 1);
-              const token = text.slice(startTok, i).toLowerCase().replace(/\./g, '');
-              if (token.length > 0 && abbreviations.includes(token)) {
-                abbrevLike = true;
-              }
-            }
-
-            if (!decimalLike && !abbrevLike) {
-              isBoundary = true;
-              i = i + 1;
-            } else {
-              i = i + 1;
-            }
-          }
-
-          if (isBoundary) {
-            // Richiedi un separatore successivo (spazio/virgolette) e magari maiuscola all'inizio della prossima frase
-            const afterIdx = findNextNonSpace(text, endIndex);
-            const afterChunk = afterIdx >= 0 ? text.slice(afterIdx, afterIdx + 2) : '';
-            const nextIsUpper = afterIdx >= 0 ? /[A-ZÀ-Ý\(\["'“”‘’]/.test(text[afterIdx]) : true;
-            if (afterIdx < 0 || nextIsUpper || text[afterIdx - 1] === '\n') {
-              lastSafe = endIndex;
-            }
-          }
+      if (ch === '.' || ch === '!' || ch === '?' || ch === '…') {
+        // Gestisci ellissi ...
+        if (ch === '.' && text.slice(i, i + 3) === '...') {
+          endIndex = i + 3;
+          isBoundary = true;
+          i = i + 3;
         } else {
-          i++;
+          // Evita numeri decimali tipo 3.14
+          const nextNonSpaceIdx = findNextNonSpace(text, i + 1);
+          const prevNonSpaceIdx = findPrevNonSpace(text, i - 1);
+          const nextCh = nextNonSpaceIdx >= 0 ? text[nextNonSpaceIdx] : '';
+          const prevCh = prevNonSpaceIdx >= 0 ? text[prevNonSpaceIdx] : '';
+          const decimalLike = ch === '.' && /[0-9]/.test(prevCh) && /[0-9]/.test(nextCh);
+
+          // Evita abbreviazioni (token prima del punto)
+          let abbrevLike = false;
+          if (ch === '.') {
+            const startTok = findTokenStart(text, i - 1);
+            const token = text.slice(startTok, i).toLowerCase().replace(/\./g, '');
+            if (token.length > 0 && abbreviations.includes(token)) {
+              abbrevLike = true;
+            }
+          }
+
+          if (!decimalLike && !abbrevLike) {
+            isBoundary = true;
+            i = i + 1;
+          } else {
+            i = i + 1;
+          }
         }
-      }
 
-      return lastSafe; // -1 se non trovato
+        if (isBoundary) {
+          // Richiedi un separatore successivo (spazio/virgolette) e magari maiuscola all'inizio della prossima frase
+          const afterIdx = findNextNonSpace(text, endIndex);
+          const afterChunk = afterIdx >= 0 ? text.slice(afterIdx, afterIdx + 2) : '';
+          const nextIsUpper = afterIdx >= 0 ? /[A-ZÀ-Ý\(\["'“”‘’]/.test(text[afterIdx]) : true;
+          if (afterIdx < 0 || nextIsUpper || text[afterIdx - 1] === '\n') {
+            lastSafe = endIndex;
+          }
+        }
+      } else {
+        i++;
+      }
     }
 
-    function findNextNonSpace(s, start) {
-      for (let k = start; k < s.length; k++) {
-        if (!/\s/.test(s[k])) return k;
-      }
-      return -1;
-    }
+    return lastSafe; // -1 se non trovato
+  }
 
-    function findPrevNonSpace(s, start) {
-      for (let k = start; k >= 0; k--) {
-        if (!/\s/.test(s[k])) return k;
-      }
-      return -1;
+  function findNextNonSpace(s, start) {
+    for (let k = start; k < s.length; k++) {
+      if (!/\s/.test(s[k])) return k;
     }
+    return -1;
+  }
 
-    function findTokenStart(s, idx) {
-      let k = idx;
+  function findPrevNonSpace(s, start) {
+    for (let k = start; k >= 0; k--) {
+      if (!/\s/.test(s[k])) return k;
+    }
+    return -1;
+  }
+
+  function findTokenStart(s, idx) {
+    let k = idx;
       while (k >= 0 && /[\p{L}\p{N}\.]/u.test(s[k])) {
         k--;
       }
-      return k + 1;
-    }
+    return k + 1;
+  }
+  
+  // Funzione legacy mantenuta per compatibilità ma non più utilizzata
+  function checkForCompleteSentence() {
+    // Questa funzione non è più utilizzata - il TTS ora usa checkForTtsChunks
+  }
 
-    // Funzione legacy mantenuta per compatibilità ma non più utilizzata
-    function checkForCompleteSentence() {
-      // Questa funzione non è più utilizzata - il TTS ora usa checkForTtsChunks
-    }
+  function sendToTts(text) {
+    const norm = sanitizeForTts(text);
+    if (!norm || norm.length < 3) return;
+    if (speakQueue.some(item => item.text === norm)) return;
 
-    function sendToTts(text) {
-      const norm = sanitizeForTts(text);
-      if (!norm || norm.length < 3) return;
-      if (speakQueue.some(item => item.text === norm)) return;
-
-      // If Video Avatar mode, send to HeyGen streaming (repeat)
-      if (useVideoAvatar && useVideoAvatar.checked) {
+    // If Video Avatar mode, send to HeyGen streaming (repeat)
+    if (useVideoAvatar && useVideoAvatar.checked) {
         try {
           heygenSendRepeat(norm);
         } catch (e) {
           console.error('HEYGEN repeat failed', e);
         }
-        return;
-      }
+      return;
+    }
 
-      // Se la checkbox TTS è selezionata e c'è speechSynthesis, usa TTS del browser
-      if (useBrowserTts && useBrowserTts.checked && 'speechSynthesis' in window) {
+    // Se la checkbox TTS è selezionata e c'è speechSynthesis, usa TTS del browser
+    if (useBrowserTts && useBrowserTts.checked && 'speechSynthesis' in window) {
         speakQueue.push({
           url: null,
           text: norm
         });
-        if (!isSpeaking) playNextInQueue();
-        return;
-      }
-
-      // Altrimenti (TTS disattivato): usa audio cloud; i visemi testuali verranno schedulati su 'playing'
-      ttsRequestQueue.push(norm);
-      processTtsQueue();
+      if (!isSpeaking) playNextInQueue();
       return;
     }
 
-    async function processTtsQueue() {
-      if (ttsRequestInFlight) return;
-      const next = ttsRequestQueue.shift();
-      if (!next) return;
-      ttsRequestInFlight = true;
-      try {
-        console.log('TTS: Requesting audio for:', next.substring(0, 80));
-        const res = await fetch('/api/tts', {
-          method: 'POST',
+    // Altrimenti (TTS disattivato): usa audio cloud; i visemi testuali verranno schedulati su 'playing'
+    ttsRequestQueue.push(norm);
+    processTtsQueue();
+    return;
+  }
+
+  async function processTtsQueue() {
+    if (ttsRequestInFlight) return;
+    const next = ttsRequestQueue.shift();
+    if (!next) return;
+    ttsRequestInFlight = true;
+    try {
+      console.log('TTS: Requesting audio for:', next.substring(0, 80));
+      const res = await fetch('/api/tts', {
+        method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
@@ -1832,85 +1838,98 @@
             locale: 'it-IT',
             format: 'mp3'
           })
-        });
-        if (!res.ok) throw new Error(`TTS API ${res.status}`);
-        const blob = await res.blob();
-        const url = URL.createObjectURL(blob);
+      });
+      if (!res.ok) throw new Error(`TTS API ${res.status}`);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
         speakQueue.push({
           url,
           text: next
         });
-        if (!isSpeaking) playNextInQueue();
-      } catch (err) {
-        console.error('TTS request failed:', err);
-      } finally {
-        ttsRequestInFlight = false;
-        // Continua con la prossima richiesta senza attendere altro
-        if (ttsRequestQueue.length > 0) processTtsQueue();
-      }
+      if (!isSpeaking) playNextInQueue();
+    } catch (err) {
+      console.error('TTS request failed:', err);
+    } finally {
+      ttsRequestInFlight = false;
+      // Continua con la prossima richiesta senza attendere altro
+      if (ttsRequestQueue.length > 0) processTtsQueue();
     }
+  }
 
-    function sendToTtsIfNew() {
-      const clean = stripHtml(bufferText);
-      if (!clean) return;
+  function sendToTtsIfNew() {
+    const clean = stripHtml(bufferText);
+    if (!clean) return;
       const norm = clean.replace(/\s+/g, ' ').trim();
-      if (!norm || norm.length < 3) return;
-
-      // Controlla se il testo è già stato parlato
-      if (lastSpokenTail.includes(norm)) {
-        console.log('TTS: Skipping already spoken text:', norm.substring(0, 50));
-        return;
-      }
-
-      // Controlla se è già in coda
-      if (speakQueue.some(item => item.text === norm)) {
-        console.log('TTS: Skipping text already in queue:', norm.substring(0, 50));
-        return;
-      }
-
-      console.log('TTS: Sending remaining text:', norm.substring(0, 100));
-      sendToTts(norm);
+    if (!norm || norm.length < 3) return;
+    
+    // Controlla se il testo è già stato parlato
+    if (lastSpokenTail.includes(norm)) {
+      console.log('TTS: Skipping already spoken text:', norm.substring(0, 50));
+      return;
     }
-
-    function enqueueSpeak(text) {
-      // Usa la stessa logica di sendToTts per consistenza
-      sendToTts(text);
+    
+    // Controlla se è già in coda
+    if (speakQueue.some(item => item.text === norm)) {
+      console.log('TTS: Skipping text already in queue:', norm.substring(0, 50));
+      return;
     }
+    
+    console.log('TTS: Sending remaining text:', norm.substring(0, 100));
+    sendToTts(norm);
+  }
 
-    function playNextInQueue() {
-      if (!speakQueue.length) {
-        isSpeaking = false;
-        console.log('TTS: Queue empty, stopping');
-        return;
-      }
+  function enqueueSpeak(text) {
+    // Usa la stessa logica di sendToTts per consistenza
+    sendToTts(text);
+  }
 
-      isSpeaking = true;
-      const item = speakQueue.shift();
-      console.log('TTS: Playing:', item.text.substring(0, 50), '... Queue remaining:', speakQueue.length);
+  function playNextInQueue() {
+    if (!speakQueue.length) { 
+      isSpeaking = false; 
+      console.log('TTS: Queue empty, stopping');
+      return; 
+    }
+    
+    isSpeaking = true;
+    const item = speakQueue.shift();
+    console.log('TTS: Playing:', item.text.substring(0, 50), '... Queue remaining:', speakQueue.length);
 
-      if (useBrowserTts && useBrowserTts.checked && 'speechSynthesis' in window) {
-        try {
-          const utter = new SpeechSynthesisUtterance(item.text);
+    if (useBrowserTts && useBrowserTts.checked && 'speechSynthesis' in window) {
+      try {
+        const utter = new SpeechSynthesisUtterance(item.text);
           utter.lang = 'it-IT';
           utter.rate = 1.0;
           utter.pitch = 1.0;
           utter.volume = 1.0;
-          const voices = window.speechSynthesis.getVoices();
+        const voices = window.speechSynthesis.getVoices();
           const prefNames = ['Google italiano', 'Microsoft', 'Elsa', 'Lucia', 'Carla', 'Silvia', 'Alice'];
-          const itVoices = voices.filter(v => /it[-_]/i.test(v.lang));
-          const femaleVoices = itVoices.filter(v => /female|donna|feminine/i.test(v.name + ' ' + (v.voiceURI || '')));
-          const chosen = femaleVoices[0] || itVoices.find(v => prefNames.some(n => (v.name || '').includes(n))) || itVoices[0] || voices.find(v => /Italian/i.test(v.name)) || voices[0];
-          if (chosen) utter.voice = chosen;
-          if (browserTtsStatus) browserTtsStatus.textContent = chosen ? `Voce: ${chosen.name}` : 'Voce IT non trovata (usa default)';
-          utter.onstart = () => {
-            try {
-              const nowT = performance.now();
-              const words = (item.text || '').trim().split(/\s+/).filter(Boolean);
-              const estSec = Math.max(2, words.length * 0.42);
-              visemeSchedule = [];
-              enqueueTextVisemes(item.text || '', Math.floor(estSec * 1000), nowT);
-            } catch {}
-          };
+        const itVoices = voices.filter(v => /it[-_]/i.test(v.lang));
+        const femaleVoices = itVoices.filter(v => /female|donna|feminine/i.test(v.name + ' ' + (v.voiceURI || '')));
+        const chosen = femaleVoices[0] || itVoices.find(v => prefNames.some(n => (v.name || '').includes(n))) || itVoices[0] || voices.find(v => /Italian/i.test(v.name)) || voices[0];
+        if (chosen) utter.voice = chosen;
+        if (browserTtsStatus) browserTtsStatus.textContent = chosen ? `Voce: ${chosen.name}` : 'Voce IT non trovata (usa default)';
+        utter.onstart = () => {
+          try {
+            const nowT = performance.now();
+            const textClean = (item.text || '').replace(/\s+/g, ' ').trim();
+            const words = textClean.split(/\s+/).filter(Boolean);
+            const charCount = textClean.length;
+            const wordCount = words.length || Math.max(1, Math.round(charCount / 5));
+            const periods = (textClean.match(/[.!?…]/g) || []).length;
+            const commas = (textClean.match(/[,:;]/g) || []).length;
+            const parens = (textClean.match(/[()\-\u2013\u2014]/g) || []).length;
+            const rate = (typeof utter.rate === 'number' && utter.rate > 0) ? utter.rate : 1;
+            // Stima durata: combinazione parole/caratteri + pause da punteggiatura, scalata per rate
+            const baseWordSec = wordCount * 0.55; // ~1.8 parole/sec
+            const baseCharSec = charCount / 13.5;  // ~13.5 caratteri/sec
+            const pauseSec = periods * 0.55 + commas * 0.32 + parens * 0.22;
+            let estSec = (baseWordSec * 0.5 + baseCharSec * 0.5) + pauseSec + 0.4;
+            estSec = estSec / rate;
+            estSec = Math.max(2.2, estSec);
+            visemeSchedule = [];
+            enqueueTextVisemes(item.text || '', Math.floor(estSec * 1000), nowT);
+          } catch {}
+        };
           utter.onend = () => {
             // Reset immediato alla posa neutra
             try {
@@ -1973,46 +1992,46 @@
               playNextInQueue();
             }
           };
-          window.speechSynthesis.speak(utter);
-          return;
+        window.speechSynthesis.speak(utter);
+        return;
         } catch (e) {
           console.warn('speechSynthesis error, fallback to audio element', e);
         }
-      }
+    }
 
-      ttsPlayer.src = item.url;
+    ttsPlayer.src = item.url;
 
-      if (!audioCtx) {
+    if (!audioCtx) {
         audioCtx = new(window.AudioContext || window.webkitAudioContext)();
-      }
-      if (audioCtx.state === 'suspended') {
-        audioCtx.resume().catch(() => {});
-      }
-      if (!mediaNode) {
-        mediaNode = audioCtx.createMediaElementSource(ttsPlayer);
-        analyser = audioCtx.createAnalyser();
-        analyser.fftSize = 2048;
-        dataArray = new Uint8Array(analyser.fftSize);
-        mediaNode.connect(analyser);
-        analyser.connect(audioCtx.destination);
-      }
-      // (Re)start Meyda analyzer if advanced lipsync is on
-      if (advancedLipsyncOn) {
+    }
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume().catch(() => {});
+    }
+    if (!mediaNode) {
+      mediaNode = audioCtx.createMediaElementSource(ttsPlayer);
+      analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 2048;
+      dataArray = new Uint8Array(analyser.fftSize);
+      mediaNode.connect(analyser);
+      analyser.connect(audioCtx.destination);
+    }
+    // (Re)start Meyda analyzer if advanced lipsync is on
+    if (advancedLipsyncOn) {
         try {
           ensureMeydaLoaded().then(() => startMeydaAnalyzer()).catch((e) => console.warn('Meyda start failed', e));
         } catch (e) {
           console.warn('Meyda start failed', e);
         }
-      }
+    }
 
-      const onEnded = () => {
-        URL.revokeObjectURL(item.url);
-        // Aggiorna coda parlato (mantieni solo ultimi 400 caratteri)
-        lastSpokenTail = (lastSpokenTail + ' ' + item.text).slice(-400);
-        console.log('TTS: Finished playing:', item.text.substring(0, 50));
-        cloudAudioSpeaking = false;
-        // Stop immediato dei visemi testuali
-        visemeSchedule = [];
+    const onEnded = () => {
+      URL.revokeObjectURL(item.url);
+      // Aggiorna coda parlato (mantieni solo ultimi 400 caratteri)
+      lastSpokenTail = (lastSpokenTail + ' ' + item.text).slice(-400);
+      console.log('TTS: Finished playing:', item.text.substring(0, 50));
+      cloudAudioSpeaking = false;
+      // Stop immediato dei visemi testuali
+      visemeSchedule = [];
         // Forza chiusura completa per un istante alla fine (solo jaw)
         visemeTargets = {
           jawOpen: 0,
@@ -2041,89 +2060,89 @@
           }
           if (humanoid && humanoid.updateMatrixWorld) humanoid.updateMatrixWorld(true);
         } catch {}
-        ttsPlayer.removeEventListener('ended', onEnded);
-        stopMeydaAnalyzer();
-        playNextInQueue();
-      };
-
-      const onError = () => {
-        console.error('TTS: Playback error for:', item.text.substring(0, 50));
-        URL.revokeObjectURL(item.url);
-        ttsPlayer.removeEventListener('ended', onEnded);
-        ttsPlayer.removeEventListener('error', onError);
+      ttsPlayer.removeEventListener('ended', onEnded);
+      stopMeydaAnalyzer();
+      playNextInQueue();
+    };
+    
+    const onError = () => {
+      console.error('TTS: Playback error for:', item.text.substring(0, 50));
+      URL.revokeObjectURL(item.url);
+      ttsPlayer.removeEventListener('ended', onEnded);
+      ttsPlayer.removeEventListener('error', onError);
         isSpeaking = false;
         cloudAudioSpeaking = false;
-        playNextInQueue();
-      };
-
-      ttsPlayer.addEventListener('ended', onEnded);
-      ttsPlayer.addEventListener('error', onError);
-      // All'avvio dell'audio, sincronizza i visemi testuali sulla durata reale
-      const onPlaying = () => {
-        try {
-          // Con lipsync da audio, non pianifichiamo visemi testuali
-          visemeSchedule = [];
-        } catch {}
+      playNextInQueue();
+    };
+    
+    ttsPlayer.addEventListener('ended', onEnded);
+    ttsPlayer.addEventListener('error', onError);
+    // All'avvio dell'audio, sincronizza i visemi testuali sulla durata reale
+    const onPlaying = () => {
+      try {
+        // Con lipsync da audio, non pianifichiamo visemi testuali
+        visemeSchedule = [];
+      } catch {}
         try {
           ttsPlayer.removeEventListener('playing', onPlaying);
         } catch {}
-      };
-      ttsPlayer.addEventListener('playing', onPlaying);
-
+    };
+    ttsPlayer.addEventListener('playing', onPlaying);
+    
       ttsPlayer.play().then(() => {
         cloudAudioSpeaking = true;
       }).catch((err) => {
-        console.error('TTS: Play failed:', err);
-        isSpeaking = false;
-        onError();
-      });
-    }
+      console.error('TTS: Play failed:', err);
+      isSpeaking = false; 
+      onError();
+    });
+  }
 
-    async function heygenEnsureSession() {
-      if (heygen.started || heygen.connecting) return;
-      heygen.connecting = true;
-      try {
-        if (!HEYGEN_CONFIG.apiKey || !HEYGEN_CONFIG.serverUrl) {
-          videoAvatarStatus && (videoAvatarStatus.textContent = 'Config mancante');
-          throw new Error('HEYGEN config missing');
-        }
-        // Create session token
-        const tokRes = await fetch(`${HEYGEN_CONFIG.serverUrl}/v1/streaming.create_token`, {
-          method: 'POST',
+  async function heygenEnsureSession() {
+    if (heygen.started || heygen.connecting) return;
+    heygen.connecting = true;
+    try {
+      if (!HEYGEN_CONFIG.apiKey || !HEYGEN_CONFIG.serverUrl) {
+        videoAvatarStatus && (videoAvatarStatus.textContent = 'Config mancante');
+        throw new Error('HEYGEN config missing');
+      }
+      // Create session token
+      const tokRes = await fetch(`${HEYGEN_CONFIG.serverUrl}/v1/streaming.create_token`, {
+        method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'X-Api-Key': HEYGEN_CONFIG.apiKey
           },
-        });
-        const tokJson = await tokRes.json();
-        heygen.sessionToken = tokJson?.data?.token;
-        if (!heygen.sessionToken) throw new Error('No session token');
-        videoAvatarStatus && (videoAvatarStatus.textContent = 'Token OK');
+      });
+      const tokJson = await tokRes.json();
+      heygen.sessionToken = tokJson?.data?.token;
+      if (!heygen.sessionToken) throw new Error('No session token');
+      videoAvatarStatus && (videoAvatarStatus.textContent = 'Token OK');
 
-        // Create new streaming session
-        const body = {
-          quality: 'high',
-          version: 'v2',
-          video_encoding: 'H264',
-        };
-        if (heygenAvatar) body.avatar_name = heygenAvatar;
+      // Create new streaming session
+      const body = {
+        quality: 'high',
+        version: 'v2',
+        video_encoding: 'H264',
+      };
+      if (heygenAvatar) body.avatar_name = heygenAvatar;
         if (heygenVoice) body.voice = {
           voice_id: heygenVoice,
           rate: 1.0
         };
-        const newRes = await fetch(`${HEYGEN_CONFIG.serverUrl}/v1/streaming.new`, {
-          method: 'POST',
+      const newRes = await fetch(`${HEYGEN_CONFIG.serverUrl}/v1/streaming.new`, {
+        method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${heygen.sessionToken}`
           },
-          body: JSON.stringify(body),
-        });
-        const newJson = await newRes.json();
-        heygen.sessionInfo = newJson?.data;
-        if (!heygen.sessionInfo?.session_id) throw new Error('No session info');
+        body: JSON.stringify(body),
+      });
+      const newJson = await newRes.json();
+      heygen.sessionInfo = newJson?.data;
+      if (!heygen.sessionInfo?.session_id) throw new Error('No session info');
 
-        // LiveKit room
+      // LiveKit room
         heygen.room = new LivekitClient.Room({
           adaptiveStream: false,
           dynacast: true,
@@ -2131,40 +2150,40 @@
             resolution: LivekitClient.VideoPresets.h720.resolution
           }
         });
-        heygen.mediaStream = new MediaStream();
-        heygen.room.on(LivekitClient.RoomEvent.TrackSubscribed, async (track, publication, participant) => {
-          try {
-            if (track.kind === 'video') {
-              heygen.mediaStream.addTrack(track.mediaStreamTrack);
-              if (heygenVideo) {
-                heygenVideo.srcObject = heygen.mediaStream;
-                heygenVideo.muted = true;
-                await heygenVideo.play().catch(() => {});
-              }
-              videoAvatarStatus && (videoAvatarStatus.textContent = 'Video connesso');
+      heygen.mediaStream = new MediaStream();
+      heygen.room.on(LivekitClient.RoomEvent.TrackSubscribed, async (track, publication, participant) => {
+        try {
+          if (track.kind === 'video') {
+            heygen.mediaStream.addTrack(track.mediaStreamTrack);
+            if (heygenVideo) {
+              heygenVideo.srcObject = heygen.mediaStream;
+              heygenVideo.muted = true;
+              await heygenVideo.play().catch(() => {});
             }
-            if (track.kind === 'audio') {
-              // Route audio to a separate element to avoid autoplay locks
-              const audioStream = new MediaStream([track.mediaStreamTrack]);
-              if (heygenAudio) {
-                heygenAudio.srcObject = audioStream;
-                await heygenAudio.play().catch(() => {});
-              }
-              videoAvatarStatus && (videoAvatarStatus.textContent = 'Audio connesso');
+            videoAvatarStatus && (videoAvatarStatus.textContent = 'Video connesso');
+          }
+          if (track.kind === 'audio') {
+            // Route audio to a separate element to avoid autoplay locks
+            const audioStream = new MediaStream([track.mediaStreamTrack]);
+            if (heygenAudio) {
+              heygenAudio.srcObject = audioStream;
+              await heygenAudio.play().catch(() => {});
             }
+            videoAvatarStatus && (videoAvatarStatus.textContent = 'Audio connesso');
+          }
           } catch (e) {
             console.warn('HEYGEN: TrackSubscribed handler failed', e);
           }
-        });
-        heygen.room.on(LivekitClient.RoomEvent.TrackUnsubscribed, (track) => {
+      });
+      heygen.room.on(LivekitClient.RoomEvent.TrackUnsubscribed, (track) => {
           const mt = track.mediaStreamTrack;
           if (mt) heygen.mediaStream.removeTrack(mt);
-        });
-        await heygen.room.prepareConnection(heygen.sessionInfo.url, heygen.sessionInfo.access_token);
+      });
+      await heygen.room.prepareConnection(heygen.sessionInfo.url, heygen.sessionInfo.access_token);
 
-        // Start streaming
-        await fetch(`${HEYGEN_CONFIG.serverUrl}/v1/streaming.start`, {
-          method: 'POST',
+      // Start streaming
+      await fetch(`${HEYGEN_CONFIG.serverUrl}/v1/streaming.start`, {
+        method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${heygen.sessionToken}`
@@ -2172,23 +2191,23 @@
           body: JSON.stringify({
             session_id: heygen.sessionInfo.session_id
           }),
-        });
-        // Open WS to keep session alive and receive events
-        try {
+      });
+      // Open WS to keep session alive and receive events
+      try {
           const params = new URLSearchParams({
             session_id: heygen.sessionInfo.session_id,
             session_token: heygen.sessionToken,
             silence_response: 'true',
             stt_language: 'en'
           });
-          const wsUrl = `wss://${new URL(HEYGEN_CONFIG.serverUrl).hostname}/v1/ws/streaming.chat?${params}`;
-          heygen.ws = new WebSocket(wsUrl);
+        const wsUrl = `wss://${new URL(HEYGEN_CONFIG.serverUrl).hostname}/v1/ws/streaming.chat?${params}`;
+        heygen.ws = new WebSocket(wsUrl);
           heygen.ws.addEventListener('message', (evt) => {
             /* no-op; could log */
           });
-        } catch {}
-        await heygen.room.connect(heygen.sessionInfo.url, heygen.sessionInfo.access_token);
-        // Attempt to resume playback after connect
+      } catch {}
+      await heygen.room.connect(heygen.sessionInfo.url, heygen.sessionInfo.access_token);
+      // Attempt to resume playback after connect
         try {
           if (heygenVideo?.srcObject && heygenVideo.paused) {
             await heygenVideo.play();
@@ -2199,21 +2218,21 @@
             await heygenAudio.play();
           }
         } catch {}
-        heygen.started = true;
-        videoAvatarStatus && (videoAvatarStatus.textContent = 'Connesso');
-      } catch (e) {
-        console.error('HEYGEN: init failed', e);
-      } finally {
-        heygen.connecting = false;
-      }
+      heygen.started = true;
+      videoAvatarStatus && (videoAvatarStatus.textContent = 'Connesso');
+    } catch (e) {
+      console.error('HEYGEN: init failed', e);
+    } finally {
+      heygen.connecting = false;
     }
+  }
 
-    async function heygenSendRepeat(text) {
-      try {
-        await heygenEnsureSession();
-        if (!heygen.sessionInfo?.session_id) return;
-        await fetch(`${HEYGEN_CONFIG.serverUrl}/v1/streaming.task`, {
-          method: 'POST',
+  async function heygenSendRepeat(text) {
+    try {
+      await heygenEnsureSession();
+      if (!heygen.sessionInfo?.session_id) return;
+      await fetch(`${HEYGEN_CONFIG.serverUrl}/v1/streaming.task`, {
+        method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${heygen.sessionToken}`
@@ -2223,17 +2242,17 @@
             text,
             task_type: 'repeat'
           }),
-        });
-      } catch (e) {
-        console.error('HEYGEN: repeat failed', e);
-      }
+      });
+    } catch (e) {
+      console.error('HEYGEN: repeat failed', e);
     }
+  }
 
-    async function heygenClose() {
-      try {
-        if (heygen.sessionInfo?.session_id) {
-          await fetch(`${HEYGEN_CONFIG.serverUrl}/v1/streaming.stop`, {
-            method: 'POST',
+  async function heygenClose() {
+    try {
+      if (heygen.sessionInfo?.session_id) {
+        await fetch(`${HEYGEN_CONFIG.serverUrl}/v1/streaming.stop`, {
+          method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               Authorization: `Bearer ${heygen.sessionToken}`
@@ -2241,9 +2260,9 @@
             body: JSON.stringify({
               session_id: heygen.sessionInfo.session_id
             }),
-          });
-        }
-      } catch {}
+        });
+      }
+    } catch {}
       try {
         if (heygen.ws && heygen.ws.readyState < 2) heygen.ws.close();
       } catch {}
@@ -2270,26 +2289,26 @@
         connecting: false,
         started: false
       };
-      videoAvatarStatus && (videoAvatarStatus.textContent = '');
-    }
+    videoAvatarStatus && (videoAvatarStatus.textContent = '');
+  }
 
 
-    function stripHtml(html) {
-      const tmp = document.createElement('div');
-      tmp.innerHTML = html;
-      return (tmp.textContent || tmp.innerText || '').replace(/\s+/g, ' ').trim();
-    }
+  function stripHtml(html) {
+    const tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    return (tmp.textContent || tmp.innerText || '').replace(/\s+/g, ' ').trim();
+  }
 
-    async function ensureMeydaLoaded() {
+  async function ensureMeydaLoaded() {
       if (window.Meyda) {
         meyda = window.Meyda;
         return;
       }
-      return new Promise((resolve, reject) => {
-        try {
-          const s = document.createElement('script');
-          s.src = 'https://cdn.jsdelivr.net/npm/meyda@5.6.3/dist/web/meyda.min.js';
-          s.async = true;
+    return new Promise((resolve, reject) => {
+      try {
+        const s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/meyda@5.6.3/dist/web/meyda.min.js';
+        s.async = true;
           s.onload = () => {
             meyda = window.Meyda;
             console.log('Meyda loaded');
@@ -2299,82 +2318,82 @@
             console.warn('Meyda load failed', e);
             reject(e);
           };
-          document.head.appendChild(s);
+        document.head.appendChild(s);
         } catch (e) {
           reject(e);
         }
-      });
-    }
+    });
+  }
 
-    function startMeydaAnalyzer() {
-      try {
-        if (!advancedLipsyncOn) return;
-        if (!audioCtx || !mediaNode || !meyda || meydaAnalyzer) return;
+  function startMeydaAnalyzer() {
+    try {
+      if (!advancedLipsyncOn) return;
+      if (!audioCtx || !mediaNode || !meyda || meydaAnalyzer) return;
         if (!meyda.isMeydaSupported(audioCtx)) {
           console.warn('Meyda not supported');
           return;
         }
-        meydaAnalyzer = meyda.createMeydaAnalyzer({
-          audioContext: audioCtx,
-          source: mediaNode,
-          bufferSize: 1024,
+      meydaAnalyzer = meyda.createMeydaAnalyzer({
+        audioContext: audioCtx,
+        source: mediaNode,
+        bufferSize: 1024,
           featureExtractors: ['rms', 'zcr', 'spectralCentroid', 'mfcc'],
-          callback: onMeydaFeatures,
-        });
-        meydaAnalyzer.start();
-        console.log('Meyda analyzer started');
+        callback: onMeydaFeatures,
+      });
+      meydaAnalyzer.start();
+      console.log('Meyda analyzer started');
       } catch (e) {
         console.warn('startMeydaAnalyzer failed', e);
       }
-    }
+  }
 
-    function stopMeydaAnalyzer() {
-      try {
+  function stopMeydaAnalyzer() {
+    try {
         if (meydaAnalyzer) {
           meydaAnalyzer.stop();
           meydaAnalyzer = null;
         }
-      } catch {}
-    }
+    } catch {}
+  }
 
-    function onMeydaFeatures(features) {
-      try {
-        if (!features) return;
+  function onMeydaFeatures(features) {
+    try {
+      if (!features) return;
         const rms = features.rms;
         const zcr = features.zcr;
         const sc = features.spectralCentroid;
         const mfcc = features.mfcc;
 
-        // Heuristic viseme mapping:
-        // - jawOpen by energy (rms)
-        // - funnel/pucker by low centroid (rounded vowels)
-        // - smile by higher centroid + certain MFCC patterns
+      // Heuristic viseme mapping:
+      // - jawOpen by energy (rms)
+      // - funnel/pucker by low centroid (rounded vowels)
+      // - smile by higher centroid + certain MFCC patterns
         const jaw = Math.min(1, features.rms * 2.0);
         const funnel = Math.max(0, (1 - features.spectralCentroid / 4000) * 0.7 * features.rms);
         const pucker = Math.max(0, (1 - features.spectralCentroid / 4000) * 0.5 * features.rms);
         const smile = Math.max(0, (features.spectralCentroid / 4000 - 0.3) * 0.6 * features.rms);
         const close = Math.max(0, (0.2 - features.zcr) * 1.2);
 
-        visemeTargets = {
-          jawOpen: jaw,
-          mouthFunnel: funnel,
-          mouthPucker: pucker,
-          mouthSmileL: smile * 0.7,
-          mouthSmileR: smile * 0.7,
-          mouthClose: close,
-        };
-        visemeActiveUntil = performance.now() + 90; // constantly extended while speaking
-      } catch {}
-    }
+      visemeTargets = {
+        jawOpen: jaw,
+        mouthFunnel: funnel,
+        mouthPucker: pucker,
+        mouthSmileL: smile * 0.7,
+        mouthSmileR: smile * 0.7,
+        mouthClose: close,
+      };
+      visemeActiveUntil = performance.now() + 90; // constantly extended while speaking
+    } catch {}
+  }
 
-    function loadHumanoid() {
-      try {
+  function loadHumanoid() {
+    try {
         const FBXLoaderCtor = window.FBXLoader;
         const GLTFLoaderCtor = window.GLTFLoader;
         if (!window.THREE || (!FBXLoaderCtor && !GLTFLoaderCtor)) {
           console.warn('Loader non presente. THREE:', !!window.THREE, 'FBXLoader:', !!FBXLoaderCtor, 'GLTFLoader:', !!GLTFLoaderCtor);
-          return;
-        }
+        return;
+      }
         const fbxUrl = "{{ asset('images/Beautiful Model - Lisa.fbx') }}" + "?v=" + Date.now();
         const glbUrl = "{{ asset('images/lisa_-_woman_head_with_blendshapes.glb') }}" + "?v=" + Date.now();
 
@@ -2513,9 +2532,9 @@
                   // Prova a mappare blink se presenti
                   if (eyeMesh === null) {
                     if (dict['eyeBlinkLeft'] !== undefined || dict['eyeBlinkRight'] !== undefined || eyeBlinkLIdx !== undefined || eyeBlinkRIdx !== undefined) {
-                      eyeMesh = obj;
-                      if (dict['eyeBlinkLeft'] !== undefined) eyeIndices.eyeBlinkLeft = dict['eyeBlinkLeft'];
-                      if (dict['eyeBlinkRight'] !== undefined) eyeIndices.eyeBlinkRight = dict['eyeBlinkRight'];
+                    eyeMesh = obj;
+                    if (dict['eyeBlinkLeft'] !== undefined) eyeIndices.eyeBlinkLeft = dict['eyeBlinkLeft'];
+                    if (dict['eyeBlinkRight'] !== undefined) eyeIndices.eyeBlinkRight = dict['eyeBlinkRight'];
                       if (eyeBlinkLIdx !== undefined) eyeIndices.eyeBlinkLeft = eyeBlinkLIdx;
                       if (eyeBlinkRIdx !== undefined) eyeIndices.eyeBlinkRight = eyeBlinkRIdx;
                     }
@@ -2570,7 +2589,7 @@
                 } catch {}
               } else {
                 // Nessun head bone: usa fitCameraToObject stabile
-                let headMesh = null;
+              let headMesh = null;
                 humanoid.traverse((obj) => {
                   if (!headMesh && (/wolf3d_head/i.test(obj.name) || /head$/i.test(obj.name))) headMesh = obj;
                 });
@@ -2607,7 +2626,7 @@
                 console.warn('Impossibile caricare FBX', err);
                 reject(err);
               });
-            } catch (e) {
+        } catch (e) {
               reject(e);
             }
           });
@@ -2648,16 +2667,16 @@
             console.warn('Nessun modello caricato', e);
           }
         })();
-      } catch (e) {
-        console.warn('Errore loadHumanoid()', e);
-      }
+    } catch (e) {
+      console.warn('Errore loadHumanoid()', e);
     }
+  }
 
-    function fitCameraToObject(camera, object, offset = 1.25) {
+  function fitCameraToObject(camera, object, offset = 1.25) {
       try {
-        const box = new THREE.Box3().setFromObject(object);
-        const size = box.getSize(new THREE.Vector3());
-        const center = box.getCenter(new THREE.Vector3());
+    const box = new THREE.Box3().setFromObject(object);
+    const size = box.getSize(new THREE.Vector3());
+    const center = box.getCenter(new THREE.Vector3());
         const aspect = (camera.aspect && isFinite(camera.aspect)) ? camera.aspect : 1;
         const vFOV = THREE.MathUtils.degToRad(camera.fov);
         const hFOV = 2 * Math.atan(Math.tan(vFOV / 2) * aspect);
@@ -2671,8 +2690,8 @@
         // near/far robusti
         camera.near = Math.max(0.01, dist / 100);
         camera.far = Math.max(camera.near + 1, dist * 10 + size.length());
-        camera.lookAt(center);
-        camera.updateProjectionMatrix();
+    camera.lookAt(center);
+    camera.updateProjectionMatrix();
         if (window.__orbit && window.__orbit.target) {
           try {
             window.__orbit.target.copy(center);
@@ -2685,68 +2704,11 @@
         // Organizzazione in moduli per una lettura ordinata del codice
         // Pattern: Facade + Controller groupings (scene/model/lipsync/tts/ui/debug)
         // =========================
-        // Controller ES6: non alterano il flusso esistente; raggruppano funzioni per lettura/riuso
-        class SceneController {
-          // deps: { fitCameraToObject: Function }
-          constructor(deps = {}) {
-            this.deps = deps;
-          }
-          initThree() {
-            return initThree();
-          }
-          setupScene() {
-            return setupScene();
-          }
-          onResize() {
-            return onResize();
-          }
-          animate() {
-            return animate();
-          }
-          fitCameraToObject(cam, obj, offset) {
-            return this.deps.fitCameraToObject ? this.deps.fitCameraToObject(cam, obj, offset) : fitCameraToObject(cam, obj, offset);
-          }
-        }
-        class ModelController {
-          loadHumanoid() {
-            return loadHumanoid();
-          }
-        }
-        class LipsyncController {
-          ensureMeydaLoaded() {
-            return ensureMeydaLoaded();
-          }
-          startMeydaAnalyzer() {
-            return startMeydaAnalyzer();
-          }
-          stopMeydaAnalyzer() {
-            return stopMeydaAnalyzer();
-          }
-          onMeydaFeatures(features) {
-            return onMeydaFeatures(features);
-          }
-        }
-        class TtsController {
-          sendToTts(text) {
-            return sendToTts(text);
-          }
-          processTtsQueue() {
-            return processTtsQueue();
-          }
-          playNextInQueue() {
-            return playNextInQueue();
-          }
-          sendToTtsIfNew() {
-            return sendToTtsIfNew();
-          }
-        }
-        class UiController {
-          initDebugOverlay() {
-            return initDebugOverlay();
-          }
-        }
+        // Controller modulari non più usati: definiamo proxy inline
 
         try {
+          // Import dinamici rimossi: tutto è inline in questo file
+
           window.Enjoy3D = {
             scene: {
               initThree,
@@ -2792,13 +2754,62 @@
             },
             // Controller istanziati
             controllers: {
-              scene: new SceneController({
-                fitCameraToObject
-              }),
-              model: new ModelController(),
-              lipsync: new LipsyncController(),
-              tts: new TtsController(),
-              ui: new UiController(),
+              scene: SceneController ? new SceneController({ fitCameraToObject }) : undefined,
+              model: {
+                loadHumanoid() {
+                  try {
+                    if (window.Enjoy3D && window.Enjoy3D.model && typeof window.Enjoy3D.model.loadHumanoid === 'function') {
+                      return window.Enjoy3D.model.loadHumanoid();
+                    }
+                  } catch {}
+                },
+              },
+              lipsync: {
+                ensureMeydaLoaded() {
+                  try {
+                    if (window.Enjoy3D && window.Enjoy3D.lipsync && typeof window.Enjoy3D.lipsync.ensureMeydaLoaded === 'function') {
+                      return window.Enjoy3D.lipsync.ensureMeydaLoaded();
+                    }
+                  } catch {}
+                },
+                startMeydaAnalyzer() {
+                  try {
+                    if (window.Enjoy3D && window.Enjoy3D.lipsync && typeof window.Enjoy3D.lipsync.startMeydaAnalyzer === 'function') {
+                      return window.Enjoy3D.lipsync.startMeydaAnalyzer();
+                    }
+                  } catch {}
+                },
+                stopMeydaAnalyzer() {
+                  try {
+                    if (window.Enjoy3D && window.Enjoy3D.lipsync && typeof window.Enjoy3D.lipsync.stopMeydaAnalyzer === 'function') {
+                      return window.Enjoy3D.lipsync.stopMeydaAnalyzer();
+                    }
+                  } catch {}
+                },
+                onMeydaFeatures(features) {
+                  try {
+                    if (window.Enjoy3D && window.Enjoy3D.lipsync && typeof window.Enjoy3D.lipsync.onMeydaFeatures === 'function') {
+                      return window.Enjoy3D.lipsync.onMeydaFeatures(features);
+                    }
+                  } catch {}
+                },
+              },
+              tts: {
+                send(text) {
+                  try { return window.Enjoy3D && window.Enjoy3D.tts && window.Enjoy3D.tts.sendToTts ? window.Enjoy3D.tts.sendToTts(text) : undefined; } catch {}
+                },
+                processQueue() {
+                  try { return window.Enjoy3D && window.Enjoy3D.tts && window.Enjoy3D.tts.processTtsQueue ? window.Enjoy3D.tts.processTtsQueue() : undefined; } catch {}
+                },
+                playNext() {
+                  try { return window.Enjoy3D && window.Enjoy3D.tts && window.Enjoy3D.tts.playNextInQueue ? window.Enjoy3D.tts.playNextInQueue() : undefined; } catch {}
+                },
+              },
+              ui: {
+                initDebugOverlay() {
+                  try { return window.Enjoy3D && window.Enjoy3D.ui && window.Enjoy3D.ui.initDebugOverlay ? window.Enjoy3D.ui.initDebugOverlay() : undefined; } catch {}
+                },
+              },
             },
           };
           console.log('Enjoy3D API ready:', Object.keys(window.Enjoy3D));
