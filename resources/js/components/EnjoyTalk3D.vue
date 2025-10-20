@@ -3,8 +3,6 @@
     ref="rootEl"
     id="enjoyTalkRoot"
     class="flex flex-col min-h-[100dvh] w-full bg-[#0f172a] pb-[96px] sm:pb-0"
-    :data-heygen-api-key="heygenApiKey"
-    :data-heygen-server-url="heygenServerUrl"
   >
     <div class="px-4 py-4">
       <div class="mx-auto w-full max-w-[520px] flex items-center gap-3">
@@ -91,25 +89,44 @@ import { onMounted, defineComponent, getCurrentInstance, ref } from 'vue'
 
 export default defineComponent({
   name: 'EnjoyTalk3D',
+  props: {
+    heygenApiKey: {
+      type: String,
+      default: ''
+    },
+    heygenServerUrl: {
+      type: String,
+      default: 'https://api.heygen.com'
+    },
+    locale: {
+      type: String,
+      default: 'it-IT'
+    },
+    teamLogo: {
+      type: String,
+      default: '/images/logoai.jpeg'
+    }
+  },
   data() {
     return {
       // stato minimale esposto secondo Options API
       isListening: false,
       advancedLipsyncOn: false,
-      heygenApiKey: '',
-      heygenServerUrl: 'https://api.heygen.com',
-      locale: 'it-IT',
-      teamLogo: '/images/logoai.jpeg',
+      heygenApiKey: this.heygenApiKey || '',
+      heygenServerUrl: this.heygenServerUrl || 'https://api.heygen.com',
+      locale: this.locale || 'it-IT',
+      teamLogo: this.teamLogo || '/images/logoai.jpeg',
     }
   },
   mounted() {
     try {
-      // Recupera i dati dal DOM se il componente è montato su un elemento con dataset
+      // Priorità: props ricevuti > dataset dell'elemento > valori di default
       if (this.$el) {
-        this.heygenApiKey = this.$el.dataset.heygenApiKey || ''
-        this.heygenServerUrl = this.$el.dataset.heygenServerUrl || 'https://api.heygen.com'
-        this.locale = this.$el.dataset.locale || 'it-IT'
-        this.teamLogo = this.$el.dataset.teamLogo || '/images/logoai.jpeg'
+        console.log('EnjoyTalk3D mounted:', { dataset: this.$el.dataset, props: { heygenApiKey: this.heygenApiKey, heygenServerUrl: this.heygenServerUrl } });
+        this.heygenApiKey = this.heygenApiKey || this.$el.dataset.heygenApiKey || ''
+        this.heygenServerUrl = this.heygenServerUrl || this.$el.dataset.heygenServerUrl || 'https://api.heygen.com'
+        this.locale = this.locale || this.$el.dataset.locale || 'it-IT'
+        this.teamLogo = this.teamLogo || this.$el.dataset.teamLogo || '/images/logoai.jpeg'
       }
       
       this.initLibraries().then(() => {
@@ -312,6 +329,8 @@ export default defineComponent({
       let forceFullCloseUntil = 0;
       let syllablePulseUntil = 0;
       let nextSyllablePulseAt = 0;
+      let restStableUntil = 0; // finestra in cui tenere ferma la bocca dopo stop
+      let talkSmoothed = 0; const TALK_ALPHA = 0.2; const TALK_ON = 0.04; const TALK_OFF = 0.015;
       const lipConfig = { restJawOpen: 0.12, minLipSeparation: 0.07, maxMouthClose: 0.35, closeThresholdForSeparation: 0.2, visemeStrengthAlpha: 0.15, morphSmoothingBeta: 0.16, jawSmoothingAlpha: 0.12 };
 
       function enqueueTextVisemes(text, totalDurationMs = null, startAtMs = null) {
@@ -462,6 +481,13 @@ export default defineComponent({
       try {
         useVideoAvatar?.addEventListener('change', async () => {
           if (useVideoAvatar.checked) {
+            // Pre-check config
+            if (!HEYGEN_CONFIG.apiKey || !HEYGEN_CONFIG.serverUrl) {
+              try { if (videoAvatarStatus) videoAvatarStatus.textContent = 'Config mancante'; } catch {}
+              try { useVideoAvatar.checked = false; } catch {}
+              console.warn('HEYGEN: missing apiKey/serverUrl');
+              return;
+            }
             $id('avatarStage')?.classList.add('hidden');
             heygenVideo?.classList.remove('hidden');
             try { await heygenEnsureSession(); } catch (e) { console.error('HEYGEN: ensure session failed', e); }
@@ -470,23 +496,15 @@ export default defineComponent({
               try { await heygenAudio?.play(); } catch {}
               document.removeEventListener('click', unlock); document.removeEventListener('touchstart', unlock);
             };
-            document.addEventListener('click', unlock, { once: true });
-            document.addEventListener('touchstart', unlock, { once: true });
+            document.addEventListener('click', unlock); document.addEventListener('touchstart', unlock);
           } else {
-            heygenVideo?.classList.add('hidden');
+            try { heygenVideo?.pause(); } catch {}
+            try { if (heygen && heygen.room) { await heygen.room.disconnect(); } } catch {}
             $id('avatarStage')?.classList.remove('hidden');
-            try { await heygenClose(); } catch {}
+            heygenVideo?.classList.add('hidden');
+            try { if (videoAvatarStatus) videoAvatarStatus.textContent = ''; } catch {}
           }
-        });
-      if (useVideoAvatar?.checked) {
-          $id('avatarStage')?.classList.add('hidden');
-          heygenVideo?.classList.remove('hidden');
-          try { await heygenEnsureSession(); } catch {}
-          setTimeout(async () => {
-            try { if (heygenVideo?.srcObject && heygenVideo.paused) await heygenVideo.play(); } catch {}
-            try { if (heygenAudio?.srcObject && heygenAudio.paused) await heygenAudio.play(); } catch {}
-          }, 800);
-        }
+        })
       } catch {}
 
       try {
@@ -603,8 +621,26 @@ export default defineComponent({
       async function stopAllSpeechOutput() {
         try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch {}
         try { if (ttsPlayer && !ttsPlayer.paused) { ttsPlayer.pause(); ttsPlayer.currentTime = 0; } } catch {}
-        speakQueue.forEach(item => { if (item.url) try { URL.revokeObjectURL(item.url); } catch {} });
-        speakQueue = []; ttsRequestQueue = []; isSpeaking = false;
+        try { speakQueue.forEach(item => URL.revokeObjectURL(item.url)); } catch {}
+        speakQueue = []; ttsRequestQueue = []; isSpeaking = false; cloudAudioSpeaking = false;
+        restStableUntil = performance.now() + 300;
+        // reset visemi/bocca a riposo
+        try {
+          visemeTargets = { jawOpen: 0, mouthFunnel: 0, mouthPucker: 0, mouthSmileL: 0, mouthSmileR: 0, mouthClose: 0 };
+          visemeSchedule = []; visemeStrength = 0; morphValue = 0;
+          if (Array.isArray(visemeMeshes)) {
+            for (const vm of visemeMeshes) {
+              const infl = vm.mesh && vm.mesh.morphTargetInfluences; const idxs = vm.indices || {}; if (!infl) continue;
+              if (idxs.mouthFunnel >= 0) infl[idxs.mouthFunnel] = 0;
+              if (idxs.mouthPucker >= 0) infl[idxs.mouthPucker] = 0;
+              if (idxs.mouthSmileL >= 0) infl[idxs.mouthSmileL] = 0;
+              if (idxs.mouthSmileR >= 0) infl[idxs.mouthSmileR] = 0;
+              if (idxs.mouthClose >= 0) infl[idxs.mouthClose] = 0;
+              if (idxs.jawOpen >= 0) infl[idxs.jawOpen] = 0;
+            }
+          }
+          if (humanoid && humanoid.updateMatrixWorld) humanoid.updateMatrixWorld(true);
+        } catch {}
       }
       try { instance.proxy._stopAllSpeechOutput = stopAllSpeechOutput } catch {}
       function setListeningUI(active) {
@@ -829,29 +865,18 @@ export default defineComponent({
           const targetAmp = Math.min(1, rms * 5.5);
           const a = (targetAmp > audioAmp) ? AMP_ATTACK : AMP_RELEASE;
           audioAmp = audioAmp * (1 - a) + targetAmp * a; amp = audioAmp;
-          try {
-            if (!freqData || freqData.length !== analyser.frequencyBinCount) { freqData = new Uint8Array(analyser.frequencyBinCount); }
-            analyser.getByteFrequencyData(freqData);
-            let num = 0, den = 0; const sr = (audioCtx && audioCtx.sampleRate) ? audioCtx.sampleRate : 44100; const nyquist = sr / 2; const binHz = nyquist / freqData.length;
-            let lowSum = 0, midSum = 0, highSum = 0, totalSum = 0; const LOW_MAX = 300, MID_MAX = 2000;
-            for (let i = 0; i < freqData.length; i++) { const mag = freqData[i]; if (mag <= 0) continue; const f = i * binHz; num += f * mag; den += mag; totalSum += mag; if (f <= LOW_MAX) lowSum += mag; else if (f <= MID_MAX) midSum += mag; else highSum += mag; }
-            const centroid = den > 0 ? (num / den) : 0; const normC = Math.max(0, Math.min(1, centroid / 3500)); const zcr = zc / dataArray.length;
-            const k = 3.2; const lowN = totalSum > 0 ? (lowSum / totalSum) : 0; const midN = totalSum > 0 ? (midSum / totalSum) : 0; const highN = totalSum > 0 ? (highSum / totalSum) : 0;
-            const eLow = 1 - Math.exp(-k * Math.max(0, lowN)); const eMid = 1 - Math.exp(-k * Math.max(0, midN)); const eHigh = 1 - Math.exp(-k * Math.max(0, highN));
-            const rounded = Math.max(0, 1.0 - normC); const wide = Math.max(0, normC - 0.32); const closeLike = Math.max(0, (0.05 - zcr) * 9); const lowAmp = amp < 0.08; const midBand = Math.max(0, 1 - Math.abs(normC - 0.28) / 0.22);
-            const MAX_JAW_OPEN = 0.45; let jawVal = Math.min(MAX_JAW_OPEN, Math.max(0.06, 1.05 * eLow + 0.40 * midBand - 0.25 * rounded));
-            const roundBoost = rounded * (1 - 0.6 * midBand); let funnelVal = lowAmp ? 0 : Math.min(0.45, Math.max(0, roundBoost * (eLow * 0.9) + rounded * 0.18)); let puckerVal = lowAmp ? 0 : Math.min(0.38, Math.max(0, roundBoost * (eLow * 0.7) + rounded * 0.12));
-            const oBoost = Math.min(0.35, Math.pow(Math.max(0, rounded), 1.2) * (0.28 + 0.6 * (amp || 0))); funnelVal = Math.min(0.8, funnelVal + oBoost); puckerVal = Math.min(0.6, puckerVal + oBoost * 0.6);
-            const smileVal = Math.max(0, Math.min(0.30, (eMid + wide * 0.5) * 0.35));
-            let closeVal = lowAmp ? 0.04 : Math.max(0, Math.min(0.40, (eHigh * 0.25) + closeLike * 0.30 * (1 - amp)));
-            jawVal = Math.max(lipConfig.minLipSeparation, jawVal * (1 - 0.35 * eHigh));
-            visemeTargets = { jawOpen: jawVal, mouthFunnel: funnelVal, mouthPucker: puckerVal, mouthSmileL: smileVal, mouthSmileR: smileVal, mouthClose: closeVal };
-            visemeActiveUntil = performance.now() + 200; if (!Array.isArray(visemeMeshes) || visemeMeshes.length === 0) { visemeActiveUntil = performance.now() + 200; }
-          } catch {}
+          // smoothing/hysteresis parlato
+          const talkRaw = (cloudAudioSpeaking || (window.speechSynthesis && window.speechSynthesis.speaking) || (amp > TALK_ON));
+          const talkTarget = talkRaw ? 1 : (amp > TALK_OFF ? talkSmoothed : 0);
+          talkSmoothed = talkSmoothed * (1 - TALK_ALPHA) + talkTarget * TALK_ALPHA;
         }
+        const talking = talkSmoothed > 0.5;
+        
         if (textVisemeEnabled && !forcedClosing) {
-          const nowT = performance.now(); visemeSchedule = visemeSchedule.filter(it => it.end > nowT); const active = visemeSchedule.find(it => it.start <= nowT && it.end > nowT);
-          if (active) { const blend = Math.max(0, Math.min(1, (nowT - active.start) / Math.max(1, (active.end - active.start)))); visemeTargets = { jawOpen: active.targets.jawOpen * blend, mouthFunnel: active.targets.mouthFunnel * blend, mouthPucker: active.targets.mouthPucker * blend, mouthSmileL: active.targets.mouthSmileL * blend, mouthSmileR: active.targets.mouthSmileR * blend, mouthClose: active.targets.mouthClose * blend, }; visemeActiveUntil = nowT + 120; }
+          if (!talking && performance.now() < restStableUntil) {
+            visemeTargets = { jawOpen: 0, mouthFunnel: 0, mouthPucker: 0, mouthSmileL: 0, mouthSmileR: 0, mouthClose: 0 };
+            visemeActiveUntil = performance.now() + 120;
+          }
         }
         if (textVisemeEnabled && (!analyser || !cloudAudioSpeaking) && !forcedClosing) {
           if (forcedClosing) { visemeTargets = { jawOpen: 0, mouthFunnel: 0, mouthPucker: 0, mouthSmileL: 0, mouthSmileR: 0, mouthClose: 0 }; visemeActiveUntil = performance.now() + 60; }
