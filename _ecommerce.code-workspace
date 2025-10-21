@@ -9,7 +9,7 @@
 		"php.suggest.basic": false,
 		"[php]": {
 			"editor.formatOnSave": true,
-			"editor.defaultFormatter": "junstyle.php-cs-fixer",
+			"editor.defaultFormatter": null
 		},
 		"php-cs-fixer.executablePath": "C:\\Users\\margh\\AppData\\Roaming\\Composer\\vendor\\bin\\php-cs-fixer.bat",
 		"php-cs-fixer.executablePathWindows": "C:\\Users\\margh\\AppData\\Roaming\\Composer\\vendor\\bin\\php-cs-fixer.bat",
@@ -23,5 +23,26 @@
 		"php-cs-fixer.autoFixBySemicolon": false,
 		"php-cs-fixer.formatHtml": true,
 		"php-cs-fixer.documentFormattingProvider": true,
+		// ESLint settings for Vue
+		"eslint.enable": true,
+		"eslint.validate": [
+			"javascript",
+			"javascriptreact",
+			"vue"
+		],
+		"eslint.workingDirectories": [
+			{
+				"mode": "auto"
+			}
+		],
+		"editor.codeActionsOnSave": {
+			"source.fixAll.eslint": "explicit"
+		},
+		"[vue]": {
+			"editor.defaultFormatter": null
+		},
+		"[javascript]": {
+			"editor.defaultFormatter": null
+		}
 	}
 }

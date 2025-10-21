@@ -1,50 +1,25 @@
 {
-	"editor.formatOnType": true,
-	"php-cs-fixer.onsave": true,
-	"php-cs-fixer.formatHtml": true,
-	"php-cs-fixer.config": ".php-cs-fixer.php",
-	"php-cs-fixer.executablePath": "${workspaceFolder}/vendor/bin/php-cs-fixer",
-	"php-cs-fixer.executablePathWindows": "php-cs-fixer.bat",
-	"vscode-php-cs-fixer.allowRisky": true,
-	"phpmd.enabled": false,
-	"phpmd.validate.rulesets": "cleancode,codesize,controversial,design,naming,unusedcode",
-	"phpmd.SuppressWarnings":true,
-	"phpmd.verbose": false,
-	"php-cs-fixer.allowRisky": true,
-	"editor.defaultFormatter": "junstyle.php-cs-fixer",
-	"[php]": {
-		"editor.defaultFormatter": "bmewburn.vscode-intelephense-client"
-	},
-	"editor.tokenColorCustomizations": {
-		"semanticHighlighting": true
-	},
-	"[blade]": {
-		"editor.defaultFormatter": "shufo.vscode-blade-formatter"
-	},
-	"vscode-php-cs-fixer.toolPath": ".",
-	"vscode-php-cs-fixer.useCache": true,
-	"files.eol": "\n",
-	"git.autofetch": "all",
-	"editor.wordWrapColumn": 120,
-	"[json]": {
-		"editor.defaultFormatter": "vscode.json-language-features"
-	},
-	"[scss]": {
-		"editor.defaultFormatter": "vscode.css-language-features"
-	},
-	"[css]": {
-		"editor.defaultFormatter": "vscode.css-language-features"
-	},
-	"[vue]": {
-		"editor.defaultFormatter": "Vue.volar"
-	},
-	"[markdown]": {
-		"editor.defaultFormatter": "yzhang.markdown-all-in-one"
-	},
-	"[jsonc]": {
-		"editor.defaultFormatter": "vscode.json-language-features"
-	},
-	"[xml]": {
-		"editor.defaultFormatter": "redhat.vscode-xml"
-	}
+  // ESLint settings for Vue
+  "eslint.enable": true,
+  "eslint.validate": [
+    "javascript",
+    "javascriptreact",
+    "vue"
+  ],
+  "eslint.workingDirectories": [
+    {
+      "mode": "auto"
+    }
+  ],
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  "[vue]": {
+    "editor.defaultFormatter": "dbaeumer.vscode-eslint",
+    "editor.formatOnSave": true
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "dbaeumer.vscode-eslint",
+    "editor.formatOnSave": true
+  }
 }

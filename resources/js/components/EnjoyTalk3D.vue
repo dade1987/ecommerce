@@ -240,7 +240,6 @@ export default defineComponent({
       // Porting del codice originale (senza wrapper DOMContentLoaded)
       // =========================
 
-      const sendBtn = $id('sendBtn');
       const micBtn = $id('micBtn');
       const input = $id('textInput');
       const liveText = $id('liveText');
@@ -414,7 +413,7 @@ export default defineComponent({
       let nextSyllablePulseAt = 0;
       let restStableUntil = 0; // finestra in cui tenere ferma la bocca dopo stop
       let talkSmoothed = 0; const TALK_ALPHA = 0.2; const TALK_ON = 0.04; const TALK_OFF = 0.015;
-      const lipConfig = { restJawOpen: 0.12, minLipSeparation: 0.07, maxMouthClose: 0.35, closeThresholdForSeparation: 0.2, visemeStrengthAlpha: 0.15, morphSmoothingBeta: 0.16, jawSmoothingAlpha: 0.12 };
+      const lipConfig = { restJawOpen: 0.25, minLipSeparation: 0.12, maxMouthClose: 0.25, closeThresholdForSeparation: 0.2, visemeStrengthAlpha: 0.15, morphSmoothingBeta: 0.16, jawSmoothingAlpha: 0.12, smileStrength: 0.3 };
 
       function enqueueTextVisemes(text, totalDurationMs = null, startAtMs = null) {
         try {
@@ -455,12 +454,11 @@ export default defineComponent({
       try { instance.proxy.loadHumanoid = loadHumanoid } catch { }
 
       let isListening = false, recognition = null, mediaMicStream = null;
-      let currentEvtSource = null; let isStartingStream = false;
+      let currentEvtSource = null; let isStartingStream = false; let lastResultAt = 0;
       let THREELoaded = false;
       let scene, camera, renderer, head, jaw, animationId, analyser, dataArray, audioCtx, mediaNode;
-      let meyda = null, meydaAnalyzer = null;
       let advancedLipsyncOn = false;
-      let bufferText = ''; let ttsBuffer = ''; let speakQueue = []; let isSpeaking = false; let lastSpokenTail = ''; let lastSentToTts = ''; let ttsProcessedLength = 0; let ttsFirstChunkSent = false; let ttsKickTimer = null; let ttsTick = null; let ttsRequestQueue = []; let ttsRequestInFlight = false; let speechAmp = 0; let speechAmpTarget = 0; let speechAmpTimer = null; let freqData = null;
+      let bufferText = ''; let ttsBuffer = ''; let speakQueue = []; let isSpeaking = false; let lastSpokenTail = ''; let lastSentToTts = ''; let ttsProcessedLength = 0; let ttsFirstChunkSent = false; let ttsKickTimer = null; let ttsTick = null; let ttsRequestQueue = []; let ttsRequestInFlight = false; let speechAmp = 0; let speechAmpTarget = 0; let speechAmpTimer = null;
       let heygen = { sessionInfo: null, room: null, mediaStream: null, sessionToken: null, connecting: false, started: false };
       // Idle animation state
       let idleState = {
@@ -483,22 +481,7 @@ export default defineComponent({
         relaxPhase: 0,
         relaxDone: false,
       };
-      // Gesture state
-      let gestureState = {
-        currentText: '',
-        lastGestureAt: 0,
-        leftGesturePhase: 0,
-        rightGesturePhase: 0,
-        activeGesture: null,
-        rightForearmRestZ: null,  // Posizione iniziale salvata
-        leftForearmRestZ: null,   // Posizione iniziale sinistra salvata
-        rightForearmRestX: null,  // Posizione x iniziale destra
-        firstPhraseGestureShown: false,  // Flag per mostrare il gesto solo alla prima frase
-        gestureDurationUp: 0,
-        gestureDurationDown: 0,
-        gestureTotalDuration: 0,
-        gestureTargetZ: 0,
-      };
+      
 
       const debugOverlay = document.getElementById('debugOverlay');
       const debugContent = document.getElementById('debugContent');
@@ -594,7 +577,7 @@ export default defineComponent({
         const ua = navigator.userAgent || '';
         const isChrome = !!window.chrome && /Chrome\/\d+/.test(ua) && !/Edg\//.test(ua) && !/OPR\//.test(ua) && !/Brave/i.test(ua);
         if ((isChrome || debugEnabled) && useAdvancedLipsync) {
-          useAdvancedLipsync.checked = true; advancedLipsyncOn = true; ensureMeydaLoaded().then(() => startMeydaAnalyzer()).catch(() => { });
+          useAdvancedLipsync.checked = true; advancedLipsyncOn = true;
         }
       } catch { }
 
@@ -618,11 +601,9 @@ export default defineComponent({
             };
             document.addEventListener('click', unlock); document.addEventListener('touchstart', unlock);
           } else {
-            try { heygenVideo?.pause(); } catch { }
-            try { if (heygen && heygen.room) { await heygen.room.disconnect(); } } catch { }
+            await heygenClose();
             $id('avatarStage')?.classList.remove('hidden');
             heygenVideo?.classList.add('hidden');
-            try { if (videoAvatarStatus) videoAvatarStatus.textContent = ''; } catch { }
           }
         })
       } catch { }
@@ -630,7 +611,6 @@ export default defineComponent({
       try {
         useAdvancedLipsync?.addEventListener('change', async () => {
           advancedLipsyncOn = !!useAdvancedLipsync.checked;
-          if (advancedLipsyncOn) { await ensureMeydaLoaded(); startMeydaAnalyzer(); } else { stopMeydaAnalyzer(); }
         });
 
       } catch { }
@@ -796,7 +776,7 @@ export default defineComponent({
           const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
           if (!Rec) throw new Error('Web Speech API non disponibile');
           recognition = new Rec(); recognition.lang = recLang || 'it-IT'; recognition.interimResults = isAndroid ? true : false; recognition.continuous = isAndroid ? false : false; recognition.maxAlternatives = 1;
-          let recognitionWatchdogTimer = null; let lastResultAt = 0;
+          let recognitionWatchdogTimer = null; 
           function clearRecWatchdog() { if (recognitionWatchdogTimer) { clearTimeout(recognitionWatchdogTimer); recognitionWatchdogTimer = null; } }
           function startRecWatchdog() { clearRecWatchdog(); recognitionWatchdogTimer = setTimeout(() => { console.warn('SPEECH: watchdog timeout (no result), restarting'); try { recognition.stop(); recognition.abort && recognition.abort(); } catch { }; setTimeout(() => { try { recognition.start(); console.log('SPEECH: restarted by watchdog'); } catch (e) { console.error('SPEECH: restart failed', e); } }, 250); }, 8000); }
           recognition.onstart = async () => { isListening = true; setListeningUI(true); console.log('SPEECH: onstart'); try { if (audioCtx && audioCtx.state === 'running') { await audioCtx.suspend(); console.log('AUDIO: context suspended for recognition'); } } catch (e) { console.warn('AUDIO: suspend failed', e); } };
@@ -836,7 +816,6 @@ export default defineComponent({
       try {
         instance.proxy._cleanup = () => {
           try { if (currentEvtSource) { currentEvtSource.close(); currentEvtSource = null } } catch { }
-          try { stopMeydaAnalyzer() } catch { }
           try { if (recognition && isListening) { recognition.stop(); recognition.abort && recognition.abort() } } catch { }
           try { if (renderer && renderer.dispose) renderer.dispose() } catch { }
           try { if (scene) { scene.traverse((o) => { try { o.geometry?.dispose?.() } catch { }; try { if (o.material) { if (Array.isArray(o.material)) o.material.forEach(m => m.dispose?.()); else o.material.dispose?.() } } catch { } }) } } catch { }
@@ -946,9 +925,8 @@ export default defineComponent({
 
       function applyIdleFacial(t) {
         try {
-          const talking = cloudAudioSpeaking || (window.speechSynthesis && window.speechSynthesis.speaking) || (visemeActiveUntil > performance.now());
+          const talking = cloudAudioSpeaking || (window.speechSynthesis && window.speechSynthesis.speaking);
           if (talking || !Array.isArray(visemeMeshes) || visemeMeshes.length === 0) return;
-          const slow = t * 0.2, med = t * 0.6, fast = t * 1.1;
           for (const vm of visemeMeshes) {
             const infl = vm.mesh && vm.mesh.morphTargetInfluences; const idxs = vm.indices || {}; if (!infl) continue;
             const s = (a, min = 0, max = 1) => Math.max(min, Math.min(max, a));
@@ -984,6 +962,9 @@ export default defineComponent({
             if (idxs.cheekPuff >= 0) infl[idxs.cheekPuff] = s(v(0.01, 0.27, 1.3));
             if (idxs.cheekSquintLeft >= 0) infl[idxs.cheekSquintLeft] = s(v(0.02, 0.7, 0.5));
             if (idxs.cheekSquintRight >= 0) infl[idxs.cheekSquintRight] = s(v(0.02, 0.72, 0.7));
+            // Smile from lipConfig
+            if (idxs.mouthSmileL >= 0) infl[idxs.mouthSmileL] = s(lipConfig.smileStrength);
+            if (idxs.mouthSmileR >= 0) infl[idxs.mouthSmileR] = s(lipConfig.smileStrength);
           }
         } catch { }
       }
@@ -1118,8 +1099,8 @@ export default defineComponent({
             const baseSmile = 0.06; const microSmile = baseSmile + 0.012 * Math.sin(t * 0.6 + 1.1); const microPucker = 0.006 + 0.006 * Math.sin(t * 0.8 + 0.4);
             for (const vm of visemeMeshes) {
               const infl = vm.mesh && vm.mesh.morphTargetInfluences; const idxs = vm.indices || {}; if (!infl) continue;
-              if (idxs.mouthSmileL >= 0) infl[idxs.mouthSmileL] = Math.max(0, Math.min(0.10, microSmile));
-              if (idxs.mouthSmileR >= 0) infl[idxs.mouthSmileR] = Math.max(0, Math.min(0.10, microSmile));
+              if (idxs.mouthSmileL >= 0) infl[idxs.mouthSmileL] = Math.max(0, Math.min(0.10 + lipConfig.smileStrength, microSmile * (1 + lipConfig.smileStrength)));
+              if (idxs.mouthSmileR >= 0) infl[idxs.mouthSmileR] = Math.max(0, Math.min(0.10 + lipConfig.smileStrength, microSmile * (1 + lipConfig.smileStrength)));
               if (idxs.mouthPucker >= 0) infl[idxs.mouthPucker] = Math.max(0, Math.min(0.03, microPucker));
             }
           }
@@ -1145,17 +1126,19 @@ export default defineComponent({
 
         if (textVisemeEnabled && !forcedClosing) {
           if (!talking && performance.now() < restStableUntil) {
-            visemeTargets = { jawOpen: 0, mouthFunnel: 0, mouthPucker: 0, mouthSmileL: 0, mouthSmileR: 0, mouthClose: 0 };
+            visemeTargets = { jawOpen: 0, mouthFunnel: 0, mouthPucker: 0, mouthSmileL: lipConfig.smileStrength, mouthSmileR: lipConfig.smileStrength, mouthClose: 0 };
             visemeActiveUntil = performance.now() + 120;
           }
         }
         if (textVisemeEnabled && (!analyser || !cloudAudioSpeaking) && !forcedClosing) {
           if (forcedClosing) { visemeTargets = { jawOpen: 0, mouthFunnel: 0, mouthPucker: 0, mouthSmileL: 0, mouthSmileR: 0, mouthClose: 0 }; visemeActiveUntil = performance.now() + 60; }
           const nowT = performance.now(); visemeSchedule = visemeSchedule.filter(it => it.end > nowT); const active = visemeSchedule.find(it => it.start <= nowT && it.end > nowT);
-          if (active) { const blend = Math.max(0, Math.min(1, (nowT - active.start) / Math.max(1, (active.end - active.start)))); visemeTargets = { jawOpen: active.targets.jawOpen * blend, mouthFunnel: active.targets.mouthFunnel * blend, mouthPucker: active.targets.mouthPucker * blend, mouthSmileL: active.targets.mouthSmileL * blend, mouthSmileR: active.targets.mouthSmileR * blend, mouthClose: active.targets.mouthClose * blend, }; visemeActiveUntil = nowT + 120; }
+          if (active) { const blend = Math.max(0, Math.min(1, (nowT - active.start) / Math.max(1, (active.end - active.start)))); visemeTargets = { jawOpen: active.targets.jawOpen * blend, mouthFunnel: active.targets.mouthFunnel * blend, mouthPucker: active.targets.mouthPucker * blend, mouthSmileL: active.targets.mouthSmileL * blend, mouthSmileR: active.targets.mouthSmileR * blend, mouthClose: active.targets.mouthClose * blend, }; visemeActiveUntil = nowT + 120; } else if (!talking) { visemeTargets = { jawOpen: 0, mouthFunnel: 0, mouthPucker: 0, mouthSmileL: lipConfig.smileStrength, mouthSmileR: lipConfig.smileStrength, mouthClose: 0 }; }
         }
         try { if (useBrowserTts && useBrowserTts.checked && 'speechSynthesis' in window && window.speechSynthesis.speaking) { visemeActiveUntil = performance.now() + 240; } } catch { }
-        const now = performance.now(); const restJawOpen = lipConfig.restJawOpen; let appliedJaw = null;
+        const now = performance.now();
+        const restJawOpen = lipConfig.restJawOpen;
+        let appliedJaw = null;
         if ((Array.isArray(visemeMeshes) && visemeMeshes.length > 0 && (visemeActiveUntil > now)) || (!jawBone && morphMesh && morphIndex >= 0)) {
           visemeStrength = visemeStrength * (1 - lipConfig.visemeStrengthAlpha) + lipConfig.visemeStrengthAlpha;
           for (const vm of visemeMeshes) {
@@ -1173,8 +1156,8 @@ export default defineComponent({
             setIdx(vm.indices.jawOpen, jawv * 0.9, 'jawOpen');
             setIdx(vm.indices.mouthFunnel, visemeTargets.mouthFunnel * 1.05, 'mouthFunnel');
             setIdx(vm.indices.mouthPucker, visemeTargets.mouthPucker * 1.0, 'mouthPucker');
-            setIdx(vm.indices.mouthSmileL, visemeTargets.mouthSmileL * 1.05, 'mouthSmileL');
-            setIdx(vm.indices.mouthSmileR, visemeTargets.mouthSmileR * 1.05, 'mouthSmileR');
+            setIdx(vm.indices.mouthSmileL, visemeTargets.mouthSmileL * 1.05 * (1 + lipConfig.smileStrength), 'mouthSmileL');
+            setIdx(vm.indices.mouthSmileR, visemeTargets.mouthSmileR * 1.05 * (1 + lipConfig.smileStrength), 'mouthSmileR');
             setIdx(vm.indices.mouthClose, constrainedClose, 'mouthClose');
             const t = performance.now();
             if (t >= nextBlinkAt) { blinkPhase = 0.001; nextBlinkAt = t + (2200 + Math.random() * 2200); }
@@ -1311,7 +1294,6 @@ export default defineComponent({
         if (!audioCtx) { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
         if (audioCtx.state === 'suspended') { audioCtx.resume().catch(() => { }); }
         if (!mediaNode) { mediaNode = audioCtx.createMediaElementSource(ttsPlayer); analyser = audioCtx.createAnalyser(); analyser.fftSize = 2048; dataArray = new Uint8Array(analyser.fftSize); mediaNode.connect(analyser); analyser.connect(audioCtx.destination); }
-        if (advancedLipsyncOn) { try { ensureMeydaLoaded().then(() => startMeydaAnalyzer()).catch((e) => console.warn('Meyda start failed', e)); } catch (e) { console.warn('Meyda start failed', e); } }
         const onEnded = () => {
           URL.revokeObjectURL(item.url);
           lastSpokenTail = (lastSpokenTail + ' ' + item.text).slice(-400);
@@ -1320,7 +1302,7 @@ export default defineComponent({
           visemeTargets = { jawOpen: 0, mouthFunnel: 0, mouthPucker: 0, mouthSmileL: 0, mouthSmileR: 0, mouthClose: 0 };
           forceFullCloseUntil = performance.now() + 220; visemeActiveUntil = performance.now() + 180;
           try { if (Array.isArray(visemeMeshes)) { for (const vm of visemeMeshes) { const infl = vm.mesh && vm.mesh.morphTargetInfluences; const idxs = vm.indices || {}; if (!infl) continue; if (idxs.mouthFunnel >= 0) infl[idxs.mouthFunnel] = 0; if (idxs.mouthPucker >= 0) infl[idxs.mouthPucker] = 0; if (idxs.mouthSmileL >= 0) infl[idxs.mouthSmileL] = 0; if (idxs.mouthSmileR >= 0) infl[idxs.mouthSmileR] = 0; if (idxs.mouthClose >= 0) infl[idxs.mouthClose] = 0; if (idxs.jawOpen >= 0) infl[idxs.jawOpen] = 0; } } if (humanoid && humanoid.updateMatrixWorld) humanoid.updateMatrixWorld(true); } catch { }
-          ttsPlayer.removeEventListener('ended', onEnded); stopMeydaAnalyzer(); playNextInQueue();
+          ttsPlayer.removeEventListener('ended', onEnded); playNextInQueue();
         };
         const onError = () => { console.error('TTS: Playback error for:', item.text.substring(0, 50)); URL.revokeObjectURL(item.url); ttsPlayer.removeEventListener('ended', onEnded); ttsPlayer.removeEventListener('error', onError); isSpeaking = false; cloudAudioSpeaking = false; playNextInQueue(); };
         ttsPlayer.addEventListener('ended', onEnded); ttsPlayer.addEventListener('error', onError);
@@ -1380,25 +1362,6 @@ export default defineComponent({
       }
 
       function stripHtml(html) { const tmp = document.createElement('div'); tmp.innerHTML = html; return (tmp.textContent || tmp.innerText || '').replace(/\s+/g, ' ').trim(); }
-
-      async function ensureMeydaLoaded() {
-        if (window.Meyda) { meyda = window.Meyda; return; }
-        return new Promise((resolve, reject) => {
-          try { const s = document.createElement('script'); s.src = 'https://cdn.jsdelivr.net/npm/meyda@5.6.3/dist/web/meyda.min.js'; s.async = true; s.onload = () => { meyda = window.Meyda; console.log('Meyda loaded'); resolve(); }; s.onerror = (e) => { console.warn('Meyda load failed', e); reject(e); }; document.head.appendChild(s); } catch (e) { reject(e); }
-        });
-      }
-      function startMeydaAnalyzer() {
-        try {
-          if (!advancedLipsyncOn) return; if (!audioCtx || !mediaNode || !meyda || meydaAnalyzer) return; if (!meyda.isMeydaSupported(audioCtx)) { console.warn('Meyda not supported'); return; }
-          meydaAnalyzer = meyda.createMeydaAnalyzer({ audioContext: audioCtx, source: mediaNode, bufferSize: 1024, featureExtractors: ['rms', 'zcr', 'spectralCentroid', 'mfcc'], callback: onMeydaFeatures, }); meydaAnalyzer.start(); console.log('Meyda analyzer started');
-        } catch (e) { console.warn('startMeydaAnalyzer failed', e); }
-      }
-      function stopMeydaAnalyzer() {
-        try { if (meydaAnalyzer) { meydaAnalyzer.stop(); meydaAnalyzer = null; } } catch { }
-      }
-      function onMeydaFeatures(features) {
-        try { if (!features) return; const jaw = Math.min(1, features.rms * 2.0); const funnel = Math.max(0, (1 - features.spectralCentroid / 4000) * 0.7 * features.rms); const pucker = Math.max(0, (1 - features.spectralCentroid / 4000) * 0.5 * features.rms); const smile = Math.max(0, (features.spectralCentroid / 4000 - 0.3) * 0.6 * features.rms); const close = Math.max(0, (0.2 - features.zcr) * 1.2); visemeTargets = { jawOpen: jaw, mouthFunnel: funnel, mouthPucker: pucker, mouthSmileL: smile * 0.7, mouthSmileR: smile * 0.7, mouthClose: close }; visemeActiveUntil = performance.now() + 90; } catch { }
-      }
 
       function loadHumanoid() {
         if (humanoid || humanoidLoading) return;
@@ -1565,6 +1528,26 @@ export default defineComponent({
                       }
                     }
                     if (Object.values(indices).some(v => v !== -1)) { visemeMeshes.push({ mesh: obj, indices }); console.log('Viseme mesh registered:', obj.name, indices); }
+                    // Esponi le variabili sulla window per il debug da console
+                    window.debugEnjoyTalk = {
+                      get visemeMeshes() { return visemeMeshes; },
+                      get lipConfig() { return lipConfig; },
+                      get visemeTargets() { return visemeTargets; },
+                      get lastVisemes() { return lastVisemes; },
+                      get visemeIndices() { return visemeIndices; },
+                      setSmileStrength(val) { lipConfig.smileStrength = val; console.log('smileStrength impostato a:', val); },
+                      testSmile() {
+                        console.log('Test smile - imposto mouthSmileL e mouthSmileR a 0.5');
+                        visemeMeshes.forEach(vm => {
+                          if (vm.mesh && vm.mesh.morphTargetInfluences) {
+                            const infl = vm.mesh.morphTargetInfluences;
+                            const idxs = vm.indices || {};
+                            if (idxs.mouthSmileL >= 0) infl[idxs.mouthSmileL] = 0.5;
+                            if (idxs.mouthSmileR >= 0) infl[idxs.mouthSmileR] = 0.5;
+                          }
+                        });
+                      }
+                    };
                   } catch { }
                 }
               });
