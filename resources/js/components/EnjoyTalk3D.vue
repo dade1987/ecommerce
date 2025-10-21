@@ -1,12 +1,9 @@
 <template>
-  <div
-    ref="rootEl"
-    id="enjoyTalkRoot"
-    class="flex flex-col min-h-[100dvh] w-full bg-[#0f172a] pb-[96px] sm:pb-0"
-  >
+  <div ref="rootEl" id="enjoyTalkRoot" class="flex flex-col min-h-[100dvh] w-full bg-[#0f172a] pb-[96px] sm:pb-0">
     <div class="px-4 py-4">
       <div class="mx-auto w-full max-w-[520px] flex items-center gap-3">
-        <img id="teamLogo" :src="teamLogo" alt="EnjoyTalk 3D" class="w-10 h-10 rounded-full object-cover border border-slate-600">
+        <img id="teamLogo" :src="teamLogo" alt="EnjoyTalk 3D"
+          class="w-10 h-10 rounded-full object-cover border border-slate-600">
         <h1 class="font-sans text-2xl text-white">EnjoyTalk 3D</h1>
       </div>
     </div>
@@ -15,34 +12,47 @@
     <div class="flex-1 flex items-center justify-center p-4">
       <div class="relative w-full">
         <div class="mx-auto w-full max-w-[520px] px-3 sm:px-0">
-          <div id="avatarStage" class="bg-[#111827] border border-slate-700 rounded-md overflow-hidden w-full h-auto max-h-[calc(100dvh-220px)] aspect-[3/4]"></div>
-          <video id="heygenVideo" class="hidden w-full h-auto max-h-[calc(100dvh-220px)] rounded-md border border-slate-700 bg-black" autoplay playsinline></video>
+          <div id="avatarStage"
+            class="bg-[#111827] border border-slate-700 rounded-md overflow-hidden w-full h-auto max-h-[calc(100dvh-220px)] aspect-[3/4]">
+          </div>
+          <video id="heygenVideo"
+            class="hidden w-full h-auto max-h-[calc(100dvh-220px)] rounded-md border border-slate-700 bg-black" autoplay
+            playsinline></video>
           <audio id="heygenAudio" class="hidden" autoplay></audio>
         </div>
 
         <!-- Fumetto di pensiero -->
-        <div id="thinkingBubble" class="hidden absolute top-4 left-1/2 transform -translate-x-1/2 bg-white rounded-lg px-4 py-2 shadow-lg border border-gray-300">
+        <div id="thinkingBubble"
+          class="hidden absolute top-4 left-1/2 transform -translate-x-1/2 bg-white rounded-lg px-4 py-2 shadow-lg border border-gray-300">
           <div class="text-gray-700 text-sm font-medium">💭 Sto pensando...</div>
           <div class="absolute bottom-0 left-1/2 transform translate-y-full -translate-x-1/2">
             <div class="w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-white"></div>
           </div>
         </div>
         <!-- Badge ascolto microfono -->
-        <div id="listeningBadge" class="hidden absolute top-4 right-4 bg-rose-600/90 text-white text-xs font-semibold px-2.5 py-1 rounded-md shadow animate-pulse">
+        <div id="listeningBadge"
+          class="hidden absolute top-4 right-4 bg-rose-600/90 text-white text-xs font-semibold px-2.5 py-1 rounded-md shadow animate-pulse">
           🎤 Ascolto...
         </div>
         <!-- Debug Overlay (mostrato con ?debug=1) -->
-        <div id="debugOverlay" class="hidden absolute left-1/2 -translate-x-1/2 top-3 z-10 w-full max-w-[520px] px-3 sm:px-0" style="pointer-events:auto;">
+        <div id="debugOverlay"
+          class="hidden absolute left-1/2 -translate-x-1/2 top-3 z-10 w-full max-w-[520px] px-3 sm:px-0"
+          style="pointer-events:auto;">
           <div class="bg-black/70 backdrop-blur-sm border border-slate-600 rounded-md overflow-hidden shadow-lg">
             <div class="flex items-center justify-between px-3 py-2 border-b border-slate-700 bg-black/60 sticky top-0">
               <div class="text-slate-200 text-xs font-semibold">Debug</div>
               <div class="flex items-center gap-2">
-                <button id="debugCopy" class="text-[11px] px-2 py-1 bg-slate-700/70 hover:bg-slate-600 text-white rounded">Copia</button>
-                <button id="debugClear" class="text-[11px] px-2 py-1 bg-slate-700/70 hover:bg-slate-600 text-white rounded">Pulisci</button>
-                <button id="debugClose" class="text-[11px] px-2 py-1 bg-slate-700/70 hover:bg-slate-600 text-white rounded">Chiudi</button>
+                <button id="debugCopy"
+                  class="text-[11px] px-2 py-1 bg-slate-700/70 hover:bg-slate-600 text-white rounded">Copia</button>
+                <button id="debugClear"
+                  class="text-[11px] px-2 py-1 bg-slate-700/70 hover:bg-slate-600 text-white rounded">Pulisci</button>
+                <button id="debugClose"
+                  class="text-[11px] px-2 py-1 bg-slate-700/70 hover:bg-slate-600 text-white rounded">Chiudi</button>
               </div>
             </div>
-            <div class="max-h-[50vh] sm:max-h-[60vh] overflow-auto p-2 text-[11px] font-mono text-slate-200 leading-relaxed" style="margin-bottom: calc(var(--controls-pad, 0px));">
+            <div
+              class="max-h-[50vh] sm:max-h-[60vh] overflow-auto p-2 text-[11px] font-mono text-slate-200 leading-relaxed"
+              style="margin-bottom: calc(var(--controls-pad, 0px));">
               <div id="debugContent" class="space-y-1"></div>
             </div>
           </div>
@@ -51,13 +61,19 @@
     </div>
 
     <!-- Controlli -->
-    <div id="controlsBar" class="fixed bottom-0 left-0 w-full border-t border-slate-700 bg-[#0f172a] z-20 pb-[env(safe-area-inset-bottom)]">
+    <div id="controlsBar"
+      class="fixed bottom-0 left-0 w-full border-t border-slate-700 bg-[#0f172a] z-20 pb-[env(safe-area-inset-bottom)]">
       <div class="px-3 py-3 sm:px-4 sm:py-4">
         <div class="mx-auto w-full max-w-[520px] px-3 sm:px-0">
           <div class="flex flex-wrap w-full gap-2 items-center min-w-0">
-            <input id="textInput" type="text" placeholder="Scrivi la domanda..." class="flex-1 min-w-0 px-3 py-3 bg-[#111827] text-white border border-slate-700 rounded-md placeholder-slate-400 focus:border-indigo-500 focus:outline-none text-[15px] sm:text-base" />
-            <button id="sendBtn" class="px-3 py-3 sm:px-4 sm:py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors whitespace-nowrap text-sm sm:text-base">📤 Invia</button>
-            <button id="micBtn" class="px-3 py-3 sm:px-4 sm:py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-md transition-colors whitespace-nowrap text-sm sm:text-base">🎤 Parla</button>
+            <input id="textInput" type="text" placeholder="Scrivi la domanda..."
+              class="flex-1 min-w-0 px-3 py-3 bg-[#111827] text-white border border-slate-700 rounded-md placeholder-slate-400 focus:border-indigo-500 focus:outline-none text-[15px] sm:text-base" />
+            <button id="sendBtn"
+              class="px-3 py-3 sm:px-4 sm:py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors whitespace-nowrap text-sm sm:text-base">📤
+              Invia</button>
+            <button id="micBtn"
+              class="px-3 py-3 sm:px-4 sm:py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-md transition-colors whitespace-nowrap text-sm sm:text-base">🎤
+              Parla</button>
           </div>
           <div class="mt-2 flex items-center gap-3 text-slate-300 text-xs sm:text-sm">
             <label class="inline-flex items-center gap-2 cursor-pointer select-none">
@@ -81,7 +97,7 @@
     </div>
     <audio id="ttsPlayer" class="hidden" playsinline></audio>
   </div>
-  
+
 </template>
 
 <script>
@@ -128,31 +144,31 @@ export default defineComponent({
         this.locale = this.locale || this.$el.dataset.locale || 'it-IT'
         this.teamLogo = this.teamLogo || this.$el.dataset.teamLogo || '/images/logoai.jpeg'
       }
-      
+
       this.initLibraries().then(() => {
-        try { this.setupScene && this.setupScene() } catch {}
-        try { setTimeout(() => { try { this.loadHumanoid && this.loadHumanoid() } catch {} }, 0) } catch {}
+        try { this.setupScene && this.setupScene() } catch { }
+        try { setTimeout(() => { try { this.loadHumanoid && this.loadHumanoid() } catch { } }, 0) } catch { }
       })
-    } catch {}
+    } catch { }
   },
   beforeUnmount() {
-    try { if (typeof window !== 'undefined' && window.speechSynthesis) window.speechSynthesis.cancel() } catch {}
-    try { if (typeof this._cleanup === 'function') this._cleanup() } catch {}
-    try { if (window.__enjoyTalkResizeObserver) { window.__enjoyTalkResizeObserver.disconnect?.(); window.__enjoyTalkResizeObserver = null } } catch {}
+    try { if (typeof window !== 'undefined' && window.speechSynthesis) window.speechSynthesis.cancel() } catch { }
+    try { if (typeof this._cleanup === 'function') this._cleanup() } catch { }
+    try { if (window.__enjoyTalkResizeObserver) { window.__enjoyTalkResizeObserver.disconnect?.(); window.__enjoyTalkResizeObserver = null } } catch { }
   },
   methods: {
     // Wrappers Options API per funzioni operative
     startStream(message) {
-      try { return (this._startStream || this.startStreamFacade || this.startStreamImpl)?.(message) } catch {}
+      try { return (this._startStream || this.startStreamFacade || this.startStreamImpl)?.(message) } catch { }
     },
     stopAllSpeechOutput() {
-      try { return this._stopAllSpeechOutput?.() } catch {}
+      try { return this._stopAllSpeechOutput?.() } catch { }
     },
     ensureMicPermission() {
-      try { return this._ensureMicPermission?.() } catch {}
+      try { return this._ensureMicPermission?.() } catch { }
     },
     setListeningUI(active) {
-      try { return this._setListeningUI?.(active) } catch {}
+      try { return this._setListeningUI?.(active) } catch { }
     },
     initUIBase(rootEl, debugEnabled) {
       try {
@@ -171,7 +187,7 @@ export default defineComponent({
         if ((isChrome || debugEnabled) && useAdvancedLipsync) {
           useAdvancedLipsync.checked = true
         }
-      } catch {}
+      } catch { }
     },
     async initLibraries() {
       const ensureLivekit = () => new Promise((resolve) => {
@@ -203,7 +219,7 @@ export default defineComponent({
           } catch { return false }
         }
       })();
-      try { if (window.THREE_READY && window.THREE_READY.then) { await Promise.race([window.THREE_READY, new Promise(r => setTimeout(r, 3000))]) } } catch {}
+      try { if (window.THREE_READY && window.THREE_READY.then) { await Promise.race([window.THREE_READY, new Promise(r => setTimeout(r, 3000))]) } } catch { }
       await ensureLivekit()
     },
   },
@@ -272,11 +288,11 @@ export default defineComponent({
           return fallback;
         }
       }
-      try { instance.proxy.setupScene = setupScene } catch {}
+      try { instance.proxy.setupScene = setupScene } catch { }
       const navLang = (navigator.language || (navigator.languages && navigator.languages[0]) || '').trim();
       const rawLang = (urlLang || locale || navLang || 'it-IT');
       let recLang = normalizeLangTag(rawLang, 'it-IT');
-      try { if (/^it(\b|[-_])/i.test(rawLang) || rawLang.toLowerCase() === 'it') recLang = 'it-IT'; } catch {}
+      try { if (/^it(\b|[-_])/i.test(rawLang) || rawLang.toLowerCase() === 'it') recLang = 'it-IT'; } catch { }
 
       // Tutto il resto del codice originale viene eseguito così com'è
       // Copiato dalla versione Blade senza modifiche strutturali, solo asset path e locale
@@ -296,18 +312,85 @@ export default defineComponent({
       let shoulderLBone = null, shoulderRBone = null, armLBone = null, armRBone = null, forearmLBone = null, forearmRBone = null;
       let baseArmLRot = null, baseArmRRot = null, baseShoulderLRot = null, baseShoulderRRot = null;
       let armsRelaxed = false;
+      const boneNames = ["Hips", "Spine", "Spine1", "Spine2", "Neck", "Head", "HeadTop_End", "LeftEye", "RightEye", "LeftShoulder", "LeftArm", "LeftForeArm", "LeftHand", "LeftHandThumb1", "LeftHandThumb2", "LeftHandThumb3", "LeftHandThumb4", "LeftHandIndex1", "LeftHandIndex2", "LeftHandIndex3", "LeftHandIndex4", "LeftHandMiddle1", "LeftHandMiddle2", "LeftHandMiddle3", "LeftHandMiddle4", "LeftHandRing1", "LeftHandRing2", "LeftHandRing3", "LeftHandRing4", "LeftHandPinky1", "LeftHandPinky2", "LeftHandPinky3", "LeftHandPinky4", "RightShoulder", "RightArm", "RightForeArm", "RightHand", "RightHandThumb1", "RightHandThumb2", "RightHandThumb3", "RightHandThumb4", "RightHandIndex1", "RightHandIndex2", "RightHandIndex3", "RightHandIndex4", "RightHandMiddle1", "RightHandMiddle2", "RightHandMiddle3", "RightHandMiddle4", "RightHandRing1", "RightHandRing2", "RightHandRing3", "RightHandRing4", "RightHandPinky1", "RightHandPinky2", "RightHandPinky3", "RightHandPinky4", "LeftUpLeg", "LeftLeg", "LeftFoot", "LeftToeBase", "LeftToe_End", "RightUpLeg", "RightLeg", "RightFoot", "RightToeBase", "RightToe_End"];
+      const bonesMap = {};
       // Esporta placeholder per non avere undefined in console
       try {
-        if (!window.EnjoyArms) {
-          window.EnjoyArms = {
-            get ready() { return !!(armLBone || armRBone || shoulderLBone || shoulderRBone); },
-            get left() { return armLBone; },
-            get right() { return armRBone; },
-            get shoulderL() { return shoulderLBone; },
-            get shoulderR() { return shoulderRBone; },
+        if (!window.EnjoyBones) {
+          window.EnjoyBones = {
+            get ready() { return Object.keys(bonesMap).length > 0; },
+            get bones() { return bonesMap; },
+            // Accesso a tutte le ossa
+            get Hips() { return bonesMap['Hips']; },
+            get Spine() { return bonesMap['Spine']; },
+            get Spine1() { return bonesMap['Spine1']; },
+            get Spine2() { return bonesMap['Spine2']; },
+            get Neck() { return bonesMap['Neck']; },
+            get Head() { return bonesMap['Head']; },
+            get HeadTop_End() { return bonesMap['HeadTop_End']; },
+            get LeftEye() { return bonesMap['LeftEye']; },
+            get RightEye() { return bonesMap['RightEye']; },
+            get LeftShoulder() { return bonesMap['LeftShoulder']; },
+            get LeftArm() { return bonesMap['LeftArm']; },
+            get LeftForeArm() { return bonesMap['LeftForeArm']; },
+            get LeftHand() { return bonesMap['LeftHand']; },
+            get LeftHandThumb1() { return bonesMap['LeftHandThumb1']; },
+            get LeftHandThumb2() { return bonesMap['LeftHandThumb2']; },
+            get LeftHandThumb3() { return bonesMap['LeftHandThumb3']; },
+            get LeftHandThumb4() { return bonesMap['LeftHandThumb4']; },
+            get LeftHandIndex1() { return bonesMap['LeftHandIndex1']; },
+            get LeftHandIndex2() { return bonesMap['LeftHandIndex2']; },
+            get LeftHandIndex3() { return bonesMap['LeftHandIndex3']; },
+            get LeftHandIndex4() { return bonesMap['LeftHandIndex4']; },
+            get LeftHandMiddle1() { return bonesMap['LeftHandMiddle1']; },
+            get LeftHandMiddle2() { return bonesMap['LeftHandMiddle2']; },
+            get LeftHandMiddle3() { return bonesMap['LeftHandMiddle3']; },
+            get LeftHandMiddle4() { return bonesMap['LeftHandMiddle4']; },
+            get LeftHandRing1() { return bonesMap['LeftHandRing1']; },
+            get LeftHandRing2() { return bonesMap['LeftHandRing2']; },
+            get LeftHandRing3() { return bonesMap['LeftHandRing3']; },
+            get LeftHandRing4() { return bonesMap['LeftHandRing4']; },
+            get LeftHandPinky1() { return bonesMap['LeftHandPinky1']; },
+            get LeftHandPinky2() { return bonesMap['LeftHandPinky2']; },
+            get LeftHandPinky3() { return bonesMap['LeftHandPinky3']; },
+            get LeftHandPinky4() { return bonesMap['LeftHandPinky4']; },
+            get RightShoulder() { return bonesMap['RightShoulder']; },
+            get RightArm() { return bonesMap['RightArm']; },
+            get RightForeArm() { return bonesMap['RightForeArm']; },
+            get RightHand() { return bonesMap['RightHand']; },
+            get RightHandThumb1() { return bonesMap['RightHandThumb1']; },
+            get RightHandThumb2() { return bonesMap['RightHandThumb2']; },
+            get RightHandThumb3() { return bonesMap['RightHandThumb3']; },
+            get RightHandThumb4() { return bonesMap['RightHandThumb4']; },
+            get RightHandIndex1() { return bonesMap['RightHandIndex1']; },
+            get RightHandIndex2() { return bonesMap['RightHandIndex2']; },
+            get RightHandIndex3() { return bonesMap['RightHandIndex3']; },
+            get RightHandIndex4() { return bonesMap['RightHandIndex4']; },
+            get RightHandMiddle1() { return bonesMap['RightHandMiddle1']; },
+            get RightHandMiddle2() { return bonesMap['RightHandMiddle2']; },
+            get RightHandMiddle3() { return bonesMap['RightHandMiddle3']; },
+            get RightHandMiddle4() { return bonesMap['RightHandMiddle4']; },
+            get RightHandRing1() { return bonesMap['RightHandRing1']; },
+            get RightHandRing2() { return bonesMap['RightHandRing2']; },
+            get RightHandRing3() { return bonesMap['RightHandRing3']; },
+            get RightHandRing4() { return bonesMap['RightHandRing4']; },
+            get RightHandPinky1() { return bonesMap['RightHandPinky1']; },
+            get RightHandPinky2() { return bonesMap['RightHandPinky2']; },
+            get RightHandPinky3() { return bonesMap['RightHandPinky3']; },
+            get RightHandPinky4() { return bonesMap['RightHandPinky4']; },
+            get LeftUpLeg() { return bonesMap['LeftUpLeg']; },
+            get LeftLeg() { return bonesMap['LeftLeg']; },
+            get LeftFoot() { return bonesMap['LeftFoot']; },
+            get LeftToeBase() { return bonesMap['LeftToeBase']; },
+            get LeftToe_End() { return bonesMap['LeftToe_End']; },
+            get RightUpLeg() { return bonesMap['RightUpLeg']; },
+            get RightLeg() { return bonesMap['RightLeg']; },
+            get RightFoot() { return bonesMap['RightFoot']; },
+            get RightToeBase() { return bonesMap['RightToeBase']; },
+            get RightToe_End() { return bonesMap['RightToe_End']; },
           };
         }
-      } catch {}
+      } catch { }
       let morphMesh = null, morphIndex = -1, morphValue = 0;
       const visemeIndices = { jawOpen: -1, mouthFunnel: -1, mouthPucker: -1, mouthSmileL: -1, mouthSmileR: -1, mouthClose: -1 };
       let visemeActiveUntil = 0;
@@ -367,9 +450,9 @@ export default defineComponent({
             }
           }
           if (visemeSchedule.length > 120) visemeSchedule = visemeSchedule.slice(-120);
-        } catch {}
+        } catch { }
       }
-      try { instance.proxy.loadHumanoid = loadHumanoid } catch {}
+      try { instance.proxy.loadHumanoid = loadHumanoid } catch { }
 
       let isListening = false, recognition = null, mediaMicStream = null;
       let currentEvtSource = null; let isStartingStream = false;
@@ -379,6 +462,43 @@ export default defineComponent({
       let advancedLipsyncOn = false;
       let bufferText = ''; let ttsBuffer = ''; let speakQueue = []; let isSpeaking = false; let lastSpokenTail = ''; let lastSentToTts = ''; let ttsProcessedLength = 0; let ttsFirstChunkSent = false; let ttsKickTimer = null; let ttsTick = null; let ttsRequestQueue = []; let ttsRequestInFlight = false; let speechAmp = 0; let speechAmpTarget = 0; let speechAmpTimer = null; let freqData = null;
       let heygen = { sessionInfo: null, room: null, mediaStream: null, sessionToken: null, connecting: false, started: false };
+      // Idle animation state
+      let idleState = {
+        baseSet: false,
+        basePose: {},
+        breatheOffset: Math.random() * 10,
+        swayOffset: Math.random() * 10,
+        handOffset: Math.random() * 10,
+        nextGlanceAt: performance.now() + (1200 + Math.random() * 2400),
+        glancePhase: 0,
+        glanceTarget: { yaw: 0, pitch: 0 },
+        nextHeadNodAt: performance.now() + (4000 + Math.random() * 4000),
+        headNodPhase: 0,
+        // head glance
+        nextHeadGlanceAt: performance.now() + (2800 + Math.random() * 3200),
+        headGlancePhase: 0,
+        headGlanceHoldUntil: 0,
+        headGlanceTarget: { yaw: 0, pitch: 0 },
+        // relax arms once
+        relaxPhase: 0,
+        relaxDone: false,
+      };
+      // Gesture state
+      let gestureState = {
+        currentText: '',
+        lastGestureAt: 0,
+        leftGesturePhase: 0,
+        rightGesturePhase: 0,
+        activeGesture: null,
+        rightForearmRestZ: null,  // Posizione iniziale salvata
+        leftForearmRestZ: null,   // Posizione iniziale sinistra salvata
+        rightForearmRestX: null,  // Posizione x iniziale destra
+        firstPhraseGestureShown: false,  // Flag per mostrare il gesto solo alla prima frase
+        gestureDurationUp: 0,
+        gestureDurationDown: 0,
+        gestureTotalDuration: 0,
+        gestureTargetZ: 0,
+      };
 
       const debugOverlay = document.getElementById('debugOverlay');
       const debugContent = document.getElementById('debugContent');
@@ -417,15 +537,15 @@ export default defineComponent({
         try {
           const max = 400;
           while (debugContent.childNodes.length > max) debugContent.removeChild(debugContent.firstChild);
-        } catch {}
-        try { debugContent.parentElement.scrollTop = debugContent.parentElement.scrollHeight; } catch {}
+        } catch { }
+        try { debugContent.parentElement.scrollTop = debugContent.parentElement.scrollHeight; } catch { }
       }
 
       function initDebugOverlay() {
         if (!debugEnabled) return;
-        try { debugOverlay?.classList.remove('hidden'); } catch {}
+        try { debugOverlay?.classList.remove('hidden'); } catch { }
         try {
-          const add = (el, evt, fn) => { try { el && el.addEventListener(evt, fn); } catch {} }
+          const add = (el, evt, fn) => { try { el && el.addEventListener(evt, fn); } catch { } }
           add(debugCloseBtn, 'click', () => { debugOverlay.classList.add('hidden'); })
           add(debugClearBtn, 'click', () => { if (debugContent) debugContent.innerHTML = ''; })
           add(debugCopyBtn, 'click', async () => {
@@ -439,16 +559,16 @@ export default defineComponent({
               console.log('DEBUG: logs copied', { lines: lines.length });
             } catch (e) { console.error('DEBUG: copy failed', e); }
           })
-        } catch {}
+        } catch { }
         try {
-          ['log','warn','error','info'].forEach((m) => {
-            console[m] = function(...a) { try { appendDebugLine(m, a); } catch {} try { originalConsole[m].apply(console, a); } catch {} };
+          ['log', 'warn', 'error', 'info'].forEach((m) => {
+            console[m] = function (...a) { try { appendDebugLine(m, a); } catch { } try { originalConsole[m].apply(console, a); } catch { } };
           });
-        } catch {}
+        } catch { }
         try {
           window.addEventListener('error', (e) => { appendDebugLine('windowError', [e.message, `${e.filename}:${e.lineno}:${e.colno}`]); });
           window.addEventListener('unhandledrejection', (e) => { const r = e.reason; appendDebugLine('promiseRejection', [r && (r.stack || r.message) || String(r)]); });
-        } catch {}
+        } catch { }
         appendDebugLine('info', ['Debug overlay enabled', { ua: navigator.userAgent, locale, recLang, isAndroid, isChrome, hasWebSpeech: !!(window.SpeechRecognition || window.webkitSpeechRecognition) }]);
       }
 
@@ -469,22 +589,22 @@ export default defineComponent({
 
       // Rimosso: l'inizializzazione di Three/Loaders avviene in mounted() -> initLibraries()
 
-      try { instance.proxy.initUIBase(rootEl, debugEnabled) } catch {}
+      try { instance.proxy.initUIBase(rootEl, debugEnabled) } catch { }
       try {
         const ua = navigator.userAgent || '';
         const isChrome = !!window.chrome && /Chrome\/\d+/.test(ua) && !/Edg\//.test(ua) && !/OPR\//.test(ua) && !/Brave/i.test(ua);
         if ((isChrome || debugEnabled) && useAdvancedLipsync) {
-          useAdvancedLipsync.checked = true; advancedLipsyncOn = true; ensureMeydaLoaded().then(() => startMeydaAnalyzer()).catch(() => {});
+          useAdvancedLipsync.checked = true; advancedLipsyncOn = true; ensureMeydaLoaded().then(() => startMeydaAnalyzer()).catch(() => { });
         }
-      } catch {}
+      } catch { }
 
       try {
         useVideoAvatar?.addEventListener('change', async () => {
           if (useVideoAvatar.checked) {
             // Pre-check config
             if (!HEYGEN_CONFIG.apiKey || !HEYGEN_CONFIG.serverUrl) {
-              try { if (videoAvatarStatus) videoAvatarStatus.textContent = 'Config mancante'; } catch {}
-              try { useVideoAvatar.checked = false; } catch {}
+              try { if (videoAvatarStatus) videoAvatarStatus.textContent = 'Config mancante'; } catch { }
+              try { useVideoAvatar.checked = false; } catch { }
               console.warn('HEYGEN: missing apiKey/serverUrl');
               return;
             }
@@ -492,28 +612,28 @@ export default defineComponent({
             heygenVideo?.classList.remove('hidden');
             try { await heygenEnsureSession(); } catch (e) { console.error('HEYGEN: ensure session failed', e); }
             const unlock = async () => {
-              try { await heygenVideo?.play(); } catch {}
-              try { await heygenAudio?.play(); } catch {}
+              try { await heygenVideo?.play(); } catch { }
+              try { await heygenAudio?.play(); } catch { }
               document.removeEventListener('click', unlock); document.removeEventListener('touchstart', unlock);
             };
             document.addEventListener('click', unlock); document.addEventListener('touchstart', unlock);
           } else {
-            try { heygenVideo?.pause(); } catch {}
-            try { if (heygen && heygen.room) { await heygen.room.disconnect(); } } catch {}
+            try { heygenVideo?.pause(); } catch { }
+            try { if (heygen && heygen.room) { await heygen.room.disconnect(); } } catch { }
             $id('avatarStage')?.classList.remove('hidden');
             heygenVideo?.classList.add('hidden');
-            try { if (videoAvatarStatus) videoAvatarStatus.textContent = ''; } catch {}
+            try { if (videoAvatarStatus) videoAvatarStatus.textContent = ''; } catch { }
           }
         })
-      } catch {}
+      } catch { }
 
       try {
         useAdvancedLipsync?.addEventListener('change', async () => {
           advancedLipsyncOn = !!useAdvancedLipsync.checked;
           if (advancedLipsyncOn) { await ensureMeydaLoaded(); startMeydaAnalyzer(); } else { stopMeydaAnalyzer(); }
         });
-        
-      } catch {}
+
+      } catch { }
 
       initDebugOverlay();
 
@@ -522,12 +642,12 @@ export default defineComponent({
         if (isStartingStream) { console.warn('SSE: start already in progress'); return; }
         isStartingStream = true; setTimeout(() => { isStartingStream = false; }, 800);
         console.log('TTS: Starting new conversation, resetting state');
-        try { console.log('SSE: connecting', { team: teamSlug, uuid, locale }); } catch {}
+        try { console.log('SSE: connecting', { team: teamSlug, uuid, locale }); } catch { }
         thinkingBubble.classList.remove('hidden');
-        try { if (currentEvtSource) { currentEvtSource.close(); currentEvtSource = null; } } catch {}
+        try { if (currentEvtSource) { currentEvtSource.close(); currentEvtSource = null; } } catch { }
         bufferText = ''; ttsBuffer = ''; lastSentToTts = ''; lastSpokenTail = ''; ttsProcessedLength = 0; ttsFirstChunkSent = false;
-        if (ttsKickTimer) { try { clearTimeout(ttsKickTimer); } catch {}; ttsKickTimer = null; }
-        if (ttsTick) { try { clearInterval(ttsTick); } catch {}; ttsTick = null; }
+        if (ttsKickTimer) { try { clearTimeout(ttsKickTimer); } catch { }; ttsKickTimer = null; }
+        if (ttsTick) { try { clearInterval(ttsTick); } catch { }; ttsTick = null; }
         if (ttsPlayer && !ttsPlayer.paused) { ttsPlayer.pause(); ttsPlayer.currentTime = 0; }
         speakQueue.forEach(item => URL.revokeObjectURL(item.url)); speakQueue = []; isSpeaking = false;
         let collected = '';
@@ -535,7 +655,7 @@ export default defineComponent({
         if (threadId) params.set('thread_id', threadId);
         if (assistantThreadId) params.set('assistant_thread_id', assistantThreadId);
         let done = false; let firstToken = true; let sseRetryCount = 0; let evtSource = null; let sseConnectWatchdog = null;
-        if (!ttsTick) { ttsTick = setInterval(() => { try { checkForTtsChunks(); } catch {} }, 120); }
+        if (!ttsTick) { ttsTick = setInterval(() => { try { checkForTtsChunks(); } catch { } }, 120); }
         function bindSse() {
           evtSource.addEventListener('message', (e) => {
             try {
@@ -545,9 +665,9 @@ export default defineComponent({
                   const tok = JSON.parse(data.token);
                   if (tok && tok.thread_id) { threadId = tok.thread_id; return; }
                   if (tok && tok.assistant_thread_id) { assistantThreadId = tok.assistant_thread_id; return; }
-                } catch {}
+                } catch { }
                 if (firstToken) {
-                  firstToken = false; thinkingBubble.classList.add('hidden'); if (ttsKickTimer) { try { clearTimeout(ttsKickTimer); } catch {} } ttsKickTimer = null; if (sseConnectWatchdog) { clearTimeout(sseConnectWatchdog); sseConnectWatchdog = null; }
+                  firstToken = false; thinkingBubble.classList.add('hidden'); if (ttsKickTimer) { try { clearTimeout(ttsKickTimer); } catch { } } ttsKickTimer = null; if (sseConnectWatchdog) { clearTimeout(sseConnectWatchdog); sseConnectWatchdog = null; }
                 }
                 collected += data.token; ttsBuffer += data.token; checkForTtsChunks();
               }
@@ -555,33 +675,33 @@ export default defineComponent({
           });
           evtSource.addEventListener('error', () => {
             const state = evtSource.readyState;
-            try { if (state === 2) { console.error('SSE: closed', { attempt: sseRetryCount + 1, readyState: state }); } else { console.warn('SSE: transient error', { attempt: sseRetryCount + 1, readyState: state }); } } catch {}
+            try { if (state === 2) { console.error('SSE: closed', { attempt: sseRetryCount + 1, readyState: state }); } else { console.warn('SSE: transient error', { attempt: sseRetryCount + 1, readyState: state }); } } catch { }
             if (state !== 2 && !done) { return; }
-            try { evtSource.close(); } catch {}
+            try { evtSource.close(); } catch { }
             currentEvtSource = null;
-            if (sseConnectWatchdog) { try { clearTimeout(sseConnectWatchdog); } catch {}; sseConnectWatchdog = null; }
+            if (sseConnectWatchdog) { try { clearTimeout(sseConnectWatchdog); } catch { }; sseConnectWatchdog = null; }
             if (!done && collected.length === 0 && sseRetryCount < 2) { sseRetryCount++; const delay = 220 * sseRetryCount; setTimeout(() => { openSse(); }, delay); return; }
             thinkingBubble.classList.add('hidden');
-            if (ttsTick) { try { clearInterval(ttsTick); } catch {}; ttsTick = null; }
+            if (ttsTick) { try { clearInterval(ttsTick); } catch { }; ttsTick = null; }
           });
           evtSource.addEventListener('done', () => {
-            try { evtSource.close(); } catch {}
+            try { evtSource.close(); } catch { }
             done = true; thinkingBubble.classList.add('hidden');
-            try { console.log('SSE: done event received'); } catch {}
-            if (sseConnectWatchdog) { try { clearTimeout(sseConnectWatchdog); } catch {}; sseConnectWatchdog = null; }
+            try { console.log('SSE: done event received'); } catch { }
+            if (sseConnectWatchdog) { try { clearTimeout(sseConnectWatchdog); } catch { }; sseConnectWatchdog = null; }
             if (ttsBuffer.trim().length > 0) {
               const remainingText = stripHtml(ttsBuffer).trim();
               if (remainingText.length > 0) { console.log('TTS: Sending remaining text:', remainingText.substring(0, 50) + '...'); sendToTts(remainingText); }
               ttsBuffer = '';
             }
-            if (ttsTick) { try { clearInterval(ttsTick); } catch {}; ttsTick = null; }
+            if (ttsTick) { try { clearInterval(ttsTick); } catch { }; ttsTick = null; }
           });
         }
         function openSse() {
-          try { if (currentEvtSource) currentEvtSource.close(); } catch {}
+          try { if (currentEvtSource) currentEvtSource.close(); } catch { }
           evtSource = new EventSource(`/api/chatbot/stream?${params.toString()}`);
           currentEvtSource = evtSource;
-          try { console.log('SSE: connecting', { team: teamSlug, uuid, locale, threadId, assistantThreadId }); } catch {}
+          try { console.log('SSE: connecting', { team: teamSlug, uuid, locale, threadId, assistantThreadId }); } catch { }
           bindSse();
           if (isAndroid) {
             if (sseConnectWatchdog) { clearTimeout(sseConnectWatchdog); }
@@ -590,38 +710,38 @@ export default defineComponent({
                 const state = evtSource.readyState;
                 if (collected.length === 0 && !done && sseRetryCount < 2 && (state === 0 || state === 2)) {
                   sseRetryCount++;
-                  try { evtSource.close(); } catch {}
+                  try { evtSource.close(); } catch { }
                   currentEvtSource = null;
                   const delay = 280 * sseRetryCount;
                   console.warn('SSE: connect watchdog retry', { attempt: sseRetryCount });
                   setTimeout(() => { openSse(); }, delay);
                 }
-              } finally { try { clearTimeout(sseConnectWatchdog); } catch {}; sseConnectWatchdog = null; }
+              } finally { try { clearTimeout(sseConnectWatchdog); } catch { }; sseConnectWatchdog = null; }
             }, 6000);
           }
         }
         openSse();
       }
-      try { instance.proxy.startStream = startStream } catch {}
+      try { instance.proxy.startStream = startStream } catch { }
 
       const onSend = async () => {
-        try { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === 'suspended') await audioCtx.resume(); } catch {}
+        try { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === 'suspended') await audioCtx.resume(); } catch { }
         try { instance.proxy.startStream(input.value) } catch { startStream(input.value) }
         input.value = '';
       }
       $id('sendBtn')?.addEventListener('click', onSend)
       $id('textInput')?.addEventListener('keyup', async (e) => {
         if (e.key === 'Enter') {
-          try { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === 'suspended') await audioCtx.resume(); } catch {}
+          try { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === 'suspended') await audioCtx.resume(); } catch { }
           try { instance.proxy.startStream(input.value) } catch { startStream(input.value) }
           input.value = '';
         }
       });
 
       async function stopAllSpeechOutput() {
-        try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch {}
-        try { if (ttsPlayer && !ttsPlayer.paused) { ttsPlayer.pause(); ttsPlayer.currentTime = 0; } } catch {}
-        try { speakQueue.forEach(item => URL.revokeObjectURL(item.url)); } catch {}
+        try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch { }
+        try { if (ttsPlayer && !ttsPlayer.paused) { ttsPlayer.pause(); ttsPlayer.currentTime = 0; } } catch { }
+        try { speakQueue.forEach(item => URL.revokeObjectURL(item.url)); } catch { }
         speakQueue = []; ttsRequestQueue = []; isSpeaking = false; cloudAudioSpeaking = false;
         restStableUntil = performance.now() + 300;
         // reset visemi/bocca a riposo
@@ -640,36 +760,36 @@ export default defineComponent({
             }
           }
           if (humanoid && humanoid.updateMatrixWorld) humanoid.updateMatrixWorld(true);
-        } catch {}
+        } catch { }
       }
-      try { instance.proxy._stopAllSpeechOutput = stopAllSpeechOutput } catch {}
+      try { instance.proxy._stopAllSpeechOutput = stopAllSpeechOutput } catch { }
       function setListeningUI(active) {
         const badge = document.getElementById('listeningBadge');
-        if (active) { badge.classList.remove('hidden'); micBtn.classList.remove('bg-rose-600'); micBtn.classList.add('bg-emerald-600','ring-2','ring-emerald-400','animate-pulse'); }
-        else { badge.classList.add('hidden'); micBtn.classList.add('bg-rose-600'); micBtn.classList.remove('bg-emerald-600','ring-2','ring-emerald-400','animate-pulse'); }
+        if (active) { badge.classList.remove('hidden'); micBtn.classList.remove('bg-rose-600'); micBtn.classList.add('bg-emerald-600', 'ring-2', 'ring-emerald-400', 'animate-pulse'); }
+        else { badge.classList.add('hidden'); micBtn.classList.add('bg-rose-600'); micBtn.classList.remove('bg-emerald-600', 'ring-2', 'ring-emerald-400', 'animate-pulse'); }
       }
-      try { instance.proxy._setListeningUI = setListeningUI } catch {}
+      try { instance.proxy._setListeningUI = setListeningUI } catch { }
       async function ensureMicPermission() {
         try {
           if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return true;
           if (!mediaMicStream) {
             console.log('MIC: requesting permission');
             mediaMicStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true } });
-            try { mediaMicStream.getTracks().forEach(t => t.stop()); } catch {}
+            try { mediaMicStream.getTracks().forEach(t => t.stop()); } catch { }
             mediaMicStream = null;
           }
           console.log('MIC: permission OK'); return true;
         } catch (e) { console.warn('Mic permission denied or error', e); return false; }
       }
-      try { instance.proxy._ensureMicPermission = ensureMicPermission } catch {}
+      try { instance.proxy._ensureMicPermission = ensureMicPermission } catch { }
 
       micBtn?.addEventListener('click', async () => {
         if (isListening && recognition) {
-          try { recognition.stop(); recognition.abort && recognition.abort(); } catch {}
+          try { recognition.stop(); recognition.abort && recognition.abort(); } catch { }
           isListening = false; setListeningUI(false); console.log('MIC: listening stopped by user'); return;
         }
         await stopAllSpeechOutput();
-        try { if (currentEvtSource) { currentEvtSource.close(); currentEvtSource = null; } } catch {}
+        try { if (currentEvtSource) { currentEvtSource.close(); currentEvtSource = null; } } catch { }
         try { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === 'suspended') { await audioCtx.resume(); console.log('AUDIO: context resumed'); } } catch (e) { console.warn('AUDIO: failed to init/resume', e); }
         const ok = await ensureMicPermission(); if (!ok) { alert('Permesso microfono negato. Abilitalo nelle impostazioni del browser.'); return; }
         try {
@@ -678,7 +798,7 @@ export default defineComponent({
           recognition = new Rec(); recognition.lang = recLang || 'it-IT'; recognition.interimResults = isAndroid ? true : false; recognition.continuous = isAndroid ? false : false; recognition.maxAlternatives = 1;
           let recognitionWatchdogTimer = null; let lastResultAt = 0;
           function clearRecWatchdog() { if (recognitionWatchdogTimer) { clearTimeout(recognitionWatchdogTimer); recognitionWatchdogTimer = null; } }
-          function startRecWatchdog() { clearRecWatchdog(); recognitionWatchdogTimer = setTimeout(() => { console.warn('SPEECH: watchdog timeout (no result), restarting'); try { recognition.stop(); recognition.abort && recognition.abort(); } catch {}; setTimeout(() => { try { recognition.start(); console.log('SPEECH: restarted by watchdog'); } catch (e) { console.error('SPEECH: restart failed', e); } }, 250); }, 8000); }
+          function startRecWatchdog() { clearRecWatchdog(); recognitionWatchdogTimer = setTimeout(() => { console.warn('SPEECH: watchdog timeout (no result), restarting'); try { recognition.stop(); recognition.abort && recognition.abort(); } catch { }; setTimeout(() => { try { recognition.start(); console.log('SPEECH: restarted by watchdog'); } catch (e) { console.error('SPEECH: restart failed', e); } }, 250); }, 8000); }
           recognition.onstart = async () => { isListening = true; setListeningUI(true); console.log('SPEECH: onstart'); try { if (audioCtx && audioCtx.state === 'running') { await audioCtx.suspend(); console.log('AUDIO: context suspended for recognition'); } } catch (e) { console.warn('AUDIO: suspend failed', e); } };
           recognition.onaudiostart = () => { console.log('SPEECH: onaudiostart'); };
           recognition.onsoundstart = () => { console.log('SPEECH: onsoundstart'); };
@@ -698,7 +818,7 @@ export default defineComponent({
               if (debugEnabled && liveText) { liveText.classList.remove('hidden'); liveText.textContent = transcript + (isFinal ? '' : ' …'); }
               if (isFinal) {
                 isListening = false; setListeningUI(false);
-                if (debugEnabled && liveText) setTimeout(() => { try { liveText.classList.add('hidden'); liveText.textContent = ''; } catch {} }, 800);
+                if (debugEnabled && liveText) setTimeout(() => { try { liveText.classList.add('hidden'); liveText.textContent = ''; } catch { } }, 800);
                 const safe = (transcript || '').trim(); if (!safe) { console.warn('SPEECH: final transcript empty, not starting stream'); return; }
                 if (isAndroid) { setTimeout(() => { try { instance.proxy.startStream(safe) } catch { startStream(safe) } }, 220); } else { try { instance.proxy.startStream(safe) } catch { startStream(safe) } }
               }
@@ -715,26 +835,49 @@ export default defineComponent({
       // Cleanup orchestrator esposto per beforeUnmount()
       try {
         instance.proxy._cleanup = () => {
-          try { if (currentEvtSource) { currentEvtSource.close(); currentEvtSource = null } } catch {}
-          try { stopMeydaAnalyzer() } catch {}
-          try { if (recognition && isListening) { recognition.stop(); recognition.abort && recognition.abort() } } catch {}
-          try { if (renderer && renderer.dispose) renderer.dispose() } catch {}
-          try { if (scene) { scene.traverse((o) => { try { o.geometry?.dispose?.() } catch {}; try { if (o.material) { if (Array.isArray(o.material)) o.material.forEach(m => m.dispose?.()); else o.material.dispose?.() } } catch {} }) } } catch {}
+          try { if (currentEvtSource) { currentEvtSource.close(); currentEvtSource = null } } catch { }
+          try { stopMeydaAnalyzer() } catch { }
+          try { if (recognition && isListening) { recognition.stop(); recognition.abort && recognition.abort() } } catch { }
+          try { if (renderer && renderer.dispose) renderer.dispose() } catch { }
+          try { if (scene) { scene.traverse((o) => { try { o.geometry?.dispose?.() } catch { }; try { if (o.material) { if (Array.isArray(o.material)) o.material.forEach(m => m.dispose?.()); else o.material.dispose?.() } } catch { } }) } } catch { }
         }
-      } catch {}
+      } catch { }
 
       // initThree rimosso per evitare doppie istanze UMD: usiamo solo import ESM da initLibraries()
 
       function setupScene() {
-    const stage = (rootEl && rootEl.querySelector) ? rootEl.querySelector('#avatarStage') : document.getElementById('avatarStage');
+        const stage = (rootEl && rootEl.querySelector) ? rootEl.querySelector('#avatarStage') : document.getElementById('avatarStage');
         const rect = stage.getBoundingClientRect();
         let width = Math.floor((rect.width && rect.width > 0) ? rect.width : Math.min(window.innerWidth || 360, 520));
         let height = Math.floor((rect.height && rect.height > 0) ? rect.height : Math.round(width * 4 / 3));
         if (!width || width < 10 || !height || height < 10) { width = 800; height = 450; stage.style.width = width + 'px'; stage.style.height = height + 'px'; }
-        scene = new THREE.Scene(); scene.background = new THREE.Color('#0f172a');
+        scene = new THREE.Scene();
+        // Use CSS background on stage: centered and fit by height (no stretch)
+        try {
+          const setStageBg = (url) => {
+            try {
+              stage.style.backgroundImage = `url('${url}')`;
+              stage.style.backgroundPosition = 'center center';
+              stage.style.backgroundRepeat = 'no-repeat';
+              stage.style.backgroundSize = 'auto 100%'; // fit height
+            } catch { }
+          };
+          const img = new Image();
+          img.onload = () => setStageBg('/images/office.webp');
+          img.onerror = () => {
+            try {
+              const img2 = new Image();
+              img2.onload = () => setStageBg('/images/office.webp');
+              img2.onerror = () => { try { stage.style.backgroundImage = ''; } catch { } };
+              img2.src = '/images/office.webp';
+            } catch { }
+          };
+          img.src = '/images/office.webp';
+        } catch { }
         camera = new THREE.PerspectiveCamera(2, width / height, 0.1, 100); camera.position.set(0, 0.5, 2);
-        try { console.log('CAM init', { pos: camera.position.toArray(), fov: camera.fov }); } catch {}
-        renderer = new THREE.WebGLRenderer({ antialias: true });
+        try { console.log('CAM init', { pos: camera.position.toArray(), fov: camera.fov }); } catch { }
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        try { renderer.setClearColor(0x000000, 0); } catch { }
         renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
         renderer.setSize(width, height);
         stage.innerHTML = '';
@@ -756,27 +899,204 @@ export default defineComponent({
         if ('ResizeObserver' in window) {
           try {
             window.__enjoyTalkResizeObserver?.disconnect?.()
-          } catch {}
+          } catch { }
           try {
             window.__enjoyTalkResizeObserver = new ResizeObserver(onResize)
             window.__enjoyTalkResizeObserver.observe(stage)
-          } catch {}
+          } catch { }
         }
         // Caricamento avatar orchestrato in mounted(); evita doppi trigger qui
       }
 
       function onResize() {
         if (!renderer || !camera) return;
-    const stage = (rootEl && rootEl.querySelector) ? rootEl.querySelector('#avatarStage') : document.getElementById('avatarStage');
-    const controls = (rootEl && rootEl.querySelector) ? rootEl.querySelector('#controlsBar') : document.getElementById('controlsBar');
+        const stage = (rootEl && rootEl.querySelector) ? rootEl.querySelector('#avatarStage') : document.getElementById('avatarStage');
+        const controls = (rootEl && rootEl.querySelector) ? rootEl.querySelector('#controlsBar') : document.getElementById('controlsBar');
         const rect = stage.getBoundingClientRect();
         let width = Math.floor((rect.width && rect.width > 0) ? rect.width : Math.min(window.innerWidth || 360, 520));
         let height = Math.floor((rect.height && rect.height > 0) ? rect.height : Math.round(width * 4 / 3));
         if (!width || width < 10 || !height || height < 10) { width = 800; height = 450; stage.style.width = width + 'px'; stage.style.height = height + 'px'; }
         renderer.setSize(width, height);
         camera.aspect = width / height; camera.updateProjectionMatrix();
-        try { const controlsRect = controls ? controls.getBoundingClientRect() : null; const pad = controlsRect ? Math.ceil(controlsRect.height) : 0; document.body.style.setProperty('--controls-pad', pad + 'px'); } catch {}
-        try { const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight; const maxH = Math.max(320, Math.floor(vh - (controls?.offsetHeight || 0) - 180)); stage.style.maxHeight = maxH + 'px'; } catch {}
+        try { const controlsRect = controls ? controls.getBoundingClientRect() : null; const pad = controlsRect ? Math.ceil(controlsRect.height) : 0; document.body.style.setProperty('--controls-pad', pad + 'px'); } catch { }
+        try { const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight; const maxH = Math.max(320, Math.floor(vh - (controls?.offsetHeight || 0) - 180)); stage.style.maxHeight = maxH + 'px'; } catch { }
+      }
+
+      function ensureBasePose() {
+        if (idleState.baseSet) return;
+        const set = (name, bone) => { if (bone) idleState.basePose[name] = { rot: bone.rotation.clone(), pos: bone.position.clone() }; };
+        set('Hips', bonesMap['Hips']);
+        set('Spine', bonesMap['Spine']);
+        set('Spine1', bonesMap['Spine1']);
+        set('Spine2', bonesMap['Spine2']);
+        set('Neck', bonesMap['Neck']);
+        set('Head', headBone);
+        set('LeftShoulder', shoulderLBone);
+        set('RightShoulder', shoulderRBone);
+        set('LeftArm', armLBone);
+        set('RightArm', armRBone);
+        set('LeftForeArm', forearmLBone);
+        set('RightForeArm', forearmRBone);
+        idleState.baseSet = true;
+      }
+
+      function applyConversationGestures() {
+        // Empty - disabled for now
+      }
+
+      function applyIdleFacial(t) {
+        try {
+          const talking = cloudAudioSpeaking || (window.speechSynthesis && window.speechSynthesis.speaking) || (visemeActiveUntil > performance.now());
+          if (talking || !Array.isArray(visemeMeshes) || visemeMeshes.length === 0) return;
+          const slow = t * 0.2, med = t * 0.6, fast = t * 1.1;
+          for (const vm of visemeMeshes) {
+            const infl = vm.mesh && vm.mesh.morphTargetInfluences; const idxs = vm.indices || {}; if (!infl) continue;
+            const s = (a, min = 0, max = 1) => Math.max(min, Math.min(max, a));
+            const v = (amp, w, phase = 0) => (0.5 + 0.5 * Math.sin(w * t + phase)) * amp;
+            // Brows
+            if (idxs.browInnerUp >= 0) infl[idxs.browInnerUp] = s(v(0.06, 0.5, 0.7));
+            if (idxs.browOuterUpLeft >= 0) infl[idxs.browOuterUpLeft] = s(v(0.05, 0.45, 1.4));
+            if (idxs.browOuterUpRight >= 0) infl[idxs.browOuterUpRight] = s(v(0.05, 0.47, 2.1));
+            if (idxs.browDownLeft >= 0) infl[idxs.browDownLeft] = s(v(0.03, 0.35, 2.7));
+            if (idxs.browDownRight >= 0) infl[idxs.browDownRight] = s(v(0.03, 0.33, 1.9));
+            // Eyes subtle squint/ wide
+            if (idxs.eyeSquintLeft >= 0) infl[idxs.eyeSquintLeft] = s(v(0.04, 0.8, 0.9));
+            if (idxs.eyeSquintRight >= 0) infl[idxs.eyeSquintRight] = s(v(0.04, 0.78, 1.3));
+            if (idxs.eyeWideLeft >= 0) infl[idxs.eyeWideLeft] = s(v(0.02, 0.9, 0.2));
+            if (idxs.eyeWideRight >= 0) infl[idxs.eyeWideRight] = s(v(0.02, 0.92, 0.4));
+            // Nose tiny movement
+            if (idxs.noseSneerLeft >= 0) infl[idxs.noseSneerLeft] = s(v(0.01, 0.5, 0.3));
+            if (idxs.noseSneerRight >= 0) infl[idxs.noseSneerRight] = s(v(0.01, 0.52, 0.6));
+            // Mouth resting micro-tension
+            if (idxs.mouthDimpleLeft >= 0) infl[idxs.mouthDimpleLeft] = s(v(0.025, 0.7, 0.5));
+            if (idxs.mouthDimpleRight >= 0) infl[idxs.mouthDimpleRight] = s(v(0.025, 0.68, 1.1));
+            if (idxs.mouthPressLeft >= 0) infl[idxs.mouthPressLeft] = s(v(0.02, 0.55, 1.6));
+            if (idxs.mouthPressRight >= 0) infl[idxs.mouthPressRight] = s(v(0.02, 0.57, 2.0));
+            if (idxs.mouthUpperUpLeft >= 0) infl[idxs.mouthUpperUpLeft] = s(v(0.02, 0.4, 1.4));
+            if (idxs.mouthUpperUpRight >= 0) infl[idxs.mouthUpperUpRight] = s(v(0.02, 0.42, 0.8));
+            if (idxs.mouthFrownLeft >= 0) infl[idxs.mouthFrownLeft] = s(v(0.015, 0.5, 2.2));
+            if (idxs.mouthFrownRight >= 0) infl[idxs.mouthFrownRight] = s(v(0.015, 0.52, 2.6));
+            if (idxs.mouthStretchLeft >= 0) infl[idxs.mouthStretchLeft] = s(v(0.015, 0.35, 0.9));
+            if (idxs.mouthStretchRight >= 0) infl[idxs.mouthStretchRight] = s(v(0.015, 0.37, 1.2));
+            if (idxs.mouthRollLower >= 0) infl[idxs.mouthRollLower] = s(v(0.02, 0.5, 1.9));
+            if (idxs.mouthRollUpper >= 0) infl[idxs.mouthRollUpper] = s(v(0.02, 0.48, 0.4));
+            // Cheeks
+            if (idxs.cheekPuff >= 0) infl[idxs.cheekPuff] = s(v(0.01, 0.27, 1.3));
+            if (idxs.cheekSquintLeft >= 0) infl[idxs.cheekSquintLeft] = s(v(0.02, 0.7, 0.5));
+            if (idxs.cheekSquintRight >= 0) infl[idxs.cheekSquintRight] = s(v(0.02, 0.72, 0.7));
+          }
+        } catch { }
+      }
+
+      function applyIdleBody() {
+        try {
+          if (!humanoid) return;
+          ensureBasePose();
+          const now = performance.now();
+
+          const t = now * 0.001;
+          const breathe = 0.006 * (0.5 + 0.5 * Math.sin((t + idleState.breatheOffset) * 0.9));
+          const sway = 0.01 * Math.sin((t + idleState.swayOffset) * 0.25);
+          // Breathing on spine chain
+          const applySpine = (name, mul) => {
+            const b = bonesMap[name]; const base = idleState.basePose[name]; if (!b || !base) return;
+            b.rotation.x = base.rot.x + breathe * mul;
+          };
+          applySpine('Spine', 0.7);
+          applySpine('Spine1', 0.9);
+          applySpine('Spine2', 1.0);
+          // Hips subtle sway/shift
+          const hips = bonesMap['Hips']; const baseH = idleState.basePose['Hips'];
+          if (hips && baseH) { hips.rotation.y = baseH.rot.y + sway * 0.5; }
+          // Shoulders and arms relaxed pendulum
+          const lSh = shoulderLBone, rSh = shoulderRBone, lA = armLBone, rA = armRBone, lF = forearmLBone, rF = forearmRBone;
+
+          // Set arms to final position immediately at startup
+          if (!idleState.relaxDone && lA && rA) {
+            lA.rotation.x = 1;
+            lA.rotation.z = -0.5;
+            rA.rotation.x = 1;
+            rA.rotation.z = 0.5;
+            idleState.relaxDone = true;
+            // update base pose for arms
+            if (idleState.basePose['LeftArm']) idleState.basePose['LeftArm'].rot = lA.rotation.clone();
+            if (idleState.basePose['RightArm']) idleState.basePose['RightArm'].rot = rA.rotation.clone();
+          } else if (idleState.relaxDone && lA && rA) {
+            // Keep arms in position
+            lA.rotation.x = 1;
+            lA.rotation.z = -0.5;
+            rA.rotation.x = 1;
+            rA.rotation.z = 0.5;
+          }
+
+          // Arms and forearms stay static after initial relax
+          // (removed animated movements - keeping them still)
+
+          // Head micro movements and occasional nod/glance
+          if (headBone && idleState.basePose['Head']) {
+            const base = idleState.basePose['Head'].rot;
+            // default subtle drift
+            let yaw = 0.02 * Math.sin(t * 0.35 + 0.7);
+            let pitch = 0.015 * Math.sin(t * 0.5 + 1.3);
+            let roll = 0.01 * Math.sin(t * 0.4 + 2.1);
+            // scheduled head glance with hold
+            if (now >= idleState.nextHeadGlanceAt && idleState.headGlancePhase === 0) {
+              idleState.headGlancePhase = 0.001;
+              idleState.headGlanceTarget = { yaw: (Math.random() - 0.5) * 0.35, pitch: (Math.random() - 0.5) * 0.12 };
+            }
+            if (idleState.headGlancePhase > 0) {
+              idleState.headGlancePhase = Math.min(1, idleState.headGlancePhase + 0.08);
+              const ease = idleState.headGlancePhase <= 0.5 ? (2 * idleState.headGlancePhase * idleState.headGlancePhase) : (1 - Math.pow(-2 * idleState.headGlancePhase + 2, 2) / 2);
+              yaw += idleState.headGlanceTarget.yaw * ease;
+              pitch += idleState.headGlanceTarget.pitch * ease;
+              if (idleState.headGlancePhase >= 1 && idleState.headGlanceHoldUntil === 0) {
+                idleState.headGlanceHoldUntil = now + (400 + Math.random() * 500);
+              }
+              if (idleState.headGlanceHoldUntil && now > idleState.headGlanceHoldUntil) {
+                // return to center
+                idleState.headGlancePhase = 0;
+                idleState.headGlanceHoldUntil = 0;
+                idleState.nextHeadGlanceAt = now + (2400 + Math.random() * 2800);
+                // invert target so easing back blends nicely
+                idleState.headGlanceTarget = { yaw: 0, pitch: 0 };
+              }
+            }
+            headBone.rotation.y = base.y + yaw;
+            headBone.rotation.x = base.x + pitch;
+            headBone.rotation.z = base.z + roll;
+            // scheduled micro nod
+            if (now >= idleState.nextHeadNodAt && idleState.headNodPhase === 0) {
+              idleState.headNodPhase = 0.001; // start
+            }
+            if (idleState.headNodPhase > 0) {
+              idleState.headNodPhase = Math.min(1, idleState.headNodPhase + 0.06);
+              const k = idleState.headNodPhase <= 0.5 ? (idleState.headNodPhase * 2) : (1 - (idleState.headNodPhase - 0.5) * 2);
+              headBone.rotation.x += 0.03 * Math.sin(Math.PI * Math.pow(Math.max(0, Math.min(1, k)), 1.4));
+              if (idleState.headNodPhase >= 1) { idleState.headNodPhase = 0; idleState.nextHeadNodAt = now + (3500 + Math.random() * 5000); }
+            }
+          }
+          // Eyes quick micro saccades using eye bones if present
+          const lEye = bonesMap['LeftEye']; const rEye = bonesMap['RightEye'];
+          if (lEye && rEye) {
+            if (now >= idleState.nextGlanceAt && idleState.glancePhase === 0) {
+              idleState.glancePhase = 0.001;
+              idleState.glanceTarget = { yaw: (Math.random() - 0.5) * 0.18, pitch: (Math.random() - 0.5) * 0.12 };
+            }
+            if (idleState.glancePhase > 0) {
+              idleState.glancePhase = Math.min(1, idleState.glancePhase + 0.18);
+              const ease = idleState.glancePhase <= 0.5 ? (2 * idleState.glancePhase * idleState.glancePhase) : (1 - Math.pow(-2 * idleState.glancePhase + 2, 2) / 2);
+              lEye.rotation.y = idleState.glanceTarget.yaw * ease;
+              rEye.rotation.y = idleState.glanceTarget.yaw * ease;
+              lEye.rotation.x = idleState.glanceTarget.pitch * ease;
+              rEye.rotation.x = idleState.glanceTarget.pitch * ease;
+              if (idleState.glancePhase >= 1) { idleState.glancePhase = 0; idleState.nextGlanceAt = now + (900 + Math.random() * 1900); }
+            } else {
+              // drift back to center slowly
+              lEye.rotation.y *= 0.9; rEye.rotation.y *= 0.9; lEye.rotation.x *= 0.9; rEye.rotation.x *= 0.9;
+            }
+          }
+          try { humanoid.updateMatrixWorld(true); } catch { }
+        } catch { }
       }
 
       function animate() {
@@ -784,61 +1104,12 @@ export default defineComponent({
         animationId = requestAnimationFrame(animate);
         head.position.y = 0.2 + Math.sin(performance.now() / 1200) * 0.01;
 
-        if (armLBone) {
-          armLBone.rotation.x = 1;
-          armLBone.rotation.z=-0.5
-        }
-        if (armRBone) {
-          armRBone.rotation.x = 1;
-          armRBone.rotation.z=0.5
-        }
-        // Natural blinking animation
-        const applyNaturalBlink = () => {
-          try {
-            if (!Array.isArray(visemeMeshes) || visemeMeshes.length === 0) return;
-            
-            const now = performance.now();
-            // Blink every 4-6 seconds with ~200ms duration
-            const blinkInterval = 5000; // 5 second cycle between blinks
-            const blinkDuration = 200; // each blink lasts 200ms
-            
-            // Get position in the blink cycle
-            const timeInCycle = now % blinkInterval;
-            
-            // Blink happens between 2.5s-2.7s in each 5s cycle
-            const blinkStartInCycle = 2500;
-            const blinkEndInCycle = blinkStartInCycle + blinkDuration;
-            
-            let blinkStrength = 0;
-            if (timeInCycle >= blinkStartInCycle && timeInCycle < blinkEndInCycle) {
-              const progress = (timeInCycle - blinkStartInCycle) / blinkDuration;
-              blinkStrength = Math.sin(progress * Math.PI); // 0 -> 1 -> 0 smooth animation
-            }
-            
-            // Apply blink to all meshes
-            for (const vm of visemeMeshes) {
-              const infl = vm.mesh && vm.mesh.morphTargetInfluences;
-              const idxs = vm.indices || {};
-              if (!infl) continue;
-              
-              // Check for eyeBlinkLeft and eyeBlinkRight in indices
-              const eyeBlinkLeftIdx = idxs.eyeBlinkLeft;
-              const eyeBlinkRightIdx = idxs.eyeBlinkRight;
-              
-              if (eyeBlinkLeftIdx >= 0) {
-                infl[eyeBlinkLeftIdx] = blinkStrength;
-              }
-              if (eyeBlinkRightIdx >= 0) {
-                infl[eyeBlinkRightIdx] = blinkStrength;
-              }
-            }
-          } catch (e) {
-            console.warn('Blink error:', e);
-          }
-        };
-        
-        applyNaturalBlink();
-        
+        // Subtle idle body/facial animation when not speaking
+        applyIdleBody();
+        applyIdleFacial(performance.now() * 0.001);
+        applyConversationGestures();
+        armsRelaxed = true;
+
 
         try {
           const talking = cloudAudioSpeaking || (window.speechSynthesis && window.speechSynthesis.speaking);
@@ -852,7 +1123,7 @@ export default defineComponent({
               if (idxs.mouthPucker >= 0) infl[idxs.mouthPucker] = Math.max(0, Math.min(0.03, microPucker));
             }
           }
-        } catch {}
+        } catch { }
         let amp = 0;
         if (useBrowserTts && useBrowserTts.checked && 'speechSynthesis' in window && window.speechSynthesis.speaking) {
           if (analyser && dataArray && !forcedClosing) { /* analyser branch */ } else { amp = 0; }
@@ -871,7 +1142,7 @@ export default defineComponent({
           talkSmoothed = talkSmoothed * (1 - TALK_ALPHA) + talkTarget * TALK_ALPHA;
         }
         const talking = talkSmoothed > 0.5;
-        
+
         if (textVisemeEnabled && !forcedClosing) {
           if (!talking && performance.now() < restStableUntil) {
             visemeTargets = { jawOpen: 0, mouthFunnel: 0, mouthPucker: 0, mouthSmileL: 0, mouthSmileR: 0, mouthClose: 0 };
@@ -883,7 +1154,7 @@ export default defineComponent({
           const nowT = performance.now(); visemeSchedule = visemeSchedule.filter(it => it.end > nowT); const active = visemeSchedule.find(it => it.start <= nowT && it.end > nowT);
           if (active) { const blend = Math.max(0, Math.min(1, (nowT - active.start) / Math.max(1, (active.end - active.start)))); visemeTargets = { jawOpen: active.targets.jawOpen * blend, mouthFunnel: active.targets.mouthFunnel * blend, mouthPucker: active.targets.mouthPucker * blend, mouthSmileL: active.targets.mouthSmileL * blend, mouthSmileR: active.targets.mouthSmileR * blend, mouthClose: active.targets.mouthClose * blend, }; visemeActiveUntil = nowT + 120; }
         }
-        try { if (useBrowserTts && useBrowserTts.checked && 'speechSynthesis' in window && window.speechSynthesis.speaking) { visemeActiveUntil = performance.now() + 240; } } catch {}
+        try { if (useBrowserTts && useBrowserTts.checked && 'speechSynthesis' in window && window.speechSynthesis.speaking) { visemeActiveUntil = performance.now() + 240; } } catch { }
         const now = performance.now(); const restJawOpen = lipConfig.restJawOpen; let appliedJaw = null;
         if ((Array.isArray(visemeMeshes) && visemeMeshes.length > 0 && (visemeActiveUntil > now)) || (!jawBone && morphMesh && morphIndex >= 0)) {
           visemeStrength = visemeStrength * (1 - lipConfig.visemeStrengthAlpha) + lipConfig.visemeStrengthAlpha;
@@ -931,9 +1202,9 @@ export default defineComponent({
             const a = lipConfig.jawSmoothingAlpha; const jb = window.__jawBonePrev * (1 - a) + jawForBone * a; window.__jawBonePrev = jb;
             const angle = jawSign * (jb * 0.65);
             if (jawAxis === 'x') jawBone.rotation.x = angle; else if (jawAxis === 'y') jawBone.rotation.y = angle; else jawBone.rotation.z = angle;
-            try { jawBone.updateMatrixWorld(true); } catch {}
-            try { humanoid.updateMatrixWorld(true); } catch {}
-            try { if ((!jawBoneHasInfluence || headNodForced) && headBone) { const nod = headSign * (jb * 0.15); headBone.rotation.x = nod; headBone.updateMatrixWorld(true); } } catch {}
+            try { jawBone.updateMatrixWorld(true); } catch { }
+            try { humanoid.updateMatrixWorld(true); } catch { }
+            try { if ((!jawBoneHasInfluence || headNodForced) && headBone) { const nod = headSign * (jb * 0.15); headBone.rotation.x = nod; headBone.updateMatrixWorld(true); } } catch { }
           }
         } else if (jaw) {
           window.__jawGeomPrev = window.__jawGeomPrev ?? 0;
@@ -953,7 +1224,7 @@ export default defineComponent({
       }
 
       function findSentenceBoundary(text) {
-        const abbreviations = ['es','ecc','etc','sig','sigg','sigra','sig.na','sig.ra','dott','ing','avv','prof','dr','dottssa','srl','spa','s.p.a','s.r.l','p.es','nr','n','art','cap','ca','vs','no'];
+        const abbreviations = ['es', 'ecc', 'etc', 'sig', 'sigg', 'sigra', 'sig.na', 'sig.ra', 'dott', 'ing', 'avv', 'prof', 'dr', 'dottssa', 'srl', 'spa', 's.p.a', 's.r.l', 'p.es', 'nr', 'n', 'art', 'cap', 'ca', 'vs', 'no'];
         let i = 0; let lastSafe = -1;
         while (i < text.length) {
           const ch = text[i];
@@ -989,7 +1260,7 @@ export default defineComponent({
         if (useBrowserTts && useBrowserTts.checked && 'speechSynthesis' in window) { speakQueue.push({ url: null, text: norm }); if (!isSpeaking) playNextInQueue(); return; }
         ttsRequestQueue.push(norm); processTtsQueue(); return;
       }
-      try { instance.proxy._sendToTts = sendToTts } catch {}
+      try { instance.proxy._sendToTts = sendToTts } catch { }
 
       async function processTtsQueue() {
         if (ttsRequestInFlight) return; const next = ttsRequestQueue.shift(); if (!next) return; ttsRequestInFlight = true;
@@ -1002,7 +1273,7 @@ export default defineComponent({
         } catch (err) { console.error('TTS request failed:', err); }
         finally { ttsRequestInFlight = false; if (ttsRequestQueue.length > 0) processTtsQueue(); }
       }
-      try { instance.proxy._processTtsQueue = processTtsQueue } catch {}
+      try { instance.proxy._processTtsQueue = processTtsQueue } catch { }
 
       function sendToTtsIfNew() {
         const vmInst = getCurrentInstance()?.proxy || {}
@@ -1021,15 +1292,15 @@ export default defineComponent({
             const utter = new SpeechSynthesisUtterance(item.text);
             utter.lang = 'it-IT'; utter.rate = 1.0; utter.pitch = 1.0; utter.volume = 1.0;
             const voices = window.speechSynthesis.getVoices();
-            const prefNames = ['Google italiano','Microsoft','Elsa','Lucia','Carla','Silvia','Alice'];
+            const prefNames = ['Google italiano', 'Microsoft', 'Elsa', 'Lucia', 'Carla', 'Silvia', 'Alice'];
             const itVoices = voices.filter(v => /it[-_]/i.test(v.lang));
             const femaleVoices = itVoices.filter(v => /female|donna|feminine/i.test(v.name + ' ' + (v.voiceURI || '')));
             const chosen = femaleVoices[0] || itVoices.find(v => prefNames.some(n => (v.name || '').includes(n))) || itVoices[0] || voices.find(v => /Italian/i.test(v.name)) || voices[0];
             if (chosen) utter.voice = chosen;
             if (browserTtsStatus) browserTtsStatus.textContent = chosen ? `Voce: ${chosen.name}` : 'Voce IT non trovata (usa default)';
-            utter.onstart = () => { try { const nowT = performance.now(); const textClean = (item.text || '').replace(/\s+/g, ' ').trim(); const words = textClean.split(/\s+/).filter(Boolean); const charCount = textClean.length; const wordCount = words.length || Math.max(1, Math.round(charCount / 5)); const periods = (textClean.match(/[.!?…]/g) || []).length; const commas = (textClean.match(/[,:;]/g) || []).length; const parens = (textClean.match(/[()\-\u2013\u2014]/g) || []).length; const rate = (typeof utter.rate === 'number' && utter.rate > 0) ? utter.rate : 1; let estSec = ((wordCount * 0.55) * 0.5 + (charCount / 13.5) * 0.5) + (periods * 0.55 + commas * 0.32 + parens * 0.22) + 0.4; estSec = estSec / rate; estSec = Math.max(2.2, estSec); visemeSchedule = []; enqueueTextVisemes(item.text || '', Math.floor(estSec * 1000), nowT); } catch {} };
+            utter.onstart = () => { try { const nowT = performance.now(); const textClean = (item.text || '').replace(/\s+/g, ' ').trim(); const words = textClean.split(/\s+/).filter(Boolean); const charCount = textClean.length; const wordCount = words.length || Math.max(1, Math.round(charCount / 5)); const periods = (textClean.match(/[.!?…]/g) || []).length; const commas = (textClean.match(/[,:;]/g) || []).length; const parens = (textClean.match(/[()\-\u2013\u2014]/g) || []).length; const rate = (typeof utter.rate === 'number' && utter.rate > 0) ? utter.rate : 1; let estSec = ((wordCount * 0.55) * 0.5 + (charCount / 13.5) * 0.5) + (periods * 0.55 + commas * 0.32 + parens * 0.22) + 0.4; estSec = estSec / rate; estSec = Math.max(2.2, estSec); visemeSchedule = []; enqueueTextVisemes(item.text || '', Math.floor(estSec * 1000), nowT); } catch { } };
             utter.onend = () => {
-              try { visemeSchedule = []; visemeTargets = { jawOpen: 0, mouthFunnel: 0, mouthPucker: 0, mouthSmileL: 0, mouthSmileR: 0, mouthClose: 0 }; forceFullCloseUntil = performance.now() + 220; visemeActiveUntil = performance.now() + 180; visemeStrength = 0; if (Array.isArray(visemeMeshes)) { for (const vm of visemeMeshes) { const infl = vm.mesh && vm.mesh.morphTargetInfluences; const idxs = vm.indices || {}; if (!infl) continue; try { if (idxs.mouthFunnel >= 0) infl[idxs.mouthFunnel] = 0; } catch {} try { if (idxs.mouthPucker >= 0) infl[idxs.mouthPucker] = 0; } catch {} try { if (idxs.mouthSmileL >= 0) infl[idxs.mouthSmileL] = 0; } catch {} try { if (idxs.mouthSmileR >= 0) infl[idxs.mouthSmileR] = 0; } catch {} try { if (idxs.mouthClose >= 0) infl[idxs.mouthClose] = 0; } catch {} try { if (idxs.jawOpen >= 0) infl[idxs.jawOpen] = 0; } catch {} } } if (humanoid && humanoid.updateMatrixWorld) humanoid.updateMatrixWorld(true); } catch {}
+              try { visemeSchedule = []; visemeTargets = { jawOpen: 0, mouthFunnel: 0, mouthPucker: 0, mouthSmileL: 0, mouthSmileR: 0, mouthClose: 0 }; forceFullCloseUntil = performance.now() + 220; visemeActiveUntil = performance.now() + 180; visemeStrength = 0; if (Array.isArray(visemeMeshes)) { for (const vm of visemeMeshes) { const infl = vm.mesh && vm.mesh.morphTargetInfluences; const idxs = vm.indices || {}; if (!infl) continue; try { if (idxs.mouthFunnel >= 0) infl[idxs.mouthFunnel] = 0; } catch { } try { if (idxs.mouthPucker >= 0) infl[idxs.mouthPucker] = 0; } catch { } try { if (idxs.mouthSmileL >= 0) infl[idxs.mouthSmileL] = 0; } catch { } try { if (idxs.mouthSmileR >= 0) infl[idxs.mouthSmileR] = 0; } catch { } try { if (idxs.mouthClose >= 0) infl[idxs.mouthClose] = 0; } catch { } try { if (idxs.jawOpen >= 0) infl[idxs.jawOpen] = 0; } catch { } } } if (humanoid && humanoid.updateMatrixWorld) humanoid.updateMatrixWorld(true); } catch { }
               visemeActiveUntil = 0; visemeStrength = 0; lastSpokenTail = (lastSpokenTail + ' ' + item.text).slice(-400); lastSentToTts = ''; playNextInQueue();
             };
             utter.onerror = () => { if (item.url) { ttsPlayer.src = item.url; ttsPlayer.play().catch(() => { isSpeaking = false; }); } else { isSpeaking = false; playNextInQueue(); } };
@@ -1038,7 +1309,7 @@ export default defineComponent({
         }
         ttsPlayer.src = item.url;
         if (!audioCtx) { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
-        if (audioCtx.state === 'suspended') { audioCtx.resume().catch(() => {}); }
+        if (audioCtx.state === 'suspended') { audioCtx.resume().catch(() => { }); }
         if (!mediaNode) { mediaNode = audioCtx.createMediaElementSource(ttsPlayer); analyser = audioCtx.createAnalyser(); analyser.fftSize = 2048; dataArray = new Uint8Array(analyser.fftSize); mediaNode.connect(analyser); analyser.connect(audioCtx.destination); }
         if (advancedLipsyncOn) { try { ensureMeydaLoaded().then(() => startMeydaAnalyzer()).catch((e) => console.warn('Meyda start failed', e)); } catch (e) { console.warn('Meyda start failed', e); } }
         const onEnded = () => {
@@ -1048,16 +1319,16 @@ export default defineComponent({
           cloudAudioSpeaking = false; visemeSchedule = [];
           visemeTargets = { jawOpen: 0, mouthFunnel: 0, mouthPucker: 0, mouthSmileL: 0, mouthSmileR: 0, mouthClose: 0 };
           forceFullCloseUntil = performance.now() + 220; visemeActiveUntil = performance.now() + 180;
-          try { if (Array.isArray(visemeMeshes)) { for (const vm of visemeMeshes) { const infl = vm.mesh && vm.mesh.morphTargetInfluences; const idxs = vm.indices || {}; if (!infl) continue; if (idxs.mouthFunnel >= 0) infl[idxs.mouthFunnel] = 0; if (idxs.mouthPucker >= 0) infl[idxs.mouthPucker] = 0; if (idxs.mouthSmileL >= 0) infl[idxs.mouthSmileL] = 0; if (idxs.mouthSmileR >= 0) infl[idxs.mouthSmileR] = 0; if (idxs.mouthClose >= 0) infl[idxs.mouthClose] = 0; if (idxs.jawOpen >= 0) infl[idxs.jawOpen] = 0; } } if (humanoid && humanoid.updateMatrixWorld) humanoid.updateMatrixWorld(true); } catch {}
+          try { if (Array.isArray(visemeMeshes)) { for (const vm of visemeMeshes) { const infl = vm.mesh && vm.mesh.morphTargetInfluences; const idxs = vm.indices || {}; if (!infl) continue; if (idxs.mouthFunnel >= 0) infl[idxs.mouthFunnel] = 0; if (idxs.mouthPucker >= 0) infl[idxs.mouthPucker] = 0; if (idxs.mouthSmileL >= 0) infl[idxs.mouthSmileL] = 0; if (idxs.mouthSmileR >= 0) infl[idxs.mouthSmileR] = 0; if (idxs.mouthClose >= 0) infl[idxs.mouthClose] = 0; if (idxs.jawOpen >= 0) infl[idxs.jawOpen] = 0; } } if (humanoid && humanoid.updateMatrixWorld) humanoid.updateMatrixWorld(true); } catch { }
           ttsPlayer.removeEventListener('ended', onEnded); stopMeydaAnalyzer(); playNextInQueue();
         };
         const onError = () => { console.error('TTS: Playback error for:', item.text.substring(0, 50)); URL.revokeObjectURL(item.url); ttsPlayer.removeEventListener('ended', onEnded); ttsPlayer.removeEventListener('error', onError); isSpeaking = false; cloudAudioSpeaking = false; playNextInQueue(); };
         ttsPlayer.addEventListener('ended', onEnded); ttsPlayer.addEventListener('error', onError);
-        const onPlaying = () => { try { visemeSchedule = []; } catch {} try { ttsPlayer.removeEventListener('playing', onPlaying); } catch {} };
+        const onPlaying = () => { try { visemeSchedule = []; } catch { } try { ttsPlayer.removeEventListener('playing', onPlaying); } catch { } };
         ttsPlayer.addEventListener('playing', onPlaying);
         ttsPlayer.play().then(() => { cloudAudioSpeaking = true; }).catch((err) => { console.error('TTS: Play failed:', err); isSpeaking = false; onError(); });
       }
-      try { instance.proxy._playNextInQueue = playNextInQueue } catch {}
+      try { instance.proxy._playNextInQueue = playNextInQueue } catch { }
 
       async function heygenEnsureSession() {
         if (heygen.started || heygen.connecting) return;
@@ -1074,16 +1345,18 @@ export default defineComponent({
           heygen.room = new LivekitClient.Room({ adaptiveStream: false, dynacast: true, videoCaptureDefaults: { resolution: LivekitClient.VideoPresets.h720.resolution } });
           heygen.mediaStream = new MediaStream();
           heygen.room.on(LivekitClient.RoomEvent.TrackSubscribed, async (track) => {
-            try { if (track.kind === 'video') { heygen.mediaStream.addTrack(track.mediaStreamTrack); if (heygenVideo) { heygenVideo.srcObject = heygen.mediaStream; heygenVideo.muted = true; await heygenVideo.play().catch(() => {}); } videoAvatarStatus && (videoAvatarStatus.textContent = 'Video connesso'); }
-              if (track.kind === 'audio') { const audioStream = new MediaStream([track.mediaStreamTrack]); if (heygenAudio) { heygenAudio.srcObject = audioStream; await heygenAudio.play().catch(() => {}); } videoAvatarStatus && (videoAvatarStatus.textContent = 'Audio connesso'); } } catch (e) { console.warn('HEYGEN: TrackSubscribed handler failed', e); }
+            try {
+              if (track.kind === 'video') { heygen.mediaStream.addTrack(track.mediaStreamTrack); if (heygenVideo) { heygenVideo.srcObject = heygen.mediaStream; heygenVideo.muted = true; await heygenVideo.play().catch(() => { }); } videoAvatarStatus && (videoAvatarStatus.textContent = 'Video connesso'); }
+              if (track.kind === 'audio') { const audioStream = new MediaStream([track.mediaStreamTrack]); if (heygenAudio) { heygenAudio.srcObject = audioStream; await heygenAudio.play().catch(() => { }); } videoAvatarStatus && (videoAvatarStatus.textContent = 'Audio connesso'); }
+            } catch (e) { console.warn('HEYGEN: TrackSubscribed handler failed', e); }
           });
           heygen.room.on(LivekitClient.RoomEvent.TrackUnsubscribed, (track) => { const mt = track.mediaStreamTrack; if (mt) heygen.mediaStream.removeTrack(mt); });
           await heygen.room.prepareConnection(heygen.sessionInfo.url, heygen.sessionInfo.access_token);
           await fetch(`${HEYGEN_CONFIG.serverUrl}/v1/streaming.start`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${heygen.sessionToken}` }, body: JSON.stringify({ session_id: heygen.sessionInfo.session_id }) });
-          try { const params = new URLSearchParams({ session_id: heygen.sessionInfo.session_id, session_token: heygen.sessionToken, silence_response: 'true', stt_language: 'en' }); const wsUrl = `wss://${new URL(HEYGEN_CONFIG.serverUrl).hostname}/v1/ws/streaming.chat?${params}`; heygen.ws = new WebSocket(wsUrl); heygen.ws.addEventListener('message', () => {}); } catch {}
+          try { const params = new URLSearchParams({ session_id: heygen.sessionInfo.session_id, session_token: heygen.sessionToken, silence_response: 'true', stt_language: 'en' }); const wsUrl = `wss://${new URL(HEYGEN_CONFIG.serverUrl).hostname}/v1/ws/streaming.chat?${params}`; heygen.ws = new WebSocket(wsUrl); heygen.ws.addEventListener('message', () => { }); } catch { }
           await heygen.room.connect(heygen.sessionInfo.url, heygen.sessionInfo.access_token);
-          try { if (heygenVideo?.srcObject && heygenVideo.paused) { await heygenVideo.play(); } } catch {}
-          try { if (heygenAudio?.srcObject && heygenAudio.paused) { await heygenAudio.play(); } } catch {}
+          try { if (heygenVideo?.srcObject && heygenVideo.paused) { await heygenVideo.play(); } } catch { }
+          try { if (heygenAudio?.srcObject && heygenAudio.paused) { await heygenAudio.play(); } } catch { }
           heygen.started = true; videoAvatarStatus && (videoAvatarStatus.textContent = 'Connesso');
         } catch (e) { console.error('HEYGEN: init failed', e); }
         finally { heygen.connecting = false; }
@@ -1097,11 +1370,11 @@ export default defineComponent({
       }
 
       async function heygenClose() {
-        try { if (heygen.sessionInfo?.session_id) { await fetch(`${HEYGEN_CONFIG.serverUrl}/v1/streaming.stop`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${heygen.sessionToken}` }, body: JSON.stringify({ session_id: heygen.sessionInfo.session_id }) }); } } catch {}
-        try { if (heygen.ws && heygen.ws.readyState < 2) heygen.ws.close(); } catch {}
-        try { if (heygen.room) heygen.room.disconnect(); } catch {}
-        if (heygenVideo) { try { heygenVideo.pause(); } catch {}; heygenVideo.srcObject = null; }
-        if (heygenAudio) { try { heygenAudio.pause(); } catch {}; heygenAudio.srcObject = null; }
+        try { if (heygen.sessionInfo?.session_id) { await fetch(`${HEYGEN_CONFIG.serverUrl}/v1/streaming.stop`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${heygen.sessionToken}` }, body: JSON.stringify({ session_id: heygen.sessionInfo.session_id }) }); } } catch { }
+        try { if (heygen.ws && heygen.ws.readyState < 2) heygen.ws.close(); } catch { }
+        try { if (heygen.room) heygen.room.disconnect(); } catch { }
+        if (heygenVideo) { try { heygenVideo.pause(); } catch { }; heygenVideo.srcObject = null; }
+        if (heygenAudio) { try { heygenAudio.pause(); } catch { }; heygenAudio.srcObject = null; }
         heygen = { sessionInfo: null, room: null, mediaStream: null, sessionToken: null, connecting: false, started: false };
         videoAvatarStatus && (videoAvatarStatus.textContent = '');
       }
@@ -1115,13 +1388,16 @@ export default defineComponent({
         });
       }
       function startMeydaAnalyzer() {
-        try { if (!advancedLipsyncOn) return; if (!audioCtx || !mediaNode || !meyda || meydaAnalyzer) return; if (!meyda.isMeydaSupported(audioCtx)) { console.warn('Meyda not supported'); return; }
-          meydaAnalyzer = meyda.createMeydaAnalyzer({ audioContext: audioCtx, source: mediaNode, bufferSize: 1024, featureExtractors: ['rms','zcr','spectralCentroid','mfcc'], callback: onMeydaFeatures, }); meydaAnalyzer.start(); console.log('Meyda analyzer started'); } catch (e) { console.warn('startMeydaAnalyzer failed', e); }
+        try {
+          if (!advancedLipsyncOn) return; if (!audioCtx || !mediaNode || !meyda || meydaAnalyzer) return; if (!meyda.isMeydaSupported(audioCtx)) { console.warn('Meyda not supported'); return; }
+          meydaAnalyzer = meyda.createMeydaAnalyzer({ audioContext: audioCtx, source: mediaNode, bufferSize: 1024, featureExtractors: ['rms', 'zcr', 'spectralCentroid', 'mfcc'], callback: onMeydaFeatures, }); meydaAnalyzer.start(); console.log('Meyda analyzer started');
+        } catch (e) { console.warn('startMeydaAnalyzer failed', e); }
       }
-      function stopMeydaAnalyzer() { try { if (meydaAnalyzer) { meydaAnalyzer.stop(); meydaAnalyzer = null; } } catch {}
+      function stopMeydaAnalyzer() {
+        try { if (meydaAnalyzer) { meydaAnalyzer.stop(); meydaAnalyzer = null; } } catch { }
       }
       function onMeydaFeatures(features) {
-        try { if (!features) return; const jaw = Math.min(1, features.rms * 2.0); const funnel = Math.max(0, (1 - features.spectralCentroid / 4000) * 0.7 * features.rms); const pucker = Math.max(0, (1 - features.spectralCentroid / 4000) * 0.5 * features.rms); const smile = Math.max(0, (features.spectralCentroid / 4000 - 0.3) * 0.6 * features.rms); const close = Math.max(0, (0.2 - features.zcr) * 1.2); visemeTargets = { jawOpen: jaw, mouthFunnel: funnel, mouthPucker: pucker, mouthSmileL: smile * 0.7, mouthSmileR: smile * 0.7, mouthClose: close }; visemeActiveUntil = performance.now() + 90; } catch {}
+        try { if (!features) return; const jaw = Math.min(1, features.rms * 2.0); const funnel = Math.max(0, (1 - features.spectralCentroid / 4000) * 0.7 * features.rms); const pucker = Math.max(0, (1 - features.spectralCentroid / 4000) * 0.5 * features.rms); const smile = Math.max(0, (features.spectralCentroid / 4000 - 0.3) * 0.6 * features.rms); const close = Math.max(0, (0.2 - features.zcr) * 1.2); visemeTargets = { jawOpen: jaw, mouthFunnel: funnel, mouthPucker: pucker, mouthSmileL: smile * 0.7, mouthSmileR: smile * 0.7, mouthClose: close }; visemeActiveUntil = performance.now() + 90; } catch { }
       }
 
       function loadHumanoid() {
@@ -1135,19 +1411,19 @@ export default defineComponent({
           function attachHumanoid(root) {
             try {
               humanoid = root; humanoid.position.set(0, -0.3, 0); humanoid.scale.set(1.2, 1.2, 1.2);
-              try { console.log('HUM attach', { pos: humanoid.position.toArray(), scale: humanoid.scale.toArray() }); } catch {}
-            scene.add(humanoid); fitCameraToObject(camera, humanoid, 1.4); visemeMeshes = [];
-            const glassesRegex = /(glass|occhiali|spectacle|eyewear|sunglass)/i;
-            const keptGlasses = new Set();
-            const topGlassesRoot = (o) => {
-              let r = o;
-              try {
-                while (r && r.parent && r.parent !== humanoid && glassesRegex.test(String(r.parent.name || ''))) {
-                  r = r.parent;
-                }
-              } catch {}
-              return r || o;
-            };
+              try { console.log('HUM attach', { pos: humanoid.position.toArray(), scale: humanoid.scale.toArray() }); } catch { }
+              scene.add(humanoid); fitCameraToObject(camera, humanoid, 1.4); visemeMeshes = [];
+              const glassesRegex = /(glass|occhiali|spectacle|eyewear|sunglass)/i;
+              const keptGlasses = new Set();
+              const topGlassesRoot = (o) => {
+                let r = o;
+                try {
+                  while (r && r.parent && r.parent !== humanoid && glassesRegex.test(String(r.parent.name || ''))) {
+                    r = r.parent;
+                  }
+                } catch { }
+                return r || o;
+              };
               humanoid.traverse((obj) => {
                 const name = (obj.name || '').toLowerCase();
                 // Nascondi eventuale secondo paio di occhiali
@@ -1163,75 +1439,149 @@ export default defineComponent({
                     }
                   }
                 } catch { }
-                if (!jawBone && obj.type === 'Bone' && (name.includes('jaw') || name.includes('lowerjaw') || name.includes('mandible') || name.includes('mixamorigjaw'))) { jawBone = obj; }
-                if (!headBone && obj.type === 'Bone' && (name === 'Head' || name.includes('head') || name === 'mixamorigHead')) { headBone = obj; }
-                if (!mouthLBone && obj.type === 'Bone' && (name === 'mouth_l' || name === 'LeftLips')) { mouthLBone = obj; }
-                if (!mouthRBone && obj.type === 'Bone' && (name === 'mouth_r' || name === 'RightLips')) { mouthRBone = obj; }
-                if (!shoulderLBone && obj.type === 'Bone' && name === 'LeftShoulder') { shoulderLBone = obj; }
-                if (!shoulderRBone && obj.type === 'Bone' && name === 'RightShoulder') { shoulderRBone = obj; }
-                if (!armLBone && obj.type === 'Bone' && obj.name === 'LeftArm') { armLBone = obj; }
-                if (!armRBone && obj.type === 'Bone' && obj.name === 'RightArm') { armRBone = obj; }
+                // Mappa esatta di tutte le ossa usando i nomi precisi
+                if (obj.type === 'Bone') {
+                  for (const boneName of boneNames) {
+                    if (obj.name === boneName && !bonesMap[boneName]) {
+                      bonesMap[boneName] = obj;
+                    }
+                  }
+                  // Imposta le ossa speciali per compatibilità
+                  if (obj.name === 'Head' && !headBone) headBone = obj;
+                  if (obj.name === 'LeftShoulder' && !shoulderLBone) shoulderLBone = obj;
+                  if (obj.name === 'RightShoulder' && !shoulderRBone) shoulderRBone = obj;
+                  if (obj.name === 'LeftArm' && !armLBone) armLBone = obj;
+                  if (obj.name === 'RightArm' && !armRBone) armRBone = obj;
+                  if (obj.name === 'LeftForeArm' && !forearmLBone) forearmLBone = obj;
+                  if (obj.name === 'RightForeArm' && !forearmRBone) forearmRBone = obj;
+                }
 
-                console.log(armLBone, armRBone);
+                // Ricerca di jawBone per compatibilità (fallback)
+                if (!jawBone && obj.type === 'Bone' && (name.includes('jaw') || name.includes('lowerjaw') || name.includes('mandible') || name.includes('mixamorigjaw'))) {
+                  jawBone = obj;
+                }
+
+                console.log('Bones mapped:', Object.keys(bonesMap).length, '/', boneNames.length);
 
                 if (obj.isMesh) { try { const keys = obj.morphTargetDictionary ? Object.keys(obj.morphTargetDictionary) : []; console.log('Mesh:', obj.name, 'hasMorph:', !!obj.morphTargetDictionary, 'keys:', keys); } catch { } }
                 if (!jawBone && obj.isSkinnedMesh && obj.skeleton && Array.isArray(obj.skeleton.bones)) {
                   try {
-                    const bones = obj.skeleton.bones; try { console.log('Skeleton bones:', bones.map(b => b.name)); } catch {}
+                    const bones = obj.skeleton.bones; try { console.log('Skeleton bones:', bones.map(b => b.name)); } catch { }
                     const toLower = (s) => String(s || '').toLowerCase();
                     const hasAny = (s, tokens) => { const n = toLower(s); return tokens.some(t => n.includes(t)); };
-                    const jawTokens = ['jaw','lowerjaw','mandible','chin','facial_jaw','bip_c_jaw','_jaw','jawbone','ctr_jaw','bn_jaw','j_jaw','mixamorig:jaw','mixamorigjaw'];
-                    const mouthTokens = ['mouth','lowerlip','upperlip','lip'];
+                    const jawTokens = ['jaw', 'lowerjaw', 'mandible', 'chin', 'facial_jaw', 'bip_c_jaw', '_jaw', 'jawbone', 'ctr_jaw', 'bn_jaw', 'j_jaw', 'mixamorig:jaw', 'mixamorigjaw'];
+                    const mouthTokens = ['mouth', 'lowerlip', 'upperlip', 'lip'];
                     let candidate = bones.find(b => hasAny(b.name, jawTokens));
                     if (!candidate) candidate = bones.find(b => hasAny(b.name, mouthTokens) && (b.children?.length || 0) <= 2);
                     if (!candidate) { const head = bones.find(b => /head|neck|face/i.test(b.name)); if (head && head.children && head.children.length) { candidate = head.children.find(c => /jaw|mouth|chin|mandible/i.test(c.name)) || head.children[0]; } }
                     if (candidate) { jawBone = candidate; console.log('Jaw bone trovato via Skeleton:', candidate.name); }
                     const headCand = bones.find(b => /\bhead\b/i.test(b.name)); if (headCand && !headBone) headBone = headCand;
-                  } catch {}
+                  } catch { }
                 }
                 if (obj.isMesh && obj.morphTargetDictionary && obj.morphTargetInfluences) {
                   const dict = obj.morphTargetDictionary; const lowerMap = {};
-                  try { Object.keys(dict).forEach(k => { lowerMap[String(k).toLowerCase()] = dict[k]; }); } catch {}
+                  try { Object.keys(dict).forEach(k => { lowerMap[String(k).toLowerCase()] = dict[k]; }); } catch { }
                   const findKeyCI = (cands) => { for (const name of cands) { const idx = lowerMap[String(name).toLowerCase()]; if (idx !== undefined) return idx; } return undefined; };
-                  const jawIdx = findKeyCI(['jawopen','jaw_open','viseme_aa','aa','base_jaw','j_open']);
-                  const funnelIdx = findKeyCI(['mouthfunnel','lipsfunnel','viseme_ou','ou','uw','ow','oh']);
-                  const puckerIdx = findKeyCI(['mouthpucker','lipspucker','pucker']);
-                  const smileLIdx = findKeyCI(['mouthsmile_l','smileleft','mouthsmileleft']);
-                  const smileRIdx = findKeyCI(['mouthsmile_r','smileright','mouthsmileright']);
-                  const closeIdx = findKeyCI(['mouthclose','lipsupperclose','lipslowerclose','viseme_mbp','mbp']);
-                  const eyeBlinkLIdx = findKeyCI(['eyeblink_l','eyeBlink_L','eyelidclose_l','eyelid_l','eyeblinkleft']);
-                  const eyeBlinkRIdx = findKeyCI(['eyeblink_r','eyeBlink_R','eyelidclose_r','eyelid_r','eyeblinkright']);
+                  const jawIdx = findKeyCI(['jawopen', 'jaw_open', 'viseme_aa', 'aa', 'base_jaw', 'j_open']);
+                  const funnelIdx = findKeyCI(['mouthfunnel', 'lipsfunnel', 'viseme_ou', 'ou', 'uw', 'ow', 'oh']);
+                  const puckerIdx = findKeyCI(['mouthpucker', 'lipspucker', 'pucker']);
+                  const smileLIdx = findKeyCI(['mouthsmile_l', 'smileleft', 'mouthsmileleft']);
+                  const smileRIdx = findKeyCI(['mouthsmile_r', 'smileright', 'mouthsmileright']);
+                  const closeIdx = findKeyCI(['mouthclose', 'lipsupperclose', 'lipslowerclose', 'viseme_mbp', 'mbp']);
+                  const eyeBlinkLIdx = findKeyCI(['eyeblink_l', 'eyeBlink_L', 'eyelidclose_l', 'eyelid_l', 'eyeblinkleft']);
+                  const eyeBlinkRIdx = findKeyCI(['eyeblink_r', 'eyeBlink_R', 'eyelidclose_r', 'eyelid_r', 'eyeblinkright']);
                   if ((jawIdx !== undefined) && (/wolf3d_head/i.test(obj.name) || !morphMesh)) {
                     morphMesh = obj; morphIndex = jawIdx; console.log('Morph target (jaw) trovato su', obj.name, 'index:', morphIndex);
-                    try { if (jawIdx !== undefined) visemeIndices.jawOpen = jawIdx; if (funnelIdx !== undefined) visemeIndices.mouthFunnel = funnelIdx; if (puckerIdx !== undefined) visemeIndices.mouthPucker = puckerIdx; if (smileLIdx !== undefined) visemeIndices.mouthSmileL = smileLIdx; if (smileRIdx !== undefined) visemeIndices.mouthSmileR = smileRIdx; if (closeIdx !== undefined) visemeIndices.mouthClose = closeIdx; if (visemeIndices.mouthFunnel < 0 && lowerMap['viseme_ou'] !== undefined) visemeIndices.mouthFunnel = lowerMap['viseme_ou']; if (visemeIndices.jawOpen < 0 && lowerMap['viseme_aa'] !== undefined) visemeIndices.jawOpen = lowerMap['viseme_aa']; if (eyeBlinkLIdx !== undefined || eyeBlinkRIdx !== undefined) { eyeMesh = obj; if (eyeBlinkLIdx !== undefined) eyeIndices.eyeBlinkLeft = eyeBlinkLIdx; if (eyeBlinkRIdx !== undefined) eyeIndices.eyeBlinkRight = eyeBlinkRIdx; } } catch {}
+                    try { if (jawIdx !== undefined) visemeIndices.jawOpen = jawIdx; if (funnelIdx !== undefined) visemeIndices.mouthFunnel = funnelIdx; if (puckerIdx !== undefined) visemeIndices.mouthPucker = puckerIdx; if (smileLIdx !== undefined) visemeIndices.mouthSmileL = smileLIdx; if (smileRIdx !== undefined) visemeIndices.mouthSmileR = smileRIdx; if (closeIdx !== undefined) visemeIndices.mouthClose = closeIdx; if (visemeIndices.mouthFunnel < 0 && lowerMap['viseme_ou'] !== undefined) visemeIndices.mouthFunnel = lowerMap['viseme_ou']; if (visemeIndices.jawOpen < 0 && lowerMap['viseme_aa'] !== undefined) visemeIndices.jawOpen = lowerMap['viseme_aa']; if (eyeBlinkLIdx !== undefined || eyeBlinkRIdx !== undefined) { eyeMesh = obj; if (eyeBlinkLIdx !== undefined) eyeIndices.eyeBlinkLeft = eyeBlinkLIdx; if (eyeBlinkRIdx !== undefined) eyeIndices.eyeBlinkRight = eyeBlinkRIdx; } } catch { }
                   } else if (!morphMesh) {
-                    const altIdx = findKeyCI(['jawopen','mouthopen','viseme_aa','aa']); if (altIdx !== undefined) { morphMesh = obj; morphIndex = altIdx; console.log('Morph target (alt jaw) su', obj.name, 'index:', morphIndex); }
+                    const altIdx = findKeyCI(['jawopen', 'mouthopen', 'viseme_aa', 'aa']); if (altIdx !== undefined) { morphMesh = obj; morphIndex = altIdx; console.log('Morph target (alt jaw) su', obj.name, 'index:', morphIndex); }
                   }
                   try {
-                    const indices = { jawOpen: (jawIdx !== undefined ? jawIdx : -1), mouthFunnel: (funnelIdx !== undefined ? funnelIdx : -1), mouthPucker: (puckerIdx !== undefined ? puckerIdx : -1), mouthSmileL: (smileLIdx !== undefined ? smileLIdx : -1), mouthSmileR: (smileRIdx !== undefined ? smileRIdx : -1), mouthClose: (closeIdx !== undefined ? closeIdx : -1), eyeBlinkLeft: (eyeBlinkLIdx !== undefined ? eyeBlinkLIdx : -1), eyeBlinkRight: (eyeBlinkRIdx !== undefined ? eyeBlinkRIdx : -1) };
+                    const addIdx = (n) => {
+                      const k = String(n).toLowerCase();
+                      return (lowerMap[k] !== undefined) ? lowerMap[k] : -1;
+                    };
+                    const indices = {
+                      // core visemes
+                      jawOpen: (jawIdx !== undefined ? jawIdx : -1),
+                      mouthFunnel: (funnelIdx !== undefined ? funnelIdx : -1),
+                      mouthPucker: (puckerIdx !== undefined ? puckerIdx : -1),
+                      mouthSmileL: (smileLIdx !== undefined ? smileLIdx : -1),
+                      mouthSmileR: (smileRIdx !== undefined ? smileRIdx : -1),
+                      mouthClose: (closeIdx !== undefined ? closeIdx : -1),
+                      eyeBlinkLeft: (eyeBlinkLIdx !== undefined ? eyeBlinkLIdx : -1),
+                      eyeBlinkRight: (eyeBlinkRIdx !== undefined ? eyeBlinkRIdx : -1),
+                      // extended ARKit set
+                      browDownLeft: addIdx('browDownLeft'),
+                      browDownRight: addIdx('browDownRight'),
+                      browInnerUp: addIdx('browInnerUp'),
+                      browOuterUpLeft: addIdx('browOuterUpLeft'),
+                      browOuterUpRight: addIdx('browOuterUpRight'),
+                      eyeSquintLeft: addIdx('eyeSquintLeft'),
+                      eyeSquintRight: addIdx('eyeSquintRight'),
+                      eyeWideLeft: addIdx('eyeWideLeft'),
+                      eyeWideRight: addIdx('eyeWideRight'),
+                      jawForward: addIdx('jawForward'),
+                      jawLeft: addIdx('jawLeft'),
+                      jawRight: addIdx('jawRight'),
+                      mouthFrownLeft: addIdx('mouthFrownLeft'),
+                      mouthFrownRight: addIdx('mouthFrownRight'),
+                      mouthShrugLower: addIdx('mouthShrugLower'),
+                      mouthShrugUpper: addIdx('mouthShrugUpper'),
+                      noseSneerLeft: addIdx('noseSneerLeft'),
+                      noseSneerRight: addIdx('noseSneerRight'),
+                      mouthLowerDownLeft: addIdx('mouthLowerDownLeft'),
+                      mouthLowerDownRight: addIdx('mouthLowerDownRight'),
+                      mouthLeft: addIdx('mouthLeft'),
+                      mouthRight: addIdx('mouthRight'),
+                      eyeLookDownLeft: addIdx('eyeLookDownLeft'),
+                      eyeLookDownRight: addIdx('eyeLookDownRight'),
+                      eyeLookUpLeft: addIdx('eyeLookUpLeft'),
+                      eyeLookUpRight: addIdx('eyeLookUpRight'),
+                      eyeLookInLeft: addIdx('eyeLookInLeft'),
+                      eyeLookInRight: addIdx('eyeLookInRight'),
+                      eyeLookOutLeft: addIdx('eyeLookOutLeft'),
+                      eyeLookOutRight: addIdx('eyeLookOutRight'),
+                      cheekPuff: addIdx('cheekPuff'),
+                      cheekSquintLeft: addIdx('cheekSquintLeft'),
+                      cheekSquintRight: addIdx('cheekSquintRight'),
+                      mouthDimpleLeft: addIdx('mouthDimpleLeft'),
+                      mouthDimpleRight: addIdx('mouthDimpleRight'),
+                      mouthStretchLeft: addIdx('mouthStretchLeft'),
+                      mouthStretchRight: addIdx('mouthStretchRight'),
+                      mouthRollLower: addIdx('mouthRollLower'),
+                      mouthRollUpper: addIdx('mouthRollUpper'),
+                      mouthPressLeft: addIdx('mouthPressLeft'),
+                      mouthPressRight: addIdx('mouthPressRight'),
+                      mouthUpperUpLeft: addIdx('mouthUpperUpLeft'),
+                      mouthUpperUpRight: addIdx('mouthUpperUpRight'),
+                      mouthSmileLeft: addIdx('mouthSmileLeft'),
+                      mouthSmileRight: addIdx('mouthSmileRight'),
+                      tongueOut: addIdx('tongueOut'),
+                    };
                     if (eyeMesh === null) {
                       if (dict['eyeBlinkLeft'] !== undefined || dict['eyeBlinkRight'] !== undefined || eyeBlinkLIdx !== undefined || eyeBlinkRIdx !== undefined) {
                         eyeMesh = obj; if (dict['eyeBlinkLeft'] !== undefined) eyeIndices.eyeBlinkLeft = dict['eyeBlinkLeft']; if (dict['eyeBlinkRight'] !== undefined) eyeIndices.eyeBlinkRight = dict['eyeBlinkRight']; if (eyeBlinkLIdx !== undefined) eyeIndices.eyeBlinkLeft = eyeBlinkLIdx; if (eyeBlinkRIdx !== undefined) eyeIndices.eyeBlinkRight = eyeBlinkRIdx;
                       }
                     }
                     if (Object.values(indices).some(v => v !== -1)) { visemeMeshes.push({ mesh: obj, indices }); console.log('Viseme mesh registered:', obj.name, indices); }
-                  } catch {}
+                  } catch { }
                 }
               });
               try {
                 if (headBone) {
                   const p = new THREE.Vector3(); headBone.getWorldPosition(p);
                   const t = p.clone(); t.y -= 0.06; const defaultDist = 1.45; const dist = (isFinite(headDistParam) && headDistParam > 0.2) ? headDistParam : defaultDist; const fov = (isFinite(headFovParam) && headFovParam >= 20 && headFovParam <= 70) ? headFovParam : 38; camera.position.set(p.x, t.y + 0.02, p.z + dist); camera.fov = fov; camera.lookAt(t); camera.updateProjectionMatrix();
-                  try { console.log('CAM headBone target', { pos: camera.position.toArray(), fov: camera.fov, target: t.toArray(), dist }); } catch {}
-                  try { if (jawBone) { const prev = jawBone.rotation.x; jawBone.rotation.x += 0.02; humanoid.updateMatrixWorld(true); const before = new THREE.Box3().setFromObject(humanoid).getSize(new THREE.Vector3()); jawBone.rotation.x = prev; humanoid.updateMatrixWorld(true); const after = new THREE.Box3().setFromObject(humanoid).getSize(new THREE.Vector3()); jawBoneHasInfluence = (Math.abs(before.y - after.y) > 1e-4 || Math.abs(before.x - after.x) > 1e-4); if (debugEnabled) console.log('jawBoneHasInfluence', jawBoneHasInfluence); } } catch {}
+                  try { console.log('CAM headBone target', { pos: camera.position.toArray(), fov: camera.fov, target: t.toArray(), dist }); } catch { }
+                  try { if (jawBone) { const prev = jawBone.rotation.x; jawBone.rotation.x += 0.02; humanoid.updateMatrixWorld(true); const before = new THREE.Box3().setFromObject(humanoid).getSize(new THREE.Vector3()); jawBone.rotation.x = prev; humanoid.updateMatrixWorld(true); const after = new THREE.Box3().setFromObject(humanoid).getSize(new THREE.Vector3()); jawBoneHasInfluence = (Math.abs(before.y - after.y) > 1e-4 || Math.abs(before.x - after.x) > 1e-4); if (debugEnabled) console.log('jawBoneHasInfluence', jawBoneHasInfluence); } } catch { }
                 } else {
-                  let headMesh = null; humanoid.traverse((obj) => { if (!headMesh && (/wolf3d_head/i.test(obj.name) || /head$/i.test(obj.name))) headMesh = obj; }); if (headMesh) { fitCameraToObject(camera, headMesh, 1.2); } else { fitCameraToObject(camera, humanoid, 1.35); } try { console.log('CAM fallback fit'); } catch {}
+                  let headMesh = null; humanoid.traverse((obj) => { if (!headMesh && (/wolf3d_head/i.test(obj.name) || /head$/i.test(obj.name))) headMesh = obj; }); if (headMesh) { fitCameraToObject(camera, headMesh, 1.2); } else { fitCameraToObject(camera, humanoid, 1.35); } try { console.log('CAM fallback fit'); } catch { }
                 }
-              } catch {}
+              } catch { }
               head.visible = false; jaw.visible = false;
-            } catch {}
+            } catch { }
           }
-          function loadWithFBX() { return new Promise((resolve, reject) => { try { const loader = new FBXLoaderCtor(); console.log('Carico humanoid FBX da', fbxUrl); loader.load(fbxUrl, (obj) => { try { obj.updateMatrixWorld(true); } catch {} attachHumanoid(obj); resolve(true); }, undefined, (err) => { console.warn('Impossibile caricare FBX', err); reject(err); }); } catch (e) { reject(e); } }); }
+          function loadWithFBX() { return new Promise((resolve, reject) => { try { const loader = new FBXLoaderCtor(); console.log('Carico humanoid FBX da', fbxUrl); loader.load(fbxUrl, (obj) => { try { obj.updateMatrixWorld(true); } catch { } attachHumanoid(obj); resolve(true); }, undefined, (err) => { console.warn('Impossibile caricare FBX', err); reject(err); }); } catch (e) { reject(e); } }); }
           function loadWithGLTF() { return new Promise((resolve, reject) => { try { if (!GLTFLoaderCtor) { reject(new Error('GLTFLoader non disponibile')); return; } const loader = new GLTFLoaderCtor(); console.log('Carico humanoid GLB da', glbUrl); loader.load(glbUrl, (gltf) => { attachHumanoid(gltf.scene); resolve(true); }, undefined, (err) => { console.warn('Impossibile caricare GLB', err); reject(err); }); } catch (e) { reject(e); } }); }
           (async () => {
             try {
@@ -1262,40 +1612,14 @@ export default defineComponent({
           camera.far = Math.max(camera.near + 1, dist * 10 + size.length());
           camera.lookAt(center);
           camera.updateProjectionMatrix();
-          try { console.log('CAM fitCameraToObject', { pos: camera.position.toArray(), fov: camera.fov, center: center.toArray(), size: size.toArray(), dist, aspect }); } catch {}
+          try { console.log('CAM fitCameraToObject', { pos: camera.position.toArray(), fov: camera.fov, center: center.toArray(), size: size.toArray(), dist, aspect }); } catch { }
         } catch (e) { console.warn('fitCameraToObject error', e); }
       }
 
-              try {
-                if (!armsRelaxed) {
-                  // salva rotazioni base
-                  if (armLBone && !baseArmLRot) baseArmLRot = armLBone.rotation.clone();
-                  if (armRBone && !baseArmRRot) baseArmRRot = armRBone.rotation.clone();
-                  if (shoulderLBone && !baseShoulderLRot) baseShoulderLRot = shoulderLBone.rotation.clone();
-                  if (shoulderRBone && !baseShoulderRRot) baseShoulderRRot = shoulderRBone.rotation.clone();
-                  const poseRelax = () => {
-                    try {
-                      if (armLBone) { armLBone.rotation.set((baseArmLRot ? baseArmLRot.x : 0) + 0.25, (baseArmLRot ? baseArmLRot.y : 0), (baseArmLRot ? baseArmLRot.z : 0) + 0.18); }
-                      if (armRBone) { armRBone.rotation.set((baseArmRRot ? baseArmRRot.x : 0) + 0.25, (baseArmRRot ? baseArmRRot.y : 0), (baseArmRRot ? baseArmRRot.z : 0) + 0.18); }
-                      if (shoulderLBone) { shoulderLBone.rotation.x = (baseShoulderLRot ? baseShoulderLRot.x : 0) - 0.08; }
-                      if (shoulderRBone) { shoulderRBone.rotation.x = (baseShoulderRRot ? baseShoulderRRot.x : 0) - 0.08; }
-                      if (humanoid && humanoid.updateMatrixWorld) humanoid.updateMatrixWorld(true);
-                    } catch {}
-                  };
-                  // esporta helper su window
-                  try {
-                    window.EnjoyArms.poseRelax = poseRelax;
-                  } catch {}
-                  // applica dopo piccolo delay per stabilizzazione
-                  setTimeout(poseRelax, 200);
-                  armsRelaxed = true;
-                }
-              } catch {}
+
     })
 
     return {}
   }
 })
 </script>
-
-

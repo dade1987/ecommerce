@@ -36,7 +36,7 @@
 		"editor.defaultFormatter": "vscode.css-language-features"
 	},
 	"[vue]": {
-		"editor.defaultFormatter": "octref.vetur"
+		"editor.defaultFormatter": "Vue.volar"
 	},
 	"[markdown]": {
 		"editor.defaultFormatter": "yzhang.markdown-all-in-one"
