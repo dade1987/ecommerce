@@ -1407,7 +1407,7 @@ export default defineComponent({
           const FBXLoaderCtor = window.FBXLoader; const GLTFLoaderCtor = window.GLTFLoader;
           if (!window.THREE || (!FBXLoaderCtor && !GLTFLoaderCtor)) { console.warn('Loader non presente. THREE:', !!window.THREE, 'FBXLoader:', !!FBXLoaderCtor, 'GLTFLoader:', !!GLTFLoaderCtor); return; }
           const fbxUrl = '';
-          const glbUrl = '/images/readyplayerme.glb' + '?v=' + Date.now();
+          const glbUrl = '/images/68f78ddb4530fb061a1349d5.glb' + '?v=' + Date.now();
           function attachHumanoid(root) {
             try {
               humanoid = root; humanoid.position.set(0, -0.3, 0); humanoid.scale.set(1.2, 1.2, 1.2);
