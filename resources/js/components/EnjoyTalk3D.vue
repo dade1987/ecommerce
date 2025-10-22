@@ -132,6 +132,8 @@ export default defineComponent({
   },
   mounted() {
     try {
+      // Priorità: props ricevuti > dataset dell'elemento > valori di default
+      // I props sono già gestiti in setup(), niente da fare qui
       this.initLibraries().then(() => {
         try { this.setupScene && this.setupScene() } catch { }
         try { setTimeout(() => { try { this.loadHumanoid && this.loadHumanoid() } catch { } }, 0) } catch { }
@@ -572,6 +574,16 @@ export default defineComponent({
       let talkingAnimAction = null;
       let talkingAnimClip = null;
       
+      // Animazione idle mixata da GLB esterno
+      let idleAnimationMixer = null;
+      let idleAnimationActions = [];
+      let idleAnimationActive = false;
+
+      // Talking animations casuali
+      let talkingAnimationMixer = null;
+      let talkingAnimationVariants = []; // array di array, uno per ogni variant
+      let currentTalkingAnimation = null;
+      let talkingAnimationActive = false;
 
       const debugOverlay = document.getElementById('debugOverlay');
       const debugContent = document.getElementById('debugContent');
@@ -1178,29 +1190,22 @@ export default defineComponent({
         animationId = requestAnimationFrame(animate);
         head.position.y = 0.2 + Math.sin(performance.now() / 1200) * 0.01;
 
-        // Subtle idle body/facial animation when not speaking
-        applyIdleBody();
-        applyIdleFacial(performance.now() * 0.001);
-        applyConversationGestures();
-        armsRelaxed = true;
+        // Aggiorna il mixer dell'animazione idle se attivo
+        if (idleAnimationMixer && idleAnimationActive) {
+          idleAnimationMixer.update(0.016); // ~60fps
+        }
 
+        // Aggiorna il mixer dell'animazione talking se attivo
+        if (talkingAnimationMixer && talkingAnimationActive) {
+          talkingAnimationMixer.update(0.016); // ~60fps
+        }
 
-        try {
-          const talking = cloudAudioSpeaking || (window.speechSynthesis && window.speechSynthesis.speaking);
-          if (!talking && Array.isArray(visemeMeshes) && visemeMeshes.length > 0) {
-            const t = performance.now() * 0.001;
-            const baseSmile = 0.06; const microSmile = baseSmile + 0.012 * Math.sin(t * 0.6 + 1.1); const microPucker = 0.006 + 0.006 * Math.sin(t * 0.8 + 0.4);
-            for (const vm of visemeMeshes) {
-              const infl = vm.mesh && vm.mesh.morphTargetInfluences; const idxs = vm.indices || {}; if (!infl) continue;
-              if (idxs.mouthSmileL >= 0) infl[idxs.mouthSmileL] = Math.max(0, Math.min(0.10 + lipConfig.smileStrength, microSmile * (1 + lipConfig.smileStrength)));
-              if (idxs.mouthSmileR >= 0) infl[idxs.mouthSmileR] = Math.max(0, Math.min(0.10 + lipConfig.smileStrength, microSmile * (1 + lipConfig.smileStrength)));
-              if (idxs.mouthPucker >= 0) infl[idxs.mouthPucker] = Math.max(0, Math.min(0.03, microPucker));
-            }
-          }
-        } catch { }
+        // Solo mixer delle animazioni - niente funzioni procedurali
+
+        // Audio analysis and lipsync
         let amp = 0;
         if (useBrowserTts && useBrowserTts.checked && 'speechSynthesis' in window && window.speechSynthesis.speaking) {
-          if (analyser && dataArray && !forcedClosing) { /* analyser branch */ } else { amp = 0; }
+          if (analyser && dataArray) { analyser.getByteFrequencyData(dataArray); const avgFreq = dataArray.reduce((a, b) => a + b) / dataArray.length; amp = avgFreq / 256; } else { amp = 0; }
         }
         if (analyser && dataArray) {
           analyser.getByteTimeDomainData(dataArray);
@@ -1210,32 +1215,32 @@ export default defineComponent({
           const targetAmp = Math.min(1, rms * 5.5);
           const a = (targetAmp > audioAmp) ? AMP_ATTACK : AMP_RELEASE;
           audioAmp = audioAmp * (1 - a) + targetAmp * a; amp = audioAmp;
-          // smoothing/hysteresis parlato
-          const talkRaw = (cloudAudioSpeaking || (window.speechSynthesis && window.speechSynthesis.speaking) || (amp > TALK_ON));
-          const talkTarget = talkRaw ? 1 : (amp > TALK_OFF ? talkSmoothed : 0);
-          talkSmoothed = talkSmoothed * (1 - TALK_ALPHA) + talkTarget * TALK_ALPHA;
         }
-        const talking = talkSmoothed > 0.5;
 
-        if (textVisemeEnabled && !forcedClosing) {
-          if (!talking && performance.now() < restStableUntil) {
-            visemeTargets = { jawOpen: 0, mouthFunnel: 0, mouthPucker: 0, mouthSmileL: lipConfig.smileStrength, mouthSmileR: lipConfig.smileStrength, mouthClose: 0, mouthStretchL: 0, mouthStretchR: 0, tongueOut: 0 };
-            visemeActiveUntil = performance.now() + 120;
+        // Viseme and lipsync
+        if (textVisemeEnabled) {
+          const nowT = performance.now();
+          visemeSchedule = visemeSchedule.filter(it => it.end > nowT);
+          const active = visemeSchedule.find(it => it.start <= nowT && it.end > nowT);
+          if (active) {
+            const blend = Math.max(0, Math.min(1, (nowT - active.start) / Math.max(1, (active.end - active.start))));
+            visemeTargets = {
+              jawOpen: active.targets.jawOpen * blend,
+              mouthFunnel: active.targets.mouthFunnel * blend,
+              mouthPucker: active.targets.mouthPucker * blend,
+              mouthSmileL: active.targets.mouthSmileL * blend,
+              mouthSmileR: active.targets.mouthSmileR * blend,
+              mouthClose: active.targets.mouthClose * blend,
+            };
+            visemeActiveUntil = nowT + 120;
           }
         }
-        if (textVisemeEnabled && (!analyser || !cloudAudioSpeaking) && !forcedClosing) {
-          if (forcedClosing) { visemeTargets = { jawOpen: 0, mouthFunnel: 0, mouthPucker: 0, mouthSmileL: 0, mouthSmileR: 0, mouthClose: 0, mouthStretchL: 0, mouthStretchR: 0, tongueOut: 0 }; visemeActiveUntil = performance.now() + 60; }
-          const nowT = performance.now(); 
-          visemeSchedule = visemeSchedule.filter(it => it.end > nowT); 
-          const active = visemeSchedule.find(it => it.start <= nowT && it.end > nowT);
-          if (active) { const blend = Math.max(0, Math.min(1, (nowT - active.start) / Math.max(1, (active.end - active.start)))); visemeTargets = { jawOpen: active.targets.jawOpen * blend, mouthFunnel: active.targets.mouthFunnel * blend, mouthPucker: active.targets.mouthPucker * blend, mouthSmileL: active.targets.mouthSmileL * blend, mouthSmileR: active.targets.mouthSmileR * blend, mouthClose: active.targets.mouthClose * blend, mouthStretchL: active.targets.mouthStretchL * blend, mouthStretchR: active.targets.mouthStretchR * blend, tongueOut: active.targets.tongueOut * blend }; visemeActiveUntil = nowT + 120; } else if (!talking) { visemeTargets = { jawOpen: 0, mouthFunnel: 0, mouthPucker: 0, mouthSmileL: lipConfig.smileStrength, mouthSmileR: lipConfig.smileStrength, mouthClose: 0, mouthStretchL: 0, mouthStretchR: 0, tongueOut: 0 }; }
-        }
-        try { if (useBrowserTts && useBrowserTts.checked && 'speechSynthesis' in window && window.speechSynthesis.speaking) { visemeActiveUntil = performance.now() + 240; } } catch { }
+
+        // Apply lipsync to meshes
         const now = performance.now();
         const restJawOpen = lipConfig.restJawOpen;
         let appliedJaw = null;
-        if ((Array.isArray(visemeMeshes) && visemeMeshes.length > 0 && (visemeActiveUntil > now)) || (!jawBone && morphMesh && morphIndex >= 0)) {
-          console.log('[VISEME APPLY] Applying visemes - visemeMeshes:', visemeMeshes.length, 'visemeActiveUntil > now:', visemeActiveUntil > now);
+        if (Array.isArray(visemeMeshes) && visemeMeshes.length > 0 && (visemeActiveUntil > now)) {
           visemeStrength = visemeStrength * (1 - lipConfig.visemeStrengthAlpha) + lipConfig.visemeStrengthAlpha;
           for (const vm of visemeMeshes) {
             const infl = vm.mesh.morphTargetInfluences; if (!infl) continue;
@@ -1246,36 +1251,19 @@ export default defineComponent({
             const roundness = Math.min(1, visemeTargets.mouthFunnel + visemeTargets.mouthPucker);
             const closeSuppression = Math.max(0, 1 - jawv * 1.5 - roundness * 0.9);
             let constrainedClose = Math.min(lipConfig.maxMouthClose, (visemeTargets.mouthClose || 0) * closeSuppression);
-            if (!(performance.now() < forceFullCloseUntil)) {
-              if (constrainedClose > lipConfig.closeThresholdForSeparation) { jawv = Math.max(jawv, lipConfig.minLipSeparation); }
-            } else { jawv = Math.min(jawv, 0.005); constrainedClose = 0; }
             appliedJaw = jawv;
             setIdx(vm.indices.jawOpen, jawv * 0.9, 'jawOpen');
             setIdx(vm.indices.mouthFunnel, visemeTargets.mouthFunnel * 1.05, 'mouthFunnel');
             setIdx(vm.indices.mouthPucker, visemeTargets.mouthPucker * 1.0, 'mouthPucker');
-            setIdx(vm.indices.mouthSmileL, visemeTargets.mouthSmileL * 1.05 * (1 + lipConfig.smileStrength), 'mouthSmileL');
-            setIdx(vm.indices.mouthSmileR, visemeTargets.mouthSmileR * 1.05 * (1 + lipConfig.smileStrength), 'mouthSmileR');
+            setIdx(vm.indices.mouthSmileL, visemeTargets.mouthSmileL * 1.05, 'mouthSmileL');
+            setIdx(vm.indices.mouthSmileR, visemeTargets.mouthSmileR * 1.05, 'mouthSmileR');
             setIdx(vm.indices.mouthClose, constrainedClose, 'mouthClose');
-            setIdx(vm.indices.mouthStretchL, visemeTargets.mouthStretchL || 0, 'mouthStretchL');
-            setIdx(vm.indices.mouthStretchR, visemeTargets.mouthStretchR || 0, 'mouthStretchR');
-            setIdx(vm.indices.tongueOut, visemeTargets.tongueOut || 0, 'tongueOut');
-            const t = performance.now();
-            if (t >= nextBlinkAt) { blinkPhase = 0.001; nextBlinkAt = t + (2200 + Math.random() * 2200); }
-            if (blinkPhase > 0) {
-              blinkPhase = Math.min(1, blinkPhase + 0.065);
-              const k = blinkPhase <= 0.5 ? (blinkPhase * 2) : (1 - (blinkPhase - 0.5) * 2);
-              const val = Math.pow(Math.max(0, Math.min(1, k)), 1.6);
-              if (eyeMesh && eyeMesh.morphTargetInfluences) { if (eyeIndices.eyeBlinkLeft >= 0) eyeMesh.morphTargetInfluences[eyeIndices.eyeBlinkLeft] = eyeMesh.morphTargetInfluences[eyeIndices.eyeBlinkLeft] * 0.6 + val * 0.4; if (eyeIndices.eyeBlinkRight >= 0) eyeMesh.morphTargetInfluences[eyeIndices.eyeBlinkRight] = eyeMesh.morphTargetInfluences[eyeIndices.eyeBlinkRight] * 0.6 + val * 0.4; }
-              else {
-                if (eyeIndices.eyeBlinkLeft >= 0) infl[eyeIndices.eyeBlinkLeft] = infl[eyeIndices.eyeBlinkLeft] * 0.6 + val * 0.4;
-                if (eyeIndices.eyeBlinkRight >= 0) infl[eyeIndices.eyeBlinkRight] = infl[eyeIndices.eyeBlinkRight] * 0.6 + val * 0.4;
-              }
-              if (blinkPhase >= 1) blinkPhase = 0;
-            }
           }
         } else if (morphMesh && morphIndex >= 0 && Array.isArray(morphMesh.morphTargetInfluences)) {
           visemeStrength = 0; const target = Math.min(1, amp * 2.0 + (cloudAudioSpeaking ? 0 : restJawOpen * 0.6)); morphValue = morphValue * 0.82 + target * 0.18; morphMesh.morphTargetInfluences[morphIndex] = morphValue; appliedJaw = Math.max(target, lipConfig.minLipSeparation);
         }
+
+        // Jaw bone animation
         if (jawBone) {
           if (jawBone.type === 'Bone') {
             window.__jawBonePrev = window.__jawBonePrev ?? 0;
@@ -1287,13 +1275,13 @@ export default defineComponent({
             if (jawAxis === 'x') jawBone.rotation.x = angle; else if (jawAxis === 'y') jawBone.rotation.y = angle; else jawBone.rotation.z = angle;
             try { jawBone.updateMatrixWorld(true); } catch { }
             try { humanoid.updateMatrixWorld(true); } catch { }
-            try { if ((!jawBoneHasInfluence || headNodForced) && headBone) { const nod = headSign * (jb * 0.15); headBone.rotation.x = nod; headBone.updateMatrixWorld(true); } } catch { }
           }
         } else if (jaw) {
           window.__jawGeomPrev = window.__jawGeomPrev ?? 0;
           const jawForBone = Math.max(lipConfig.minLipSeparation, (appliedJaw !== null ? appliedJaw : (amp * 0.9 + (cloudAudioSpeaking ? 0 : restJawOpen * 0.2))));
           const a = lipConfig.jawSmoothingAlpha; const jb = window.__jawGeomPrev * (1 - a) + jawForBone * a; window.__jawGeomPrev = jb; jaw.rotation.x = -(jb * 0.5);
         }
+
         renderer.render(scene, camera);
         if (talkingAnimMixer) talkingAnimMixer.update(0.016);
       }
@@ -1382,13 +1370,9 @@ export default defineComponent({
             const chosen = femaleVoices[0] || itVoices.find(v => prefNames.some(n => (v.name || '').includes(n))) || itVoices[0] || voices.find(v => /Italian/i.test(v.name)) || voices[0];
             if (chosen) utter.voice = chosen;
             if (browserTtsStatus) browserTtsStatus.textContent = chosen ? `Voce: ${chosen.name}` : 'Voce IT non trovata (usa default)';
-            let ttsStartTime = null;
-            utter.onstart = () => { try { ttsStartTime = performance.now(); const nowT = performance.now(); const textClean = (item.text || '').replace(/\s+/g, ' ').trim(); const charCount = textClean.length; const rate = (typeof utter.rate === 'number' && utter.rate > 0) ? utter.rate : 1; let estSec = (charCount / 16) / rate; estSec = Math.max(0.8, Math.min(20, estSec)); visemeSchedule = []; enqueueTextVisemes(item.text || '', Math.floor(estSec * 1000), nowT); if (isSpeaking) console.log('[TTS VISEME] Started - estimated duration:', estSec.toFixed(2), 'sec, chars:', charCount); playTalkingAnimation(); } catch { } };
+            utter.onstart = () => { try { playRandomTalkingAnimation(); const nowT = performance.now(); const textClean = (item.text || '').replace(/\s+/g, ' ').trim(); const words = textClean.split(/\s+/).filter(Boolean); const charCount = textClean.length; const wordCount = words.length || Math.max(1, Math.round(charCount / 5)); const periods = (textClean.match(/[.!?…]/g) || []).length; const commas = (textClean.match(/[,:;]/g) || []).length; const parens = (textClean.match(/[()\-\u2013\u2014]/g) || []).length; const rate = (typeof utter.rate === 'number' && utter.rate > 0) ? utter.rate : 1; let estSec = ((wordCount * 0.55) * 0.5 + (charCount / 13.5) * 0.5) + (periods * 0.55 + commas * 0.32 + parens * 0.22) + 0.4; estSec = estSec / rate; estSec = Math.max(2.2, estSec); visemeSchedule = []; enqueueTextVisemes(item.text || '', Math.floor(estSec * 1000), nowT); } catch { } };
             utter.onend = () => {
-              const realDuration = ttsStartTime ? (performance.now() - ttsStartTime) : 0;
-              if (isSpeaking) console.log('[TTS VISEME] Ended - actual duration:', (realDuration/1000).toFixed(2), 'sec');
-              stopTalkingAnimation();
-              try { visemeSchedule = []; visemeTargets = { jawOpen: 0, mouthFunnel: 0, mouthPucker: 0, mouthSmileL: 0, mouthSmileR: 0, mouthClose: 0, mouthStretchL: 0, mouthStretchR: 0, tongueOut: 0 }; forceFullCloseUntil = performance.now() + 220; visemeActiveUntil = performance.now() + 180; visemeStrength = 0; if (Array.isArray(visemeMeshes)) { for (const vm of visemeMeshes) { const infl = vm.mesh && vm.mesh.morphTargetInfluences; const idxs = vm.indices || {}; if (!infl) continue; try { if (idxs.mouthFunnel >= 0) infl[idxs.mouthFunnel] = 0; } catch { } try { if (idxs.mouthPucker >= 0) infl[idxs.mouthPucker] = 0; } catch { } try { if (idxs.mouthSmileL >= 0) infl[idxs.mouthSmileL] = 0; } catch { } try { if (idxs.mouthSmileR >= 0) infl[idxs.mouthSmileR] = 0; } catch { } try { if (idxs.mouthClose >= 0) infl[idxs.mouthClose] = 0; } catch { } try { if (idxs.jawOpen >= 0) infl[idxs.jawOpen] = 0; } catch { } try { if (idxs.mouthStretchL >= 0) infl[idxs.mouthStretchL] = 0; } catch { } try { if (idxs.mouthStretchR >= 0) infl[idxs.mouthStretchR] = 0; } catch { } try { if (idxs.tongueOut >= 0) infl[idxs.tongueOut] = 0; } catch { } } } if (humanoid && humanoid.updateMatrixWorld) humanoid.updateMatrixWorld(true); } catch { }
+              try { stopTalkingAnimation(); visemeSchedule = []; visemeTargets = { jawOpen: 0, mouthFunnel: 0, mouthPucker: 0, mouthSmileL: 0, mouthSmileR: 0, mouthClose: 0 }; forceFullCloseUntil = performance.now() + 220; visemeActiveUntil = performance.now() + 180; visemeStrength = 0; if (Array.isArray(visemeMeshes)) { for (const vm of visemeMeshes) { const infl = vm.mesh && vm.mesh.morphTargetInfluences; const idxs = vm.indices || {}; if (!infl) continue; try { if (idxs.mouthFunnel >= 0) infl[idxs.mouthFunnel] = 0; } catch { } try { if (idxs.mouthPucker >= 0) infl[idxs.mouthPucker] = 0; } catch { } try { if (idxs.mouthSmileL >= 0) infl[idxs.mouthSmileL] = 0; } catch { } try { if (idxs.mouthSmileR >= 0) infl[idxs.mouthSmileR] = 0; } catch { } try { if (idxs.mouthClose >= 0) infl[idxs.mouthClose] = 0; } catch { } try { if (idxs.jawOpen >= 0) infl[idxs.jawOpen] = 0; } catch { } } } if (humanoid && humanoid.updateMatrixWorld) humanoid.updateMatrixWorld(true); } catch { }
               visemeActiveUntil = 0; visemeStrength = 0; lastSpokenTail = (lastSpokenTail + ' ' + item.text).slice(-400); lastSentToTts = ''; playNextInQueue();
             };
             utter.onerror = () => { if (item.url) { ttsPlayer.src = item.url; ttsPlayer.play().catch(() => { isSpeaking = false; }); } else { isSpeaking = false; playNextInQueue(); } };
@@ -1406,12 +1390,12 @@ export default defineComponent({
           cloudAudioSpeaking = false; visemeSchedule = [];
           visemeTargets = { jawOpen: 0, mouthFunnel: 0, mouthPucker: 0, mouthSmileL: 0, mouthSmileR: 0, mouthClose: 0, mouthStretchL: 0, mouthStretchR: 0, tongueOut: 0 };
           forceFullCloseUntil = performance.now() + 220; visemeActiveUntil = performance.now() + 180;
-          try { if (Array.isArray(visemeMeshes)) { for (const vm of visemeMeshes) { const infl = vm.mesh && vm.mesh.morphTargetInfluences; const idxs = vm.indices || {}; if (!infl) continue; if (idxs.mouthFunnel >= 0) infl[idxs.mouthFunnel] = 0; if (idxs.mouthPucker >= 0) infl[idxs.mouthPucker] = 0; if (idxs.mouthSmileL >= 0) infl[idxs.mouthSmileL] = 0; if (idxs.mouthSmileR >= 0) infl[idxs.mouthSmileR] = 0; if (idxs.mouthClose >= 0) infl[idxs.mouthClose] = 0; if (idxs.jawOpen >= 0) infl[idxs.jawOpen] = 0; if (idxs.mouthStretchL >= 0) infl[idxs.mouthStretchL] = 0; if (idxs.mouthStretchR >= 0) infl[idxs.mouthStretchR] = 0; if (idxs.tongueOut >= 0) infl[idxs.tongueOut] = 0; } } if (humanoid && humanoid.updateMatrixWorld) humanoid.updateMatrixWorld(true); } catch { }
-          ttsPlayer.removeEventListener('ended', onEnded); playNextInQueue();
+          try { if (Array.isArray(visemeMeshes)) { for (const vm of visemeMeshes) { const infl = vm.mesh && vm.mesh.morphTargetInfluences; const idxs = vm.indices || {}; if (!infl) continue; if (idxs.mouthFunnel >= 0) infl[idxs.mouthFunnel] = 0; if (idxs.mouthPucker >= 0) infl[idxs.mouthPucker] = 0; if (idxs.mouthSmileL >= 0) infl[idxs.mouthSmileL] = 0; if (idxs.mouthSmileR >= 0) infl[idxs.mouthSmileR] = 0; if (idxs.mouthClose >= 0) infl[idxs.mouthClose] = 0; if (idxs.jawOpen >= 0) infl[idxs.jawOpen] = 0; } } if (humanoid && humanoid.updateMatrixWorld) humanoid.updateMatrixWorld(true); } catch { }
+          stopTalkingAnimation(); ttsPlayer.removeEventListener('ended', onEnded); playNextInQueue();
         };
         const onError = () => { console.error('TTS: Playback error for:', item.text.substring(0, 50)); URL.revokeObjectURL(item.url); ttsPlayer.removeEventListener('ended', onEnded); ttsPlayer.removeEventListener('error', onError); isSpeaking = false; cloudAudioSpeaking = false; playNextInQueue(); };
         ttsPlayer.addEventListener('ended', onEnded); ttsPlayer.addEventListener('error', onError);
-        const onPlaying = () => { try { visemeSchedule = []; } catch { } try { ttsPlayer.removeEventListener('playing', onPlaying); } catch { } };
+        const onPlaying = () => { try { playRandomTalkingAnimation(); visemeSchedule = []; } catch { } try { ttsPlayer.removeEventListener('playing', onPlaying); } catch { } };
         ttsPlayer.addEventListener('playing', onPlaying);
         ttsPlayer.play().then(() => { cloudAudioSpeaking = true; }).catch((err) => { console.error('TTS: Play failed:', err); isSpeaking = false; onError(); });
       }
@@ -1669,11 +1653,13 @@ export default defineComponent({
           }
           function loadWithFBX() { return new Promise((resolve, reject) => { try { const loader = new FBXLoaderCtor(); console.log('Carico humanoid FBX da', fbxUrl); loader.load(fbxUrl, (obj) => { try { obj.updateMatrixWorld(true); } catch { } attachHumanoid(obj); resolve(true); }, undefined, (err) => { console.warn('Impossibile caricare FBX', err); reject(err); }); } catch (e) { reject(e); } }); }
           function loadWithGLTF() { return new Promise((resolve, reject) => { try { if (!GLTFLoaderCtor) { reject(new Error('GLTFLoader non disponibile')); return; } const loader = new GLTFLoaderCtor(); console.log('Carico humanoid GLB da', glbUrl); loader.load(glbUrl, (gltf) => { attachHumanoid(gltf.scene); resolve(true); }, undefined, (err) => { console.warn('Impossibile caricare GLB', err); reject(err); }); } catch (e) { reject(e); } }); }
+          function loadIdleAnimation() { return new Promise((resolve) => { try { if (!GLTFLoaderCtor) { resolve(false); return; } idleAnimationActions = []; idleAnimationMixer = null; idleAnimationActive = false; const idleAnimUrl = '/images/animation-library-master/feminine/glb/idle/F_Standing_Idle_Variations_003.glb' + '?v=' + Date.now(); const loader = new GLTFLoaderCtor(); loader.load(idleAnimUrl, (gltf) => { try { if (humanoid && gltf.animations && gltf.animations.length > 0) { idleAnimationMixer = new window.THREE.AnimationMixer(humanoid); gltf.animations.forEach(clip => { try { const action = idleAnimationMixer.clipAction(clip); if (action) { action.loop = window.THREE.LoopRepeat; idleAnimationActions.push(action); } } catch(e) { console.warn('Errore caricamento azione animazione:', e); } }); console.log('Idle animation caricata:', gltf.animations.length, 'clips'); if (idleAnimationActions.length > 0) { idleAnimationActive = true; idleAnimationActions.forEach(a => a.play()); } resolve(true); } else { resolve(false); } } catch(e) { console.warn('Errore caricamento idle animation:', e); resolve(false); } }, undefined, (err) => { console.warn('Impossibile caricare idle animation', err); resolve(false); }); } catch(e) { console.warn('Errore loadIdleAnimation:', e); resolve(false); } }); }
+          function loadTalkingAnimations() { return new Promise((resolve) => { try { if (!GLTFLoaderCtor) { resolve(false); return; } const loader = new GLTFLoaderCtor(); let loadedCount = 0; talkingAnimationVariants = []; talkingAnimationMixer = null; currentTalkingAnimation = null; talkingAnimationActive = false; for (let i = 1; i <= 6; i++) { const variant = String(i).padStart(3, '0'); const talkUrl = `/images/animation-library-master/feminine/glb/expression/F_Talking_Variations_${variant}.glb` + '?v=' + Date.now(); loader.load(talkUrl, (gltf) => { try { if (gltf.animations && gltf.animations.length > 0) { const variantClips = gltf.animations.map(clip => ({ clip, name: clip.name })); talkingAnimationVariants.push(variantClips); console.log(`Talking variant ${variant} caricata: ${gltf.animations.length} clips`); } loadedCount++; if (loadedCount === 6) { if (talkingAnimationVariants.length > 0 && humanoid && window.THREE) { talkingAnimationMixer = new window.THREE.AnimationMixer(humanoid); console.log('Tutte le talking animations caricate:', talkingAnimationVariants.length, 'varianti'); resolve(true); } else { console.warn('Errore: variants=', talkingAnimationVariants.length, 'humanoid=', !!humanoid, 'THREE=', !!window.THREE); resolve(false); } } } catch(e) { console.warn(`Errore caricamento talking ${variant}:`, e); loadedCount++; if (loadedCount === 6) resolve(talkingAnimationVariants.length > 0); } }, undefined, (err) => { console.warn(`Impossibile caricare talking variant ${variant}`, err); loadedCount++; if (loadedCount === 6) resolve(talkingAnimationVariants.length > 0); }); } } catch(e) { console.warn('Errore loadTalkingAnimations:', e); resolve(false); } }); }
           (async () => {
             try {
               if (humanoid) return; // già caricato
-              if (GLTFLoaderCtor) { await loadWithGLTF(); return }
-              if (FBXLoaderCtor && fbxUrl) { await loadWithFBX(); return }
+              if (GLTFLoaderCtor) { await loadWithGLTF(); await loadIdleAnimation(); await loadTalkingAnimations(); return }
+              if (FBXLoaderCtor && fbxUrl) { await loadWithFBX(); await loadIdleAnimation(); await loadTalkingAnimations(); return }
             } catch (e) { console.warn('Nessun modello caricato', e) }
             finally { humanoidLoading = false }
           })();
@@ -1702,73 +1688,74 @@ export default defineComponent({
         } catch (e) { console.warn('fitCameraToObject error', e); }
       }
 
-      function loadTalkingAnimation() {
-        if (!humanoid || !window.FBXLoader || !scene) return;
+      function playRandomTalkingAnimation() {
         try {
-          const FBXLoaderCtor = window.FBXLoader;
-          const loader = new FBXLoaderCtor();
-          loader.load('/public_html/images/Talking.fbx', (fbx) => {
-            try {
-              // Estrai l'animazione dal modello FBX
-              if (fbx.animations && fbx.animations.length > 0) {
-                talkingAnimClip = fbx.animations[0];
-                talkingAnimMixer = new window.THREE.AnimationMixer(humanoid);
-                talkingAnimAction = talkingAnimMixer.clipAction(talkingAnimClip);
-                talkingAnimAction.clampWhenFinished = true;
-                console.log('[ANIMATION] Talking animation loaded:', talkingAnimClip.name, 'duration:', talkingAnimClip.duration.toFixed(2), 's');
-              }
-            } catch (e) {
-              console.error('[ANIMATION] Error extracting animation:', e);
+          console.log('playRandomTalkingAnimation chiamata. mixer=', !!talkingAnimationMixer, 'humanoid=', !!humanoid, 'variants=', talkingAnimationVariants.length);
+          if (!talkingAnimationMixer || !humanoid || talkingAnimationVariants.length === 0) {
+            console.warn('Condizioni non soddisfatte per talking animation');
+            return;
+          }
+          // Ferma la talking animation precedente
+          if (currentTalkingAnimation) {
+            try { currentTalkingAnimation.stop(); } catch { }
+          }
+          // Sceglie una variante casuale (0-6)
+          const variantIdx = Math.floor(Math.random() * talkingAnimationVariants.length);
+          const variant = talkingAnimationVariants[variantIdx];
+          if (!variant || variant.length === 0) {
+            console.warn('Variante non trovata o vuota:', variantIdx);
+            return;
+          }
+          // Sceglie una clip casuale della variante
+          const clipIdx = Math.floor(Math.random() * variant.length);
+          const clipData = variant[clipIdx];
+          if (!clipData || !clipData.clip) {
+            console.warn('Clip non trovata:', variantIdx, clipIdx);
+            return;
+          }
+          console.log(`Avvia talking animation: variant ${variantIdx}, clip ${clipIdx} (${clipData.name})`);
+          // Crea una nuova azione per questa clip
+          currentTalkingAnimation = talkingAnimationMixer.clipAction(clipData.clip);
+          if (currentTalkingAnimation) {
+            currentTalkingAnimation.clampWhenFinished = false;
+            currentTalkingAnimation.loop = window.THREE.LoopOnce;
+            // CrossFade dalle idle animations alla talking per una transizione fluida
+            const fadeDuration = 0.3; // 300ms di transizione
+            if (idleAnimationActions && idleAnimationActions.length > 0) {
+              idleAnimationActions.forEach(action => {
+                action.crossFadeTo(currentTalkingAnimation, fadeDuration, true);
+              });
             }
-          }, undefined, (err) => {
-            console.error('[ANIMATION] Error loading Talking.fbx:', err);
-          });
-        } catch (e) {
-          console.error('[ANIMATION] Error in loadTalkingAnimation:', e);
-        }
-      }
-
-      function playTalkingAnimation() {
-        if (!talkingAnimMixer || !talkingAnimAction) return;
-        try {
-          talkingAnimAction.reset();
-          talkingAnimAction.play();
-          console.log('[ANIMATION] Playing talking animation');
-        } catch (e) {
-          console.error('[ANIMATION] Error playing animation:', e);
-        }
+            // Disabilita il mixer idle durante talking
+            idleAnimationActive = false;
+            currentTalkingAnimation.play();
+            talkingAnimationActive = true;
+            console.log('Talking animation avviata con crossFade');
+          } else {
+            console.warn('Azione non creata');
+          }
+        } catch (e) { console.warn('Errore playRandomTalkingAnimation:', e); }
       }
 
       function stopTalkingAnimation() {
-        if (!talkingAnimAction) return;
         try {
-          talkingAnimAction.stop();
-          console.log('[ANIMATION] Stopped talking animation');
-        } catch (e) {
-          console.error('[ANIMATION] Error stopping animation:', e);
-        }
-      }
-
-      function fitCameraToObject(camera, object, offset = 1.25) {
-        try {
-          const box = new THREE.Box3().setFromObject(object);
-          const size = box.getSize(new THREE.Vector3());
-          const center = box.getCenter(new THREE.Vector3());
-          const aspect = (camera.aspect && isFinite(camera.aspect)) ? camera.aspect : 1;
-          const vFOV = THREE.MathUtils.degToRad(camera.fov);
-          const hFOV = 2 * Math.atan(Math.tan(vFOV / 2) * aspect);
-          const distV = (size.y / 2) / Math.tan(vFOV / 2);
-          const distH = (size.x / 2) / Math.tan(hFOV / 2);
-          let dist = Math.max(distV, distH) * (offset || 1);
-          const dir = new THREE.Vector3().subVectors(camera.position, center).normalize();
-          if (!isFinite(dir.lengthSq()) || dir.lengthSq() === 0) dir.set(0, 0, 1);
-          camera.position.copy(center.clone().add(dir.multiplyScalar(dist)));
-          camera.near = Math.max(0.01, dist / 100);
-          camera.far = Math.max(camera.near + 1, dist * 10 + size.length());
-          camera.lookAt(center);
-          camera.updateProjectionMatrix();
-          try { console.log('CAM fitCameraToObject', { pos: camera.position.toArray(), fov: camera.fov, center: center.toArray(), size: size.toArray(), dist, aspect }); } catch { }
-        } catch (e) { console.warn('fitCameraToObject error', e); }
+          if (currentTalkingAnimation) {
+            // CrossFade di ritorno alle idle animations per una transizione fluida
+            const fadeDuration = 0.3; // 300ms di transizione
+            if (idleAnimationActions && idleAnimationActions.length > 0) {
+              idleAnimationActions.forEach(action => {
+                currentTalkingAnimation.crossFadeTo(action, fadeDuration, true);
+                action.play(); // Riavvia le idle animations
+              });
+            }
+            // Riabilita il mixer idle
+            idleAnimationActive = true;
+            currentTalkingAnimation.stop();
+            currentTalkingAnimation = null;
+            talkingAnimationActive = false;
+            console.log('Talking animation fermata con crossFade alle idle');
+          }
+        } catch (e) { console.warn('Errore stopTalkingAnimation:', e); }
       }
 
     })
