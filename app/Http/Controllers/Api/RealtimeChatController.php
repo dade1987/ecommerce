@@ -11,6 +11,7 @@ use App\Models\Product;
 use App\Models\Event;
 use App\Models\Order;
 use App\Services\EmbeddingCacheService;
+use App\Services\WebsiteScraperService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use OpenAI;
@@ -23,12 +24,14 @@ class RealtimeChatController extends Controller
     private ?Team $cachedTeam = null;
     private ?string $cachedTeamSlug = null;
     private ?EmbeddingCacheService $embeddingService = null;
+    private ?WebsiteScraperService $scraperService = null;
 
     public function __construct()
     {
         $apiKey = config('openapi.key');
         $this->client = OpenAI::client($apiKey);
         $this->embeddingService = new EmbeddingCacheService($this->client);
+        $this->scraperService = new WebsiteScraperService($this->client);
     }
 
     /**
@@ -99,6 +102,29 @@ class RealtimeChatController extends Controller
 
                     $flush(['token' => ''], 'done');
                     return;
+                }
+
+                // **NUOVA FASE: Scrapa il sito web del team e prova a rispondere da lì**
+                $team = $this->getTeamCached($teamSlug);
+                $websiteAnswer = null;
+                if ($team && $team->website) {
+                    $websiteContent = $this->scraperService->scrapeTeamWebsite((string) $team->website, (string) $team->id);
+                    if ($websiteContent) {
+                        $websiteAnswer = $this->scraperService->analyzeWebsiteContent($websiteContent, $userInput, $locale);
+                        if ($websiteAnswer && stripos($websiteAnswer, 'non è disponibile') === false && trim($websiteAnswer) !== '') {
+                            // Se trova una risposta nel sito, usala
+                            $this->streamTextByWord($websiteAnswer, $flush);
+
+                            Quoter::create([
+                                'thread_id' => $streamThreadId,
+                                'role'      => 'chatbot',
+                                'content'   => $websiteAnswer,
+                            ]);
+
+                            $flush(['token' => ''], 'done');
+                            return;
+                        }
+                    }
                 }
 
                 // FAQ match rapido
