@@ -15,7 +15,7 @@
     "source.fixAll.eslint": "explicit"
   },
   "[vue]": {
-    "editor.defaultFormatter": "dbaeumer.vscode-eslint",
+    "editor.defaultFormatter": "Vue.volar",
     "editor.formatOnSave": true
   },
   "[javascript]": {
