@@ -3,7 +3,7 @@
     <div class="px-4 py-4">
       <div class="mx-auto w-full max-w-[520px] flex items-center gap-3">
         <img id="teamLogo" :src="teamLogo" alt="EnjoyTalk 3D"
-          class="w-10 h-10 rounded-full object-cover border border-slate-600">
+          class="w-10 h-10 rounded-full object-cover border border-slate-600" />
         <h1 class="font-sans text-2xl text-white">EnjoyTalk 3D</h1>
       </div>
     </div>
@@ -24,7 +24,9 @@
         <!-- Fumetto di pensiero -->
         <div id="thinkingBubble"
           class="hidden absolute top-4 left-1/2 transform -translate-x-1/2 bg-white rounded-lg px-4 py-2 shadow-lg border border-gray-300">
-          <div class="text-gray-700 text-sm font-medium">💭 Sto pensando...</div>
+          <div class="text-gray-700 text-sm font-medium">
+            💭 Sto pensando...
+          </div>
           <div class="absolute bottom-0 left-1/2 transform translate-y-full -translate-x-1/2">
             <div class="w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-white"></div>
           </div>
@@ -37,22 +39,28 @@
         <!-- Debug Overlay (mostrato con ?debug=1) -->
         <div id="debugOverlay"
           class="hidden absolute left-1/2 -translate-x-1/2 top-3 z-10 w-full max-w-[520px] px-3 sm:px-0"
-          style="pointer-events:auto;">
+          style="pointer-events: auto">
           <div class="bg-black/70 backdrop-blur-sm border border-slate-600 rounded-md overflow-hidden shadow-lg">
             <div class="flex items-center justify-between px-3 py-2 border-b border-slate-700 bg-black/60 sticky top-0">
               <div class="text-slate-200 text-xs font-semibold">Debug</div>
               <div class="flex items-center gap-2">
                 <button id="debugCopy"
-                  class="text-[11px] px-2 py-1 bg-slate-700/70 hover:bg-slate-600 text-white rounded">Copia</button>
+                  class="text-[11px] px-2 py-1 bg-slate-700/70 hover:bg-slate-600 text-white rounded">
+                  Copia
+                </button>
                 <button id="debugClear"
-                  class="text-[11px] px-2 py-1 bg-slate-700/70 hover:bg-slate-600 text-white rounded">Pulisci</button>
+                  class="text-[11px] px-2 py-1 bg-slate-700/70 hover:bg-slate-600 text-white rounded">
+                  Pulisci
+                </button>
                 <button id="debugClose"
-                  class="text-[11px] px-2 py-1 bg-slate-700/70 hover:bg-slate-600 text-white rounded">Chiudi</button>
+                  class="text-[11px] px-2 py-1 bg-slate-700/70 hover:bg-slate-600 text-white rounded">
+                  Chiudi
+                </button>
               </div>
             </div>
             <div
               class="max-h-[50vh] sm:max-h-[60vh] overflow-auto p-2 text-[11px] font-mono text-slate-200 leading-relaxed"
-              style="margin-bottom: calc(var(--controls-pad, 0px));">
+              style="margin-bottom: calc(var(--controls-pad, 0px))">
               <div id="debugContent" class="space-y-1"></div>
             </div>
           </div>
@@ -69,11 +77,13 @@
             <input id="textInput" type="text" placeholder="Scrivi la domanda..."
               class="flex-1 min-w-0 px-3 py-3 bg-[#111827] text-white border border-slate-700 rounded-md placeholder-slate-400 focus:border-indigo-500 focus:outline-none text-[15px] sm:text-base" />
             <button id="sendBtn"
-              class="px-3 py-3 sm:px-4 sm:py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors whitespace-nowrap text-sm sm:text-base">📤
-              Invia</button>
+              class="px-3 py-3 sm:px-4 sm:py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors whitespace-nowrap text-sm sm:text-base">
+              📤 Invia
+            </button>
             <button id="micBtn"
-              class="px-3 py-3 sm:px-4 sm:py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-md transition-colors whitespace-nowrap text-sm sm:text-base">🎤
-              Parla</button>
+              class="px-3 py-3 sm:px-4 sm:py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-md transition-colors whitespace-nowrap text-sm sm:text-base">
+              🎤 Parla
+            </button>
           </div>
           <div class="mt-2 flex items-center gap-3 text-slate-300 text-xs sm:text-sm">
             <label class="inline-flex items-center gap-2 cursor-pointer select-none">
@@ -97,190 +107,289 @@
     </div>
     <audio id="ttsPlayer" class="hidden" playsinline></audio>
   </div>
-
 </template>
 
 <script>
-import { onMounted, defineComponent, getCurrentInstance, ref } from 'vue'
+import { onMounted, defineComponent, getCurrentInstance, ref } from "vue";
 
 export default defineComponent({
-  name: 'EnjoyTalk3D',
+  name: "EnjoyTalk3D",
   props: {
     heygenApiKey: {
       type: String,
-      default: ''
+      default: "",
     },
     heygenServerUrl: {
       type: String,
-      default: 'https://api.heygen.com'
+      default: "https://api.heygen.com",
     },
     locale: {
       type: String,
-      default: 'it-IT'
+      default: "it-IT",
     },
     teamLogo: {
       type: String,
-      default: '/images/logoai.jpeg'
-    }
+      default: "/images/logoai.jpeg",
+    },
   },
   data() {
     return {
       // stato minimale esposto secondo Options API
       isListening: false,
       advancedLipsyncOn: false,
-    }
+    };
   },
   mounted() {
     try {
       // Priorità: props ricevuti > dataset dell'elemento > valori di default
       // I props sono già gestiti in setup(), niente da fare qui
       this.initLibraries().then(() => {
-        try { this.setupScene && this.setupScene() } catch { }
-        try { setTimeout(() => { try { this.loadHumanoid && this.loadHumanoid() } catch { } }, 0) } catch { }
-      })
+        try {
+          this.setupScene && this.setupScene();
+        } catch { }
+        try {
+          setTimeout(() => {
+            try {
+              this.loadHumanoid && this.loadHumanoid();
+            } catch { }
+          }, 0);
+        } catch { }
+      });
     } catch { }
   },
   beforeUnmount() {
-    try { if (typeof window !== 'undefined' && window.speechSynthesis) window.speechSynthesis.cancel() } catch { }
-    try { if (typeof this._cleanup === 'function') this._cleanup() } catch { }
-    try { if (window.__enjoyTalkResizeObserver) { window.__enjoyTalkResizeObserver.disconnect?.(); window.__enjoyTalkResizeObserver = null } } catch { }
+    try {
+      if (typeof window !== "undefined" && window.speechSynthesis)
+        window.speechSynthesis.cancel();
+    } catch { }
+    try {
+      if (typeof this._cleanup === "function") this._cleanup();
+    } catch { }
+    try {
+      if (window.__enjoyTalkResizeObserver) {
+        window.__enjoyTalkResizeObserver.disconnect?.();
+        window.__enjoyTalkResizeObserver = null;
+      }
+    } catch { }
   },
   methods: {
     // Wrappers Options API per funzioni operative
     startStream(message) {
-      try { return (this._startStream || this.startStreamFacade || this.startStreamImpl)?.(message) } catch { }
+      try {
+        return (
+          this._startStream ||
+          this.startStreamFacade ||
+          this.startStreamImpl
+        )?.(message);
+      } catch { }
     },
     stopAllSpeechOutput() {
-      try { return this._stopAllSpeechOutput?.() } catch { }
+      try {
+        return this._stopAllSpeechOutput?.();
+      } catch { }
     },
     ensureMicPermission() {
-      try { return this._ensureMicPermission?.() } catch { }
+      try {
+        return this._ensureMicPermission?.();
+      } catch { }
     },
     setListeningUI(active) {
-      try { return this._setListeningUI?.(active) } catch { }
+      try {
+        return this._setListeningUI?.(active);
+      } catch { }
     },
     initUIBase(rootEl, debugEnabled) {
       try {
-        const $ = (id) => (rootEl && rootEl.querySelector) ? rootEl.querySelector('#' + id) : document.getElementById(id)
-        const useVideoAvatar = $('#useVideoAvatar')
-        const useBrowserTts = $('#useBrowserTts')
-        const browserTtsStatus = $('#browserTtsStatus')
-        const useAdvancedLipsync = $('#useAdvancedLipsync')
-        if (useVideoAvatar) useVideoAvatar.checked = false
-        if ('speechSynthesis' in window && useBrowserTts) {
-          useBrowserTts.checked = true
-          if (browserTtsStatus) browserTtsStatus.textContent = 'TTS browser attivo'
+        const $ = (id) =>
+          rootEl && rootEl.querySelector
+            ? rootEl.querySelector("#" + id)
+            : document.getElementById(id);
+        const useVideoAvatar = $("#useVideoAvatar");
+        const useBrowserTts = $("#useBrowserTts");
+        const browserTtsStatus = $("#browserTtsStatus");
+        const useAdvancedLipsync = $("#useAdvancedLipsync");
+        if (useVideoAvatar) useVideoAvatar.checked = false;
+        if ("speechSynthesis" in window && useBrowserTts) {
+          useBrowserTts.checked = true;
+          if (browserTtsStatus)
+            browserTtsStatus.textContent = "TTS browser attivo";
         }
-        const ua = navigator.userAgent || ''
-        const isChrome = !!window.chrome && /Chrome\/\d+/.test(ua) && !/Edg\//.test(ua) && !/OPR\//.test(ua) && !/Brave/i.test(ua)
+        const ua = navigator.userAgent || "";
+        const isChrome =
+          !!window.chrome &&
+          /Chrome\/\d+/.test(ua) &&
+          !/Edg\//.test(ua) &&
+          !/OPR\//.test(ua) &&
+          !/Brave/i.test(ua);
         if ((isChrome || debugEnabled) && useAdvancedLipsync) {
-          useAdvancedLipsync.checked = true
+          useAdvancedLipsync.checked = true;
         }
       } catch { }
     },
     async initLibraries() {
-      const ensureLivekit = () => new Promise((resolve) => {
-        try {
-          if (window.LivekitClient) return resolve()
-          const s = document.createElement('script')
-          s.src = 'https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js'
-          s.async = true
-          s.onload = () => resolve()
-          s.onerror = () => resolve()
-          document.head.appendChild(s)
-        } catch { resolve() }
-      })
+      const ensureLivekit = () =>
+        new Promise((resolve) => {
+          try {
+            if (window.LivekitClient) return resolve();
+            const s = document.createElement("script");
+            s.src =
+              "https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js";
+            s.async = true;
+            s.onload = () => resolve();
+            s.onerror = () => resolve();
+            document.head.appendChild(s);
+          } catch {
+            resolve();
+          }
+        });
       window.THREE_READY = (async () => {
         try {
-          const THREE_mod = await import('https://esm.sh/three@0.160.0');
-          const { GLTFLoader } = await import('https://esm.sh/three@0.160.0/examples/jsm/loaders/GLTFLoader.js');
-          const { FBXLoader } = await import('https://esm.sh/three@0.160.0/examples/jsm/loaders/FBXLoader.js');
-          window.THREE = THREE_mod; window.GLTFLoader = GLTFLoader; window.FBXLoader = FBXLoader;
+          const THREE_mod = await import("https://esm.sh/three@0.160.0");
+          const { GLTFLoader } = await import(
+            "https://esm.sh/three@0.160.0/examples/jsm/loaders/GLTFLoader.js"
+          );
+          const { FBXLoader } = await import(
+            "https://esm.sh/three@0.160.0/examples/jsm/loaders/FBXLoader.js"
+          );
+          window.THREE = THREE_mod;
+          window.GLTFLoader = GLTFLoader;
+          window.FBXLoader = FBXLoader;
           return true;
         } catch (e) {
           try {
-            const THREE_mod = await import('https://unpkg.com/three@0.160.0/build/three.module.js');
-            const { GLTFLoader } = await import('https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js?module');
-            const { FBXLoader } = await import('https://unpkg.com/three@0.160.0/examples/jsm/loaders/FBXLoader.js?module');
-            const { OrbitControls } = await import('https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js?module');
-            window.THREE = THREE_mod; window.GLTFLoader = GLTFLoader; window.FBXLoader = FBXLoader; window.OrbitControls = OrbitControls;
+            const THREE_mod = await import(
+              "https://unpkg.com/three@0.160.0/build/three.module.js"
+            );
+            const { GLTFLoader } = await import(
+              "https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js?module"
+            );
+            const { FBXLoader } = await import(
+              "https://unpkg.com/three@0.160.0/examples/jsm/loaders/FBXLoader.js?module"
+            );
+            const { OrbitControls } = await import(
+              "https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js?module"
+            );
+            window.THREE = THREE_mod;
+            window.GLTFLoader = GLTFLoader;
+            window.FBXLoader = FBXLoader;
+            window.OrbitControls = OrbitControls;
             return true;
-          } catch { return false }
+          } catch {
+            return false;
+          }
         }
       })();
-      try { if (window.THREE_READY && window.THREE_READY.then) { await Promise.race([window.THREE_READY, new Promise(r => setTimeout(r, 3000))]) } } catch { }
-      await ensureLivekit()
+      try {
+        if (window.THREE_READY && window.THREE_READY.then) {
+          await Promise.race([
+            window.THREE_READY,
+            new Promise((r) => setTimeout(r, 3000)),
+          ]);
+        }
+      } catch { }
+      await ensureLivekit();
     },
   },
   setup(props) {
-    const rootElRef = ref(null)
-    let rootEl = null
-    let hostEl = null
+    const rootElRef = ref(null);
+    let rootEl = null;
+    let hostEl = null;
     onMounted(async () => {
-      const instance = getCurrentInstance()
-      rootEl = (rootElRef?.value) || (instance && instance.proxy && instance.proxy.$el) || document.getElementById('enjoyTalk3D') || document.getElementById('enjoyTalkRoot')
+      const instance = getCurrentInstance();
+      rootEl =
+        rootElRef?.value ||
+        (instance && instance.proxy && instance.proxy.$el) ||
+        document.getElementById("enjoyTalk3D") ||
+        document.getElementById("enjoyTalkRoot");
       try {
-        hostEl = (rootEl && rootEl.getRootNode && rootEl.getRootNode().host) ? rootEl.getRootNode().host : rootEl
-      } catch { hostEl = rootEl }
-      const $id = (id) => (rootEl && rootEl.querySelector) ? rootEl.querySelector('#' + id) : document.getElementById(id)
+        hostEl =
+          rootEl && rootEl.getRootNode && rootEl.getRootNode().host
+            ? rootEl.getRootNode().host
+            : rootEl;
+      } catch {
+        hostEl = rootEl;
+      }
+      const $id = (id) =>
+        rootEl && rootEl.querySelector
+          ? rootEl.querySelector("#" + id)
+          : document.getElementById(id);
       // Inizializzazione librerie spostata in mounted()
 
       // =========================
       // Porting del codice originale (senza wrapper DOMContentLoaded)
       // =========================
 
-      const micBtn = $id('micBtn');
-      const input = $id('textInput');
-      const liveText = $id('liveText');
-      const ttsPlayer = $id('ttsPlayer');
-      const thinkingBubble = $id('thinkingBubble');
-      const useBrowserTts = $id('useBrowserTts');
-      const useVideoAvatar = $id('useVideoAvatar');
-      const browserTtsStatus = $id('browserTtsStatus');
-      const videoAvatarStatus = $id('videoAvatarStatus');
-      const useAdvancedLipsync = $id('useAdvancedLipsync');
-      const heygenVideo = $id('heygenVideo');
-      const heygenAudio = $id('heygenAudio');
-      const teamSlug = window.location.pathname.split('/').pop();
+      const micBtn = $id("micBtn");
+      const input = $id("textInput");
+      const liveText = $id("liveText");
+      const ttsPlayer = $id("ttsPlayer");
+      const thinkingBubble = $id("thinkingBubble");
+      const useBrowserTts = $id("useBrowserTts");
+      const useVideoAvatar = $id("useVideoAvatar");
+      const browserTtsStatus = $id("browserTtsStatus");
+      const videoAvatarStatus = $id("videoAvatarStatus");
+      const useAdvancedLipsync = $id("useAdvancedLipsync");
+      const heygenVideo = $id("heygenVideo");
+      const heygenAudio = $id("heygenAudio");
+      const teamSlug = window.location.pathname.split("/").pop();
       const urlParams = new URLSearchParams(window.location.search);
-      const uuid = urlParams.get('uuid');
-      const locale = props.locale || 'it-IT';
-      const debugEnabled = urlParams.get('debug') === '1';
+      const uuid = urlParams.get("uuid");
+      const locale = props.locale || "it-IT";
+      const debugEnabled = urlParams.get("debug") === "1";
       // rootEl già risolto dal ref/instance
       const HEYGEN_CONFIG = {
-        apiKey: (props.heygenApiKey) || (hostEl?.dataset?.heygenApiKey) || '',
-        serverUrl: (props.heygenServerUrl) || (hostEl?.dataset?.heygenServerUrl) || 'https://api.heygen.com',
+        apiKey: props.heygenApiKey || hostEl?.dataset?.heygenApiKey || "",
+        serverUrl:
+          props.heygenServerUrl ||
+          hostEl?.dataset?.heygenServerUrl ||
+          "https://api.heygen.com",
       };
-      const heygenAvatar = (urlParams.get('avatar') || '').trim();
-      const heygenVoice = (urlParams.get('voice') || '').trim();
-      const ua = navigator.userAgent || '';
+      const heygenAvatar = (urlParams.get("avatar") || "").trim();
+      const heygenVoice = (urlParams.get("voice") || "").trim();
+      const ua = navigator.userAgent || "";
       const isAndroid = /Android/i.test(ua);
-      const isChrome = !!window.chrome && /Chrome\/\d+/.test(ua) && !/Edg\//.test(ua) && !/OPR\//.test(ua) && !/Brave/i.test(ua);
-      const urlLang = (urlParams.get('lang') || '').trim();
-      const jawAxisParam = (urlParams.get('jaw_axis') || '').toLowerCase();
-      const jawAxis = (jawAxisParam === 'y' || jawAxisParam === 'z') ? jawAxisParam : 'x';
-      const jawSign = (urlParams.get('jaw_sign') || '-1') === '1' ? 1 : -1;
-      const headSign = (urlParams.get('head_sign') || '-1') === '1' ? 1 : -1;
-      const headNodForced = (urlParams.get('head_nod') || '').toLowerCase() === '1';
-      const headDistParam = parseFloat(urlParams.get('head_dist') || '');
-      const headFovParam = parseFloat(urlParams.get('head_fov') || '');
+      const isChrome =
+        !!window.chrome &&
+        /Chrome\/\d+/.test(ua) &&
+        !/Edg\//.test(ua) &&
+        !/OPR\//.test(ua) &&
+        !/Brave/i.test(ua);
+      const urlLang = (urlParams.get("lang") || "").trim();
+      const jawAxisParam = (urlParams.get("jaw_axis") || "").toLowerCase();
+      const jawAxis =
+        jawAxisParam === "y" || jawAxisParam === "z" ? jawAxisParam : "x";
+      const jawSign = (urlParams.get("jaw_sign") || "-1") === "1" ? 1 : -1;
+      const headSign = (urlParams.get("head_sign") || "-1") === "1" ? 1 : -1;
+      const headNodForced =
+        (urlParams.get("head_nod") || "").toLowerCase() === "1";
+      const headDistParam = parseFloat(urlParams.get("head_dist") || "");
+      const headFovParam = parseFloat(urlParams.get("head_fov") || "");
 
       function normalizeLangTag(tag, fallback) {
         try {
-          const t = (tag || '').replace('_', '-').trim();
+          const t = (tag || "").replace("_", "-").trim();
           if (!t) return fallback;
-          const parts = t.split('-');
+          const parts = t.split("-");
           if (parts.length === 1) return parts[0].toLowerCase();
-          return parts[0].toLowerCase() + '-' + parts[1].toUpperCase();
+          return parts[0].toLowerCase() + "-" + parts[1].toUpperCase();
         } catch {
           return fallback;
         }
       }
-      try { instance.proxy.setupScene = setupScene } catch { }
-      const navLang = (navigator.language || (navigator.languages && navigator.languages[0]) || '').trim();
-      const rawLang = (urlLang || locale || navLang || 'it-IT');
-      let recLang = normalizeLangTag(rawLang, 'it-IT');
-      try { if (/^it(\b|[-_])/i.test(rawLang) || rawLang.toLowerCase() === 'it') recLang = 'it-IT'; } catch { }
+      try {
+        instance.proxy.setupScene = setupScene;
+      } catch { }
+      const navLang = (
+        navigator.language ||
+        (navigator.languages && navigator.languages[0]) ||
+        ""
+      ).trim();
+      const rawLang = urlLang || locale || navLang || "it-IT";
+      let recLang = normalizeLangTag(rawLang, "it-IT");
+      try {
+        if (/^it(\b|[-_])/i.test(rawLang) || rawLang.toLowerCase() === "it")
+          recLang = "it-IT";
+      } catch { }
 
       // Tutto il resto del codice originale viene eseguito così com'è
       // Copiato dalla versione Blade senza modifiche strutturali, solo asset path e locale
@@ -294,98 +403,358 @@ export default defineComponent({
 
       let threadId = null;
       let assistantThreadId = null;
-      let humanoid = null, jawBone = null, headBone = null, mouthLBone = null, mouthRBone = null;
+      let humanoid = null,
+        jawBone = null,
+        headBone = null,
+        mouthLBone = null,
+        mouthRBone = null;
       let humanoidLoading = false;
       let jawBoneHasInfluence = false;
-      let shoulderLBone = null, shoulderRBone = null, armLBone = null, armRBone = null, forearmLBone = null, forearmRBone = null;
-      let baseArmLRot = null, baseArmRRot = null, baseShoulderLRot = null, baseShoulderRRot = null;
+      let shoulderLBone = null,
+        shoulderRBone = null,
+        armLBone = null,
+        armRBone = null,
+        forearmLBone = null,
+        forearmRBone = null;
+      let baseArmLRot = null,
+        baseArmRRot = null,
+        baseShoulderLRot = null,
+        baseShoulderRRot = null;
       let armsRelaxed = false;
-      const boneNames = ["Hips", "Spine", "Spine1", "Spine2", "Neck", "Head", "HeadTop_End", "LeftEye", "RightEye", "LeftShoulder", "LeftArm", "LeftForeArm", "LeftHand", "LeftHandThumb1", "LeftHandThumb2", "LeftHandThumb3", "LeftHandThumb4", "LeftHandIndex1", "LeftHandIndex2", "LeftHandIndex3", "LeftHandIndex4", "LeftHandMiddle1", "LeftHandMiddle2", "LeftHandMiddle3", "LeftHandMiddle4", "LeftHandRing1", "LeftHandRing2", "LeftHandRing3", "LeftHandRing4", "LeftHandPinky1", "LeftHandPinky2", "LeftHandPinky3", "LeftHandPinky4", "RightShoulder", "RightArm", "RightForeArm", "RightHand", "RightHandThumb1", "RightHandThumb2", "RightHandThumb3", "RightHandThumb4", "RightHandIndex1", "RightHandIndex2", "RightHandIndex3", "RightHandIndex4", "RightHandMiddle1", "RightHandMiddle2", "RightHandMiddle3", "RightHandMiddle4", "RightHandRing1", "RightHandRing2", "RightHandRing3", "RightHandRing4", "RightHandPinky1", "RightHandPinky2", "RightHandPinky3", "RightHandPinky4", "LeftUpLeg", "LeftLeg", "LeftFoot", "LeftToeBase", "LeftToe_End", "RightUpLeg", "RightLeg", "RightFoot", "RightToeBase", "RightToe_End"];
+      const boneNames = [
+        "Hips",
+        "Spine",
+        "Spine1",
+        "Spine2",
+        "Neck",
+        "Head",
+        "HeadTop_End",
+        "LeftEye",
+        "RightEye",
+        "LeftShoulder",
+        "LeftArm",
+        "LeftForeArm",
+        "LeftHand",
+        "LeftHandThumb1",
+        "LeftHandThumb2",
+        "LeftHandThumb3",
+        "LeftHandThumb4",
+        "LeftHandIndex1",
+        "LeftHandIndex2",
+        "LeftHandIndex3",
+        "LeftHandIndex4",
+        "LeftHandMiddle1",
+        "LeftHandMiddle2",
+        "LeftHandMiddle3",
+        "LeftHandMiddle4",
+        "LeftHandRing1",
+        "LeftHandRing2",
+        "LeftHandRing3",
+        "LeftHandRing4",
+        "LeftHandPinky1",
+        "LeftHandPinky2",
+        "LeftHandPinky3",
+        "LeftHandPinky4",
+        "RightShoulder",
+        "RightArm",
+        "RightForeArm",
+        "RightHand",
+        "RightHandThumb1",
+        "RightHandThumb2",
+        "RightHandThumb3",
+        "RightHandThumb4",
+        "RightHandIndex1",
+        "RightHandIndex2",
+        "RightHandIndex3",
+        "RightHandIndex4",
+        "RightHandMiddle1",
+        "RightHandMiddle2",
+        "RightHandMiddle3",
+        "RightHandMiddle4",
+        "RightHandRing1",
+        "RightHandRing2",
+        "RightHandRing3",
+        "RightHandRing4",
+        "RightHandPinky1",
+        "RightHandPinky2",
+        "RightHandPinky3",
+        "RightHandPinky4",
+        "LeftUpLeg",
+        "LeftLeg",
+        "LeftFoot",
+        "LeftToeBase",
+        "LeftToe_End",
+        "RightUpLeg",
+        "RightLeg",
+        "RightFoot",
+        "RightToeBase",
+        "RightToe_End",
+      ];
       const bonesMap = {};
       // Esporta placeholder per non avere undefined in console
       try {
         if (!window.EnjoyBones) {
           window.EnjoyBones = {
-            get ready() { return Object.keys(bonesMap).length > 0; },
-            get bones() { return bonesMap; },
+            get ready() {
+              return Object.keys(bonesMap).length > 0;
+            },
+            get bones() {
+              return bonesMap;
+            },
             // Accesso a tutte le ossa
-            get Hips() { return bonesMap['Hips']; },
-            get Spine() { return bonesMap['Spine']; },
-            get Spine1() { return bonesMap['Spine1']; },
-            get Spine2() { return bonesMap['Spine2']; },
-            get Neck() { return bonesMap['Neck']; },
-            get Head() { return bonesMap['Head']; },
-            get HeadTop_End() { return bonesMap['HeadTop_End']; },
-            get LeftEye() { return bonesMap['LeftEye']; },
-            get RightEye() { return bonesMap['RightEye']; },
-            get LeftShoulder() { return bonesMap['LeftShoulder']; },
-            get LeftArm() { return bonesMap['LeftArm']; },
-            get LeftForeArm() { return bonesMap['LeftForeArm']; },
-            get LeftHand() { return bonesMap['LeftHand']; },
-            get LeftHandThumb1() { return bonesMap['LeftHandThumb1']; },
-            get LeftHandThumb2() { return bonesMap['LeftHandThumb2']; },
-            get LeftHandThumb3() { return bonesMap['LeftHandThumb3']; },
-            get LeftHandThumb4() { return bonesMap['LeftHandThumb4']; },
-            get LeftHandIndex1() { return bonesMap['LeftHandIndex1']; },
-            get LeftHandIndex2() { return bonesMap['LeftHandIndex2']; },
-            get LeftHandIndex3() { return bonesMap['LeftHandIndex3']; },
-            get LeftHandIndex4() { return bonesMap['LeftHandIndex4']; },
-            get LeftHandMiddle1() { return bonesMap['LeftHandMiddle1']; },
-            get LeftHandMiddle2() { return bonesMap['LeftHandMiddle2']; },
-            get LeftHandMiddle3() { return bonesMap['LeftHandMiddle3']; },
-            get LeftHandMiddle4() { return bonesMap['LeftHandMiddle4']; },
-            get LeftHandRing1() { return bonesMap['LeftHandRing1']; },
-            get LeftHandRing2() { return bonesMap['LeftHandRing2']; },
-            get LeftHandRing3() { return bonesMap['LeftHandRing3']; },
-            get LeftHandRing4() { return bonesMap['LeftHandRing4']; },
-            get LeftHandPinky1() { return bonesMap['LeftHandPinky1']; },
-            get LeftHandPinky2() { return bonesMap['LeftHandPinky2']; },
-            get LeftHandPinky3() { return bonesMap['LeftHandPinky3']; },
-            get LeftHandPinky4() { return bonesMap['LeftHandPinky4']; },
-            get RightShoulder() { return bonesMap['RightShoulder']; },
-            get RightArm() { return bonesMap['RightArm']; },
-            get RightForeArm() { return bonesMap['RightForeArm']; },
-            get RightHand() { return bonesMap['RightHand']; },
-            get RightHandThumb1() { return bonesMap['RightHandThumb1']; },
-            get RightHandThumb2() { return bonesMap['RightHandThumb2']; },
-            get RightHandThumb3() { return bonesMap['RightHandThumb3']; },
-            get RightHandThumb4() { return bonesMap['RightHandThumb4']; },
-            get RightHandIndex1() { return bonesMap['RightHandIndex1']; },
-            get RightHandIndex2() { return bonesMap['RightHandIndex2']; },
-            get RightHandIndex3() { return bonesMap['RightHandIndex3']; },
-            get RightHandIndex4() { return bonesMap['RightHandIndex4']; },
-            get RightHandMiddle1() { return bonesMap['RightHandMiddle1']; },
-            get RightHandMiddle2() { return bonesMap['RightHandMiddle2']; },
-            get RightHandMiddle3() { return bonesMap['RightHandMiddle3']; },
-            get RightHandMiddle4() { return bonesMap['RightHandMiddle4']; },
-            get RightHandRing1() { return bonesMap['RightHandRing1']; },
-            get RightHandRing2() { return bonesMap['RightHandRing2']; },
-            get RightHandRing3() { return bonesMap['RightHandRing3']; },
-            get RightHandRing4() { return bonesMap['RightHandRing4']; },
-            get RightHandPinky1() { return bonesMap['RightHandPinky1']; },
-            get RightHandPinky2() { return bonesMap['RightHandPinky2']; },
-            get RightHandPinky3() { return bonesMap['RightHandPinky3']; },
-            get RightHandPinky4() { return bonesMap['RightHandPinky4']; },
-            get LeftUpLeg() { return bonesMap['LeftUpLeg']; },
-            get LeftLeg() { return bonesMap['LeftLeg']; },
-            get LeftFoot() { return bonesMap['LeftFoot']; },
-            get LeftToeBase() { return bonesMap['LeftToeBase']; },
-            get LeftToe_End() { return bonesMap['LeftToe_End']; },
-            get RightUpLeg() { return bonesMap['RightUpLeg']; },
-            get RightLeg() { return bonesMap['RightLeg']; },
-            get RightFoot() { return bonesMap['RightFoot']; },
-            get RightToeBase() { return bonesMap['RightToeBase']; },
-            get RightToe_End() { return bonesMap['RightToe_End']; },
+            get Hips() {
+              return bonesMap["Hips"];
+            },
+            get Spine() {
+              return bonesMap["Spine"];
+            },
+            get Spine1() {
+              return bonesMap["Spine1"];
+            },
+            get Spine2() {
+              return bonesMap["Spine2"];
+            },
+            get Neck() {
+              return bonesMap["Neck"];
+            },
+            get Head() {
+              return bonesMap["Head"];
+            },
+            get HeadTop_End() {
+              return bonesMap["HeadTop_End"];
+            },
+            get LeftEye() {
+              return bonesMap["LeftEye"];
+            },
+            get RightEye() {
+              return bonesMap["RightEye"];
+            },
+            get LeftShoulder() {
+              return bonesMap["LeftShoulder"];
+            },
+            get LeftArm() {
+              return bonesMap["LeftArm"];
+            },
+            get LeftForeArm() {
+              return bonesMap["LeftForeArm"];
+            },
+            get LeftHand() {
+              return bonesMap["LeftHand"];
+            },
+            get LeftHandThumb1() {
+              return bonesMap["LeftHandThumb1"];
+            },
+            get LeftHandThumb2() {
+              return bonesMap["LeftHandThumb2"];
+            },
+            get LeftHandThumb3() {
+              return bonesMap["LeftHandThumb3"];
+            },
+            get LeftHandThumb4() {
+              return bonesMap["LeftHandThumb4"];
+            },
+            get LeftHandIndex1() {
+              return bonesMap["LeftHandIndex1"];
+            },
+            get LeftHandIndex2() {
+              return bonesMap["LeftHandIndex2"];
+            },
+            get LeftHandIndex3() {
+              return bonesMap["LeftHandIndex3"];
+            },
+            get LeftHandIndex4() {
+              return bonesMap["LeftHandIndex4"];
+            },
+            get LeftHandMiddle1() {
+              return bonesMap["LeftHandMiddle1"];
+            },
+            get LeftHandMiddle2() {
+              return bonesMap["LeftHandMiddle2"];
+            },
+            get LeftHandMiddle3() {
+              return bonesMap["LeftHandMiddle3"];
+            },
+            get LeftHandMiddle4() {
+              return bonesMap["LeftHandMiddle4"];
+            },
+            get LeftHandRing1() {
+              return bonesMap["LeftHandRing1"];
+            },
+            get LeftHandRing2() {
+              return bonesMap["LeftHandRing2"];
+            },
+            get LeftHandRing3() {
+              return bonesMap["LeftHandRing3"];
+            },
+            get LeftHandRing4() {
+              return bonesMap["LeftHandRing4"];
+            },
+            get LeftHandPinky1() {
+              return bonesMap["LeftHandPinky1"];
+            },
+            get LeftHandPinky2() {
+              return bonesMap["LeftHandPinky2"];
+            },
+            get LeftHandPinky3() {
+              return bonesMap["LeftHandPinky3"];
+            },
+            get LeftHandPinky4() {
+              return bonesMap["LeftHandPinky4"];
+            },
+            get RightShoulder() {
+              return bonesMap["RightShoulder"];
+            },
+            get RightArm() {
+              return bonesMap["RightArm"];
+            },
+            get RightForeArm() {
+              return bonesMap["RightForeArm"];
+            },
+            get RightHand() {
+              return bonesMap["RightHand"];
+            },
+            get RightHandThumb1() {
+              return bonesMap["RightHandThumb1"];
+            },
+            get RightHandThumb2() {
+              return bonesMap["RightHandThumb2"];
+            },
+            get RightHandThumb3() {
+              return bonesMap["RightHandThumb3"];
+            },
+            get RightHandThumb4() {
+              return bonesMap["RightHandThumb4"];
+            },
+            get RightHandIndex1() {
+              return bonesMap["RightHandIndex1"];
+            },
+            get RightHandIndex2() {
+              return bonesMap["RightHandIndex2"];
+            },
+            get RightHandIndex3() {
+              return bonesMap["RightHandIndex3"];
+            },
+            get RightHandIndex4() {
+              return bonesMap["RightHandIndex4"];
+            },
+            get RightHandMiddle1() {
+              return bonesMap["RightHandMiddle1"];
+            },
+            get RightHandMiddle2() {
+              return bonesMap["RightHandMiddle2"];
+            },
+            get RightHandMiddle3() {
+              return bonesMap["RightHandMiddle3"];
+            },
+            get RightHandMiddle4() {
+              return bonesMap["RightHandMiddle4"];
+            },
+            get RightHandRing1() {
+              return bonesMap["RightHandRing1"];
+            },
+            get RightHandRing2() {
+              return bonesMap["RightHandRing2"];
+            },
+            get RightHandRing3() {
+              return bonesMap["RightHandRing3"];
+            },
+            get RightHandRing4() {
+              return bonesMap["RightHandRing4"];
+            },
+            get RightHandPinky1() {
+              return bonesMap["RightHandPinky1"];
+            },
+            get RightHandPinky2() {
+              return bonesMap["RightHandPinky2"];
+            },
+            get RightHandPinky3() {
+              return bonesMap["RightHandPinky3"];
+            },
+            get RightHandPinky4() {
+              return bonesMap["RightHandPinky4"];
+            },
+            get LeftUpLeg() {
+              return bonesMap["LeftUpLeg"];
+            },
+            get LeftLeg() {
+              return bonesMap["LeftLeg"];
+            },
+            get LeftFoot() {
+              return bonesMap["LeftFoot"];
+            },
+            get LeftToeBase() {
+              return bonesMap["LeftToeBase"];
+            },
+            get LeftToe_End() {
+              return bonesMap["LeftToe_End"];
+            },
+            get RightUpLeg() {
+              return bonesMap["RightUpLeg"];
+            },
+            get RightLeg() {
+              return bonesMap["RightLeg"];
+            },
+            get RightFoot() {
+              return bonesMap["RightFoot"];
+            },
+            get RightToeBase() {
+              return bonesMap["RightToeBase"];
+            },
+            get RightToe_End() {
+              return bonesMap["RightToe_End"];
+            },
           };
         }
       } catch { }
-      let morphMesh = null, morphIndex = -1, morphValue = 0;
-      const visemeIndices = { jawOpen: -1, mouthFunnel: -1, mouthPucker: -1, mouthSmileL: -1, mouthSmileR: -1, mouthClose: -1, mouthStretchL: -1, mouthStretchR: -1, tongueOut: -1 };
+      let morphMesh = null,
+        morphIndex = -1,
+        morphValue = 0;
+      const visemeIndices = {
+        jawOpen: -1,
+        mouthFunnel: -1,
+        mouthPucker: -1,
+        mouthSmileL: -1,
+        mouthSmileR: -1,
+        mouthClose: -1,
+        mouthStretchL: -1,
+        mouthStretchR: -1,
+        tongueOut: -1,
+      };
       let visemeActiveUntil = 0;
       let visemeStrength = 0;
-      let lastVisemes = { jawOpen: 0, mouthFunnel: 0, mouthPucker: 0, mouthSmileL: 0, mouthSmileR: 0, mouthClose: 0, mouthStretchL: 0, mouthStretchR: 0, tongueOut: 0 };
-      const deadband = { jawOpen: 0.02, mouthFunnel: 0.02, mouthPucker: 0.02, mouthSmileL: 0.02, mouthSmileR: 0.02, mouthClose: 0.02, mouthStretchL: 0.02, mouthStretchR: 0.02, tongueOut: 0.02 };
-      let visemeTargets = { jawOpen: 0, mouthFunnel: 0, mouthPucker: 0, mouthSmileL: 0, mouthSmileR: 0, mouthClose: 0, mouthStretchL: 0, mouthStretchR: 0, tongueOut: 0 };
+      let lastVisemes = {
+        jawOpen: 0,
+        mouthFunnel: 0,
+        mouthPucker: 0,
+        mouthSmileL: 0,
+        mouthSmileR: 0,
+        mouthClose: 0,
+        mouthStretchL: 0,
+        mouthStretchR: 0,
+        tongueOut: 0,
+      };
+      const deadband = {
+        jawOpen: 0.02,
+        mouthFunnel: 0.02,
+        mouthPucker: 0.02,
+        mouthSmileL: 0.02,
+        mouthSmileR: 0.02,
+        mouthClose: 0.02,
+        mouthStretchL: 0.02,
+        mouthStretchR: 0.02,
+        tongueOut: 0.02,
+      };
+      let visemeTargets = {
+        jawOpen: 0,
+        mouthFunnel: 0,
+        mouthPucker: 0,
+        mouthSmileL: 0,
+        mouthSmileR: 0,
+        mouthClose: 0,
+        mouthStretchL: 0,
+        mouthStretchR: 0,
+        tongueOut: 0,
+      };
       let visemeMeshes = [];
       let visemeSchedule = [];
       const textVisemeEnabled = true;
@@ -401,10 +770,26 @@ export default defineComponent({
       let syllablePulseUntil = 0;
       let nextSyllablePulseAt = 0;
       let restStableUntil = 0; // finestra in cui tenere ferma la bocca dopo stop
-      let talkSmoothed = 0; const TALK_ALPHA = 0.2; const TALK_ON = 0.04; const TALK_OFF = 0.015;
-      const lipConfig = { restJawOpen: 0.25, minLipSeparation: 0.12, maxMouthClose: 0.25, closeThresholdForSeparation: 0.2, visemeStrengthAlpha: 0.15, morphSmoothingBeta: 0.16, jawSmoothingAlpha: 0.12, smileStrength: 0.3 };
+      let talkSmoothed = 0;
+      const TALK_ALPHA = 0.2;
+      const TALK_ON = 0.04;
+      const TALK_OFF = 0.015;
+      const lipConfig = {
+        restJawOpen: 0.25,
+        minLipSeparation: 0.12,
+        maxMouthClose: 0.25,
+        closeThresholdForSeparation: 0.2,
+        visemeStrengthAlpha: 0.15,
+        morphSmoothingBeta: 0.16,
+        jawSmoothingAlpha: 0.12,
+        smileStrength: 0.3,
+      };
 
-      function enqueueTextVisemes(tokensOrText, totalDurationMs = null, startAtMs = null) {
+      function enqueueTextVisemes(
+        tokensOrText,
+        totalDurationMs = null,
+        startAtMs = null
+      ) {
         // DOCUMENTAZIONE:
         // Modalità 1 - Token OVR (consigliato):
         //    enqueueTextVisemes([
@@ -415,139 +800,364 @@ export default defineComponent({
         // Modalità 2 - Testo con durata (fallback):
         //    enqueueTextVisemes("Ciao", 2000, performance.now())
         //    Genera automaticamente token OVR dal testo basato sulla durata
-        
+
         // Mappatura standard OVR viseme -> blendshapes ARKit con weights 0-1
         const ovrToBlendshape = {
-          sil: { jawOpen: 0, mouthClose: 0, mouthFunnel: 0, mouthPucker: 0, mouthSmileL: 0, mouthSmileR: 0, mouthStretchL: 0, mouthStretchR: 0, tongueOut: 0 },
-          PP: { jawOpen: 0.05, mouthClose: 0.85, mouthFunnel: 0, mouthPucker: 0.1, mouthSmileL: 0, mouthSmileR: 0, mouthStretchL: 0, mouthStretchR: 0, tongueOut: 0 },
-          FF: { jawOpen: 0.2, mouthClose: 0.4, mouthFunnel: 0.5, mouthPucker: 0.2, mouthSmileL: 0, mouthSmileR: 0, mouthStretchL: 0, mouthStretchR: 0, tongueOut: 0 },
-          TH: { jawOpen: 0.3, mouthClose: 0.1, mouthFunnel: 0.2, mouthPucker: 0, mouthSmileL: 0, mouthSmileR: 0, mouthStretchL: 0, mouthStretchR: 0, tongueOut: 0.7 },
-          DD: { jawOpen: 0.1, mouthClose: 0.9, mouthFunnel: 0, mouthPucker: 0, mouthSmileL: 0, mouthSmileR: 0, mouthStretchL: 0, mouthStretchR: 0, tongueOut: 0.3 },
-          KK: { jawOpen: 0.35, mouthClose: 0.3, mouthFunnel: 0.2, mouthPucker: 0, mouthSmileL: 0, mouthSmileR: 0, mouthStretchL: 0, mouthStretchR: 0, tongueOut: 0 },
-          CH: { jawOpen: 0.4, mouthClose: 0.2, mouthFunnel: 0.4, mouthPucker: 0.1, mouthSmileL: 0, mouthSmileR: 0, mouthStretchL: 0, mouthStretchR: 0, tongueOut: 0 },
-          SS: { jawOpen: 0.15, mouthClose: 0.25, mouthFunnel: 0.75, mouthPucker: 0.1, mouthSmileL: 0, mouthSmileR: 0, mouthStretchL: 0, mouthStretchR: 0, tongueOut: 0 },
-          NN: { jawOpen: 0.3, mouthClose: 0.5, mouthFunnel: 0.1, mouthPucker: 0, mouthSmileL: 0, mouthSmileR: 0, mouthStretchL: 0, mouthStretchR: 0, tongueOut: 0 },
-          RR: { jawOpen: 0.4, mouthClose: 0.1, mouthFunnel: 0.4, mouthPucker: 0.2, mouthSmileL: 0, mouthSmileR: 0, mouthStretchL: 0, mouthStretchR: 0, tongueOut: 0.4 },
-          AA: { jawOpen: 0.75, mouthClose: 0, mouthFunnel: 0.1, mouthPucker: 0, mouthSmileL: 0.3, mouthSmileR: 0.3, mouthStretchL: 0.2, mouthStretchR: 0.2, tongueOut: 0 },
-          E: { jawOpen: 0.45, mouthClose: 0, mouthFunnel: 0, mouthPucker: 0, mouthSmileL: 0.5, mouthSmileR: 0.5, mouthStretchL: 0.3, mouthStretchR: 0.3, tongueOut: 0 },
-          IH: { jawOpen: 0.35, mouthClose: 0.05, mouthFunnel: 0, mouthPucker: 0, mouthSmileL: 0.6, mouthSmileR: 0.6, mouthStretchL: 0.4, mouthStretchR: 0.4, tongueOut: 0.1 },
-          OH: { jawOpen: 0.55, mouthClose: 0.1, mouthFunnel: 0.65, mouthPucker: 0.5, mouthSmileL: 0.1, mouthSmileR: 0.1, mouthStretchL: 0, mouthStretchR: 0, tongueOut: 0 },
-          OU: { jawOpen: 0.45, mouthClose: 0.15, mouthFunnel: 0.85, mouthPucker: 0.75, mouthSmileL: 0, mouthSmileR: 0, mouthStretchL: 0, mouthStretchR: 0, tongueOut: 0 }
+          sil: {
+            jawOpen: 0,
+            mouthClose: 0,
+            mouthFunnel: 0,
+            mouthPucker: 0,
+            mouthSmileL: 0,
+            mouthSmileR: 0,
+            mouthStretchL: 0,
+            mouthStretchR: 0,
+            tongueOut: 0,
+          },
+          PP: {
+            jawOpen: 0.05,
+            mouthClose: 0.85,
+            mouthFunnel: 0,
+            mouthPucker: 0.1,
+            mouthSmileL: 0,
+            mouthSmileR: 0,
+            mouthStretchL: 0,
+            mouthStretchR: 0,
+            tongueOut: 0,
+          },
+          FF: {
+            jawOpen: 0.2,
+            mouthClose: 0.4,
+            mouthFunnel: 0.5,
+            mouthPucker: 0.2,
+            mouthSmileL: 0,
+            mouthSmileR: 0,
+            mouthStretchL: 0,
+            mouthStretchR: 0,
+            tongueOut: 0,
+          },
+          TH: {
+            jawOpen: 0.3,
+            mouthClose: 0.1,
+            mouthFunnel: 0.2,
+            mouthPucker: 0,
+            mouthSmileL: 0,
+            mouthSmileR: 0,
+            mouthStretchL: 0,
+            mouthStretchR: 0,
+            tongueOut: 0.7,
+          },
+          DD: {
+            jawOpen: 0.1,
+            mouthClose: 0.9,
+            mouthFunnel: 0,
+            mouthPucker: 0,
+            mouthSmileL: 0,
+            mouthSmileR: 0,
+            mouthStretchL: 0,
+            mouthStretchR: 0,
+            tongueOut: 0.3,
+          },
+          KK: {
+            jawOpen: 0.35,
+            mouthClose: 0.3,
+            mouthFunnel: 0.2,
+            mouthPucker: 0,
+            mouthSmileL: 0,
+            mouthSmileR: 0,
+            mouthStretchL: 0,
+            mouthStretchR: 0,
+            tongueOut: 0,
+          },
+          CH: {
+            jawOpen: 0.4,
+            mouthClose: 0.2,
+            mouthFunnel: 0.4,
+            mouthPucker: 0.1,
+            mouthSmileL: 0,
+            mouthSmileR: 0,
+            mouthStretchL: 0,
+            mouthStretchR: 0,
+            tongueOut: 0,
+          },
+          SS: {
+            jawOpen: 0.15,
+            mouthClose: 0.25,
+            mouthFunnel: 0.75,
+            mouthPucker: 0.1,
+            mouthSmileL: 0,
+            mouthSmileR: 0,
+            mouthStretchL: 0,
+            mouthStretchR: 0,
+            tongueOut: 0,
+          },
+          NN: {
+            jawOpen: 0.3,
+            mouthClose: 0.5,
+            mouthFunnel: 0.1,
+            mouthPucker: 0,
+            mouthSmileL: 0,
+            mouthSmileR: 0,
+            mouthStretchL: 0,
+            mouthStretchR: 0,
+            tongueOut: 0,
+          },
+          RR: {
+            jawOpen: 0.4,
+            mouthClose: 0.1,
+            mouthFunnel: 0.4,
+            mouthPucker: 0.2,
+            mouthSmileL: 0,
+            mouthSmileR: 0,
+            mouthStretchL: 0,
+            mouthStretchR: 0,
+            tongueOut: 0.4,
+          },
+          AA: {
+            jawOpen: 0.75,
+            mouthClose: 0,
+            mouthFunnel: 0.1,
+            mouthPucker: 0,
+            mouthSmileL: 0.3,
+            mouthSmileR: 0.3,
+            mouthStretchL: 0.2,
+            mouthStretchR: 0.2,
+            tongueOut: 0,
+          },
+          E: {
+            jawOpen: 0.45,
+            mouthClose: 0,
+            mouthFunnel: 0,
+            mouthPucker: 0,
+            mouthSmileL: 0.5,
+            mouthSmileR: 0.5,
+            mouthStretchL: 0.3,
+            mouthStretchR: 0.3,
+            tongueOut: 0,
+          },
+          IH: {
+            jawOpen: 0.35,
+            mouthClose: 0.05,
+            mouthFunnel: 0,
+            mouthPucker: 0,
+            mouthSmileL: 0.6,
+            mouthSmileR: 0.6,
+            mouthStretchL: 0.4,
+            mouthStretchR: 0.4,
+            tongueOut: 0.1,
+          },
+          OH: {
+            jawOpen: 0.55,
+            mouthClose: 0.1,
+            mouthFunnel: 0.65,
+            mouthPucker: 0.5,
+            mouthSmileL: 0.1,
+            mouthSmileR: 0.1,
+            mouthStretchL: 0,
+            mouthStretchR: 0,
+            tongueOut: 0,
+          },
+          OU: {
+            jawOpen: 0.45,
+            mouthClose: 0.15,
+            mouthFunnel: 0.85,
+            mouthPucker: 0.75,
+            mouthSmileL: 0,
+            mouthSmileR: 0,
+            mouthStretchL: 0,
+            mouthStretchR: 0,
+            tongueOut: 0,
+          },
         };
 
         // Converti testo a token OVR se necessario
         const textToTokens = (text, durationMs) => {
-          if (!text || typeof text !== 'string' || !durationMs) return null;
+          if (!text || typeof text !== "string" || !durationMs) return null;
           const charCount = text.length;
           const charDuration = durationMs / charCount;
           const tokens = [];
           let currentTime = 0;
-          
+
           // Mapping completo italiano → 15 visemi OVR
           const charToViseme = {
             // Vocali
-            'a': 'AA',
-            'e': 'E',
-            'i': 'IH',
-            'o': 'OH',
-            'u': 'OU',
+            a: "AA",
+            e: "E",
+            i: "IH",
+            o: "OH",
+            u: "OU",
             // Labiali (p, b, m)
-            'p': 'PP', 'b': 'PP', 'm': 'PP',
+            p: "PP",
+            b: "PP",
+            m: "PP",
             // Fricative (f, v)
-            'f': 'FF', 'v': 'FF',
+            f: "FF",
+            v: "FF",
             // Dentali/Plosive (t, d, n)
-            't': 'DD', 'd': 'DD',
+            t: "DD",
+            d: "DD",
             // Nasali (n, ng)
-            'n': 'NN',
+            n: "NN",
             // Velare (k, g)
-            'k': 'KK', 'g': 'KK',
+            k: "KK",
+            g: "KK",
             // Sibilanti (s, z)
-            's': 'SS', 'z': 'SS',
+            s: "SS",
+            z: "SS",
             // Rotiche (r)
-            'r': 'RR',
+            r: "RR",
             // Affricative (c davanti e/i, ch)
-            'c': 'CH',
-            'h': 'TH',
+            c: "CH",
+            h: "TH",
             // Spazi e punteggiatura = silenzio
-            ' ': 'sil', '.': 'sil', ',': 'sil', '!': 'sil', '?': 'sil',
-            ';': 'sil', ':': 'sil', '-': 'sil',
+            " ": "sil",
+            ".": "sil",
+            ",": "sil",
+            "!": "sil",
+            "?": "sil",
+            ";": "sil",
+            ":": "sil",
+            "-": "sil",
           };
-          
+
           for (let i = 0; i < text.length; i++) {
             const char = text[i].toLowerCase();
-            const viseme = charToViseme[char] || 'sil';
-            
+            const viseme = charToViseme[char] || "sil";
+
             const targets = ovrToBlendshape[viseme] || ovrToBlendshape.sil;
             tokens.push({
               viseme,
               startTime: currentTime,
               endTime: currentTime + charDuration,
-              targets: targets
+              targets: targets,
             });
             currentTime += charDuration;
           }
-          
+
           return tokens;
         };
 
         try {
-          const isSpeakingNow = window.speechSynthesis && window.speechSynthesis.speaking;
+          const isSpeakingNow =
+            window.speechSynthesis && window.speechSynthesis.speaking;
           const shouldLog = isSpeakingNow || isSpeaking;
-          
+
           let tokens = tokensOrText;
-          
+
           // Se è un array di token OVR
           if (Array.isArray(tokensOrText)) {
-            if (shouldLog) console.log('[VISEME ENQUEUE] Token array received with', tokensOrText.length, 'tokens');
+            if (shouldLog)
+              console.log(
+                "[VISEME ENQUEUE] Token array received with",
+                tokensOrText.length,
+                "tokens"
+              );
           }
           // Se è testo, converti a token
-          else if (typeof tokensOrText === 'string' && totalDurationMs) {
-            if (shouldLog) console.log('[VISEME ENQUEUE] Text received:', tokensOrText.substring(0, 50), '- Duration:', totalDurationMs, 'ms');
+          else if (typeof tokensOrText === "string" && totalDurationMs) {
+            if (shouldLog)
+              console.log(
+                "[VISEME ENQUEUE] Text received:",
+                tokensOrText.substring(0, 50),
+                "- Duration:",
+                totalDurationMs,
+                "ms"
+              );
             tokens = textToTokens(tokensOrText, totalDurationMs);
             if (!tokens || tokens.length === 0) {
-              console.warn('[VISEME ENQUEUE] Failed to convert text to tokens');
+              console.warn("[VISEME ENQUEUE] Failed to convert text to tokens");
               return;
             }
-            if (shouldLog) console.log('[VISEME ENQUEUE] Generated', tokens.length, 'tokens from text');
-          }
-          else {
-            console.warn('[VISEME ENQUEUE] Invalid input: expected array of tokens or (text, duration)');
+            if (shouldLog)
+              console.log(
+                "[VISEME ENQUEUE] Generated",
+                tokens.length,
+                "tokens from text"
+              );
+          } else {
+            console.warn(
+              "[VISEME ENQUEUE] Invalid input: expected array of tokens or (text, duration)"
+            );
             return;
           }
-          
+
           if (!Array.isArray(tokens) || tokens.length === 0) return;
-          
+
           const now = performance.now();
           const baseTime = startAtMs || now;
-          
+
           visemeSchedule = [];
-          
+
           for (const token of tokens) {
             const { viseme, startTime, endTime, targets } = token;
-            
+
             visemeSchedule.push({
               start: baseTime + startTime,
               end: baseTime + endTime,
-              targets: targets
+              targets: targets,
             });
           }
-          
-          if (shouldLog) console.log('[VISEME ENQUEUE] Schedule created with', visemeSchedule.length, 'items, duration:', visemeSchedule[visemeSchedule.length - 1].end - baseTime, 'ms');
-          
-          if (visemeSchedule.length > 120) visemeSchedule = visemeSchedule.slice(-120);
-        } catch (e) { 
-          console.error('[VISEME ENQUEUE] ERROR:', e);
+
+          if (shouldLog)
+            console.log(
+              "[VISEME ENQUEUE] Schedule created with",
+              visemeSchedule.length,
+              "items, duration:",
+              visemeSchedule[visemeSchedule.length - 1].end - baseTime,
+              "ms"
+            );
+
+          if (visemeSchedule.length > 120)
+            visemeSchedule = visemeSchedule.slice(-120);
+        } catch (e) {
+          console.error("[VISEME ENQUEUE] ERROR:", e);
         }
       }
-      try { instance.proxy.loadHumanoid = loadHumanoid } catch { }
+      try {
+        instance.proxy.loadHumanoid = loadHumanoid;
+      } catch { }
 
-      let isListening = false, recognition = null, mediaMicStream = null;
-      let currentEvtSource = null; let isStartingStream = false; let lastResultAt = 0;
+      let isListening = false,
+        recognition = null,
+        mediaMicStream = null;
+      let currentEvtSource = null;
+      let isStartingStream = false;
+      let lastResultAt = 0;
       let THREELoaded = false;
-      let scene, camera, renderer, head, jaw, animationId, analyser, dataArray, audioCtx, mediaNode;
+      let scene,
+        camera,
+        renderer,
+        head,
+        jaw,
+        animationId,
+        analyser,
+        dataArray,
+        audioCtx,
+        mediaNode;
       let advancedLipsyncOn = false;
-      let bufferText = ''; let ttsBuffer = ''; let speakQueue = []; let isSpeaking = false; let lastSpokenTail = ''; let lastSentToTts = ''; let ttsProcessedLength = 0; let ttsFirstChunkSent = false; let ttsKickTimer = null; let ttsTick = null; let ttsRequestQueue = []; let ttsRequestInFlight = false; let speechAmp = 0; let speechAmpTarget = 0; let speechAmpTimer = null;
-      let heygen = { sessionInfo: null, room: null, mediaStream: null, sessionToken: null, connecting: false, started: false };
+      let bufferText = "";
+      let ttsBuffer = "";
+      let speakQueue = [];
+      let isSpeaking = false;
+      let lastSpokenTail = "";
+      let lastSentToTts = "";
+      let ttsProcessedLength = 0;
+      let ttsFirstChunkSent = false;
+      let ttsKickTimer = null;
+      let ttsTick = null;
+      let ttsRequestQueue = [];
+      let ttsRequestInFlight = false;
+      let speechAmp = 0;
+      let speechAmpTarget = 0;
+      let speechAmpTimer = null;
+      let heygen = {
+        sessionInfo: null,
+        room: null,
+        mediaStream: null,
+        sessionToken: null,
+        connecting: false,
+        started: false,
+      };
       // Idle animation state
       let idleState = {
         baseSet: false,
@@ -573,7 +1183,7 @@ export default defineComponent({
       let talkingAnimMixer = null;
       let talkingAnimAction = null;
       let talkingAnimClip = null;
-      
+
       // Animazione idle mixata da GLB esterno
       let idleAnimationMixer = null;
       let idleAnimationActions = [];
@@ -585,254 +1195,545 @@ export default defineComponent({
       let currentTalkingAnimation = null;
       let talkingAnimationActive = false;
 
-      const debugOverlay = document.getElementById('debugOverlay');
-      const debugContent = document.getElementById('debugContent');
-      const debugCloseBtn = document.getElementById('debugClose');
-      const debugClearBtn = document.getElementById('debugClear');
-      const debugCopyBtn = document.getElementById('debugCopy');
-      const originalConsole = { log: console.log, warn: console.warn, error: console.error, info: console.info };
+      const debugOverlay = document.getElementById("debugOverlay");
+      const debugContent = document.getElementById("debugContent");
+      const debugCloseBtn = document.getElementById("debugClose");
+      const debugClearBtn = document.getElementById("debugClear");
+      const debugCopyBtn = document.getElementById("debugCopy");
+      const originalConsole = {
+        log: console.log,
+        warn: console.warn,
+        error: console.error,
+        info: console.info,
+      };
 
       function formatForLog(arg) {
         try {
-          if (arg instanceof Error) return (arg.stack || (arg.name + ': ' + arg.message));
-          if (typeof arg === 'object') {
+          if (arg instanceof Error)
+            return arg.stack || arg.name + ": " + arg.message;
+          if (typeof arg === "object") {
             return JSON.stringify(arg, (k, v) => {
               if (v instanceof Node) return `[Node ${v.nodeName}]`;
-              if (v === window) return '[Window]';
-              if (v === document) return '[Document]';
+              if (v === window) return "[Window]";
+              if (v === document) return "[Document]";
               return v;
             });
           }
           return String(arg);
         } catch (_) {
-          try { return String(arg); } catch { return '[unserializable]'; }
+          try {
+            return String(arg);
+          } catch {
+            return "[unserializable]";
+          }
         }
       }
 
       function appendDebugLine(type, args) {
         if (!debugEnabled || !debugContent) return;
         const time = new Date().toLocaleTimeString();
-        const line = document.createElement('div');
-        line.className = 'whitespace-pre-wrap break-words';
+        const line = document.createElement("div");
+        line.className = "whitespace-pre-wrap break-words";
         try {
-          const msg = Array.from(args || []).map(formatForLog).join(' ');
+          const msg = Array.from(args || [])
+            .map(formatForLog)
+            .join(" ");
           line.textContent = `[${time}] ${type.toUpperCase()} ${msg}`;
-        } catch { line.textContent = `[${time}] ${type.toUpperCase()} [log append failed]`; }
+        } catch {
+          line.textContent = `[${time}] ${type.toUpperCase()} [log append failed]`;
+        }
         debugContent.appendChild(line);
         try {
           const max = 400;
-          while (debugContent.childNodes.length > max) debugContent.removeChild(debugContent.firstChild);
+          while (debugContent.childNodes.length > max)
+            debugContent.removeChild(debugContent.firstChild);
         } catch { }
-        try { debugContent.parentElement.scrollTop = debugContent.parentElement.scrollHeight; } catch { }
+        try {
+          debugContent.parentElement.scrollTop =
+            debugContent.parentElement.scrollHeight;
+        } catch { }
       }
 
       function initDebugOverlay() {
         if (!debugEnabled) return;
-        try { debugOverlay?.classList.remove('hidden'); } catch { }
         try {
-          const add = (el, evt, fn) => { try { el && el.addEventListener(evt, fn); } catch { } }
-          add(debugCloseBtn, 'click', () => { debugOverlay.classList.add('hidden'); })
-          add(debugClearBtn, 'click', () => { if (debugContent) debugContent.innerHTML = ''; })
-          add(debugCopyBtn, 'click', async () => {
-            try {
-              const lines = Array.from(debugContent?.children || []).map(n => (n.textContent || ''));
-              const text = lines.join('\n');
-              if (navigator.clipboard && navigator.clipboard.writeText) { await navigator.clipboard.writeText(text); }
-              else {
-                const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
-              }
-              console.log('DEBUG: logs copied', { lines: lines.length });
-            } catch (e) { console.error('DEBUG: copy failed', e); }
-          })
+          debugOverlay?.classList.remove("hidden");
         } catch { }
         try {
-          ['log', 'warn', 'error', 'info'].forEach((m) => {
-            console[m] = function (...a) { try { appendDebugLine(m, a); } catch { } try { originalConsole[m].apply(console, a); } catch { } };
+          const add = (el, evt, fn) => {
+            try {
+              el && el.addEventListener(evt, fn);
+            } catch { }
+          };
+          add(debugCloseBtn, "click", () => {
+            debugOverlay.classList.add("hidden");
+          });
+          add(debugClearBtn, "click", () => {
+            if (debugContent) debugContent.innerHTML = "";
+          });
+          add(debugCopyBtn, "click", async () => {
+            try {
+              const lines = Array.from(debugContent?.children || []).map(
+                (n) => n.textContent || ""
+              );
+              const text = lines.join("\n");
+              if (navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(text);
+              } else {
+                const ta = document.createElement("textarea");
+                ta.value = text;
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand("copy");
+                document.body.removeChild(ta);
+              }
+              console.log("DEBUG: logs copied", { lines: lines.length });
+            } catch (e) {
+              console.error("DEBUG: copy failed", e);
+            }
           });
         } catch { }
         try {
-          window.addEventListener('error', (e) => { appendDebugLine('windowError', [e.message, `${e.filename}:${e.lineno}:${e.colno}`]); });
-          window.addEventListener('unhandledrejection', (e) => { const r = e.reason; appendDebugLine('promiseRejection', [r && (r.stack || r.message) || String(r)]); });
+          ["log", "warn", "error", "info"].forEach((m) => {
+            console[m] = function (...a) {
+              try {
+                appendDebugLine(m, a);
+              } catch { }
+              try {
+                originalConsole[m].apply(console, a);
+              } catch { }
+            };
+          });
         } catch { }
-        appendDebugLine('info', ['Debug overlay enabled', { ua: navigator.userAgent, locale, recLang, isAndroid, isChrome, hasWebSpeech: !!(window.SpeechRecognition || window.webkitSpeechRecognition) }]);
+        try {
+          window.addEventListener("error", (e) => {
+            appendDebugLine("windowError", [
+              e.message,
+              `${e.filename}:${e.lineno}:${e.colno}`,
+            ]);
+          });
+          window.addEventListener("unhandledrejection", (e) => {
+            const r = e.reason;
+            appendDebugLine("promiseRejection", [
+              (r && (r.stack || r.message)) || String(r),
+            ]);
+          });
+        } catch { }
+        appendDebugLine("info", [
+          "Debug overlay enabled",
+          {
+            ua: navigator.userAgent,
+            locale,
+            recLang,
+            isAndroid,
+            isChrome,
+            hasWebSpeech: !!(
+              window.SpeechRecognition || window.webkitSpeechRecognition
+            ),
+          },
+        ]);
       }
 
       function sanitizeForTts(input) {
-        const vmInst = getCurrentInstance()?.proxy || {}
-        let t = (vmInst.stripHtml ? vmInst.stripHtml(input || '') : stripHtml(input || ''));
-        t = t.replace(/\*\*(.*?)\*\*/g, '$1');
-        t = t.replace(/\*(.*?)\*/g, '$1');
-        t = t.replace(/`+/g, '');
-        t = t.replace(/https?:\/\/\S+/gi, '');
-        t = t.replace(/^[\-\*•]\s+/gm, '');
-        t = t.replace(/^\d+\.\s+/gm, '');
-        t = t.replace(/(\d+)[\.,]00\b/g, '$1');
-        t = t.replace(/[\s\u00A0]+/g, ' ').trim();
-        t = t.replace(/([\.!?,;:]){2,}/g, '$1');
+        const vmInst = getCurrentInstance()?.proxy || {};
+        let t = vmInst.stripHtml
+          ? vmInst.stripHtml(input || "")
+          : stripHtml(input || "");
+        t = t.replace(/\*\*(.*?)\*\*/g, "$1");
+        t = t.replace(/\*(.*?)\*/g, "$1");
+        t = t.replace(/`+/g, "");
+        t = t.replace(/https?:\/\/\S+/gi, "");
+        t = t.replace(/^[\-\*•]\s+/gm, "");
+        t = t.replace(/^\d+\.\s+/gm, "");
+        t = t.replace(/(\d+)[\.,]00\b/g, "$1");
+        t = t.replace(/[\s\u00A0]+/g, " ").trim();
+        t = t.replace(/([\.!?,;:]){2,}/g, "$1");
         return t;
       }
 
       // Rimosso: l'inizializzazione di Three/Loaders avviene in mounted() -> initLibraries()
 
-      try { instance.proxy.initUIBase(rootEl, debugEnabled) } catch { }
       try {
-        const ua = navigator.userAgent || '';
-        const isChrome = !!window.chrome && /Chrome\/\d+/.test(ua) && !/Edg\//.test(ua) && !/OPR\//.test(ua) && !/Brave/i.test(ua);
+        instance.proxy.initUIBase(rootEl, debugEnabled);
+      } catch { }
+      try {
+        const ua = navigator.userAgent || "";
+        const isChrome =
+          !!window.chrome &&
+          /Chrome\/\d+/.test(ua) &&
+          !/Edg\//.test(ua) &&
+          !/OPR\//.test(ua) &&
+          !/Brave/i.test(ua);
         if ((isChrome || debugEnabled) && useAdvancedLipsync) {
-          useAdvancedLipsync.checked = true; advancedLipsyncOn = true;
+          useAdvancedLipsync.checked = true;
+          advancedLipsyncOn = true;
         }
       } catch { }
 
       try {
-        useVideoAvatar?.addEventListener('change', async () => {
+        useVideoAvatar?.addEventListener("change", async () => {
           if (useVideoAvatar.checked) {
             // Pre-check config
             if (!HEYGEN_CONFIG.apiKey || !HEYGEN_CONFIG.serverUrl) {
-              try { if (videoAvatarStatus) videoAvatarStatus.textContent = 'Config mancante'; } catch { }
-              try { useVideoAvatar.checked = false; } catch { }
-              console.warn('HEYGEN: missing apiKey/serverUrl');
+              try {
+                if (videoAvatarStatus)
+                  videoAvatarStatus.textContent = "Config mancante";
+              } catch { }
+              try {
+                useVideoAvatar.checked = false;
+              } catch { }
+              console.warn("HEYGEN: missing apiKey/serverUrl");
               return;
             }
-            $id('avatarStage')?.classList.add('hidden');
-            heygenVideo?.classList.remove('hidden');
-            try { await heygenEnsureSession(); } catch (e) { console.error('HEYGEN: ensure session failed', e); }
+            $id("avatarStage")?.classList.add("hidden");
+            heygenVideo?.classList.remove("hidden");
+            try {
+              await heygenEnsureSession();
+            } catch (e) {
+              console.error("HEYGEN: ensure session failed", e);
+            }
             const unlock = async () => {
-              try { await heygenVideo?.play(); } catch { }
-              try { await heygenAudio?.play(); } catch { }
-              document.removeEventListener('click', unlock); document.removeEventListener('touchstart', unlock);
+              try {
+                await heygenVideo?.play();
+              } catch { }
+              try {
+                await heygenAudio?.play();
+              } catch { }
+              document.removeEventListener("click", unlock);
+              document.removeEventListener("touchstart", unlock);
             };
-            document.addEventListener('click', unlock); document.addEventListener('touchstart', unlock);
+            document.addEventListener("click", unlock);
+            document.addEventListener("touchstart", unlock);
           } else {
             await heygenClose();
-            $id('avatarStage')?.classList.remove('hidden');
-            heygenVideo?.classList.add('hidden');
+            $id("avatarStage")?.classList.remove("hidden");
+            heygenVideo?.classList.add("hidden");
           }
-        })
+        });
       } catch { }
 
       try {
-        useAdvancedLipsync?.addEventListener('change', async () => {
+        useAdvancedLipsync?.addEventListener("change", async () => {
           advancedLipsyncOn = !!useAdvancedLipsync.checked;
         });
-
       } catch { }
 
       initDebugOverlay();
 
       function startStream(message) {
-        if (!message || message.trim() === '') return;
-        if (isStartingStream) { console.warn('SSE: start already in progress'); return; }
-        isStartingStream = true; setTimeout(() => { isStartingStream = false; }, 800);
-        console.log('TTS: Starting new conversation, resetting state');
-        try { console.log('SSE: connecting', { team: teamSlug, uuid, locale }); } catch { }
-        thinkingBubble.classList.remove('hidden');
-        try { if (currentEvtSource) { currentEvtSource.close(); currentEvtSource = null; } } catch { }
-        bufferText = ''; ttsBuffer = ''; lastSentToTts = ''; lastSpokenTail = ''; ttsProcessedLength = 0; ttsFirstChunkSent = false;
-        if (ttsKickTimer) { try { clearTimeout(ttsKickTimer); } catch { }; ttsKickTimer = null; }
-        if (ttsTick) { try { clearInterval(ttsTick); } catch { }; ttsTick = null; }
-        if (ttsPlayer && !ttsPlayer.paused) { ttsPlayer.pause(); ttsPlayer.currentTime = 0; }
-        speakQueue.forEach(item => URL.revokeObjectURL(item.url)); speakQueue = []; isSpeaking = false;
-        let collected = '';
-        const params = new URLSearchParams({ message, team: teamSlug, uuid: uuid || '', locale, ts: String(Date.now()) });
-        if (threadId) params.set('thread_id', threadId);
-        if (assistantThreadId) params.set('assistant_thread_id', assistantThreadId);
-        let done = false; let firstToken = true; let sseRetryCount = 0; let evtSource = null; let sseConnectWatchdog = null;
-        if (!ttsTick) { ttsTick = setInterval(() => { try { checkForTtsChunks(); } catch { } }, 120); }
+        if (!message || message.trim() === "") return;
+        if (isStartingStream) {
+          console.warn("SSE: start already in progress");
+          return;
+        }
+        isStartingStream = true;
+        setTimeout(() => {
+          isStartingStream = false;
+        }, 800);
+        console.log("TTS: Starting new conversation, resetting state");
+        try {
+          console.log("SSE: connecting", { team: teamSlug, uuid, locale });
+        } catch { }
+        thinkingBubble.classList.remove("hidden");
+        try {
+          if (currentEvtSource) {
+            currentEvtSource.close();
+            currentEvtSource = null;
+          }
+        } catch { }
+        bufferText = "";
+        ttsBuffer = "";
+        lastSentToTts = "";
+        lastSpokenTail = "";
+        ttsProcessedLength = 0;
+        ttsFirstChunkSent = false;
+        if (ttsKickTimer) {
+          try {
+            clearTimeout(ttsKickTimer);
+          } catch { }
+          ttsKickTimer = null;
+        }
+        if (ttsTick) {
+          try {
+            clearInterval(ttsTick);
+          } catch { }
+          ttsTick = null;
+        }
+        if (ttsPlayer && !ttsPlayer.paused) {
+          ttsPlayer.pause();
+          ttsPlayer.currentTime = 0;
+        }
+        speakQueue.forEach((item) => URL.revokeObjectURL(item.url));
+        speakQueue = [];
+        isSpeaking = false;
+        let collected = "";
+        const params = new URLSearchParams({
+          message,
+          team: teamSlug,
+          uuid: uuid || "",
+          locale,
+          ts: String(Date.now()),
+        });
+        if (threadId) params.set("thread_id", threadId);
+        if (assistantThreadId)
+          params.set("assistant_thread_id", assistantThreadId);
+        let done = false;
+        let firstToken = true;
+        let sseRetryCount = 0;
+        let evtSource = null;
+        let sseConnectWatchdog = null;
+        if (!ttsTick) {
+          ttsTick = setInterval(() => {
+            try {
+              checkForTtsChunks();
+            } catch { }
+          }, 120);
+        }
         function bindSse() {
-          evtSource.addEventListener('message', (e) => {
+          evtSource.addEventListener("message", (e) => {
             try {
               const data = JSON.parse(e.data);
               if (data.token) {
                 try {
                   const tok = JSON.parse(data.token);
-                  if (tok && tok.thread_id) { threadId = tok.thread_id; return; }
-                  if (tok && tok.assistant_thread_id) { assistantThreadId = tok.assistant_thread_id; return; }
+                  if (tok && tok.thread_id) {
+                    threadId = tok.thread_id;
+                    return;
+                  }
+                  if (tok && tok.assistant_thread_id) {
+                    assistantThreadId = tok.assistant_thread_id;
+                    return;
+                  }
                 } catch { }
                 if (firstToken) {
-                  firstToken = false; thinkingBubble.classList.add('hidden'); if (ttsKickTimer) { try { clearTimeout(ttsKickTimer); } catch { } } ttsKickTimer = null; if (sseConnectWatchdog) { clearTimeout(sseConnectWatchdog); sseConnectWatchdog = null; }
+                  firstToken = false;
+                  thinkingBubble.classList.add("hidden");
+                  if (ttsKickTimer) {
+                    try {
+                      clearTimeout(ttsKickTimer);
+                    } catch { }
+                  }
+                  ttsKickTimer = null;
+                  if (sseConnectWatchdog) {
+                    clearTimeout(sseConnectWatchdog);
+                    sseConnectWatchdog = null;
+                  }
                 }
-                collected += data.token; ttsBuffer += data.token; checkForTtsChunks();
+                collected += data.token;
+                ttsBuffer += data.token;
+                checkForTtsChunks();
               }
-            } catch (msgErr) { console.warn('Message parse error:', msgErr); }
+            } catch (msgErr) {
+              console.warn("Message parse error:", msgErr);
+            }
           });
-          evtSource.addEventListener('error', () => {
+          evtSource.addEventListener("error", () => {
             const state = evtSource.readyState;
-            try { if (state === 2) { console.error('SSE: closed', { attempt: sseRetryCount + 1, readyState: state }); } else { console.warn('SSE: transient error', { attempt: sseRetryCount + 1, readyState: state }); } } catch { }
-            if (state !== 2 && !done) { return; }
-            try { evtSource.close(); } catch { }
+            try {
+              if (state === 2) {
+                console.error("SSE: closed", {
+                  attempt: sseRetryCount + 1,
+                  readyState: state,
+                });
+              } else {
+                console.warn("SSE: transient error", {
+                  attempt: sseRetryCount + 1,
+                  readyState: state,
+                });
+              }
+            } catch { }
+            if (state !== 2 && !done) {
+              return;
+            }
+            try {
+              evtSource.close();
+            } catch { }
             currentEvtSource = null;
-            if (sseConnectWatchdog) { try { clearTimeout(sseConnectWatchdog); } catch { }; sseConnectWatchdog = null; }
-            if (!done && collected.length === 0 && sseRetryCount < 2) { sseRetryCount++; const delay = 220 * sseRetryCount; setTimeout(() => { openSse(); }, delay); return; }
-            thinkingBubble.classList.add('hidden');
-            if (ttsTick) { try { clearInterval(ttsTick); } catch { }; ttsTick = null; }
+            if (sseConnectWatchdog) {
+              try {
+                clearTimeout(sseConnectWatchdog);
+              } catch { }
+              sseConnectWatchdog = null;
+            }
+            if (!done && collected.length === 0 && sseRetryCount < 2) {
+              sseRetryCount++;
+              const delay = 220 * sseRetryCount;
+              setTimeout(() => {
+                openSse();
+              }, delay);
+              return;
+            }
+            thinkingBubble.classList.add("hidden");
+            if (ttsTick) {
+              try {
+                clearInterval(ttsTick);
+              } catch { }
+              ttsTick = null;
+            }
           });
-          evtSource.addEventListener('done', () => {
-            try { evtSource.close(); } catch { }
-            done = true; thinkingBubble.classList.add('hidden');
-            try { console.log('SSE: done event received'); } catch { }
-            if (sseConnectWatchdog) { try { clearTimeout(sseConnectWatchdog); } catch { }; sseConnectWatchdog = null; }
+          evtSource.addEventListener("done", () => {
+            try {
+              evtSource.close();
+            } catch { }
+            done = true;
+            thinkingBubble.classList.add("hidden");
+            try {
+              console.log("SSE: done event received");
+            } catch { }
+            if (sseConnectWatchdog) {
+              try {
+                clearTimeout(sseConnectWatchdog);
+              } catch { }
+              sseConnectWatchdog = null;
+            }
             if (ttsBuffer.trim().length > 0) {
               const remainingText = stripHtml(ttsBuffer).trim();
-              if (remainingText.length > 0) { console.log('TTS: Sending remaining text:', remainingText.substring(0, 50) + '...'); sendToTts(remainingText); }
-              ttsBuffer = '';
+              if (remainingText.length > 0) {
+                console.log(
+                  "TTS: Sending remaining text:",
+                  remainingText.substring(0, 50) + "..."
+                );
+                sendToTts(remainingText);
+              }
+              ttsBuffer = "";
             }
-            if (ttsTick) { try { clearInterval(ttsTick); } catch { }; ttsTick = null; }
+            if (ttsTick) {
+              try {
+                clearInterval(ttsTick);
+              } catch { }
+              ttsTick = null;
+            }
           });
         }
         function openSse() {
-          try { if (currentEvtSource) currentEvtSource.close(); } catch { }
-          evtSource = new EventSource(`/api/chatbot/stream?${params.toString()}`);
+          try {
+            if (currentEvtSource) currentEvtSource.close();
+          } catch { }
+          evtSource = new EventSource(
+            `/api/chatbot/stream?${params.toString()}`
+          );
           currentEvtSource = evtSource;
-          try { console.log('SSE: connecting', { team: teamSlug, uuid, locale, threadId, assistantThreadId }); } catch { }
+          try {
+            console.log("SSE: connecting", {
+              team: teamSlug,
+              uuid,
+              locale,
+              threadId,
+              assistantThreadId,
+            });
+          } catch { }
           bindSse();
           if (isAndroid) {
-            if (sseConnectWatchdog) { clearTimeout(sseConnectWatchdog); }
+            if (sseConnectWatchdog) {
+              clearTimeout(sseConnectWatchdog);
+            }
             sseConnectWatchdog = setTimeout(() => {
               try {
                 const state = evtSource.readyState;
-                if (collected.length === 0 && !done && sseRetryCount < 2 && (state === 0 || state === 2)) {
+                if (
+                  collected.length === 0 &&
+                  !done &&
+                  sseRetryCount < 2 &&
+                  (state === 0 || state === 2)
+                ) {
                   sseRetryCount++;
-                  try { evtSource.close(); } catch { }
+                  try {
+                    evtSource.close();
+                  } catch { }
                   currentEvtSource = null;
                   const delay = 280 * sseRetryCount;
-                  console.warn('SSE: connect watchdog retry', { attempt: sseRetryCount });
-                  setTimeout(() => { openSse(); }, delay);
+                  console.warn("SSE: connect watchdog retry", {
+                    attempt: sseRetryCount,
+                  });
+                  setTimeout(() => {
+                    openSse();
+                  }, delay);
                 }
-              } finally { try { clearTimeout(sseConnectWatchdog); } catch { }; sseConnectWatchdog = null; }
+              } finally {
+                try {
+                  clearTimeout(sseConnectWatchdog);
+                } catch { }
+                sseConnectWatchdog = null;
+              }
             }, 6000);
           }
         }
         openSse();
       }
-      try { instance.proxy.startStream = startStream } catch { }
+      try {
+        instance.proxy.startStream = startStream;
+      } catch { }
 
       const onSend = async () => {
-        try { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === 'suspended') await audioCtx.resume(); } catch { }
-        try { instance.proxy.startStream(input.value) } catch { startStream(input.value) }
-        input.value = '';
-      }
-      $id('sendBtn')?.addEventListener('click', onSend)
-      $id('textInput')?.addEventListener('keyup', async (e) => {
-        if (e.key === 'Enter') {
-          try { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === 'suspended') await audioCtx.resume(); } catch { }
-          try { instance.proxy.startStream(input.value) } catch { startStream(input.value) }
-          input.value = '';
+        try {
+          if (!audioCtx)
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          if (audioCtx.state === "suspended") await audioCtx.resume();
+        } catch { }
+        try {
+          instance.proxy.startStream(input.value);
+        } catch {
+          startStream(input.value);
+        }
+        input.value = "";
+      };
+      $id("sendBtn")?.addEventListener("click", onSend);
+      $id("textInput")?.addEventListener("keyup", async (e) => {
+        if (e.key === "Enter") {
+          try {
+            if (!audioCtx)
+              audioCtx = new (window.AudioContext ||
+                window.webkitAudioContext)();
+            if (audioCtx.state === "suspended") await audioCtx.resume();
+          } catch { }
+          try {
+            instance.proxy.startStream(input.value);
+          } catch {
+            startStream(input.value);
+          }
+          input.value = "";
         }
       });
 
       async function stopAllSpeechOutput() {
-        try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch { }
-        try { if (ttsPlayer && !ttsPlayer.paused) { ttsPlayer.pause(); ttsPlayer.currentTime = 0; } } catch { }
-        try { speakQueue.forEach(item => URL.revokeObjectURL(item.url)); } catch { }
-        speakQueue = []; ttsRequestQueue = []; isSpeaking = false; cloudAudioSpeaking = false;
+        try {
+          if (window.speechSynthesis) window.speechSynthesis.cancel();
+        } catch { }
+        try {
+          if (ttsPlayer && !ttsPlayer.paused) {
+            ttsPlayer.pause();
+            ttsPlayer.currentTime = 0;
+          }
+        } catch { }
+        try {
+          speakQueue.forEach((item) => URL.revokeObjectURL(item.url));
+        } catch { }
+        speakQueue = [];
+        ttsRequestQueue = [];
+        isSpeaking = false;
+        cloudAudioSpeaking = false;
         restStableUntil = performance.now() + 300;
         // reset visemi/bocca a riposo
         try {
-          visemeTargets = { jawOpen: 0, mouthFunnel: 0, mouthPucker: 0, mouthSmileL: 0, mouthSmileR: 0, mouthClose: 0, mouthStretchL: 0, mouthStretchR: 0, tongueOut: 0 };
-          visemeSchedule = []; visemeStrength = 0; morphValue = 0;
+          visemeTargets = {
+            jawOpen: 0,
+            mouthFunnel: 0,
+            mouthPucker: 0,
+            mouthSmileL: 0,
+            mouthSmileR: 0,
+            mouthClose: 0,
+            mouthStretchL: 0,
+            mouthStretchR: 0,
+            tongueOut: 0,
+          };
+          visemeSchedule = [];
+          visemeStrength = 0;
+          morphValue = 0;
           if (Array.isArray(visemeMeshes)) {
             for (const vm of visemeMeshes) {
-              const infl = vm.mesh && vm.mesh.morphTargetInfluences; const idxs = vm.indices || {}; if (!infl) continue;
+              const infl = vm.mesh && vm.mesh.morphTargetInfluences;
+              const idxs = vm.indices || {};
+              if (!infl) continue;
               if (idxs.mouthFunnel >= 0) infl[idxs.mouthFunnel] = 0;
               if (idxs.mouthPucker >= 0) infl[idxs.mouthPucker] = 0;
               if (idxs.mouthSmileL >= 0) infl[idxs.mouthSmileL] = 0;
@@ -844,149 +1745,406 @@ export default defineComponent({
               if (idxs.tongueOut >= 0) infl[idxs.tongueOut] = 0;
             }
           }
-          if (humanoid && humanoid.updateMatrixWorld) humanoid.updateMatrixWorld(true);
+          if (humanoid && humanoid.updateMatrixWorld)
+            humanoid.updateMatrixWorld(true);
         } catch { }
       }
-      try { instance.proxy._stopAllSpeechOutput = stopAllSpeechOutput } catch { }
+      try {
+        instance.proxy._stopAllSpeechOutput = stopAllSpeechOutput;
+      } catch { }
       function setListeningUI(active) {
-        const badge = document.getElementById('listeningBadge');
-        if (active) { badge.classList.remove('hidden'); micBtn.classList.remove('bg-rose-600'); micBtn.classList.add('bg-emerald-600', 'ring-2', 'ring-emerald-400', 'animate-pulse'); }
-        else { badge.classList.add('hidden'); micBtn.classList.add('bg-rose-600'); micBtn.classList.remove('bg-emerald-600', 'ring-2', 'ring-emerald-400', 'animate-pulse'); }
+        const badge = document.getElementById("listeningBadge");
+        if (active) {
+          badge.classList.remove("hidden");
+          micBtn.classList.remove("bg-rose-600");
+          micBtn.classList.add(
+            "bg-emerald-600",
+            "ring-2",
+            "ring-emerald-400",
+            "animate-pulse"
+          );
+        } else {
+          badge.classList.add("hidden");
+          micBtn.classList.add("bg-rose-600");
+          micBtn.classList.remove(
+            "bg-emerald-600",
+            "ring-2",
+            "ring-emerald-400",
+            "animate-pulse"
+          );
+        }
       }
-      try { instance.proxy._setListeningUI = setListeningUI } catch { }
+      try {
+        instance.proxy._setListeningUI = setListeningUI;
+      } catch { }
       async function ensureMicPermission() {
         try {
-          if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return true;
+          if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia)
+            return true;
           if (!mediaMicStream) {
-            console.log('MIC: requesting permission');
-            mediaMicStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true } });
-            try { mediaMicStream.getTracks().forEach(t => t.stop()); } catch { }
+            console.log("MIC: requesting permission");
+            mediaMicStream = await navigator.mediaDevices.getUserMedia({
+              audio: { echoCancellation: true },
+            });
+            try {
+              mediaMicStream.getTracks().forEach((t) => t.stop());
+            } catch { }
             mediaMicStream = null;
           }
-          console.log('MIC: permission OK'); return true;
-        } catch (e) { console.warn('Mic permission denied or error', e); return false; }
+          console.log("MIC: permission OK");
+          return true;
+        } catch (e) {
+          console.warn("Mic permission denied or error", e);
+          return false;
+        }
       }
-      try { instance.proxy._ensureMicPermission = ensureMicPermission } catch { }
+      try {
+        instance.proxy._ensureMicPermission = ensureMicPermission;
+      } catch { }
 
-      micBtn?.addEventListener('click', async () => {
+      micBtn?.addEventListener("click", async () => {
         if (isListening && recognition) {
-          try { recognition.stop(); recognition.abort && recognition.abort(); } catch { }
-          isListening = false; setListeningUI(false); console.log('MIC: listening stopped by user'); return;
+          try {
+            recognition.stop();
+            recognition.abort && recognition.abort();
+          } catch { }
+          isListening = false;
+          setListeningUI(false);
+          console.log("MIC: listening stopped by user");
+          return;
         }
         await stopAllSpeechOutput();
-        try { if (currentEvtSource) { currentEvtSource.close(); currentEvtSource = null; } } catch { }
-        try { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === 'suspended') { await audioCtx.resume(); console.log('AUDIO: context resumed'); } } catch (e) { console.warn('AUDIO: failed to init/resume', e); }
-        const ok = await ensureMicPermission(); if (!ok) { alert('Permesso microfono negato. Abilitalo nelle impostazioni del browser.'); return; }
         try {
-          const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
-          if (!Rec) throw new Error('Web Speech API non disponibile');
-          recognition = new Rec(); recognition.lang = recLang || 'it-IT'; recognition.interimResults = isAndroid ? true : false; recognition.continuous = isAndroid ? false : false; recognition.maxAlternatives = 1;
-          let recognitionWatchdogTimer = null; 
-          function clearRecWatchdog() { if (recognitionWatchdogTimer) { clearTimeout(recognitionWatchdogTimer); recognitionWatchdogTimer = null; } }
-          function startRecWatchdog() { clearRecWatchdog(); recognitionWatchdogTimer = setTimeout(() => { console.warn('SPEECH: watchdog timeout (no result), restarting'); try { recognition.stop(); recognition.abort && recognition.abort(); } catch { }; setTimeout(() => { try { recognition.start(); console.log('SPEECH: restarted by watchdog'); } catch (e) { console.error('SPEECH: restart failed', e); } }, 250); }, 8000); }
-          recognition.onstart = async () => { isListening = true; setListeningUI(true); console.log('SPEECH: onstart'); try { if (audioCtx && audioCtx.state === 'running') { await audioCtx.suspend(); console.log('AUDIO: context suspended for recognition'); } } catch (e) { console.warn('AUDIO: suspend failed', e); } };
-          recognition.onaudiostart = () => { console.log('SPEECH: onaudiostart'); };
-          recognition.onsoundstart = () => { console.log('SPEECH: onsoundstart'); };
-          recognition.onspeechstart = () => { console.log('SPEECH: onspeechstart'); startRecWatchdog(); };
-          recognition.onspeechend = () => { console.log('SPEECH: onspeechend'); clearRecWatchdog(); };
-          recognition.onsoundend = () => { console.log('SPEECH: onsoundend'); };
-          recognition.onaudioend = () => { console.log('SPEECH: onaudioend'); };
-          recognition.onnomatch = (e) => { console.warn('SPEECH: onnomatch', e && e.message || ''); };
-          recognition.onerror = async (e) => { console.error('SPEECH: onerror', e && (e.error || e.message) || e); isListening = false; setListeningUI(false); clearRecWatchdog(); try { if (audioCtx && audioCtx.state === 'suspended') { await audioCtx.resume(); console.log('AUDIO: context resumed after error'); } } catch (er) { console.warn('AUDIO: resume after error failed', er); } };
-          recognition.onend = async () => { isListening = false; setListeningUI(false); console.log('SPEECH: onend'); clearRecWatchdog(); try { if (audioCtx && audioCtx.state === 'suspended') { await audioCtx.resume(); console.log('AUDIO: context resumed after end'); } } catch (er) { console.warn('AUDIO: resume after end failed', er); } };
+          if (currentEvtSource) {
+            currentEvtSource.close();
+            currentEvtSource = null;
+          }
+        } catch { }
+        try {
+          if (!audioCtx)
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          if (audioCtx.state === "suspended") {
+            await audioCtx.resume();
+            console.log("AUDIO: context resumed");
+          }
+        } catch (e) {
+          console.warn("AUDIO: failed to init/resume", e);
+        }
+        const ok = await ensureMicPermission();
+        if (!ok) {
+          alert(
+            "Permesso microfono negato. Abilitalo nelle impostazioni del browser."
+          );
+          return;
+        }
+        try {
+          const Rec =
+            window.SpeechRecognition || window.webkitSpeechRecognition;
+          if (!Rec) throw new Error("Web Speech API non disponibile");
+          recognition = new Rec();
+          recognition.lang = recLang || "it-IT";
+          recognition.interimResults = isAndroid ? true : false;
+          recognition.continuous = isAndroid ? false : false;
+          recognition.maxAlternatives = 1;
+          let recognitionWatchdogTimer = null;
+          function clearRecWatchdog() {
+            if (recognitionWatchdogTimer) {
+              clearTimeout(recognitionWatchdogTimer);
+              recognitionWatchdogTimer = null;
+            }
+          }
+          function startRecWatchdog() {
+            clearRecWatchdog();
+            recognitionWatchdogTimer = setTimeout(() => {
+              console.warn("SPEECH: watchdog timeout (no result), restarting");
+              try {
+                recognition.stop();
+                recognition.abort && recognition.abort();
+              } catch { }
+              setTimeout(() => {
+                try {
+                  recognition.start();
+                  console.log("SPEECH: restarted by watchdog");
+                } catch (e) {
+                  console.error("SPEECH: restart failed", e);
+                }
+              }, 250);
+            }, 8000);
+          }
+          recognition.onstart = async () => {
+            isListening = true;
+            setListeningUI(true);
+            console.log("SPEECH: onstart");
+            try {
+              if (audioCtx && audioCtx.state === "running") {
+                await audioCtx.suspend();
+                console.log("AUDIO: context suspended for recognition");
+              }
+            } catch (e) {
+              console.warn("AUDIO: suspend failed", e);
+            }
+          };
+          recognition.onaudiostart = () => {
+            console.log("SPEECH: onaudiostart");
+          };
+          recognition.onsoundstart = () => {
+            console.log("SPEECH: onsoundstart");
+          };
+          recognition.onspeechstart = () => {
+            console.log("SPEECH: onspeechstart");
+            startRecWatchdog();
+          };
+          recognition.onspeechend = () => {
+            console.log("SPEECH: onspeechend");
+            clearRecWatchdog();
+          };
+          recognition.onsoundend = () => {
+            console.log("SPEECH: onsoundend");
+          };
+          recognition.onaudioend = () => {
+            console.log("SPEECH: onaudioend");
+          };
+          recognition.onnomatch = (e) => {
+            console.warn("SPEECH: onnomatch", (e && e.message) || "");
+          };
+          recognition.onerror = async (e) => {
+            console.error(
+              "SPEECH: onerror",
+              (e && (e.error || e.message)) || e
+            );
+            isListening = false;
+            setListeningUI(false);
+            clearRecWatchdog();
+            try {
+              if (audioCtx && audioCtx.state === "suspended") {
+                await audioCtx.resume();
+                console.log("AUDIO: context resumed after error");
+              }
+            } catch (er) {
+              console.warn("AUDIO: resume after error failed", er);
+            }
+          };
+          recognition.onend = async () => {
+            isListening = false;
+            setListeningUI(false);
+            console.log("SPEECH: onend");
+            clearRecWatchdog();
+            try {
+              if (audioCtx && audioCtx.state === "suspended") {
+                await audioCtx.resume();
+                console.log("AUDIO: context resumed after end");
+              }
+            } catch (er) {
+              console.warn("AUDIO: resume after end failed", er);
+            }
+          };
           recognition.onresult = (event) => {
             try {
               lastResultAt = Date.now();
-              const res = event.results; const last = res[res.length - 1];
-              const transcript = last[0].transcript; const isFinal = last.isFinal === true || !recognition.interimResults;
-              console.log('SPEECH: onresult', { transcript, isFinal, resultIndex: event.resultIndex, length: res.length });
-              if (debugEnabled && liveText) { liveText.classList.remove('hidden'); liveText.textContent = transcript + (isFinal ? '' : ' …'); }
-              if (isFinal) {
-                isListening = false; setListeningUI(false);
-                if (debugEnabled && liveText) setTimeout(() => { try { liveText.classList.add('hidden'); liveText.textContent = ''; } catch { } }, 800);
-                const safe = (transcript || '').trim(); if (!safe) { console.warn('SPEECH: final transcript empty, not starting stream'); return; }
-                if (isAndroid) { setTimeout(() => { try { instance.proxy.startStream(safe) } catch { startStream(safe) } }, 220); } else { try { instance.proxy.startStream(safe) } catch { startStream(safe) } }
+              const res = event.results;
+              const last = res[res.length - 1];
+              const transcript = last[0].transcript;
+              const isFinal =
+                last.isFinal === true || !recognition.interimResults;
+              console.log("SPEECH: onresult", {
+                transcript,
+                isFinal,
+                resultIndex: event.resultIndex,
+                length: res.length,
+              });
+              if (debugEnabled && liveText) {
+                liveText.classList.remove("hidden");
+                liveText.textContent = transcript + (isFinal ? "" : " …");
               }
-            } catch (err) { console.error('SPEECH: onresult handler failed', err); }
+              if (isFinal) {
+                isListening = false;
+                setListeningUI(false);
+                if (debugEnabled && liveText)
+                  setTimeout(() => {
+                    try {
+                      liveText.classList.add("hidden");
+                      liveText.textContent = "";
+                    } catch { }
+                  }, 800);
+                const safe = (transcript || "").trim();
+                if (!safe) {
+                  console.warn(
+                    "SPEECH: final transcript empty, not starting stream"
+                  );
+                  return;
+                }
+                if (isAndroid) {
+                  setTimeout(() => {
+                    try {
+                      instance.proxy.startStream(safe);
+                    } catch {
+                      startStream(safe);
+                    }
+                  }, 220);
+                } else {
+                  try {
+                    instance.proxy.startStream(safe);
+                  } catch {
+                    startStream(safe);
+                  }
+                }
+              }
+            } catch (err) {
+              console.error("SPEECH: onresult handler failed", err);
+            }
           };
-          console.log('SPEECH: start()', { lang: recognition.lang });
+          console.log("SPEECH: start()", { lang: recognition.lang });
           recognition.start();
         } catch (err) {
-          console.warn('Riconoscimento vocale non disponibile o errore', err);
-          alert('Riconoscimento vocale non disponibile in questo browser.');
+          console.warn("Riconoscimento vocale non disponibile o errore", err);
+          alert("Riconoscimento vocale non disponibile in questo browser.");
         }
       });
 
       // Cleanup orchestrator esposto per beforeUnmount()
       try {
         instance.proxy._cleanup = () => {
-          try { if (currentEvtSource) { currentEvtSource.close(); currentEvtSource = null } } catch { }
-          try { if (recognition && isListening) { recognition.stop(); recognition.abort && recognition.abort() } } catch { }
-          try { if (renderer && renderer.dispose) renderer.dispose() } catch { }
-          try { if (scene) { scene.traverse((o) => { try { o.geometry?.dispose?.() } catch { }; try { if (o.material) { if (Array.isArray(o.material)) o.material.forEach(m => m.dispose?.()); else o.material.dispose?.() } } catch { } }) } } catch { }
-        }
+          try {
+            if (currentEvtSource) {
+              currentEvtSource.close();
+              currentEvtSource = null;
+            }
+          } catch { }
+          try {
+            if (recognition && isListening) {
+              recognition.stop();
+              recognition.abort && recognition.abort();
+            }
+          } catch { }
+          try {
+            if (renderer && renderer.dispose) renderer.dispose();
+          } catch { }
+          try {
+            if (scene) {
+              scene.traverse((o) => {
+                try {
+                  o.geometry?.dispose?.();
+                } catch { }
+                try {
+                  if (o.material) {
+                    if (Array.isArray(o.material))
+                      o.material.forEach((m) => m.dispose?.());
+                    else o.material.dispose?.();
+                  }
+                } catch { }
+              });
+            }
+          } catch { }
+        };
       } catch { }
 
       // initThree rimosso per evitare doppie istanze UMD: usiamo solo import ESM da initLibraries()
 
       function setupScene() {
-        const stage = (rootEl && rootEl.querySelector) ? rootEl.querySelector('#avatarStage') : document.getElementById('avatarStage');
+        const stage =
+          rootEl && rootEl.querySelector
+            ? rootEl.querySelector("#avatarStage")
+            : document.getElementById("avatarStage");
         const rect = stage.getBoundingClientRect();
-        let width = Math.floor((rect.width && rect.width > 0) ? rect.width : Math.min(window.innerWidth || 360, 520));
-        let height = Math.floor((rect.height && rect.height > 0) ? rect.height : Math.round(width * 4 / 3));
-        if (!width || width < 10 || !height || height < 10) { width = 800; height = 450; stage.style.width = width + 'px'; stage.style.height = height + 'px'; }
+        let width = Math.floor(
+          rect.width && rect.width > 0
+            ? rect.width
+            : Math.min(window.innerWidth || 360, 520)
+        );
+        let height = Math.floor(
+          rect.height && rect.height > 0
+            ? rect.height
+            : Math.round((width * 4) / 3)
+        );
+        if (!width || width < 10 || !height || height < 10) {
+          width = 800;
+          height = 450;
+          stage.style.width = width + "px";
+          stage.style.height = height + "px";
+        }
         scene = new THREE.Scene();
         // Use CSS background on stage: centered and fit by height (no stretch)
         try {
           const setStageBg = (url) => {
             try {
               stage.style.backgroundImage = `url('${url}')`;
-              stage.style.backgroundPosition = 'center center';
-              stage.style.backgroundRepeat = 'no-repeat';
-              stage.style.backgroundSize = 'auto 100%'; // fit height
+              stage.style.backgroundPosition = "center center";
+              stage.style.backgroundRepeat = "no-repeat";
+              stage.style.backgroundSize = "auto 100%"; // fit height
             } catch { }
           };
           const img = new Image();
-          img.onload = () => setStageBg('/images/office.webp');
+          img.onload = () => setStageBg("/images/office.webp");
           img.onerror = () => {
             try {
               const img2 = new Image();
-              img2.onload = () => setStageBg('/images/office.webp');
-              img2.onerror = () => { try { stage.style.backgroundImage = ''; } catch { } };
-              img2.src = '/images/office.webp';
+              img2.onload = () => setStageBg("/images/office.webp");
+              img2.onerror = () => {
+                try {
+                  stage.style.backgroundImage = "";
+                } catch { }
+              };
+              img2.src = "/images/office.webp";
             } catch { }
           };
-          img.src = '/images/office.webp';
+          img.src = "/images/office.webp";
         } catch { }
-        camera = new THREE.PerspectiveCamera(2, width / height, 0.1, 100); camera.position.set(0, 0.5, 2);
-        try { console.log('CAM init', { pos: camera.position.toArray(), fov: camera.fov }); } catch { }
+        camera = new THREE.PerspectiveCamera(2, width / height, 0.1, 100);
+        camera.position.set(0, 0.5, 2);
+        try {
+          console.log("CAM init", {
+            pos: camera.position.toArray(),
+            fov: camera.fov,
+          });
+        } catch { }
         renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-        try { renderer.setClearColor(0x000000, 0); } catch { }
+        try {
+          renderer.setClearColor(0x000000, 0);
+        } catch { }
         renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
         renderer.setSize(width, height);
-        stage.innerHTML = '';
+        stage.innerHTML = "";
         stage.appendChild(renderer.domElement);
-        renderer.domElement.style.width = '100%'; renderer.domElement.style.height = '100%';
-        const light = new THREE.DirectionalLight(0xffffff, 1.0); light.position.set(1, 2, 3); scene.add(light); scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+        renderer.domElement.style.width = "100%";
+        renderer.domElement.style.height = "100%";
+        const light = new THREE.DirectionalLight(0xffffff, 1.0);
+        light.position.set(1, 2, 3);
+        scene.add(light);
+        scene.add(new THREE.AmbientLight(0xffffff, 0.4));
         const headGeom = new THREE.SphereGeometry(0.6, 32, 32);
-        const headMat = new THREE.MeshStandardMaterial({ color: 0x8fa7ff, roughness: 0.6, metalness: 0.0 });
-        head = new THREE.Mesh(headGeom, headMat); head.position.y = 0.2; scene.add(head);
+        const headMat = new THREE.MeshStandardMaterial({
+          color: 0x8fa7ff,
+          roughness: 0.6,
+          metalness: 0.0,
+        });
+        head = new THREE.Mesh(headGeom, headMat);
+        head.position.y = 0.2;
+        scene.add(head);
         const jawGeom = new THREE.BoxGeometry(0.8, 0.25, 0.6);
-        const jawMat = new THREE.MeshStandardMaterial({ color: 0x9bb0ff, roughness: 0.6 });
-        jaw = new THREE.Mesh(jawGeom, jawMat); jaw.position.y = -0.25; jaw.position.z = 0.0; jaw.geometry.translate(0, 0.12, 0); scene.add(jaw);
-        console.log('setupScene: start, THREE present =', !!window.THREE);
+        const jawMat = new THREE.MeshStandardMaterial({
+          color: 0x9bb0ff,
+          roughness: 0.6,
+        });
+        jaw = new THREE.Mesh(jawGeom, jawMat);
+        jaw.position.y = -0.25;
+        jaw.position.z = 0.0;
+        jaw.geometry.translate(0, 0.12, 0);
+        scene.add(jaw);
+        console.log("setupScene: start, THREE present =", !!window.THREE);
         try {
           // OrbitControls removed
-        } catch (e) { /* noop */ }
+        } catch (e) {
+          /* noop */
+        }
         animate();
-        window.addEventListener('resize', onResize);
-        if ('ResizeObserver' in window) {
+        window.addEventListener("resize", onResize);
+        if ("ResizeObserver" in window) {
           try {
-            window.__enjoyTalkResizeObserver?.disconnect?.()
+            window.__enjoyTalkResizeObserver?.disconnect?.();
           } catch { }
           try {
-            window.__enjoyTalkResizeObserver = new ResizeObserver(onResize)
-            window.__enjoyTalkResizeObserver.observe(stage)
+            window.__enjoyTalkResizeObserver = new ResizeObserver(onResize);
+            window.__enjoyTalkResizeObserver.observe(stage);
           } catch { }
         }
         // Caricamento avatar orchestrato in mounted(); evita doppi trigger qui
@@ -994,33 +2152,74 @@ export default defineComponent({
 
       function onResize() {
         if (!renderer || !camera) return;
-        const stage = (rootEl && rootEl.querySelector) ? rootEl.querySelector('#avatarStage') : document.getElementById('avatarStage');
-        const controls = (rootEl && rootEl.querySelector) ? rootEl.querySelector('#controlsBar') : document.getElementById('controlsBar');
+        const stage =
+          rootEl && rootEl.querySelector
+            ? rootEl.querySelector("#avatarStage")
+            : document.getElementById("avatarStage");
+        const controls =
+          rootEl && rootEl.querySelector
+            ? rootEl.querySelector("#controlsBar")
+            : document.getElementById("controlsBar");
         const rect = stage.getBoundingClientRect();
-        let width = Math.floor((rect.width && rect.width > 0) ? rect.width : Math.min(window.innerWidth || 360, 520));
-        let height = Math.floor((rect.height && rect.height > 0) ? rect.height : Math.round(width * 4 / 3));
-        if (!width || width < 10 || !height || height < 10) { width = 800; height = 450; stage.style.width = width + 'px'; stage.style.height = height + 'px'; }
+        let width = Math.floor(
+          rect.width && rect.width > 0
+            ? rect.width
+            : Math.min(window.innerWidth || 360, 520)
+        );
+        let height = Math.floor(
+          rect.height && rect.height > 0
+            ? rect.height
+            : Math.round((width * 4) / 3)
+        );
+        if (!width || width < 10 || !height || height < 10) {
+          width = 800;
+          height = 450;
+          stage.style.width = width + "px";
+          stage.style.height = height + "px";
+        }
         renderer.setSize(width, height);
-        camera.aspect = width / height; camera.updateProjectionMatrix();
-        try { const controlsRect = controls ? controls.getBoundingClientRect() : null; const pad = controlsRect ? Math.ceil(controlsRect.height) : 0; document.body.style.setProperty('--controls-pad', pad + 'px'); } catch { }
-        try { const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight; const maxH = Math.max(320, Math.floor(vh - (controls?.offsetHeight || 0) - 180)); stage.style.maxHeight = maxH + 'px'; } catch { }
+        camera.aspect = width / height;
+        camera.updateProjectionMatrix();
+        try {
+          const controlsRect = controls
+            ? controls.getBoundingClientRect()
+            : null;
+          const pad = controlsRect ? Math.ceil(controlsRect.height) : 0;
+          document.body.style.setProperty("--controls-pad", pad + "px");
+        } catch { }
+        try {
+          const vh = window.visualViewport
+            ? window.visualViewport.height
+            : window.innerHeight;
+          const maxH = Math.max(
+            320,
+            Math.floor(vh - (controls?.offsetHeight || 0) - 180)
+          );
+          stage.style.maxHeight = maxH + "px";
+        } catch { }
       }
 
       function ensureBasePose() {
         if (idleState.baseSet) return;
-        const set = (name, bone) => { if (bone) idleState.basePose[name] = { rot: bone.rotation.clone(), pos: bone.position.clone() }; };
-        set('Hips', bonesMap['Hips']);
-        set('Spine', bonesMap['Spine']);
-        set('Spine1', bonesMap['Spine1']);
-        set('Spine2', bonesMap['Spine2']);
-        set('Neck', bonesMap['Neck']);
-        set('Head', headBone);
-        set('LeftShoulder', shoulderLBone);
-        set('RightShoulder', shoulderRBone);
-        set('LeftArm', armLBone);
-        set('RightArm', armRBone);
-        set('LeftForeArm', forearmLBone);
-        set('RightForeArm', forearmRBone);
+        const set = (name, bone) => {
+          if (bone)
+            idleState.basePose[name] = {
+              rot: bone.rotation.clone(),
+              pos: bone.position.clone(),
+            };
+        };
+        set("Hips", bonesMap["Hips"]);
+        set("Spine", bonesMap["Spine"]);
+        set("Spine1", bonesMap["Spine1"]);
+        set("Spine2", bonesMap["Spine2"]);
+        set("Neck", bonesMap["Neck"]);
+        set("Head", headBone);
+        set("LeftShoulder", shoulderLBone);
+        set("RightShoulder", shoulderRBone);
+        set("LeftArm", armLBone);
+        set("RightArm", armRBone);
+        set("LeftForeArm", forearmLBone);
+        set("RightForeArm", forearmRBone);
         idleState.baseSet = true;
       }
 
@@ -1030,46 +2229,84 @@ export default defineComponent({
 
       function applyIdleFacial(t) {
         try {
-          const talking = cloudAudioSpeaking || (window.speechSynthesis && window.speechSynthesis.speaking);
-          if (talking || !Array.isArray(visemeMeshes) || visemeMeshes.length === 0) return;
+          const talking =
+            cloudAudioSpeaking ||
+            (window.speechSynthesis && window.speechSynthesis.speaking);
+          if (
+            talking ||
+            !Array.isArray(visemeMeshes) ||
+            visemeMeshes.length === 0
+          )
+            return;
           for (const vm of visemeMeshes) {
-            const infl = vm.mesh && vm.mesh.morphTargetInfluences; const idxs = vm.indices || {}; if (!infl) continue;
+            const infl = vm.mesh && vm.mesh.morphTargetInfluences;
+            const idxs = vm.indices || {};
+            if (!infl) continue;
             const s = (a, min = 0, max = 1) => Math.max(min, Math.min(max, a));
-            const v = (amp, w, phase = 0) => (0.5 + 0.5 * Math.sin(w * t + phase)) * amp;
+            const v = (amp, w, phase = 0) =>
+              (0.5 + 0.5 * Math.sin(w * t + phase)) * amp;
             // Brows
-            if (idxs.browInnerUp >= 0) infl[idxs.browInnerUp] = s(v(0.06, 0.5, 0.7));
-            if (idxs.browOuterUpLeft >= 0) infl[idxs.browOuterUpLeft] = s(v(0.05, 0.45, 1.4));
-            if (idxs.browOuterUpRight >= 0) infl[idxs.browOuterUpRight] = s(v(0.05, 0.47, 2.1));
-            if (idxs.browDownLeft >= 0) infl[idxs.browDownLeft] = s(v(0.03, 0.35, 2.7));
-            if (idxs.browDownRight >= 0) infl[idxs.browDownRight] = s(v(0.03, 0.33, 1.9));
+            if (idxs.browInnerUp >= 0)
+              infl[idxs.browInnerUp] = s(v(0.06, 0.5, 0.7));
+            if (idxs.browOuterUpLeft >= 0)
+              infl[idxs.browOuterUpLeft] = s(v(0.05, 0.45, 1.4));
+            if (idxs.browOuterUpRight >= 0)
+              infl[idxs.browOuterUpRight] = s(v(0.05, 0.47, 2.1));
+            if (idxs.browDownLeft >= 0)
+              infl[idxs.browDownLeft] = s(v(0.03, 0.35, 2.7));
+            if (idxs.browDownRight >= 0)
+              infl[idxs.browDownRight] = s(v(0.03, 0.33, 1.9));
             // Eyes subtle squint/ wide
-            if (idxs.eyeSquintLeft >= 0) infl[idxs.eyeSquintLeft] = s(v(0.04, 0.8, 0.9));
-            if (idxs.eyeSquintRight >= 0) infl[idxs.eyeSquintRight] = s(v(0.04, 0.78, 1.3));
-            if (idxs.eyeWideLeft >= 0) infl[idxs.eyeWideLeft] = s(v(0.02, 0.9, 0.2));
-            if (idxs.eyeWideRight >= 0) infl[idxs.eyeWideRight] = s(v(0.02, 0.92, 0.4));
+            if (idxs.eyeSquintLeft >= 0)
+              infl[idxs.eyeSquintLeft] = s(v(0.04, 0.8, 0.9));
+            if (idxs.eyeSquintRight >= 0)
+              infl[idxs.eyeSquintRight] = s(v(0.04, 0.78, 1.3));
+            if (idxs.eyeWideLeft >= 0)
+              infl[idxs.eyeWideLeft] = s(v(0.02, 0.9, 0.2));
+            if (idxs.eyeWideRight >= 0)
+              infl[idxs.eyeWideRight] = s(v(0.02, 0.92, 0.4));
             // Nose tiny movement
-            if (idxs.noseSneerLeft >= 0) infl[idxs.noseSneerLeft] = s(v(0.01, 0.5, 0.3));
-            if (idxs.noseSneerRight >= 0) infl[idxs.noseSneerRight] = s(v(0.01, 0.52, 0.6));
+            if (idxs.noseSneerLeft >= 0)
+              infl[idxs.noseSneerLeft] = s(v(0.01, 0.5, 0.3));
+            if (idxs.noseSneerRight >= 0)
+              infl[idxs.noseSneerRight] = s(v(0.01, 0.52, 0.6));
             // Mouth resting micro-tension
-            if (idxs.mouthDimpleLeft >= 0) infl[idxs.mouthDimpleLeft] = s(v(0.025, 0.7, 0.5));
-            if (idxs.mouthDimpleRight >= 0) infl[idxs.mouthDimpleRight] = s(v(0.025, 0.68, 1.1));
-            if (idxs.mouthPressLeft >= 0) infl[idxs.mouthPressLeft] = s(v(0.02, 0.55, 1.6));
-            if (idxs.mouthPressRight >= 0) infl[idxs.mouthPressRight] = s(v(0.02, 0.57, 2.0));
-            if (idxs.mouthUpperUpLeft >= 0) infl[idxs.mouthUpperUpLeft] = s(v(0.02, 0.4, 1.4));
-            if (idxs.mouthUpperUpRight >= 0) infl[idxs.mouthUpperUpRight] = s(v(0.02, 0.42, 0.8));
-            if (idxs.mouthFrownLeft >= 0) infl[idxs.mouthFrownLeft] = s(v(0.015, 0.5, 2.2));
-            if (idxs.mouthFrownRight >= 0) infl[idxs.mouthFrownRight] = s(v(0.015, 0.52, 2.6));
-            if (idxs.mouthStretchLeft >= 0) infl[idxs.mouthStretchLeft] = s(v(0.015, 0.35, 0.9));
-            if (idxs.mouthStretchRight >= 0) infl[idxs.mouthStretchRight] = s(v(0.015, 0.37, 1.2));
-            if (idxs.mouthRollLower >= 0) infl[idxs.mouthRollLower] = s(v(0.02, 0.5, 1.9));
-            if (idxs.mouthRollUpper >= 0) infl[idxs.mouthRollUpper] = s(v(0.02, 0.48, 0.4));
+            if (idxs.mouthDimpleLeft >= 0)
+              infl[idxs.mouthDimpleLeft] = s(v(0.025, 0.7, 0.5));
+            if (idxs.mouthDimpleRight >= 0)
+              infl[idxs.mouthDimpleRight] = s(v(0.025, 0.68, 1.1));
+            if (idxs.mouthPressLeft >= 0)
+              infl[idxs.mouthPressLeft] = s(v(0.02, 0.55, 1.6));
+            if (idxs.mouthPressRight >= 0)
+              infl[idxs.mouthPressRight] = s(v(0.02, 0.57, 2.0));
+            if (idxs.mouthUpperUpLeft >= 0)
+              infl[idxs.mouthUpperUpLeft] = s(v(0.02, 0.4, 1.4));
+            if (idxs.mouthUpperUpRight >= 0)
+              infl[idxs.mouthUpperUpRight] = s(v(0.02, 0.42, 0.8));
+            if (idxs.mouthFrownLeft >= 0)
+              infl[idxs.mouthFrownLeft] = s(v(0.015, 0.5, 2.2));
+            if (idxs.mouthFrownRight >= 0)
+              infl[idxs.mouthFrownRight] = s(v(0.015, 0.52, 2.6));
+            if (idxs.mouthStretchLeft >= 0)
+              infl[idxs.mouthStretchLeft] = s(v(0.015, 0.35, 0.9));
+            if (idxs.mouthStretchRight >= 0)
+              infl[idxs.mouthStretchRight] = s(v(0.015, 0.37, 1.2));
+            if (idxs.mouthRollLower >= 0)
+              infl[idxs.mouthRollLower] = s(v(0.02, 0.5, 1.9));
+            if (idxs.mouthRollUpper >= 0)
+              infl[idxs.mouthRollUpper] = s(v(0.02, 0.48, 0.4));
             // Cheeks
-            if (idxs.cheekPuff >= 0) infl[idxs.cheekPuff] = s(v(0.01, 0.27, 1.3));
-            if (idxs.cheekSquintLeft >= 0) infl[idxs.cheekSquintLeft] = s(v(0.02, 0.7, 0.5));
-            if (idxs.cheekSquintRight >= 0) infl[idxs.cheekSquintRight] = s(v(0.02, 0.72, 0.7));
+            if (idxs.cheekPuff >= 0)
+              infl[idxs.cheekPuff] = s(v(0.01, 0.27, 1.3));
+            if (idxs.cheekSquintLeft >= 0)
+              infl[idxs.cheekSquintLeft] = s(v(0.02, 0.7, 0.5));
+            if (idxs.cheekSquintRight >= 0)
+              infl[idxs.cheekSquintRight] = s(v(0.02, 0.72, 0.7));
             // Smile from lipConfig
-            if (idxs.mouthSmileL >= 0) infl[idxs.mouthSmileL] = s(lipConfig.smileStrength);
-            if (idxs.mouthSmileR >= 0) infl[idxs.mouthSmileR] = s(lipConfig.smileStrength);
+            if (idxs.mouthSmileL >= 0)
+              infl[idxs.mouthSmileL] = s(lipConfig.smileStrength);
+            if (idxs.mouthSmileR >= 0)
+              infl[idxs.mouthSmileR] = s(lipConfig.smileStrength);
           }
         } catch { }
       }
@@ -1081,21 +2318,32 @@ export default defineComponent({
           const now = performance.now();
 
           const t = now * 0.001;
-          const breathe = 0.006 * (0.5 + 0.5 * Math.sin((t + idleState.breatheOffset) * 0.9));
+          const breathe =
+            0.006 * (0.5 + 0.5 * Math.sin((t + idleState.breatheOffset) * 0.9));
           const sway = 0.01 * Math.sin((t + idleState.swayOffset) * 0.25);
           // Breathing on spine chain
           const applySpine = (name, mul) => {
-            const b = bonesMap[name]; const base = idleState.basePose[name]; if (!b || !base) return;
+            const b = bonesMap[name];
+            const base = idleState.basePose[name];
+            if (!b || !base) return;
             b.rotation.x = base.rot.x + breathe * mul;
           };
-          applySpine('Spine', 0.7);
-          applySpine('Spine1', 0.9);
-          applySpine('Spine2', 1.0);
+          applySpine("Spine", 0.7);
+          applySpine("Spine1", 0.9);
+          applySpine("Spine2", 1.0);
           // Hips subtle sway/shift
-          const hips = bonesMap['Hips']; const baseH = idleState.basePose['Hips'];
-          if (hips && baseH) { hips.rotation.y = baseH.rot.y + sway * 0.5; }
+          const hips = bonesMap["Hips"];
+          const baseH = idleState.basePose["Hips"];
+          if (hips && baseH) {
+            hips.rotation.y = baseH.rot.y + sway * 0.5;
+          }
           // Shoulders and arms relaxed pendulum
-          const lSh = shoulderLBone, rSh = shoulderRBone, lA = armLBone, rA = armRBone, lF = forearmLBone, rF = forearmRBone;
+          const lSh = shoulderLBone,
+            rSh = shoulderRBone,
+            lA = armLBone,
+            rA = armRBone,
+            lF = forearmLBone,
+            rF = forearmRBone;
 
           // Set arms to final position immediately at startup
           if (!idleState.relaxDone && lA && rA) {
@@ -1105,8 +2353,10 @@ export default defineComponent({
             rA.rotation.z = 0.5;
             idleState.relaxDone = true;
             // update base pose for arms
-            if (idleState.basePose['LeftArm']) idleState.basePose['LeftArm'].rot = lA.rotation.clone();
-            if (idleState.basePose['RightArm']) idleState.basePose['RightArm'].rot = rA.rotation.clone();
+            if (idleState.basePose["LeftArm"])
+              idleState.basePose["LeftArm"].rot = lA.rotation.clone();
+            if (idleState.basePose["RightArm"])
+              idleState.basePose["RightArm"].rot = rA.rotation.clone();
           } else if (idleState.relaxDone && lA && rA) {
             // Keep arms in position
             lA.rotation.x = 1;
@@ -1119,30 +2369,50 @@ export default defineComponent({
           // (removed animated movements - keeping them still)
 
           // Head micro movements and occasional nod/glance
-          if (headBone && idleState.basePose['Head']) {
-            const base = idleState.basePose['Head'].rot;
+          if (headBone && idleState.basePose["Head"]) {
+            const base = idleState.basePose["Head"].rot;
             // default subtle drift
             let yaw = 0.02 * Math.sin(t * 0.35 + 0.7);
             let pitch = 0.015 * Math.sin(t * 0.5 + 1.3);
             let roll = 0.01 * Math.sin(t * 0.4 + 2.1);
             // scheduled head glance with hold
-            if (now >= idleState.nextHeadGlanceAt && idleState.headGlancePhase === 0) {
+            if (
+              now >= idleState.nextHeadGlanceAt &&
+              idleState.headGlancePhase === 0
+            ) {
               idleState.headGlancePhase = 0.001;
-              idleState.headGlanceTarget = { yaw: (Math.random() - 0.5) * 0.35, pitch: (Math.random() - 0.5) * 0.12 };
+              idleState.headGlanceTarget = {
+                yaw: (Math.random() - 0.5) * 0.35,
+                pitch: (Math.random() - 0.5) * 0.12,
+              };
             }
             if (idleState.headGlancePhase > 0) {
-              idleState.headGlancePhase = Math.min(1, idleState.headGlancePhase + 0.08);
-              const ease = idleState.headGlancePhase <= 0.5 ? (2 * idleState.headGlancePhase * idleState.headGlancePhase) : (1 - Math.pow(-2 * idleState.headGlancePhase + 2, 2) / 2);
+              idleState.headGlancePhase = Math.min(
+                1,
+                idleState.headGlancePhase + 0.08
+              );
+              const ease =
+                idleState.headGlancePhase <= 0.5
+                  ? 2 * idleState.headGlancePhase * idleState.headGlancePhase
+                  : 1 - Math.pow(-2 * idleState.headGlancePhase + 2, 2) / 2;
               yaw += idleState.headGlanceTarget.yaw * ease;
               pitch += idleState.headGlanceTarget.pitch * ease;
-              if (idleState.headGlancePhase >= 1 && idleState.headGlanceHoldUntil === 0) {
-                idleState.headGlanceHoldUntil = now + (400 + Math.random() * 500);
+              if (
+                idleState.headGlancePhase >= 1 &&
+                idleState.headGlanceHoldUntil === 0
+              ) {
+                idleState.headGlanceHoldUntil =
+                  now + (400 + Math.random() * 500);
               }
-              if (idleState.headGlanceHoldUntil && now > idleState.headGlanceHoldUntil) {
+              if (
+                idleState.headGlanceHoldUntil &&
+                now > idleState.headGlanceHoldUntil
+              ) {
                 // return to center
                 idleState.headGlancePhase = 0;
                 idleState.headGlanceHoldUntil = 0;
-                idleState.nextHeadGlanceAt = now + (2400 + Math.random() * 2800);
+                idleState.nextHeadGlanceAt =
+                  now + (2400 + Math.random() * 2800);
                 // invert target so easing back blends nicely
                 idleState.headGlanceTarget = { yaw: 0, pitch: 0 };
               }
@@ -1151,48 +2421,77 @@ export default defineComponent({
             headBone.rotation.x = base.x + pitch;
             headBone.rotation.z = base.z + roll;
             // scheduled micro nod
-            if (now >= idleState.nextHeadNodAt && idleState.headNodPhase === 0) {
+            if (
+              now >= idleState.nextHeadNodAt &&
+              idleState.headNodPhase === 0
+            ) {
               idleState.headNodPhase = 0.001; // start
             }
             if (idleState.headNodPhase > 0) {
-              idleState.headNodPhase = Math.min(1, idleState.headNodPhase + 0.06);
-              const k = idleState.headNodPhase <= 0.5 ? (idleState.headNodPhase * 2) : (1 - (idleState.headNodPhase - 0.5) * 2);
-              headBone.rotation.x += 0.03 * Math.sin(Math.PI * Math.pow(Math.max(0, Math.min(1, k)), 1.4));
-              if (idleState.headNodPhase >= 1) { idleState.headNodPhase = 0; idleState.nextHeadNodAt = now + (3500 + Math.random() * 5000); }
+              idleState.headNodPhase = Math.min(
+                1,
+                idleState.headNodPhase + 0.06
+              );
+              const k =
+                idleState.headNodPhase <= 0.5
+                  ? idleState.headNodPhase * 2
+                  : 1 - (idleState.headNodPhase - 0.5) * 2;
+              headBone.rotation.x +=
+                0.03 *
+                Math.sin(Math.PI * Math.pow(Math.max(0, Math.min(1, k)), 1.4));
+              if (idleState.headNodPhase >= 1) {
+                idleState.headNodPhase = 0;
+                idleState.nextHeadNodAt = now + (3500 + Math.random() * 5000);
+              }
             }
           }
           // Eyes quick micro saccades using eye bones if present
-          const lEye = bonesMap['LeftEye']; const rEye = bonesMap['RightEye'];
+          const lEye = bonesMap["LeftEye"];
+          const rEye = bonesMap["RightEye"];
           if (lEye && rEye) {
             if (now >= idleState.nextGlanceAt && idleState.glancePhase === 0) {
               idleState.glancePhase = 0.001;
-              idleState.glanceTarget = { yaw: (Math.random() - 0.5) * 0.18, pitch: (Math.random() - 0.5) * 0.12 };
+              idleState.glanceTarget = {
+                yaw: (Math.random() - 0.5) * 0.18,
+                pitch: (Math.random() - 0.5) * 0.12,
+              };
             }
             if (idleState.glancePhase > 0) {
               idleState.glancePhase = Math.min(1, idleState.glancePhase + 0.18);
-              const ease = idleState.glancePhase <= 0.5 ? (2 * idleState.glancePhase * idleState.glancePhase) : (1 - Math.pow(-2 * idleState.glancePhase + 2, 2) / 2);
+              const ease =
+                idleState.glancePhase <= 0.5
+                  ? 2 * idleState.glancePhase * idleState.glancePhase
+                  : 1 - Math.pow(-2 * idleState.glancePhase + 2, 2) / 2;
               lEye.rotation.y = idleState.glanceTarget.yaw * ease;
               rEye.rotation.y = idleState.glanceTarget.yaw * ease;
               lEye.rotation.x = idleState.glanceTarget.pitch * ease;
               rEye.rotation.x = idleState.glanceTarget.pitch * ease;
-              if (idleState.glancePhase >= 1) { idleState.glancePhase = 0; idleState.nextGlanceAt = now + (900 + Math.random() * 1900); }
+              if (idleState.glancePhase >= 1) {
+                idleState.glancePhase = 0;
+                idleState.nextGlanceAt = now + (900 + Math.random() * 1900);
+              }
             } else {
               // drift back to center slowly
-              lEye.rotation.y *= 0.9; rEye.rotation.y *= 0.9; lEye.rotation.x *= 0.9; rEye.rotation.x *= 0.9;
+              lEye.rotation.y *= 0.9;
+              rEye.rotation.y *= 0.9;
+              lEye.rotation.x *= 0.9;
+              rEye.rotation.x *= 0.9;
             }
           }
-          try { humanoid.updateMatrixWorld(true); } catch { }
+          try {
+            humanoid.updateMatrixWorld(true);
+          } catch { }
         } catch { }
       }
 
       function animate() {
-        const forcedClosing = (performance.now() < (forceFullCloseUntil || 0));
+        const forcedClosing = performance.now() < (forceFullCloseUntil || 0);
         animationId = requestAnimationFrame(animate);
         head.position.y = 0.2 + Math.sin(performance.now() / 1200) * 0.01;
 
-        // Aggiorna il mixer dell'animazione idle se attivo
-        if (idleAnimationMixer && idleAnimationActive) {
-          idleAnimationMixer.update(0.016); // ~60fps
+        // Aggiorna il mixer dell'animazione idle SEMPRE, per mantenerlo sincronizzato
+        if (idleAnimationMixer) {
+          idleAnimationMixer.update(0.016); // ~60fps - sempre aggiornato!
         }
 
         // Aggiorna il mixer dell'animazione talking se attivo
@@ -1200,30 +2499,61 @@ export default defineComponent({
           talkingAnimationMixer.update(0.016); // ~60fps
         }
 
+        // Controllo automatico per riavviare idle quando talking finisce
+        checkTalkingAnimationFinished();
+
         // Solo mixer delle animazioni - niente funzioni procedurali
 
         // Audio analysis and lipsync
         let amp = 0;
-        if (useBrowserTts && useBrowserTts.checked && 'speechSynthesis' in window && window.speechSynthesis.speaking) {
-          if (analyser && dataArray) { analyser.getByteFrequencyData(dataArray); const avgFreq = dataArray.reduce((a, b) => a + b) / dataArray.length; amp = avgFreq / 256; } else { amp = 0; }
+        if (
+          useBrowserTts &&
+          useBrowserTts.checked &&
+          "speechSynthesis" in window &&
+          window.speechSynthesis.speaking
+        ) {
+          if (analyser && dataArray) {
+            analyser.getByteFrequencyData(dataArray);
+            const avgFreq =
+              dataArray.reduce((a, b) => a + b) / dataArray.length;
+            amp = avgFreq / 256;
+          } else {
+            amp = 0;
+          }
         }
         if (analyser && dataArray) {
           analyser.getByteTimeDomainData(dataArray);
-          let sum = 0, zc = 0, prev = 0;
-          for (let i = 0; i < dataArray.length; i++) { const v = (dataArray[i] - 128) / 128.0; sum += v * v; if (i > 0 && ((v >= 0 && prev < 0) || (v < 0 && prev >= 0))) zc++; prev = v; }
+          let sum = 0,
+            zc = 0,
+            prev = 0;
+          for (let i = 0; i < dataArray.length; i++) {
+            const v = (dataArray[i] - 128) / 128.0;
+            sum += v * v;
+            if (i > 0 && ((v >= 0 && prev < 0) || (v < 0 && prev >= 0))) zc++;
+            prev = v;
+          }
           const rms = Math.sqrt(sum / dataArray.length);
           const targetAmp = Math.min(1, rms * 5.5);
-          const a = (targetAmp > audioAmp) ? AMP_ATTACK : AMP_RELEASE;
-          audioAmp = audioAmp * (1 - a) + targetAmp * a; amp = audioAmp;
+          const a = targetAmp > audioAmp ? AMP_ATTACK : AMP_RELEASE;
+          audioAmp = audioAmp * (1 - a) + targetAmp * a;
+          amp = audioAmp;
         }
 
         // Viseme and lipsync
         if (textVisemeEnabled) {
           const nowT = performance.now();
-          visemeSchedule = visemeSchedule.filter(it => it.end > nowT);
-          const active = visemeSchedule.find(it => it.start <= nowT && it.end > nowT);
+          visemeSchedule = visemeSchedule.filter((it) => it.end > nowT);
+          const active = visemeSchedule.find(
+            (it) => it.start <= nowT && it.end > nowT
+          );
           if (active) {
-            const blend = Math.max(0, Math.min(1, (nowT - active.start) / Math.max(1, (active.end - active.start))));
+            const blend = Math.max(
+              0,
+              Math.min(
+                1,
+                (nowT - active.start) / Math.max(1, active.end - active.start)
+              )
+            );
             visemeTargets = {
               jawOpen: active.targets.jawOpen * blend,
               mouthFunnel: active.targets.mouthFunnel * blend,
@@ -1240,244 +2570,868 @@ export default defineComponent({
         const now = performance.now();
         const restJawOpen = lipConfig.restJawOpen;
         let appliedJaw = null;
-        if (Array.isArray(visemeMeshes) && visemeMeshes.length > 0 && (visemeActiveUntil > now)) {
-          visemeStrength = visemeStrength * (1 - lipConfig.visemeStrengthAlpha) + lipConfig.visemeStrengthAlpha;
+        if (
+          Array.isArray(visemeMeshes) &&
+          visemeMeshes.length > 0 &&
+          visemeActiveUntil > now
+        ) {
+          visemeStrength =
+            visemeStrength * (1 - lipConfig.visemeStrengthAlpha) +
+            lipConfig.visemeStrengthAlpha;
           for (const vm of visemeMeshes) {
-            const infl = vm.mesh.morphTargetInfluences; if (!infl) continue;
-            console.log('[VISEME APPLY] Processing mesh:', vm.mesh.name, 'with', Object.keys(vm.indices).length, 'indices');
-            const smooth = (key, target) => { const prev = lastVisemes[key] || 0; const diff = target - prev; if (Math.abs(diff) < (deadband[key] || 0.02)) return prev; const alpha = lipConfig.morphSmoothingBeta; const v = prev * (1 - alpha) + target * alpha; lastVisemes[key] = v; return v; };
-            const setIdx = (idx, val, key) => { if (idx >= 0) { const smoothed = smooth(key, val); infl[idx] = infl[idx] * 0.7 + Math.max(0, Math.min(1, smoothed * visemeStrength)) * 0.3; console.log('[VISEME SETIDX]', key, '- idx:', idx, 'val:', val.toFixed(3), 'smoothed:', smoothed.toFixed(3), 'visemeStrength:', visemeStrength.toFixed(3), 'result:', infl[idx].toFixed(3)); } };
-            let jawv = Math.min(1, Math.max(0, visemeTargets.jawOpen + (cloudAudioSpeaking ? 0 : restJawOpen)));
-            const roundness = Math.min(1, visemeTargets.mouthFunnel + visemeTargets.mouthPucker);
-            const closeSuppression = Math.max(0, 1 - jawv * 1.5 - roundness * 0.9);
-            let constrainedClose = Math.min(lipConfig.maxMouthClose, (visemeTargets.mouthClose || 0) * closeSuppression);
+            const infl = vm.mesh.morphTargetInfluences;
+            if (!infl) continue;
+            console.log(
+              "[VISEME APPLY] Processing mesh:",
+              vm.mesh.name,
+              "with",
+              Object.keys(vm.indices).length,
+              "indices"
+            );
+            const smooth = (key, target) => {
+              const prev = lastVisemes[key] || 0;
+              const diff = target - prev;
+              if (Math.abs(diff) < (deadband[key] || 0.02)) return prev;
+              const alpha = lipConfig.morphSmoothingBeta;
+              const v = prev * (1 - alpha) + target * alpha;
+              lastVisemes[key] = v;
+              return v;
+            };
+            const setIdx = (idx, val, key) => {
+              if (idx >= 0) {
+                const smoothed = smooth(key, val);
+                infl[idx] =
+                  infl[idx] * 0.7 +
+                  Math.max(0, Math.min(1, smoothed * visemeStrength)) *
+                  0.3; /*console.log('[VISEME SETIDX]', key, '- idx:', idx, 'val:', val.toFixed(3), 'smoothed:', smoothed.toFixed(3), 'visemeStrength:', visemeStrength.toFixed(3), 'result:', infl[idx].toFixed(3)); */
+              }
+            };
+            let jawv = Math.min(
+              1,
+              Math.max(
+                0,
+                visemeTargets.jawOpen + (cloudAudioSpeaking ? 0 : restJawOpen)
+              )
+            );
+            const roundness = Math.min(
+              1,
+              visemeTargets.mouthFunnel + visemeTargets.mouthPucker
+            );
+            const closeSuppression = Math.max(
+              0,
+              1 - jawv * 1.5 - roundness * 0.9
+            );
+            let constrainedClose = Math.min(
+              lipConfig.maxMouthClose,
+              (visemeTargets.mouthClose || 0) * closeSuppression
+            );
             appliedJaw = jawv;
-            setIdx(vm.indices.jawOpen, jawv * 0.9, 'jawOpen');
-            setIdx(vm.indices.mouthFunnel, visemeTargets.mouthFunnel * 1.05, 'mouthFunnel');
-            setIdx(vm.indices.mouthPucker, visemeTargets.mouthPucker * 1.0, 'mouthPucker');
-            setIdx(vm.indices.mouthSmileL, visemeTargets.mouthSmileL * 1.05, 'mouthSmileL');
-            setIdx(vm.indices.mouthSmileR, visemeTargets.mouthSmileR * 1.05, 'mouthSmileR');
-            setIdx(vm.indices.mouthClose, constrainedClose, 'mouthClose');
+            setIdx(vm.indices.jawOpen, jawv * 0.9, "jawOpen");
+            setIdx(
+              vm.indices.mouthFunnel,
+              visemeTargets.mouthFunnel * 1.05,
+              "mouthFunnel"
+            );
+            setIdx(
+              vm.indices.mouthPucker,
+              visemeTargets.mouthPucker * 1.0,
+              "mouthPucker"
+            );
+            setIdx(
+              vm.indices.mouthSmileL,
+              visemeTargets.mouthSmileL * 1.05,
+              "mouthSmileL"
+            );
+            setIdx(
+              vm.indices.mouthSmileR,
+              visemeTargets.mouthSmileR * 1.05,
+              "mouthSmileR"
+            );
+            setIdx(vm.indices.mouthClose, constrainedClose, "mouthClose");
           }
-        } else if (morphMesh && morphIndex >= 0 && Array.isArray(morphMesh.morphTargetInfluences)) {
-          visemeStrength = 0; const target = Math.min(1, amp * 2.0 + (cloudAudioSpeaking ? 0 : restJawOpen * 0.6)); morphValue = morphValue * 0.82 + target * 0.18; morphMesh.morphTargetInfluences[morphIndex] = morphValue; appliedJaw = Math.max(target, lipConfig.minLipSeparation);
+        } else if (
+          morphMesh &&
+          morphIndex >= 0 &&
+          Array.isArray(morphMesh.morphTargetInfluences)
+        ) {
+          visemeStrength = 0;
+          const target = Math.min(
+            1,
+            amp * 2.0 + (cloudAudioSpeaking ? 0 : restJawOpen * 0.6)
+          );
+          morphValue = morphValue * 0.82 + target * 0.18;
+          morphMesh.morphTargetInfluences[morphIndex] = morphValue;
+          appliedJaw = Math.max(target, lipConfig.minLipSeparation);
         }
 
         // Jaw bone animation
         if (jawBone) {
-          if (jawBone.type === 'Bone') {
+          if (jawBone.type === "Bone") {
             window.__jawBonePrev = window.__jawBonePrev ?? 0;
-            const ampDrive = Math.min(1, (typeof audioAmp === 'number' ? audioAmp : 0) * 1.4);
-            let jawFromVisemes = Math.max(Math.min(1, Math.max(0, visemeTargets.jawOpen + (cloudAudioSpeaking ? 0 : restJawOpen))), ampDrive);
-            const jawForBone = Math.max(lipConfig.minLipSeparation, (appliedJaw !== null ? appliedJaw : jawFromVisemes));
-            const a = lipConfig.jawSmoothingAlpha; const jb = window.__jawBonePrev * (1 - a) + jawForBone * a; window.__jawBonePrev = jb;
+            const ampDrive = Math.min(
+              1,
+              (typeof audioAmp === "number" ? audioAmp : 0) * 1.4
+            );
+            let jawFromVisemes = Math.max(
+              Math.min(
+                1,
+                Math.max(
+                  0,
+                  visemeTargets.jawOpen + (cloudAudioSpeaking ? 0 : restJawOpen)
+                )
+              ),
+              ampDrive
+            );
+            const jawForBone = Math.max(
+              lipConfig.minLipSeparation,
+              appliedJaw !== null ? appliedJaw : jawFromVisemes
+            );
+            const a = lipConfig.jawSmoothingAlpha;
+            const jb = window.__jawBonePrev * (1 - a) + jawForBone * a;
+            window.__jawBonePrev = jb;
             const angle = jawSign * (jb * 0.65);
-            if (jawAxis === 'x') jawBone.rotation.x = angle; else if (jawAxis === 'y') jawBone.rotation.y = angle; else jawBone.rotation.z = angle;
-            try { jawBone.updateMatrixWorld(true); } catch { }
-            try { humanoid.updateMatrixWorld(true); } catch { }
+            if (jawAxis === "x") jawBone.rotation.x = angle;
+            else if (jawAxis === "y") jawBone.rotation.y = angle;
+            else jawBone.rotation.z = angle;
+            try {
+              jawBone.updateMatrixWorld(true);
+            } catch { }
+            try {
+              humanoid.updateMatrixWorld(true);
+            } catch { }
           }
         } else if (jaw) {
           window.__jawGeomPrev = window.__jawGeomPrev ?? 0;
-          const jawForBone = Math.max(lipConfig.minLipSeparation, (appliedJaw !== null ? appliedJaw : (amp * 0.9 + (cloudAudioSpeaking ? 0 : restJawOpen * 0.2))));
-          const a = lipConfig.jawSmoothingAlpha; const jb = window.__jawGeomPrev * (1 - a) + jawForBone * a; window.__jawGeomPrev = jb; jaw.rotation.x = -(jb * 0.5);
+          const jawForBone = Math.max(
+            lipConfig.minLipSeparation,
+            appliedJaw !== null
+              ? appliedJaw
+              : amp * 0.9 + (cloudAudioSpeaking ? 0 : restJawOpen * 0.2)
+          );
+          const a = lipConfig.jawSmoothingAlpha;
+          const jb = window.__jawGeomPrev * (1 - a) + jawForBone * a;
+          window.__jawGeomPrev = jb;
+          jaw.rotation.x = -(jb * 0.5);
         }
 
         renderer.render(scene, camera);
-        if (talkingAnimMixer) talkingAnimMixer.update(0.016);
       }
 
       function checkForTtsChunks() {
-        const vmInst = getCurrentInstance()?.proxy || {}
-        const clean = (vmInst.stripHtml ? vmInst.stripHtml(ttsBuffer) : stripHtml(ttsBuffer)); if (!clean || clean.length < 2) return;
-        const boundaryIndex = (vmInst.findSentenceBoundary ? vmInst.findSentenceBoundary(clean) : findSentenceBoundary(clean)); if (boundaryIndex <= 0) return;
-        const chunk = clean.slice(0, boundaryIndex).trim(); if (!chunk || chunk.length < 4) return;
-        if (speakQueue.some(item => item.text === chunk)) { ttsBuffer = clean.slice(boundaryIndex).trim(); return; }
-        console.log('TTS: Sending sentence:', chunk.substring(0, 80) + '...'); sendToTts(chunk); lastSentToTts = chunk; ttsBuffer = clean.slice(boundaryIndex).trim();
+        const vmInst = getCurrentInstance()?.proxy || {};
+        const clean = vmInst.stripHtml
+          ? vmInst.stripHtml(ttsBuffer)
+          : stripHtml(ttsBuffer);
+        if (!clean || clean.length < 2) return;
+        const boundaryIndex = vmInst.findSentenceBoundary
+          ? vmInst.findSentenceBoundary(clean)
+          : findSentenceBoundary(clean);
+        if (boundaryIndex <= 0) return;
+        const chunk = clean.slice(0, boundaryIndex).trim();
+        if (!chunk || chunk.length < 4) return;
+        if (speakQueue.some((item) => item.text === chunk)) {
+          ttsBuffer = clean.slice(boundaryIndex).trim();
+          return;
+        }
+        console.log("TTS: Sending sentence:", chunk.substring(0, 80) + "...");
+        sendToTts(chunk);
+        lastSentToTts = chunk;
+        ttsBuffer = clean.slice(boundaryIndex).trim();
       }
 
       function findSentenceBoundary(text) {
-        const abbreviations = ['es', 'ecc', 'etc', 'sig', 'sigg', 'sigra', 'sig.na', 'sig.ra', 'dott', 'ing', 'avv', 'prof', 'dr', 'dottssa', 'srl', 'spa', 's.p.a', 's.r.l', 'p.es', 'nr', 'n', 'art', 'cap', 'ca', 'vs', 'no'];
-        let i = 0; let lastSafe = -1;
+        const abbreviations = [
+          "es",
+          "ecc",
+          "etc",
+          "sig",
+          "sigg",
+          "sigra",
+          "sig.na",
+          "sig.ra",
+          "dott",
+          "ing",
+          "avv",
+          "prof",
+          "dr",
+          "dottssa",
+          "srl",
+          "spa",
+          "s.p.a",
+          "s.r.l",
+          "p.es",
+          "nr",
+          "n",
+          "art",
+          "cap",
+          "ca",
+          "vs",
+          "no",
+        ];
+        let i = 0;
+        let lastSafe = -1;
         while (i < text.length) {
           const ch = text[i];
-          let isBoundary = false; let endIndex = i + 1;
-          if (ch === '.' || ch === '!' || ch === '?' || ch === '…') {
-            if (ch === '.' && text.slice(i, i + 3) === '...') { endIndex = i + 3; isBoundary = true; i = i + 3; }
-            else {
-              const nextNonSpaceIdx = findNextNonSpace(text, i + 1); const prevNonSpaceIdx = findPrevNonSpace(text, i - 1);
-              const nextCh = nextNonSpaceIdx >= 0 ? text[nextNonSpaceIdx] : ''; const prevCh = prevNonSpaceIdx >= 0 ? text[prevNonSpaceIdx] : '';
-              const decimalLike = ch === '.' && /[0-9]/.test(prevCh) && /[0-9]/.test(nextCh);
+          let isBoundary = false;
+          let endIndex = i + 1;
+          if (ch === "." || ch === "!" || ch === "?" || ch === "…") {
+            if (ch === "." && text.slice(i, i + 3) === "...") {
+              endIndex = i + 3;
+              isBoundary = true;
+              i = i + 3;
+            } else {
+              const nextNonSpaceIdx = findNextNonSpace(text, i + 1);
+              const prevNonSpaceIdx = findPrevNonSpace(text, i - 1);
+              const nextCh = nextNonSpaceIdx >= 0 ? text[nextNonSpaceIdx] : "";
+              const prevCh = prevNonSpaceIdx >= 0 ? text[prevNonSpaceIdx] : "";
+              const decimalLike =
+                ch === "." && /[0-9]/.test(prevCh) && /[0-9]/.test(nextCh);
               let abbrevLike = false;
-              if (ch === '.') { const startTok = findTokenStart(text, i - 1); const token = text.slice(startTok, i).toLowerCase().replace(/\./g, ''); if (token.length > 0 && abbreviations.includes(token)) { abbrevLike = true; } }
-              if (!decimalLike && !abbrevLike) { isBoundary = true; i = i + 1; } else { i = i + 1; }
+              if (ch === ".") {
+                const startTok = findTokenStart(text, i - 1);
+                const token = text
+                  .slice(startTok, i)
+                  .toLowerCase()
+                  .replace(/\./g, "");
+                if (token.length > 0 && abbreviations.includes(token)) {
+                  abbrevLike = true;
+                }
+              }
+              if (!decimalLike && !abbrevLike) {
+                isBoundary = true;
+                i = i + 1;
+              } else {
+                i = i + 1;
+              }
             }
             if (isBoundary) {
               const afterIdx = findNextNonSpace(text, endIndex);
-              const nextIsUpper = afterIdx >= 0 ? /[A-ZÀ-Ý\(\["'“”‘’]/.test(text[afterIdx]) : true;
-              if (afterIdx < 0 || nextIsUpper || text[afterIdx - 1] === '\n') { lastSafe = endIndex; }
+              const nextIsUpper =
+                afterIdx >= 0
+                  ? /[A-ZÀ-Ý\(\["'“”‘’]/.test(text[afterIdx])
+                  : true;
+              if (afterIdx < 0 || nextIsUpper || text[afterIdx - 1] === "\n") {
+                lastSafe = endIndex;
+              }
             }
-          } else { i++; }
+          } else {
+            i++;
+          }
         }
         return lastSafe;
       }
-      function findNextNonSpace(s, start) { for (let k = start; k < s.length; k++) { if (!/\s/.test(s[k])) return k; } return -1; }
-      function findPrevNonSpace(s, start) { for (let k = start; k >= 0; k--) { if (!/\s/.test(s[k])) return k; } return -1; }
-      function findTokenStart(s, idx) { let k = idx; while (k >= 0 && /[\p{L}\p{N}\.]/u.test(s[k])) { k--; } return k + 1; }
+      function findNextNonSpace(s, start) {
+        for (let k = start; k < s.length; k++) {
+          if (!/\s/.test(s[k])) return k;
+        }
+        return -1;
+      }
+      function findPrevNonSpace(s, start) {
+        for (let k = start; k >= 0; k--) {
+          if (!/\s/.test(s[k])) return k;
+        }
+        return -1;
+      }
+      function findTokenStart(s, idx) {
+        let k = idx;
+        while (k >= 0 && /[\p{L}\p{N}\.]/u.test(s[k])) {
+          k--;
+        }
+        return k + 1;
+      }
 
       function sendToTts(text) {
-        const vmInst = getCurrentInstance()?.proxy || {}
-        const norm = (vmInst.sanitizeForTts ? vmInst.sanitizeForTts(text) : sanitizeForTts(text));
-        if (!norm || norm.length < 3) return; if (speakQueue.some(item => item.text === norm)) return;
-        if (useVideoAvatar && useVideoAvatar.checked) { try { heygenSendRepeat(norm); } catch (e) { console.error('HEYGEN repeat failed', e); } return; }
-        if (useBrowserTts && useBrowserTts.checked && 'speechSynthesis' in window) { speakQueue.push({ url: null, text: norm }); if (!isSpeaking) playNextInQueue(); return; }
-        ttsRequestQueue.push(norm); processTtsQueue(); return;
+        const vmInst = getCurrentInstance()?.proxy || {};
+        const norm = vmInst.sanitizeForTts
+          ? vmInst.sanitizeForTts(text)
+          : sanitizeForTts(text);
+        if (!norm || norm.length < 3) return;
+        if (speakQueue.some((item) => item.text === norm)) return;
+        if (useVideoAvatar && useVideoAvatar.checked) {
+          try {
+            heygenSendRepeat(norm);
+          } catch (e) {
+            console.error("HEYGEN repeat failed", e);
+          }
+          return;
+        }
+        if (
+          useBrowserTts &&
+          useBrowserTts.checked &&
+          "speechSynthesis" in window
+        ) {
+          speakQueue.push({ url: null, text: norm });
+          if (!isSpeaking) playNextInQueue();
+          return;
+        }
+        ttsRequestQueue.push(norm);
+        processTtsQueue();
+        return;
       }
-      try { instance.proxy._sendToTts = sendToTts } catch { }
+      try {
+        instance.proxy._sendToTts = sendToTts;
+      } catch { }
 
       async function processTtsQueue() {
-        if (ttsRequestInFlight) return; const next = ttsRequestQueue.shift(); if (!next) return; ttsRequestInFlight = true;
+        if (ttsRequestInFlight) return;
+        const next = ttsRequestQueue.shift();
+        if (!next) return;
+        ttsRequestInFlight = true;
         try {
-          console.log('TTS: Requesting audio for:', next.substring(0, 80));
-          const res = await fetch('/api/tts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: next, locale: 'it-IT', format: 'mp3' }) });
+          console.log("TTS: Requesting audio for:", next.substring(0, 80));
+          const res = await fetch("/api/tts", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              text: next,
+              locale: "it-IT",
+              format: "mp3",
+            }),
+          });
           if (!res.ok) throw new Error(`TTS API ${res.status}`);
-          const blob = await res.blob(); const url = URL.createObjectURL(blob);
-          speakQueue.push({ url, text: next }); if (!isSpeaking) playNextInQueue();
-        } catch (err) { console.error('TTS request failed:', err); }
-        finally { ttsRequestInFlight = false; if (ttsRequestQueue.length > 0) processTtsQueue(); }
+          const blob = await res.blob();
+          const url = URL.createObjectURL(blob);
+          speakQueue.push({ url, text: next });
+          if (!isSpeaking) playNextInQueue();
+        } catch (err) {
+          console.error("TTS request failed:", err);
+        } finally {
+          ttsRequestInFlight = false;
+          if (ttsRequestQueue.length > 0) processTtsQueue();
+        }
       }
-      try { instance.proxy._processTtsQueue = processTtsQueue } catch { }
+      try {
+        instance.proxy._processTtsQueue = processTtsQueue;
+      } catch { }
 
       function sendToTtsIfNew() {
-        const vmInst = getCurrentInstance()?.proxy || {}
-        const clean = (vmInst.stripHtml ? vmInst.stripHtml(bufferText) : stripHtml(bufferText)); if (!clean) return; const norm = clean.replace(/\s+/g, ' ').trim(); if (!norm || norm.length < 3) return;
-        if (lastSpokenTail.includes(norm)) { console.log('TTS: Skipping already spoken text:', norm.substring(0, 50)); return; }
-        if (speakQueue.some(item => item.text === norm)) { console.log('TTS: Skipping text already in queue:', norm.substring(0, 50)); return; }
-        console.log('TTS: Sending remaining text:', norm.substring(0, 100)); sendToTts(norm);
+        const vmInst = getCurrentInstance()?.proxy || {};
+        const clean = vmInst.stripHtml
+          ? vmInst.stripHtml(bufferText)
+          : stripHtml(bufferText);
+        if (!clean) return;
+        const norm = clean.replace(/\s+/g, " ").trim();
+        if (!norm || norm.length < 3) return;
+        if (lastSpokenTail.includes(norm)) {
+          console.log(
+            "TTS: Skipping already spoken text:",
+            norm.substring(0, 50)
+          );
+          return;
+        }
+        if (speakQueue.some((item) => item.text === norm)) {
+          console.log(
+            "TTS: Skipping text already in queue:",
+            norm.substring(0, 50)
+          );
+          return;
+        }
+        console.log("TTS: Sending remaining text:", norm.substring(0, 100));
+        sendToTts(norm);
       }
-      function enqueueSpeak(text) { sendToTts(text); }
+      function enqueueSpeak(text) {
+        sendToTts(text);
+      }
 
       function playNextInQueue() {
-        if (!speakQueue.length) { isSpeaking = false; console.log('TTS: Queue empty, stopping'); return; }
-        isSpeaking = true; const item = speakQueue.shift(); console.log('TTS: Playing:', item.text.substring(0, 50), '... Queue remaining:', speakQueue.length);
-        if (useBrowserTts && useBrowserTts.checked && 'speechSynthesis' in window) {
+        if (!speakQueue.length) {
+          isSpeaking = false;
+          console.log("TTS: Queue empty, stopping");
+          return;
+        }
+        isSpeaking = true;
+        const item = speakQueue.shift();
+        console.log(
+          "TTS: Playing:",
+          item.text.substring(0, 50),
+          "... Queue remaining:",
+          speakQueue.length
+        );
+        if (
+          useBrowserTts &&
+          useBrowserTts.checked &&
+          "speechSynthesis" in window
+        ) {
           try {
             const utter = new SpeechSynthesisUtterance(item.text);
-            utter.lang = 'it-IT'; utter.rate = 1.0; utter.pitch = 1.0; utter.volume = 1.0;
+            utter.lang = "it-IT";
+            utter.rate = 1.0;
+            utter.pitch = 1.0;
+            utter.volume = 1.0;
             const voices = window.speechSynthesis.getVoices();
-            const prefNames = ['Google italiano', 'Microsoft', 'Elsa', 'Lucia', 'Carla', 'Silvia', 'Alice'];
-            const itVoices = voices.filter(v => /it[-_]/i.test(v.lang));
-            const femaleVoices = itVoices.filter(v => /female|donna|feminine/i.test(v.name + ' ' + (v.voiceURI || '')));
-            const chosen = femaleVoices[0] || itVoices.find(v => prefNames.some(n => (v.name || '').includes(n))) || itVoices[0] || voices.find(v => /Italian/i.test(v.name)) || voices[0];
+            const prefNames = [
+              "Google italiano",
+              "Microsoft",
+              "Elsa",
+              "Lucia",
+              "Carla",
+              "Silvia",
+              "Alice",
+            ];
+            const itVoices = voices.filter((v) => /it[-_]/i.test(v.lang));
+            const femaleVoices = itVoices.filter((v) =>
+              /female|donna|feminine/i.test(v.name + " " + (v.voiceURI || ""))
+            );
+            const chosen =
+              femaleVoices[0] ||
+              itVoices.find((v) =>
+                prefNames.some((n) => (v.name || "").includes(n))
+              ) ||
+              itVoices[0] ||
+              voices.find((v) => /Italian/i.test(v.name)) ||
+              voices[0];
             if (chosen) utter.voice = chosen;
-            if (browserTtsStatus) browserTtsStatus.textContent = chosen ? `Voce: ${chosen.name}` : 'Voce IT non trovata (usa default)';
-            utter.onstart = () => { try { playRandomTalkingAnimation(); const nowT = performance.now(); const textClean = (item.text || '').replace(/\s+/g, ' ').trim(); const words = textClean.split(/\s+/).filter(Boolean); const charCount = textClean.length; const wordCount = words.length || Math.max(1, Math.round(charCount / 5)); const periods = (textClean.match(/[.!?…]/g) || []).length; const commas = (textClean.match(/[,:;]/g) || []).length; const parens = (textClean.match(/[()\-\u2013\u2014]/g) || []).length; const rate = (typeof utter.rate === 'number' && utter.rate > 0) ? utter.rate : 1; let estSec = ((wordCount * 0.55) * 0.5 + (charCount / 13.5) * 0.5) + (periods * 0.55 + commas * 0.32 + parens * 0.22) + 0.4; estSec = estSec / rate; estSec = Math.max(2.2, estSec); visemeSchedule = []; enqueueTextVisemes(item.text || '', Math.floor(estSec * 1000), nowT); } catch { } };
-            utter.onend = () => {
-              try { stopTalkingAnimation(); visemeSchedule = []; visemeTargets = { jawOpen: 0, mouthFunnel: 0, mouthPucker: 0, mouthSmileL: 0, mouthSmileR: 0, mouthClose: 0 }; forceFullCloseUntil = performance.now() + 220; visemeActiveUntil = performance.now() + 180; visemeStrength = 0; if (Array.isArray(visemeMeshes)) { for (const vm of visemeMeshes) { const infl = vm.mesh && vm.mesh.morphTargetInfluences; const idxs = vm.indices || {}; if (!infl) continue; try { if (idxs.mouthFunnel >= 0) infl[idxs.mouthFunnel] = 0; } catch { } try { if (idxs.mouthPucker >= 0) infl[idxs.mouthPucker] = 0; } catch { } try { if (idxs.mouthSmileL >= 0) infl[idxs.mouthSmileL] = 0; } catch { } try { if (idxs.mouthSmileR >= 0) infl[idxs.mouthSmileR] = 0; } catch { } try { if (idxs.mouthClose >= 0) infl[idxs.mouthClose] = 0; } catch { } try { if (idxs.jawOpen >= 0) infl[idxs.jawOpen] = 0; } catch { } } } if (humanoid && humanoid.updateMatrixWorld) humanoid.updateMatrixWorld(true); } catch { }
-              visemeActiveUntil = 0; visemeStrength = 0; lastSpokenTail = (lastSpokenTail + ' ' + item.text).slice(-400); lastSentToTts = ''; playNextInQueue();
+            if (browserTtsStatus)
+              browserTtsStatus.textContent = chosen
+                ? `Voce: ${chosen.name}`
+                : "Voce IT non trovata (usa default)";
+            utter.onstart = () => {
+              try {
+                playRandomTalkingAnimation();
+                const nowT = performance.now();
+                const textClean = (item.text || "").replace(/\s+/g, " ").trim();
+                const words = textClean.split(/\s+/).filter(Boolean);
+                const charCount = textClean.length;
+                const wordCount =
+                  words.length || Math.max(1, Math.round(charCount / 5));
+                const periods = (textClean.match(/[.!?…]/g) || []).length;
+                const commas = (textClean.match(/[,:;]/g) || []).length;
+                const parens = (textClean.match(/[()\-\u2013\u2014]/g) || [])
+                  .length;
+                const rate =
+                  typeof utter.rate === "number" && utter.rate > 0
+                    ? utter.rate
+                    : 1;
+                let estSec =
+                  wordCount * 0.55 * 0.5 +
+                  (charCount / 13.5) * 0.5 +
+                  (periods * 0.55 + commas * 0.32 + parens * 0.22) +
+                  0.4;
+                estSec = estSec / rate;
+                estSec = Math.max(2.2, estSec);
+                visemeSchedule = [];
+                enqueueTextVisemes(
+                  item.text || "",
+                  Math.floor(estSec * 1000),
+                  nowT
+                );
+              } catch { }
             };
-            utter.onerror = () => { if (item.url) { ttsPlayer.src = item.url; ttsPlayer.play().catch(() => { isSpeaking = false; }); } else { isSpeaking = false; playNextInQueue(); } };
-            window.speechSynthesis.speak(utter); return;
-          } catch (e) { console.warn('speechSynthesis error, fallback to audio element', e); }
+            utter.onend = () => {
+              try {
+                //stopTalkingAnimation();
+                visemeSchedule = [];
+                visemeTargets = {
+                  jawOpen: 0,
+                  mouthFunnel: 0,
+                  mouthPucker: 0,
+                  mouthSmileL: 0,
+                  mouthSmileR: 0,
+                  mouthClose: 0,
+                };
+                forceFullCloseUntil = performance.now() + 220;
+                visemeActiveUntil = performance.now() + 180;
+                visemeStrength = 0;
+                if (Array.isArray(visemeMeshes)) {
+                  for (const vm of visemeMeshes) {
+                    const infl = vm.mesh && vm.mesh.morphTargetInfluences;
+                    const idxs = vm.indices || {};
+                    if (!infl) continue;
+                    try {
+                      if (idxs.mouthFunnel >= 0) infl[idxs.mouthFunnel] = 0;
+                    } catch { }
+                    try {
+                      if (idxs.mouthPucker >= 0) infl[idxs.mouthPucker] = 0;
+                    } catch { }
+                    try {
+                      if (idxs.mouthSmileL >= 0) infl[idxs.mouthSmileL] = 0;
+                    } catch { }
+                    try {
+                      if (idxs.mouthSmileR >= 0) infl[idxs.mouthSmileR] = 0;
+                    } catch { }
+                    try {
+                      if (idxs.mouthClose >= 0) infl[idxs.mouthClose] = 0;
+                    } catch { }
+                    try {
+                      if (idxs.jawOpen >= 0) infl[idxs.jawOpen] = 0;
+                    } catch { }
+                  }
+                }
+                if (humanoid && humanoid.updateMatrixWorld)
+                  humanoid.updateMatrixWorld(true);
+              } catch { }
+              visemeActiveUntil = 0;
+              visemeStrength = 0;
+              lastSpokenTail = (lastSpokenTail + " " + item.text).slice(-400);
+              lastSentToTts = "";
+              playNextInQueue();
+            };
+            utter.onerror = () => {
+              if (item.url) {
+                ttsPlayer.src = item.url;
+                ttsPlayer.play().catch(() => {
+                  isSpeaking = false;
+                });
+              } else {
+                isSpeaking = false;
+                playNextInQueue();
+              }
+            };
+            window.speechSynthesis.speak(utter);
+            return;
+          } catch (e) {
+            console.warn("speechSynthesis error, fallback to audio element", e);
+          }
         }
         ttsPlayer.src = item.url;
-        if (!audioCtx) { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
-        if (audioCtx.state === 'suspended') { audioCtx.resume().catch(() => { }); }
-        if (!mediaNode) { mediaNode = audioCtx.createMediaElementSource(ttsPlayer); analyser = audioCtx.createAnalyser(); analyser.fftSize = 2048; dataArray = new Uint8Array(analyser.fftSize); mediaNode.connect(analyser); analyser.connect(audioCtx.destination); }
+        if (!audioCtx) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === "suspended") {
+          audioCtx.resume().catch(() => { });
+        }
+        if (!mediaNode) {
+          mediaNode = audioCtx.createMediaElementSource(ttsPlayer);
+          analyser = audioCtx.createAnalyser();
+          analyser.fftSize = 2048;
+          dataArray = new Uint8Array(analyser.fftSize);
+          mediaNode.connect(analyser);
+          analyser.connect(audioCtx.destination);
+        }
         const onEnded = () => {
           URL.revokeObjectURL(item.url);
-          lastSpokenTail = (lastSpokenTail + ' ' + item.text).slice(-400);
-          console.log('TTS: Finished playing:', item.text.substring(0, 50));
-          cloudAudioSpeaking = false; visemeSchedule = [];
-          visemeTargets = { jawOpen: 0, mouthFunnel: 0, mouthPucker: 0, mouthSmileL: 0, mouthSmileR: 0, mouthClose: 0, mouthStretchL: 0, mouthStretchR: 0, tongueOut: 0 };
-          forceFullCloseUntil = performance.now() + 220; visemeActiveUntil = performance.now() + 180;
-          try { if (Array.isArray(visemeMeshes)) { for (const vm of visemeMeshes) { const infl = vm.mesh && vm.mesh.morphTargetInfluences; const idxs = vm.indices || {}; if (!infl) continue; if (idxs.mouthFunnel >= 0) infl[idxs.mouthFunnel] = 0; if (idxs.mouthPucker >= 0) infl[idxs.mouthPucker] = 0; if (idxs.mouthSmileL >= 0) infl[idxs.mouthSmileL] = 0; if (idxs.mouthSmileR >= 0) infl[idxs.mouthSmileR] = 0; if (idxs.mouthClose >= 0) infl[idxs.mouthClose] = 0; if (idxs.jawOpen >= 0) infl[idxs.jawOpen] = 0; } } if (humanoid && humanoid.updateMatrixWorld) humanoid.updateMatrixWorld(true); } catch { }
-          stopTalkingAnimation(); ttsPlayer.removeEventListener('ended', onEnded); playNextInQueue();
+          lastSpokenTail = (lastSpokenTail + " " + item.text).slice(-400);
+          console.log("TTS: Finished playing:", item.text.substring(0, 50));
+          cloudAudioSpeaking = false;
+          visemeSchedule = [];
+          visemeTargets = {
+            jawOpen: 0,
+            mouthFunnel: 0,
+            mouthPucker: 0,
+            mouthSmileL: 0,
+            mouthSmileR: 0,
+            mouthClose: 0,
+            mouthStretchL: 0,
+            mouthStretchR: 0,
+            tongueOut: 0,
+          };
+          forceFullCloseUntil = performance.now() + 220;
+          visemeActiveUntil = performance.now() + 180;
+          try {
+            if (Array.isArray(visemeMeshes)) {
+              for (const vm of visemeMeshes) {
+                const infl = vm.mesh && vm.mesh.morphTargetInfluences;
+                const idxs = vm.indices || {};
+                if (!infl) continue;
+                if (idxs.mouthFunnel >= 0) infl[idxs.mouthFunnel] = 0;
+                if (idxs.mouthPucker >= 0) infl[idxs.mouthPucker] = 0;
+                if (idxs.mouthSmileL >= 0) infl[idxs.mouthSmileL] = 0;
+                if (idxs.mouthSmileR >= 0) infl[idxs.mouthSmileR] = 0;
+                if (idxs.mouthClose >= 0) infl[idxs.mouthClose] = 0;
+                if (idxs.jawOpen >= 0) infl[idxs.jawOpen] = 0;
+              }
+            }
+            if (humanoid && humanoid.updateMatrixWorld)
+              humanoid.updateMatrixWorld(true);
+          } catch { }
+          //stopTalkingAnimation();
+          ttsPlayer.removeEventListener("ended", onEnded);
+          playNextInQueue();
         };
-        const onError = () => { console.error('TTS: Playback error for:', item.text.substring(0, 50)); URL.revokeObjectURL(item.url); ttsPlayer.removeEventListener('ended', onEnded); ttsPlayer.removeEventListener('error', onError); isSpeaking = false; cloudAudioSpeaking = false; playNextInQueue(); };
-        ttsPlayer.addEventListener('ended', onEnded); ttsPlayer.addEventListener('error', onError);
-        const onPlaying = () => { try { playRandomTalkingAnimation(); visemeSchedule = []; } catch { } try { ttsPlayer.removeEventListener('playing', onPlaying); } catch { } };
-        ttsPlayer.addEventListener('playing', onPlaying);
-        ttsPlayer.play().then(() => { cloudAudioSpeaking = true; }).catch((err) => { console.error('TTS: Play failed:', err); isSpeaking = false; onError(); });
+        const onError = () => {
+          console.error("TTS: Playback error for:", item.text.substring(0, 50));
+          URL.revokeObjectURL(item.url);
+          ttsPlayer.removeEventListener("ended", onEnded);
+          ttsPlayer.removeEventListener("error", onError);
+          isSpeaking = false;
+          cloudAudioSpeaking = false;
+          playNextInQueue();
+        };
+        ttsPlayer.addEventListener("ended", onEnded);
+        ttsPlayer.addEventListener("error", onError);
+        const onPlaying = () => {
+          try {
+            playRandomTalkingAnimation();
+            visemeSchedule = [];
+          } catch { }
+          try {
+            ttsPlayer.removeEventListener("playing", onPlaying);
+          } catch { }
+        };
+        ttsPlayer.addEventListener("playing", onPlaying);
+        ttsPlayer
+          .play()
+          .then(() => {
+            cloudAudioSpeaking = true;
+          })
+          .catch((err) => {
+            console.error("TTS: Play failed:", err);
+            isSpeaking = false;
+            onError();
+          });
       }
-      try { instance.proxy._playNextInQueue = playNextInQueue } catch { }
+      try {
+        instance.proxy._playNextInQueue = playNextInQueue;
+      } catch { }
 
       async function heygenEnsureSession() {
         if (heygen.started || heygen.connecting) return;
         heygen.connecting = true;
         try {
-          if (!HEYGEN_CONFIG.apiKey || !HEYGEN_CONFIG.serverUrl) { videoAvatarStatus && (videoAvatarStatus.textContent = 'Config mancante'); throw new Error('HEYGEN config missing'); }
-          const tokRes = await fetch(`${HEYGEN_CONFIG.serverUrl}/v1/streaming.create_token`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Api-Key': HEYGEN_CONFIG.apiKey } });
-          const tokJson = await tokRes.json(); heygen.sessionToken = tokJson?.data?.token; if (!heygen.sessionToken) throw new Error('No session token'); videoAvatarStatus && (videoAvatarStatus.textContent = 'Token OK');
-          const body = { quality: 'high', version: 'v2', video_encoding: 'H264' };
+          if (!HEYGEN_CONFIG.apiKey || !HEYGEN_CONFIG.serverUrl) {
+            videoAvatarStatus &&
+              (videoAvatarStatus.textContent = "Config mancante");
+            throw new Error("HEYGEN config missing");
+          }
+          const tokRes = await fetch(
+            `${HEYGEN_CONFIG.serverUrl}/v1/streaming.create_token`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "X-Api-Key": HEYGEN_CONFIG.apiKey,
+              },
+            }
+          );
+          const tokJson = await tokRes.json();
+          heygen.sessionToken = tokJson?.data?.token;
+          if (!heygen.sessionToken) throw new Error("No session token");
+          videoAvatarStatus && (videoAvatarStatus.textContent = "Token OK");
+          const body = {
+            quality: "high",
+            version: "v2",
+            video_encoding: "H264",
+          };
           if (heygenAvatar) body.avatar_name = heygenAvatar;
           if (heygenVoice) body.voice = { voice_id: heygenVoice, rate: 1.0 };
-          const newRes = await fetch(`${HEYGEN_CONFIG.serverUrl}/v1/streaming.new`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${heygen.sessionToken}` }, body: JSON.stringify(body) });
-          const newJson = await newRes.json(); heygen.sessionInfo = newJson?.data; if (!heygen.sessionInfo?.session_id) throw new Error('No session info');
-          heygen.room = new LivekitClient.Room({ adaptiveStream: false, dynacast: true, videoCaptureDefaults: { resolution: LivekitClient.VideoPresets.h720.resolution } });
-          heygen.mediaStream = new MediaStream();
-          heygen.room.on(LivekitClient.RoomEvent.TrackSubscribed, async (track) => {
-            try {
-              if (track.kind === 'video') { heygen.mediaStream.addTrack(track.mediaStreamTrack); if (heygenVideo) { heygenVideo.srcObject = heygen.mediaStream; heygenVideo.muted = true; await heygenVideo.play().catch(() => { }); } videoAvatarStatus && (videoAvatarStatus.textContent = 'Video connesso'); }
-              if (track.kind === 'audio') { const audioStream = new MediaStream([track.mediaStreamTrack]); if (heygenAudio) { heygenAudio.srcObject = audioStream; await heygenAudio.play().catch(() => { }); } videoAvatarStatus && (videoAvatarStatus.textContent = 'Audio connesso'); }
-            } catch (e) { console.warn('HEYGEN: TrackSubscribed handler failed', e); }
+          const newRes = await fetch(
+            `${HEYGEN_CONFIG.serverUrl}/v1/streaming.new`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${heygen.sessionToken}`,
+              },
+              body: JSON.stringify(body),
+            }
+          );
+          const newJson = await newRes.json();
+          heygen.sessionInfo = newJson?.data;
+          if (!heygen.sessionInfo?.session_id)
+            throw new Error("No session info");
+          heygen.room = new LivekitClient.Room({
+            adaptiveStream: false,
+            dynacast: true,
+            videoCaptureDefaults: {
+              resolution: LivekitClient.VideoPresets.h720.resolution,
+            },
           });
-          heygen.room.on(LivekitClient.RoomEvent.TrackUnsubscribed, (track) => { const mt = track.mediaStreamTrack; if (mt) heygen.mediaStream.removeTrack(mt); });
-          await heygen.room.prepareConnection(heygen.sessionInfo.url, heygen.sessionInfo.access_token);
-          await fetch(`${HEYGEN_CONFIG.serverUrl}/v1/streaming.start`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${heygen.sessionToken}` }, body: JSON.stringify({ session_id: heygen.sessionInfo.session_id }) });
-          try { const params = new URLSearchParams({ session_id: heygen.sessionInfo.session_id, session_token: heygen.sessionToken, silence_response: 'true', stt_language: 'en' }); const wsUrl = `wss://${new URL(HEYGEN_CONFIG.serverUrl).hostname}/v1/ws/streaming.chat?${params}`; heygen.ws = new WebSocket(wsUrl); heygen.ws.addEventListener('message', () => { }); } catch { }
-          await heygen.room.connect(heygen.sessionInfo.url, heygen.sessionInfo.access_token);
-          try { if (heygenVideo?.srcObject && heygenVideo.paused) { await heygenVideo.play(); } } catch { }
-          try { if (heygenAudio?.srcObject && heygenAudio.paused) { await heygenAudio.play(); } } catch { }
-          heygen.started = true; videoAvatarStatus && (videoAvatarStatus.textContent = 'Connesso');
-        } catch (e) { console.error('HEYGEN: init failed', e); }
-        finally { heygen.connecting = false; }
+          heygen.mediaStream = new MediaStream();
+          heygen.room.on(
+            LivekitClient.RoomEvent.TrackSubscribed,
+            async (track) => {
+              try {
+                if (track.kind === "video") {
+                  heygen.mediaStream.addTrack(track.mediaStreamTrack);
+                  if (heygenVideo) {
+                    heygenVideo.srcObject = heygen.mediaStream;
+                    heygenVideo.muted = true;
+                    await heygenVideo.play().catch(() => { });
+                  }
+                  videoAvatarStatus &&
+                    (videoAvatarStatus.textContent = "Video connesso");
+                }
+                if (track.kind === "audio") {
+                  const audioStream = new MediaStream([track.mediaStreamTrack]);
+                  if (heygenAudio) {
+                    heygenAudio.srcObject = audioStream;
+                    await heygenAudio.play().catch(() => { });
+                  }
+                  videoAvatarStatus &&
+                    (videoAvatarStatus.textContent = "Audio connesso");
+                }
+              } catch (e) {
+                console.warn("HEYGEN: TrackSubscribed handler failed", e);
+              }
+            }
+          );
+          heygen.room.on(LivekitClient.RoomEvent.TrackUnsubscribed, (track) => {
+            const mt = track.mediaStreamTrack;
+            if (mt) heygen.mediaStream.removeTrack(mt);
+          });
+          await heygen.room.prepareConnection(
+            heygen.sessionInfo.url,
+            heygen.sessionInfo.access_token
+          );
+          await fetch(`${HEYGEN_CONFIG.serverUrl}/v1/streaming.start`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${heygen.sessionToken}`,
+            },
+            body: JSON.stringify({ session_id: heygen.sessionInfo.session_id }),
+          });
+          try {
+            const params = new URLSearchParams({
+              session_id: heygen.sessionInfo.session_id,
+              session_token: heygen.sessionToken,
+              silence_response: "true",
+              stt_language: "en",
+            });
+            const wsUrl = `wss://${new URL(HEYGEN_CONFIG.serverUrl).hostname
+              }/v1/ws/streaming.chat?${params}`;
+            heygen.ws = new WebSocket(wsUrl);
+            heygen.ws.addEventListener("message", () => { });
+          } catch { }
+          await heygen.room.connect(
+            heygen.sessionInfo.url,
+            heygen.sessionInfo.access_token
+          );
+          try {
+            if (heygenVideo?.srcObject && heygenVideo.paused) {
+              await heygenVideo.play();
+            }
+          } catch { }
+          try {
+            if (heygenAudio?.srcObject && heygenAudio.paused) {
+              await heygenAudio.play();
+            }
+          } catch { }
+          heygen.started = true;
+          videoAvatarStatus && (videoAvatarStatus.textContent = "Connesso");
+        } catch (e) {
+          console.error("HEYGEN: init failed", e);
+        } finally {
+          heygen.connecting = false;
+        }
       }
 
       async function heygenSendRepeat(text) {
         try {
-          await heygenEnsureSession(); if (!heygen.sessionInfo?.session_id) return;
-          await fetch(`${HEYGEN_CONFIG.serverUrl}/v1/streaming.task`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${heygen.sessionToken}` }, body: JSON.stringify({ session_id: heygen.sessionInfo.session_id, text, task_type: 'repeat' }) });
-        } catch (e) { console.error('HEYGEN: repeat failed', e); }
+          await heygenEnsureSession();
+          if (!heygen.sessionInfo?.session_id) return;
+          await fetch(`${HEYGEN_CONFIG.serverUrl}/v1/streaming.task`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${heygen.sessionToken}`,
+            },
+            body: JSON.stringify({
+              session_id: heygen.sessionInfo.session_id,
+              text,
+              task_type: "repeat",
+            }),
+          });
+        } catch (e) {
+          console.error("HEYGEN: repeat failed", e);
+        }
       }
 
       async function heygenClose() {
-        try { if (heygen.sessionInfo?.session_id) { await fetch(`${HEYGEN_CONFIG.serverUrl}/v1/streaming.stop`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${heygen.sessionToken}` }, body: JSON.stringify({ session_id: heygen.sessionInfo.session_id }) }); } } catch { }
-        try { if (heygen.ws && heygen.ws.readyState < 2) heygen.ws.close(); } catch { }
-        try { if (heygen.room) heygen.room.disconnect(); } catch { }
-        if (heygenVideo) { try { heygenVideo.pause(); } catch { }; heygenVideo.srcObject = null; }
-        if (heygenAudio) { try { heygenAudio.pause(); } catch { }; heygenAudio.srcObject = null; }
-        heygen = { sessionInfo: null, room: null, mediaStream: null, sessionToken: null, connecting: false, started: false };
-        videoAvatarStatus && (videoAvatarStatus.textContent = '');
+        try {
+          if (heygen.sessionInfo?.session_id) {
+            await fetch(`${HEYGEN_CONFIG.serverUrl}/v1/streaming.stop`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${heygen.sessionToken}`,
+              },
+              body: JSON.stringify({
+                session_id: heygen.sessionInfo.session_id,
+              }),
+            });
+          }
+        } catch { }
+        try {
+          if (heygen.ws && heygen.ws.readyState < 2) heygen.ws.close();
+        } catch { }
+        try {
+          if (heygen.room) heygen.room.disconnect();
+        } catch { }
+        if (heygenVideo) {
+          try {
+            heygenVideo.pause();
+          } catch { }
+          heygenVideo.srcObject = null;
+        }
+        if (heygenAudio) {
+          try {
+            heygenAudio.pause();
+          } catch { }
+          heygenAudio.srcObject = null;
+        }
+        heygen = {
+          sessionInfo: null,
+          room: null,
+          mediaStream: null,
+          sessionToken: null,
+          connecting: false,
+          started: false,
+        };
+        videoAvatarStatus && (videoAvatarStatus.textContent = "");
       }
 
-      function stripHtml(html) { const tmp = document.createElement('div'); tmp.innerHTML = html; return (tmp.textContent || tmp.innerText || '').replace(/\s+/g, ' ').trim(); }
+      function stripHtml(html) {
+        const tmp = document.createElement("div");
+        tmp.innerHTML = html;
+        return (tmp.textContent || tmp.innerText || "")
+          .replace(/\s+/g, " ")
+          .trim();
+      }
 
       function loadHumanoid() {
         if (humanoid || humanoidLoading) return;
         humanoidLoading = true;
         try {
-          const FBXLoaderCtor = window.FBXLoader; const GLTFLoaderCtor = window.GLTFLoader;
-          if (!window.THREE || (!FBXLoaderCtor && !GLTFLoaderCtor)) { console.warn('Loader non presente. THREE:', !!window.THREE, 'FBXLoader:', !!FBXLoaderCtor, 'GLTFLoader:', !!GLTFLoaderCtor); return; }
-          const fbxUrl = '';
-          const glbUrl = '/images/68f78ddb4530fb061a1349d5.glb' + '?v=' + Date.now();
+          const FBXLoaderCtor = window.FBXLoader;
+          const GLTFLoaderCtor = window.GLTFLoader;
+          if (!window.THREE || (!FBXLoaderCtor && !GLTFLoaderCtor)) {
+            console.warn(
+              "Loader non presente. THREE:",
+              !!window.THREE,
+              "FBXLoader:",
+              !!FBXLoaderCtor,
+              "GLTFLoader:",
+              !!GLTFLoaderCtor
+            );
+            return;
+          }
+          const fbxUrl = "";
+          const glbUrl =
+            "/images/68f78ddb4530fb061a1349d5.glb" + "?v=" + Date.now();
           function attachHumanoid(root) {
             try {
-              humanoid = root; humanoid.position.set(0, -0.3, 0); humanoid.scale.set(1.2, 1.2, 1.2);
-              try { console.log('HUM attach', { pos: humanoid.position.toArray(), scale: humanoid.scale.toArray() }); } catch { }
-              scene.add(humanoid); fitCameraToObject(camera, humanoid, 1.4); visemeMeshes = [];
-              const glassesRegex = /(glass|occhiali|spectacle|eyewear|sunglass)/i;
+              humanoid = root;
+              humanoid.position.set(0, -0.3, 0);
+              humanoid.scale.set(1.2, 1.2, 1.2);
+              try {
+                console.log("HUM attach", {
+                  pos: humanoid.position.toArray(),
+                  scale: humanoid.scale.toArray(),
+                });
+              } catch { }
+              scene.add(humanoid);
+              fitCameraToObject(camera, humanoid, 1.4);
+              visemeMeshes = [];
+              const glassesRegex =
+                /(glass|occhiali|spectacle|eyewear|sunglass)/i;
               const keptGlasses = new Set();
               const topGlassesRoot = (o) => {
                 let r = o;
                 try {
-                  while (r && r.parent && r.parent !== humanoid && glassesRegex.test(String(r.parent.name || ''))) {
+                  while (
+                    r &&
+                    r.parent &&
+                    r.parent !== humanoid &&
+                    glassesRegex.test(String(r.parent.name || ""))
+                  ) {
                     r = r.parent;
                   }
                 } catch { }
                 return r || o;
               };
               humanoid.traverse((obj) => {
-                const name = (obj.name || '').toLowerCase();
+                const name = (obj.name || "").toLowerCase();
                 // Nascondi eventuale secondo paio di occhiali
                 try {
                   if (obj.isMesh && glassesRegex.test(name)) {
@@ -1492,178 +3446,729 @@ export default defineComponent({
                   }
                 } catch { }
                 // Mappa esatta di tutte le ossa usando i nomi precisi
-                if (obj.type === 'Bone') {
+                if (obj.type === "Bone") {
                   for (const boneName of boneNames) {
                     if (obj.name === boneName && !bonesMap[boneName]) {
                       bonesMap[boneName] = obj;
                     }
                   }
                   // Imposta le ossa speciali per compatibilità
-                  if (obj.name === 'Head' && !headBone) headBone = obj;
-                  if (obj.name === 'LeftShoulder' && !shoulderLBone) shoulderLBone = obj;
-                  if (obj.name === 'RightShoulder' && !shoulderRBone) shoulderRBone = obj;
-                  if (obj.name === 'LeftArm' && !armLBone) armLBone = obj;
-                  if (obj.name === 'RightArm' && !armRBone) armRBone = obj;
-                  if (obj.name === 'LeftForeArm' && !forearmLBone) forearmLBone = obj;
-                  if (obj.name === 'RightForeArm' && !forearmRBone) forearmRBone = obj;
+                  if (obj.name === "Head" && !headBone) headBone = obj;
+                  if (obj.name === "LeftShoulder" && !shoulderLBone)
+                    shoulderLBone = obj;
+                  if (obj.name === "RightShoulder" && !shoulderRBone)
+                    shoulderRBone = obj;
+                  if (obj.name === "LeftArm" && !armLBone) armLBone = obj;
+                  if (obj.name === "RightArm" && !armRBone) armRBone = obj;
+                  if (obj.name === "LeftForeArm" && !forearmLBone)
+                    forearmLBone = obj;
+                  if (obj.name === "RightForeArm" && !forearmRBone)
+                    forearmRBone = obj;
                 }
 
                 // Ricerca di jawBone per compatibilità (fallback)
-                if (!jawBone && obj.type === 'Bone' && (name.includes('jaw') || name.includes('lowerjaw') || name.includes('mandible') || name.includes('mixamorigjaw'))) {
+                if (
+                  !jawBone &&
+                  obj.type === "Bone" &&
+                  (name.includes("jaw") ||
+                    name.includes("lowerjaw") ||
+                    name.includes("mandible") ||
+                    name.includes("mixamorigjaw"))
+                ) {
                   jawBone = obj;
                 }
 
-                if (obj.isMesh) { try { const keys = obj.morphTargetDictionary ? Object.keys(obj.morphTargetDictionary) : []; console.log('Mesh:', obj.name, 'hasMorph:', !!obj.morphTargetDictionary, 'keys:', keys); } catch { } }
-                if (!jawBone && obj.isSkinnedMesh && obj.skeleton && Array.isArray(obj.skeleton.bones)) {
+                if (obj.isMesh) {
                   try {
-                    const bones = obj.skeleton.bones; try { console.log('Skeleton bones:', bones.map(b => b.name)); } catch { }
-                    const toLower = (s) => String(s || '').toLowerCase();
-                    const hasAny = (s, tokens) => { const n = toLower(s); return tokens.some(t => n.includes(t)); };
-                    const jawTokens = ['jaw', 'lowerjaw', 'mandible', 'chin', 'facial_jaw', 'bip_c_jaw', '_jaw', 'jawbone', 'ctr_jaw', 'bn_jaw', 'j_jaw', 'mixamorig:jaw', 'mixamorigjaw'];
-                    const mouthTokens = ['mouth', 'lowerlip', 'upperlip', 'lip'];
-                    let candidate = bones.find(b => hasAny(b.name, jawTokens));
-                    if (!candidate) candidate = bones.find(b => hasAny(b.name, mouthTokens) && (b.children?.length || 0) <= 2);
-                    if (!candidate) { const head = bones.find(b => /head|neck|face/i.test(b.name)); if (head && head.children && head.children.length) { candidate = head.children.find(c => /jaw|mouth|chin|mandible/i.test(c.name)) || head.children[0]; } }
-                    if (candidate) { jawBone = candidate; console.log('Jaw bone trovato via Skeleton:', candidate.name); }
-                    const headCand = bones.find(b => /\bhead\b/i.test(b.name)); if (headCand && !headBone) headBone = headCand;
+                    const keys = obj.morphTargetDictionary
+                      ? Object.keys(obj.morphTargetDictionary)
+                      : [];
+                    console.log(
+                      "Mesh:",
+                      obj.name,
+                      "hasMorph:",
+                      !!obj.morphTargetDictionary,
+                      "keys:",
+                      keys
+                    );
                   } catch { }
                 }
-                if (obj.isMesh && obj.morphTargetDictionary && obj.morphTargetInfluences) {
-                  const dict = obj.morphTargetDictionary; const lowerMap = {};
-                  try { Object.keys(dict).forEach(k => { lowerMap[String(k).toLowerCase()] = dict[k]; }); } catch { }
-                  const findKeyCI = (cands) => { for (const name of cands) { const idx = lowerMap[String(name).toLowerCase()]; if (idx !== undefined) return idx; } return undefined; };
-                  const jawIdx = findKeyCI(['jawopen', 'jaw_open', 'viseme_aa', 'aa', 'base_jaw', 'j_open']);
-                  const funnelIdx = findKeyCI(['mouthfunnel', 'lipsfunnel', 'viseme_ou', 'ou', 'uw', 'ow', 'oh']);
-                  const puckerIdx = findKeyCI(['mouthpucker', 'lipspucker', 'pucker']);
-                  const smileLIdx = findKeyCI(['mouthsmile_l', 'smileleft', 'mouthsmileleft']);
-                  const smileRIdx = findKeyCI(['mouthsmile_r', 'smileright', 'mouthsmileright']);
-                  const closeIdx = findKeyCI(['mouthclose', 'lipsupperclose', 'lipslowerclose', 'viseme_mbp', 'mbp']);
-                  const eyeBlinkLIdx = findKeyCI(['eyeblink_l', 'eyeBlink_L', 'eyelidclose_l', 'eyelid_l', 'eyeblinkleft']);
-                  const eyeBlinkRIdx = findKeyCI(['eyeblink_r', 'eyeBlink_R', 'eyelidclose_r', 'eyelid_r', 'eyeblinkright']);
-                  if ((jawIdx !== undefined) && (/wolf3d_head/i.test(obj.name) || !morphMesh)) {
-                    morphMesh = obj; morphIndex = jawIdx; console.log('Morph target (jaw) trovato su', obj.name, 'index:', morphIndex);
-                    try { if (jawIdx !== undefined) visemeIndices.jawOpen = jawIdx; if (funnelIdx !== undefined) visemeIndices.mouthFunnel = funnelIdx; if (puckerIdx !== undefined) visemeIndices.mouthPucker = puckerIdx; if (smileLIdx !== undefined) visemeIndices.mouthSmileL = smileLIdx; if (smileRIdx !== undefined) visemeIndices.mouthSmileR = smileRIdx; if (closeIdx !== undefined) visemeIndices.mouthClose = closeIdx; if (visemeIndices.mouthFunnel < 0 && lowerMap['viseme_ou'] !== undefined) visemeIndices.mouthFunnel = lowerMap['viseme_ou']; if (visemeIndices.jawOpen < 0 && lowerMap['viseme_aa'] !== undefined) visemeIndices.jawOpen = lowerMap['viseme_aa']; if (eyeBlinkLIdx !== undefined || eyeBlinkRIdx !== undefined) { eyeMesh = obj; if (eyeBlinkLIdx !== undefined) eyeIndices.eyeBlinkLeft = eyeBlinkLIdx; if (eyeBlinkRIdx !== undefined) eyeIndices.eyeBlinkRight = eyeBlinkRIdx; } } catch { }
+                if (
+                  !jawBone &&
+                  obj.isSkinnedMesh &&
+                  obj.skeleton &&
+                  Array.isArray(obj.skeleton.bones)
+                ) {
+                  try {
+                    const bones = obj.skeleton.bones;
+                    try {
+                      console.log(
+                        "Skeleton bones:",
+                        bones.map((b) => b.name)
+                      );
+                    } catch { }
+                    const toLower = (s) => String(s || "").toLowerCase();
+                    const hasAny = (s, tokens) => {
+                      const n = toLower(s);
+                      return tokens.some((t) => n.includes(t));
+                    };
+                    const jawTokens = [
+                      "jaw",
+                      "lowerjaw",
+                      "mandible",
+                      "chin",
+                      "facial_jaw",
+                      "bip_c_jaw",
+                      "_jaw",
+                      "jawbone",
+                      "ctr_jaw",
+                      "bn_jaw",
+                      "j_jaw",
+                      "mixamorig:jaw",
+                      "mixamorigjaw",
+                    ];
+                    const mouthTokens = [
+                      "mouth",
+                      "lowerlip",
+                      "upperlip",
+                      "lip",
+                    ];
+                    let candidate = bones.find((b) =>
+                      hasAny(b.name, jawTokens)
+                    );
+                    if (!candidate)
+                      candidate = bones.find(
+                        (b) =>
+                          hasAny(b.name, mouthTokens) &&
+                          (b.children?.length || 0) <= 2
+                      );
+                    if (!candidate) {
+                      const head = bones.find((b) =>
+                        /head|neck|face/i.test(b.name)
+                      );
+                      if (head && head.children && head.children.length) {
+                        candidate =
+                          head.children.find((c) =>
+                            /jaw|mouth|chin|mandible/i.test(c.name)
+                          ) || head.children[0];
+                      }
+                    }
+                    if (candidate) {
+                      jawBone = candidate;
+                      console.log(
+                        "Jaw bone trovato via Skeleton:",
+                        candidate.name
+                      );
+                    }
+                    const headCand = bones.find((b) =>
+                      /\bhead\b/i.test(b.name)
+                    );
+                    if (headCand && !headBone) headBone = headCand;
+                  } catch { }
+                }
+                if (
+                  obj.isMesh &&
+                  obj.morphTargetDictionary &&
+                  obj.morphTargetInfluences
+                ) {
+                  const dict = obj.morphTargetDictionary;
+                  const lowerMap = {};
+                  try {
+                    Object.keys(dict).forEach((k) => {
+                      lowerMap[String(k).toLowerCase()] = dict[k];
+                    });
+                  } catch { }
+                  const findKeyCI = (cands) => {
+                    for (const name of cands) {
+                      const idx = lowerMap[String(name).toLowerCase()];
+                      if (idx !== undefined) return idx;
+                    }
+                    return undefined;
+                  };
+                  const jawIdx = findKeyCI([
+                    "jawopen",
+                    "jaw_open",
+                    "viseme_aa",
+                    "aa",
+                    "base_jaw",
+                    "j_open",
+                  ]);
+                  const funnelIdx = findKeyCI([
+                    "mouthfunnel",
+                    "lipsfunnel",
+                    "viseme_ou",
+                    "ou",
+                    "uw",
+                    "ow",
+                    "oh",
+                  ]);
+                  const puckerIdx = findKeyCI([
+                    "mouthpucker",
+                    "lipspucker",
+                    "pucker",
+                  ]);
+                  const smileLIdx = findKeyCI([
+                    "mouthsmile_l",
+                    "smileleft",
+                    "mouthsmileleft",
+                  ]);
+                  const smileRIdx = findKeyCI([
+                    "mouthsmile_r",
+                    "smileright",
+                    "mouthsmileright",
+                  ]);
+                  const closeIdx = findKeyCI([
+                    "mouthclose",
+                    "lipsupperclose",
+                    "lipslowerclose",
+                    "viseme_mbp",
+                    "mbp",
+                  ]);
+                  const eyeBlinkLIdx = findKeyCI([
+                    "eyeblink_l",
+                    "eyeBlink_L",
+                    "eyelidclose_l",
+                    "eyelid_l",
+                    "eyeblinkleft",
+                  ]);
+                  const eyeBlinkRIdx = findKeyCI([
+                    "eyeblink_r",
+                    "eyeBlink_R",
+                    "eyelidclose_r",
+                    "eyelid_r",
+                    "eyeblinkright",
+                  ]);
+                  if (
+                    jawIdx !== undefined &&
+                    (/wolf3d_head/i.test(obj.name) || !morphMesh)
+                  ) {
+                    morphMesh = obj;
+                    morphIndex = jawIdx;
+                    console.log(
+                      "Morph target (jaw) trovato su",
+                      obj.name,
+                      "index:",
+                      morphIndex
+                    );
+                    try {
+                      if (jawIdx !== undefined) visemeIndices.jawOpen = jawIdx;
+                      if (funnelIdx !== undefined)
+                        visemeIndices.mouthFunnel = funnelIdx;
+                      if (puckerIdx !== undefined)
+                        visemeIndices.mouthPucker = puckerIdx;
+                      if (smileLIdx !== undefined)
+                        visemeIndices.mouthSmileL = smileLIdx;
+                      if (smileRIdx !== undefined)
+                        visemeIndices.mouthSmileR = smileRIdx;
+                      if (closeIdx !== undefined)
+                        visemeIndices.mouthClose = closeIdx;
+                      if (
+                        visemeIndices.mouthFunnel < 0 &&
+                        lowerMap["viseme_ou"] !== undefined
+                      )
+                        visemeIndices.mouthFunnel = lowerMap["viseme_ou"];
+                      if (
+                        visemeIndices.jawOpen < 0 &&
+                        lowerMap["viseme_aa"] !== undefined
+                      )
+                        visemeIndices.jawOpen = lowerMap["viseme_aa"];
+                      if (
+                        eyeBlinkLIdx !== undefined ||
+                        eyeBlinkRIdx !== undefined
+                      ) {
+                        eyeMesh = obj;
+                        if (eyeBlinkLIdx !== undefined)
+                          eyeIndices.eyeBlinkLeft = eyeBlinkLIdx;
+                        if (eyeBlinkRIdx !== undefined)
+                          eyeIndices.eyeBlinkRight = eyeBlinkRIdx;
+                      }
+                    } catch { }
                   } else if (!morphMesh) {
-                    const altIdx = findKeyCI(['jawopen', 'mouthopen', 'viseme_aa', 'aa']); if (altIdx !== undefined) { morphMesh = obj; morphIndex = altIdx; console.log('Morph target (alt jaw) su', obj.name, 'index:', morphIndex); }
+                    const altIdx = findKeyCI([
+                      "jawopen",
+                      "mouthopen",
+                      "viseme_aa",
+                      "aa",
+                    ]);
+                    if (altIdx !== undefined) {
+                      morphMesh = obj;
+                      morphIndex = altIdx;
+                      console.log(
+                        "Morph target (alt jaw) su",
+                        obj.name,
+                        "index:",
+                        morphIndex
+                      );
+                    }
                   }
                   try {
                     const addIdx = (n) => {
                       const k = String(n).toLowerCase();
-                      return (lowerMap[k] !== undefined) ? lowerMap[k] : -1;
+                      return lowerMap[k] !== undefined ? lowerMap[k] : -1;
                     };
                     const indices = {
                       // core visemes
-                      jawOpen: (jawIdx !== undefined ? jawIdx : -1),
-                      mouthFunnel: (funnelIdx !== undefined ? funnelIdx : -1),
-                      mouthPucker: (puckerIdx !== undefined ? puckerIdx : -1),
-                      mouthSmileL: (smileLIdx !== undefined ? smileLIdx : -1),
-                      mouthSmileR: (smileRIdx !== undefined ? smileRIdx : -1),
-                      mouthClose: (closeIdx !== undefined ? closeIdx : -1),
-                      eyeBlinkLeft: (eyeBlinkLIdx !== undefined ? eyeBlinkLIdx : -1),
-                      eyeBlinkRight: (eyeBlinkRIdx !== undefined ? eyeBlinkRIdx : -1),
+                      jawOpen: jawIdx !== undefined ? jawIdx : -1,
+                      mouthFunnel: funnelIdx !== undefined ? funnelIdx : -1,
+                      mouthPucker: puckerIdx !== undefined ? puckerIdx : -1,
+                      mouthSmileL: smileLIdx !== undefined ? smileLIdx : -1,
+                      mouthSmileR: smileRIdx !== undefined ? smileRIdx : -1,
+                      mouthClose: closeIdx !== undefined ? closeIdx : -1,
+                      eyeBlinkLeft:
+                        eyeBlinkLIdx !== undefined ? eyeBlinkLIdx : -1,
+                      eyeBlinkRight:
+                        eyeBlinkRIdx !== undefined ? eyeBlinkRIdx : -1,
                       // extended ARKit set
-                      browDownLeft: addIdx('browDownLeft'),
-                      browDownRight: addIdx('browDownRight'),
-                      browInnerUp: addIdx('browInnerUp'),
-                      browOuterUpLeft: addIdx('browOuterUpLeft'),
-                      browOuterUpRight: addIdx('browOuterUpRight'),
-                      eyeSquintLeft: addIdx('eyeSquintLeft'),
-                      eyeSquintRight: addIdx('eyeSquintRight'),
-                      eyeWideLeft: addIdx('eyeWideLeft'),
-                      eyeWideRight: addIdx('eyeWideRight'),
-                      jawForward: addIdx('jawForward'),
-                      jawLeft: addIdx('jawLeft'),
-                      jawRight: addIdx('jawRight'),
-                      mouthFrownLeft: addIdx('mouthFrownLeft'),
-                      mouthFrownRight: addIdx('mouthFrownRight'),
-                      mouthShrugLower: addIdx('mouthShrugLower'),
-                      mouthShrugUpper: addIdx('mouthShrugUpper'),
-                      noseSneerLeft: addIdx('noseSneerLeft'),
-                      noseSneerRight: addIdx('noseSneerRight'),
-                      mouthLowerDownLeft: addIdx('mouthLowerDownLeft'),
-                      mouthLowerDownRight: addIdx('mouthLowerDownRight'),
-                      mouthLeft: addIdx('mouthLeft'),
-                      mouthRight: addIdx('mouthRight'),
-                      eyeLookDownLeft: addIdx('eyeLookDownLeft'),
-                      eyeLookDownRight: addIdx('eyeLookDownRight'),
-                      eyeLookUpLeft: addIdx('eyeLookUpLeft'),
-                      eyeLookUpRight: addIdx('eyeLookUpRight'),
-                      eyeLookInLeft: addIdx('eyeLookInLeft'),
-                      eyeLookInRight: addIdx('eyeLookInRight'),
-                      eyeLookOutLeft: addIdx('eyeLookOutLeft'),
-                      eyeLookOutRight: addIdx('eyeLookOutRight'),
-                      cheekPuff: addIdx('cheekPuff'),
-                      cheekSquintLeft: addIdx('cheekSquintLeft'),
-                      cheekSquintRight: addIdx('cheekSquintRight'),
-                      mouthDimpleLeft: addIdx('mouthDimpleLeft'),
-                      mouthDimpleRight: addIdx('mouthDimpleRight'),
-                      mouthStretchLeft: addIdx('mouthStretchLeft'),
-                      mouthStretchRight: addIdx('mouthStretchRight'),
-                      mouthRollLower: addIdx('mouthRollLower'),
-                      mouthRollUpper: addIdx('mouthRollUpper'),
-                      mouthPressLeft: addIdx('mouthPressLeft'),
-                      mouthPressRight: addIdx('mouthPressRight'),
-                      mouthUpperUpLeft: addIdx('mouthUpperUpLeft'),
-                      mouthUpperUpRight: addIdx('mouthUpperUpRight'),
-                      mouthSmileLeft: addIdx('mouthSmileLeft'),
-                      mouthSmileRight: addIdx('mouthSmileRight'),
-                      tongueOut: addIdx('tongueOut'),
+                      browDownLeft: addIdx("browDownLeft"),
+                      browDownRight: addIdx("browDownRight"),
+                      browInnerUp: addIdx("browInnerUp"),
+                      browOuterUpLeft: addIdx("browOuterUpLeft"),
+                      browOuterUpRight: addIdx("browOuterUpRight"),
+                      eyeSquintLeft: addIdx("eyeSquintLeft"),
+                      eyeSquintRight: addIdx("eyeSquintRight"),
+                      eyeWideLeft: addIdx("eyeWideLeft"),
+                      eyeWideRight: addIdx("eyeWideRight"),
+                      jawForward: addIdx("jawForward"),
+                      jawLeft: addIdx("jawLeft"),
+                      jawRight: addIdx("jawRight"),
+                      mouthFrownLeft: addIdx("mouthFrownLeft"),
+                      mouthFrownRight: addIdx("mouthFrownRight"),
+                      mouthShrugLower: addIdx("mouthShrugLower"),
+                      mouthShrugUpper: addIdx("mouthShrugUpper"),
+                      noseSneerLeft: addIdx("noseSneerLeft"),
+                      noseSneerRight: addIdx("noseSneerRight"),
+                      mouthLowerDownLeft: addIdx("mouthLowerDownLeft"),
+                      mouthLowerDownRight: addIdx("mouthLowerDownRight"),
+                      mouthLeft: addIdx("mouthLeft"),
+                      mouthRight: addIdx("mouthRight"),
+                      eyeLookDownLeft: addIdx("eyeLookDownLeft"),
+                      eyeLookDownRight: addIdx("eyeLookDownRight"),
+                      eyeLookUpLeft: addIdx("eyeLookUpLeft"),
+                      eyeLookUpRight: addIdx("eyeLookUpRight"),
+                      eyeLookInLeft: addIdx("eyeLookInLeft"),
+                      eyeLookInRight: addIdx("eyeLookInRight"),
+                      eyeLookOutLeft: addIdx("eyeLookOutLeft"),
+                      eyeLookOutRight: addIdx("eyeLookOutRight"),
+                      cheekPuff: addIdx("cheekPuff"),
+                      cheekSquintLeft: addIdx("cheekSquintLeft"),
+                      cheekSquintRight: addIdx("cheekSquintRight"),
+                      mouthDimpleLeft: addIdx("mouthDimpleLeft"),
+                      mouthDimpleRight: addIdx("mouthDimpleRight"),
+                      mouthStretchLeft: addIdx("mouthStretchLeft"),
+                      mouthStretchRight: addIdx("mouthStretchRight"),
+                      mouthRollLower: addIdx("mouthRollLower"),
+                      mouthRollUpper: addIdx("mouthRollUpper"),
+                      mouthPressLeft: addIdx("mouthPressLeft"),
+                      mouthPressRight: addIdx("mouthPressRight"),
+                      mouthUpperUpLeft: addIdx("mouthUpperUpLeft"),
+                      mouthUpperUpRight: addIdx("mouthUpperUpRight"),
+                      mouthSmileLeft: addIdx("mouthSmileLeft"),
+                      mouthSmileRight: addIdx("mouthSmileRight"),
+                      tongueOut: addIdx("tongueOut"),
                     };
                     if (eyeMesh === null) {
-                      if (dict['eyeBlinkLeft'] !== undefined || dict['eyeBlinkRight'] !== undefined || eyeBlinkLIdx !== undefined || eyeBlinkRIdx !== undefined) {
-                        eyeMesh = obj; if (dict['eyeBlinkLeft'] !== undefined) eyeIndices.eyeBlinkLeft = dict['eyeBlinkLeft']; if (dict['eyeBlinkRight'] !== undefined) eyeIndices.eyeBlinkRight = dict['eyeBlinkRight']; if (eyeBlinkLIdx !== undefined) eyeIndices.eyeBlinkLeft = eyeBlinkLIdx; if (eyeBlinkRIdx !== undefined) eyeIndices.eyeBlinkRight = eyeBlinkRIdx;
+                      if (
+                        dict["eyeBlinkLeft"] !== undefined ||
+                        dict["eyeBlinkRight"] !== undefined ||
+                        eyeBlinkLIdx !== undefined ||
+                        eyeBlinkRIdx !== undefined
+                      ) {
+                        eyeMesh = obj;
+                        if (dict["eyeBlinkLeft"] !== undefined)
+                          eyeIndices.eyeBlinkLeft = dict["eyeBlinkLeft"];
+                        if (dict["eyeBlinkRight"] !== undefined)
+                          eyeIndices.eyeBlinkRight = dict["eyeBlinkRight"];
+                        if (eyeBlinkLIdx !== undefined)
+                          eyeIndices.eyeBlinkLeft = eyeBlinkLIdx;
+                        if (eyeBlinkRIdx !== undefined)
+                          eyeIndices.eyeBlinkRight = eyeBlinkRIdx;
                       }
                     }
-                    if (Object.values(indices).some(v => v !== -1)) { visemeMeshes.push({ mesh: obj, indices }); console.log('Viseme mesh registered:', obj.name, indices); }
+                    if (Object.values(indices).some((v) => v !== -1)) {
+                      visemeMeshes.push({ mesh: obj, indices });
+                      console.log("Viseme mesh registered:", obj.name, indices);
+                    }
                     // Esponi le variabili sulla window per il debug da console
                     window.debugEnjoyTalk = {
-                      get visemeMeshes() { return visemeMeshes; },
-                      get lipConfig() { return lipConfig; },
-                      get visemeTargets() { return visemeTargets; },
-                      get lastVisemes() { return lastVisemes; },
-                      get visemeIndices() { return visemeIndices; },
-                      setSmileStrength(val) { lipConfig.smileStrength = val; console.log('smileStrength impostato a:', val); },
+                      get visemeMeshes() {
+                        return visemeMeshes;
+                      },
+                      get lipConfig() {
+                        return lipConfig;
+                      },
+                      get visemeTargets() {
+                        return visemeTargets;
+                      },
+                      get lastVisemes() {
+                        return lastVisemes;
+                      },
+                      get visemeIndices() {
+                        return visemeIndices;
+                      },
+                      setSmileStrength(val) {
+                        lipConfig.smileStrength = val;
+                        console.log("smileStrength impostato a:", val);
+                      },
                       testSmile() {
-                        console.log('Test smile - imposto mouthSmileL e mouthSmileR a 0.5');
-                        visemeMeshes.forEach(vm => {
+                        console.log(
+                          "Test smile - imposto mouthSmileL e mouthSmileR a 0.5"
+                        );
+                        visemeMeshes.forEach((vm) => {
                           if (vm.mesh && vm.mesh.morphTargetInfluences) {
                             const infl = vm.mesh.morphTargetInfluences;
                             const idxs = vm.indices || {};
-                            if (idxs.mouthSmileL >= 0) infl[idxs.mouthSmileL] = 0.5;
-                            if (idxs.mouthSmileR >= 0) infl[idxs.mouthSmileR] = 0.5;
+                            if (idxs.mouthSmileL >= 0)
+                              infl[idxs.mouthSmileL] = 0.5;
+                            if (idxs.mouthSmileR >= 0)
+                              infl[idxs.mouthSmileR] = 0.5;
                           }
                         });
-                      }
+                      },
                     };
                   } catch { }
                 }
               });
               try {
                 if (headBone) {
-                  const p = new THREE.Vector3(); headBone.getWorldPosition(p);
-                  const t = p.clone(); t.y -= 0.06; const defaultDist = 1.45; const dist = (isFinite(headDistParam) && headDistParam > 0.2) ? headDistParam : defaultDist; const fov = (isFinite(headFovParam) && headFovParam >= 20 && headFovParam <= 70) ? headFovParam : 38; camera.position.set(p.x, t.y + 0.02, p.z + dist); camera.fov = fov; camera.lookAt(t); camera.updateProjectionMatrix();
-                  try { console.log('CAM headBone target', { pos: camera.position.toArray(), fov: camera.fov, target: t.toArray(), dist }); } catch { }
-                  try { if (jawBone) { const prev = jawBone.rotation.x; jawBone.rotation.x += 0.02; humanoid.updateMatrixWorld(true); const before = new THREE.Box3().setFromObject(humanoid).getSize(new THREE.Vector3()); jawBone.rotation.x = prev; humanoid.updateMatrixWorld(true); const after = new THREE.Box3().setFromObject(humanoid).getSize(new THREE.Vector3()); jawBoneHasInfluence = (Math.abs(before.y - after.y) > 1e-4 || Math.abs(before.x - after.x) > 1e-4); if (debugEnabled) console.log('jawBoneHasInfluence', jawBoneHasInfluence); } } catch { }
+                  const p = new THREE.Vector3();
+                  headBone.getWorldPosition(p);
+                  const t = p.clone();
+                  t.y -= 0.06;
+                  const defaultDist = 1.45;
+                  const dist =
+                    isFinite(headDistParam) && headDistParam > 0.2
+                      ? headDistParam
+                      : defaultDist;
+                  const fov =
+                    isFinite(headFovParam) &&
+                      headFovParam >= 20 &&
+                      headFovParam <= 70
+                      ? headFovParam
+                      : 38;
+                  camera.position.set(p.x, t.y + 0.02, p.z + dist);
+                  camera.fov = fov;
+                  camera.lookAt(t);
+                  camera.updateProjectionMatrix();
+                  try {
+                    console.log("CAM headBone target", {
+                      pos: camera.position.toArray(),
+                      fov: camera.fov,
+                      target: t.toArray(),
+                      dist,
+                    });
+                  } catch { }
+                  try {
+                    if (jawBone) {
+                      const prev = jawBone.rotation.x;
+                      jawBone.rotation.x += 0.02;
+                      humanoid.updateMatrixWorld(true);
+                      const before = new THREE.Box3()
+                        .setFromObject(humanoid)
+                        .getSize(new THREE.Vector3());
+                      jawBone.rotation.x = prev;
+                      humanoid.updateMatrixWorld(true);
+                      const after = new THREE.Box3()
+                        .setFromObject(humanoid)
+                        .getSize(new THREE.Vector3());
+                      jawBoneHasInfluence =
+                        Math.abs(before.y - after.y) > 1e-4 ||
+                        Math.abs(before.x - after.x) > 1e-4;
+                      if (debugEnabled)
+                        console.log("jawBoneHasInfluence", jawBoneHasInfluence);
+                    }
+                  } catch { }
                 } else {
-                  let headMesh = null; humanoid.traverse((obj) => { if (!headMesh && (/wolf3d_head/i.test(obj.name) || /head$/i.test(obj.name))) headMesh = obj; }); if (headMesh) { fitCameraToObject(camera, headMesh, 1.2); } else { fitCameraToObject(camera, humanoid, 1.35); } try { console.log('CAM fallback fit'); } catch { }
+                  let headMesh = null;
+                  humanoid.traverse((obj) => {
+                    if (
+                      !headMesh &&
+                      (/wolf3d_head/i.test(obj.name) || /head$/i.test(obj.name))
+                    )
+                      headMesh = obj;
+                  });
+                  if (headMesh) {
+                    fitCameraToObject(camera, headMesh, 1.2);
+                  } else {
+                    fitCameraToObject(camera, humanoid, 1.35);
+                  }
+                  try {
+                    console.log("CAM fallback fit");
+                  } catch { }
                 }
               } catch { }
-              head.visible = false; jaw.visible = false;
+              head.visible = false;
+              jaw.visible = false;
             } catch { }
           }
-          function loadWithFBX() { return new Promise((resolve, reject) => { try { const loader = new FBXLoaderCtor(); console.log('Carico humanoid FBX da', fbxUrl); loader.load(fbxUrl, (obj) => { try { obj.updateMatrixWorld(true); } catch { } attachHumanoid(obj); resolve(true); }, undefined, (err) => { console.warn('Impossibile caricare FBX', err); reject(err); }); } catch (e) { reject(e); } }); }
-          function loadWithGLTF() { return new Promise((resolve, reject) => { try { if (!GLTFLoaderCtor) { reject(new Error('GLTFLoader non disponibile')); return; } const loader = new GLTFLoaderCtor(); console.log('Carico humanoid GLB da', glbUrl); loader.load(glbUrl, (gltf) => { attachHumanoid(gltf.scene); resolve(true); }, undefined, (err) => { console.warn('Impossibile caricare GLB', err); reject(err); }); } catch (e) { reject(e); } }); }
-          function loadIdleAnimation() { return new Promise((resolve) => { try { if (!GLTFLoaderCtor) { resolve(false); return; } idleAnimationActions = []; idleAnimationMixer = null; idleAnimationActive = false; const idleAnimUrl = '/images/animation-library-master/feminine/glb/idle/F_Standing_Idle_Variations_003.glb' + '?v=' + Date.now(); const loader = new GLTFLoaderCtor(); loader.load(idleAnimUrl, (gltf) => { try { if (humanoid && gltf.animations && gltf.animations.length > 0) { idleAnimationMixer = new window.THREE.AnimationMixer(humanoid); gltf.animations.forEach(clip => { try { const action = idleAnimationMixer.clipAction(clip); if (action) { action.loop = window.THREE.LoopRepeat; idleAnimationActions.push(action); } } catch(e) { console.warn('Errore caricamento azione animazione:', e); } }); console.log('Idle animation caricata:', gltf.animations.length, 'clips'); if (idleAnimationActions.length > 0) { idleAnimationActive = true; idleAnimationActions.forEach(a => a.play()); } resolve(true); } else { resolve(false); } } catch(e) { console.warn('Errore caricamento idle animation:', e); resolve(false); } }, undefined, (err) => { console.warn('Impossibile caricare idle animation', err); resolve(false); }); } catch(e) { console.warn('Errore loadIdleAnimation:', e); resolve(false); } }); }
-          function loadTalkingAnimations() { return new Promise((resolve) => { try { if (!GLTFLoaderCtor) { resolve(false); return; } const loader = new GLTFLoaderCtor(); let loadedCount = 0; talkingAnimationVariants = []; talkingAnimationMixer = null; currentTalkingAnimation = null; talkingAnimationActive = false; for (let i = 1; i <= 6; i++) { const variant = String(i).padStart(3, '0'); const talkUrl = `/images/animation-library-master/feminine/glb/expression/F_Talking_Variations_${variant}.glb` + '?v=' + Date.now(); loader.load(talkUrl, (gltf) => { try { if (gltf.animations && gltf.animations.length > 0) { const variantClips = gltf.animations.map(clip => ({ clip, name: clip.name })); talkingAnimationVariants.push(variantClips); console.log(`Talking variant ${variant} caricata: ${gltf.animations.length} clips`); } loadedCount++; if (loadedCount === 6) { if (talkingAnimationVariants.length > 0 && humanoid && window.THREE) { talkingAnimationMixer = new window.THREE.AnimationMixer(humanoid); console.log('Tutte le talking animations caricate:', talkingAnimationVariants.length, 'varianti'); resolve(true); } else { console.warn('Errore: variants=', talkingAnimationVariants.length, 'humanoid=', !!humanoid, 'THREE=', !!window.THREE); resolve(false); } } } catch(e) { console.warn(`Errore caricamento talking ${variant}:`, e); loadedCount++; if (loadedCount === 6) resolve(talkingAnimationVariants.length > 0); } }, undefined, (err) => { console.warn(`Impossibile caricare talking variant ${variant}`, err); loadedCount++; if (loadedCount === 6) resolve(talkingAnimationVariants.length > 0); }); } } catch(e) { console.warn('Errore loadTalkingAnimations:', e); resolve(false); } }); }
+          function loadWithFBX() {
+            return new Promise((resolve, reject) => {
+              try {
+                const loader = new FBXLoaderCtor();
+                console.log("Carico humanoid FBX da", fbxUrl);
+                loader.load(
+                  fbxUrl,
+                  (obj) => {
+                    try {
+                      obj.updateMatrixWorld(true);
+                    } catch { }
+                    attachHumanoid(obj);
+                    resolve(true);
+                  },
+                  undefined,
+                  (err) => {
+                    console.warn("Impossibile caricare FBX", err);
+                    reject(err);
+                  }
+                );
+              } catch (e) {
+                reject(e);
+              }
+            });
+          }
+          function loadWithGLTF() {
+            return new Promise((resolve, reject) => {
+              try {
+                if (!GLTFLoaderCtor) {
+                  reject(new Error("GLTFLoader non disponibile"));
+                  return;
+                }
+                const loader = new GLTFLoaderCtor();
+                console.log("Carico humanoid GLB da", glbUrl);
+                loader.load(
+                  glbUrl,
+                  (gltf) => {
+                    attachHumanoid(gltf.scene);
+                    resolve(true);
+                  },
+                  undefined,
+                  (err) => {
+                    console.warn("Impossibile caricare GLB", err);
+                    reject(err);
+                  }
+                );
+              } catch (e) {
+                reject(e);
+              }
+            });
+          }
+          function loadIdleAnimation() {
+            return new Promise((resolve) => {
+              try {
+                if (!GLTFLoaderCtor) {
+                  resolve(false);
+                  return;
+                }
+                idleAnimationActions = [];
+                idleAnimationMixer = null;
+                idleAnimationActive = false;
+                const idleAnimUrl =
+                  "/images/animation-library-master/feminine/glb/idle/F_Standing_Idle_Variations_003.glb" +
+                  "?v=" +
+                  Date.now();
+                const loader = new GLTFLoaderCtor();
+                loader.load(
+                  idleAnimUrl,
+                  (gltf) => {
+                    try {
+                      if (
+                        humanoid &&
+                        gltf.animations &&
+                        gltf.animations.length > 0
+                      ) {
+                        idleAnimationMixer = new window.THREE.AnimationMixer(
+                          humanoid
+                        );
+                        gltf.animations.forEach((clip, idx) => {
+                          try {
+                            const action = idleAnimationMixer.clipAction(clip);
+                            if (action) {
+                              action.loop = window.THREE.LoopRepeat;
+                              idleAnimationActions.push(action);
+                              console.log(
+                                `ANIMATION [IDLE] Clip ${idx} caricata: ${clip.name}`
+                              );
+                            }
+                          } catch (e) {
+                            console.warn(
+                              "Errore caricamento azione animazione:",
+                              e
+                            );
+                          }
+                        });
+                        console.log(
+                          `ANIMATION [IDLE] Animazione idle caricata: ${gltf.animations.length} clips totali`
+                        );
+                        if (idleAnimationActions.length > 0) {
+                          idleAnimationActive = true;
+                          idleAnimationActions.forEach((a, idx) => {
+                            console.log(
+                              `ANIMATION [IDLE] Avvio azione ${idx}: ${a.getClip().name
+                              }`
+                            );
+                            a.play();
+                          });
+                          console.log(
+                            `ANIMATION [IDLE] ✓ Idle animations avviate (${idleAnimationActions.length})`
+                          );
+                        }
+                        resolve(true);
+                      } else {
+                        resolve(false);
+                      }
+                    } catch (e) {
+                      console.warn("Errore caricamento idle animation:", e);
+                      resolve(false);
+                    }
+                  },
+                  undefined,
+                  (err) => {
+                    console.warn("Impossibile caricare idle animation", err);
+                    resolve(false);
+                  }
+                );
+              } catch (e) {
+                console.warn("Errore loadIdleAnimation:", e);
+                resolve(false);
+              }
+            });
+          }
+          function loadTalkingAnimations() {
+            return new Promise((resolve) => {
+              try {
+                if (!GLTFLoaderCtor) {
+                  resolve(false);
+                  return;
+                }
+                const loader = new GLTFLoaderCtor();
+                let loadedCount = 0;
+                talkingAnimationVariants = [];
+                talkingAnimationMixer = null;
+                currentTalkingAnimation = null;
+                talkingAnimationActive = false;
+                for (let i = 1; i <= 6; i++) {
+                  const variant = String(i).padStart(3, "0");
+                  const talkUrl =
+                    `/images/animation-library-master/feminine/glb/expression/F_Talking_Variations_${variant}.glb` +
+                    "?v=" +
+                    Date.now();
+                  loader.load(
+                    talkUrl,
+                    (gltf) => {
+                      try {
+                        if (gltf.animations && gltf.animations.length > 0) {
+                          const variantClips = gltf.animations.map(
+                            (clip, idx) => {
+                              console.log(
+                                `ANIMATION [TALKING] Variante ${variant} - Clip ${idx} caricata: ${clip.name}`
+                              );
+                              return { clip, name: clip.name };
+                            }
+                          );
+                          talkingAnimationVariants.push(variantClips);
+                          console.log(
+                            `ANIMATION [TALKING] Variante ${variant} ✓ caricata: ${gltf.animations.length} clips`
+                          );
+                        }
+                        loadedCount++;
+                        if (loadedCount === 6) {
+                          if (
+                            talkingAnimationVariants.length > 0 &&
+                            humanoid &&
+                            window.THREE
+                          ) {
+                            talkingAnimationMixer =
+                              new window.THREE.AnimationMixer(humanoid);
+                            console.log(
+                              `ANIMATION [TALKING] ✓ Tutte le talking animations caricate: ${talkingAnimationVariants.length
+                              } varianti, ${talkingAnimationVariants.reduce(
+                                (sum, v) => sum + v.length,
+                                0
+                              )} clips totali`
+                            );
+                            resolve(true);
+                          } else {
+                            console.warn(
+                              "Errore: variants=",
+                              talkingAnimationVariants.length,
+                              "humanoid=",
+                              !!humanoid,
+                              "THREE=",
+                              !!window.THREE
+                            );
+                            resolve(false);
+                          }
+                        }
+                      } catch (e) {
+                        console.warn(
+                          `Errore caricamento talking ${variant}:`,
+                          e
+                        );
+                        loadedCount++;
+                        if (loadedCount === 6)
+                          resolve(talkingAnimationVariants.length > 0);
+                      }
+                    },
+                    undefined,
+                    (err) => {
+                      console.warn(
+                        `Impossibile caricare talking variant ${variant}`,
+                        err
+                      );
+                      loadedCount++;
+                      if (loadedCount === 6)
+                        resolve(talkingAnimationVariants.length > 0);
+                    }
+                  );
+                }
+              } catch (e) {
+                console.warn("Errore loadTalkingAnimations:", e);
+                resolve(false);
+              }
+            });
+          }
           (async () => {
             try {
               if (humanoid) return; // già caricato
-              if (GLTFLoaderCtor) { await loadWithGLTF(); await loadIdleAnimation(); await loadTalkingAnimations(); return }
-              if (FBXLoaderCtor && fbxUrl) { await loadWithFBX(); await loadIdleAnimation(); await loadTalkingAnimations(); return }
-            } catch (e) { console.warn('Nessun modello caricato', e) }
-            finally { humanoidLoading = false }
+              console.log(
+                "ANIMATION [LOADING] Inizio caricamento modello e animazioni..."
+              );
+              if (GLTFLoaderCtor) {
+                console.log("ANIMATION [LOADING] Caricamento con GLTFLoader");
+                await loadWithGLTF();
+                console.log("ANIMATION [LOADING] ✓ Humanoid caricato (GLTF)");
+                await loadIdleAnimation();
+                console.log("ANIMATION [LOADING] ✓ Idle animation caricate");
+                await loadTalkingAnimations();
+                console.log(
+                  "ANIMATION [LOADING] ✓ Talking animations caricate"
+                );
+                return;
+              }
+              if (FBXLoaderCtor && fbxUrl) {
+                console.log("ANIMATION [LOADING] Caricamento con FBXLoader");
+                await loadWithFBX();
+                console.log("ANIMATION [LOADING] ✓ Humanoid caricato (FBX)");
+                await loadIdleAnimation();
+                console.log("ANIMATION [LOADING] ✓ Idle animation caricate");
+                await loadTalkingAnimations();
+                console.log(
+                  "ANIMATION [LOADING] ✓ Talking animations caricate"
+                );
+                return;
+              }
+            } catch (e) {
+              console.warn("ANIMATION [LOADING] ❌ Nessun modello caricato", e);
+            } finally {
+              humanoidLoading = false;
+              console.log(
+                "ANIMATION [LOADING] Completato (humanoidLoading = false)"
+              );
+            }
           })();
-        } catch (e) { console.warn('Errore loadHumanoid()', e); humanoidLoading = false }
+        } catch (e) {
+          console.warn("Errore loadHumanoid()", e);
+          humanoidLoading = false;
+        }
       }
 
       function fitCameraToObject(camera, object, offset = 1.25) {
@@ -1671,79 +4176,166 @@ export default defineComponent({
           const box = new THREE.Box3().setFromObject(object);
           const size = box.getSize(new THREE.Vector3());
           const center = box.getCenter(new THREE.Vector3());
-          const aspect = (camera.aspect && isFinite(camera.aspect)) ? camera.aspect : 1;
+          const aspect =
+            camera.aspect && isFinite(camera.aspect) ? camera.aspect : 1;
           const vFOV = THREE.MathUtils.degToRad(camera.fov);
           const hFOV = 2 * Math.atan(Math.tan(vFOV / 2) * aspect);
-          const distV = (size.y / 2) / Math.tan(vFOV / 2);
-          const distH = (size.x / 2) / Math.tan(hFOV / 2);
+          const distV = size.y / 2 / Math.tan(vFOV / 2);
+          const distH = size.x / 2 / Math.tan(hFOV / 2);
           let dist = Math.max(distV, distH) * (offset || 1);
-          const dir = new THREE.Vector3().subVectors(camera.position, center).normalize();
-          if (!isFinite(dir.lengthSq()) || dir.lengthSq() === 0) dir.set(0, 0, 1);
+          const dir = new THREE.Vector3()
+            .subVectors(camera.position, center)
+            .normalize();
+          if (!isFinite(dir.lengthSq()) || dir.lengthSq() === 0)
+            dir.set(0, 0, 1);
           camera.position.copy(center.clone().add(dir.multiplyScalar(dist)));
           camera.near = Math.max(0.01, dist / 100);
           camera.far = Math.max(camera.near + 1, dist * 10 + size.length());
           camera.lookAt(center);
           camera.updateProjectionMatrix();
-          try { console.log('CAM fitCameraToObject', { pos: camera.position.toArray(), fov: camera.fov, center: center.toArray(), size: size.toArray(), dist, aspect }); } catch { }
-        } catch (e) { console.warn('fitCameraToObject error', e); }
+          try {
+            console.log("CAM fitCameraToObject", {
+              pos: camera.position.toArray(),
+              fov: camera.fov,
+              center: center.toArray(),
+              size: size.toArray(),
+              dist,
+              aspect,
+            });
+          } catch { }
+        } catch (e) {
+          console.warn("fitCameraToObject error", e);
+        }
       }
 
       function playRandomTalkingAnimation() {
         try {
-          console.log('playRandomTalkingAnimation chiamata. mixer=', !!talkingAnimationMixer, 'humanoid=', !!humanoid, 'variants=', talkingAnimationVariants.length);
-          if (!talkingAnimationMixer || !humanoid || talkingAnimationVariants.length === 0) {
-            console.warn('Condizioni non soddisfatte per talking animation');
+          console.log(
+            "ANIMATION [PLAY_TALKING] Chiamata. mixer=",
+            !!talkingAnimationMixer,
+            "humanoid=",
+            !!humanoid,
+            "variants=",
+            talkingAnimationVariants.length
+          );
+          if (
+            !talkingAnimationMixer ||
+            !humanoid ||
+            talkingAnimationVariants.length === 0
+          ) {
+            console.warn(
+              "ANIMATION [PLAY_TALKING] ❌ Condizioni non soddisfatte per talking animation"
+            );
             return;
           }
           // Ferma la talking animation precedente
           if (currentTalkingAnimation) {
-            try { currentTalkingAnimation.stop(); } catch { }
+            try {
+              console.log(
+                "ANIMATION [PLAY_TALKING] Fermando talking animation precedente"
+              );
+              currentTalkingAnimation.stop();
+            } catch { }
           }
           // Sceglie una variante casuale (0-6)
-          const variantIdx = Math.floor(Math.random() * talkingAnimationVariants.length);
+          const variantIdx = Math.floor(
+            Math.random() * talkingAnimationVariants.length
+          );
           const variant = talkingAnimationVariants[variantIdx];
           if (!variant || variant.length === 0) {
-            console.warn('Variante non trovata o vuota:', variantIdx);
+            console.warn(
+              "ANIMATION [PLAY_TALKING] ❌ Variante non trovata o vuota:",
+              variantIdx
+            );
             return;
           }
           // Sceglie una clip casuale della variante
           const clipIdx = Math.floor(Math.random() * variant.length);
           const clipData = variant[clipIdx];
           if (!clipData || !clipData.clip) {
-            console.warn('Clip non trovata:', variantIdx, clipIdx);
+            console.warn(
+              "ANIMATION [PLAY_TALKING] ❌ Clip non trovata:",
+              variantIdx,
+              clipIdx
+            );
             return;
           }
-          console.log(`Avvia talking animation: variant ${variantIdx}, clip ${clipIdx} (${clipData.name})`);
+          console.log(
+            `ANIMATION [PLAY_TALKING] Avvio: variante ${variantIdx}, clip ${clipIdx} (${clipData.name})`
+          );
           // Crea una nuova azione per questa clip
-          currentTalkingAnimation = talkingAnimationMixer.clipAction(clipData.clip);
+          currentTalkingAnimation = talkingAnimationMixer.clipAction(
+            clipData.clip
+          );
           if (currentTalkingAnimation) {
             currentTalkingAnimation.clampWhenFinished = false;
             currentTalkingAnimation.loop = window.THREE.LoopOnce;
-            // CrossFade dalle idle animations alla talking per una transizione fluida
-            const fadeDuration = 0.3; // 300ms di transizione
-            if (idleAnimationActions && idleAnimationActions.length > 0) {
-              idleAnimationActions.forEach(action => {
-                action.crossFadeTo(currentTalkingAnimation, fadeDuration, true);
-              });
-            }
-            // Disabilita il mixer idle durante talking
-            idleAnimationActive = false;
+
+            // Calcola il timeout basato sulla durata dell'animazione
+            const clipDuration = currentTalkingAnimation.getClip().duration;
+            const timeoutMs = clipDuration * 1000; // durata
+
             currentTalkingAnimation.play();
             talkingAnimationActive = true;
-            console.log('Talking animation avviata con crossFade');
+            console.log(
+              `✓ Talking animation avviata: ${clipData.name
+              } (durata: ${clipDuration.toFixed(2)}s)`
+            );
+
+            // Dopo che finisce l'animazione, riaccendi le idle
+            if (window.__talkingTimeoutId)
+              clearTimeout(window.__talkingTimeoutId);
+            window.__talkingTimeoutId = setTimeout(() => {
+              console.log(
+                "ANIMATION [TIMEOUT] Talking animation finita per timeout, riaccendo idle..."
+              );
+              //restoreIdleAnimations();
+              window.__talkingTimeoutId = null;
+            }, timeoutMs);
           } else {
-            console.warn('Azione non creata');
+            console.warn("ANIMATION [PLAY_TALKING] ❌ Azione non creata");
           }
-        } catch (e) { console.warn('Errore playRandomTalkingAnimation:', e); }
+        } catch (e) {
+          console.warn("ANIMATION [PLAY_TALKING] ❌ Errore:", e);
+        }
       }
 
+      function restoreIdleAnimations() {
+        try {
+          if (talkingAnimationActive && idleAnimationMixer) {
+            talkingAnimationActive = false;
+            idleAnimationActive = true;
+            if (currentTalkingAnimation) currentTalkingAnimation.stop();
+            if (idleAnimationActions && idleAnimationActions.length > 0) {
+              idleAnimationActions.forEach((action) => {
+                try {
+                  action.weight = 1.0;
+                  action.loop = window.THREE.LoopRepeat;
+                  if (!action.isRunning()) action.play();
+                } catch (e) { }
+              });
+            }
+          }
+        } catch (e) { }
+      }
       function stopTalkingAnimation() {
         try {
           if (currentTalkingAnimation) {
+            console.log(
+              `ANIMATION [STOP_TALKING] Fermando talking animation: ${currentTalkingAnimation.getClip().name
+              }`
+            );
             // CrossFade di ritorno alle idle animations per una transizione fluida
             const fadeDuration = 0.3; // 300ms di transizione
             if (idleAnimationActions && idleAnimationActions.length > 0) {
-              idleAnimationActions.forEach(action => {
+              console.log(
+                `ANIMATION [STOP_TALKING] CrossFade indietro a ${idleAnimationActions.length} idle actions, durata: ${fadeDuration}s`
+              );
+              idleAnimationActions.forEach((action, idx) => {
+                console.log(
+                  `ANIMATION [STOP_TALKING]   ↳ Talking → Idle action ${idx}: ${action.getClip().name
+                  }`
+                );
                 currentTalkingAnimation.crossFadeTo(action, fadeDuration, true);
                 action.play(); // Riavvia le idle animations
               });
@@ -1753,14 +4345,281 @@ export default defineComponent({
             currentTalkingAnimation.stop();
             currentTalkingAnimation = null;
             talkingAnimationActive = false;
-            console.log('Talking animation fermata con crossFade alle idle');
+            console.log(
+              "ANIMATION [STOP_TALKING] ✓ Animation fermata e idle ripristinate"
+            );
           }
-        } catch (e) { console.warn('Errore stopTalkingAnimation:', e); }
+        } catch (e) {
+          console.warn("ANIMATION [STOP_TALKING] ❌ Errore:", e);
+        }
       }
 
-    })
+      // Monitoraggio automatico per riavviare le idle quando la talking finisce
+      let lastTalkingState = false;
+      function checkTalkingAnimationFinished() {
+        try {
+          const isTalkingNow =
+            currentTalkingAnimation && talkingAnimationActive;
 
-    return {}
-  }
-})
+          // Se era in talking e ora non lo è più, torna a idle
+          if (lastTalkingState && !isTalkingNow && talkingAnimationMixer) {
+            // Controlla se l'azione è finita
+            if (
+              currentTalkingAnimation === null ||
+              !currentTalkingAnimation.isRunning?.()
+            ) {
+              console.log(
+                "ANIMATION [AUTO_STOP_TALKING] Talking animation finita, ritorno a idle..."
+              );
+              //stopTalkingAnimation();
+            }
+          }
+          lastTalkingState = isTalkingNow;
+        } catch (e) {
+          /* silenzio */
+        }
+      }
+
+      // ==================== CONSOLE API ====================
+      // Espone un'interfaccia completa per controllare le animazioni da console
+      window.enjoyTalkConsole = {
+        // === TALKING ANIMATIONS ===
+        playTalking: () => {
+          console.log("🎬 Avvio talking animation...");
+          playRandomTalkingAnimation();
+        },
+        stopTalking: () => {
+          console.log("🛑 Fermo talking animation...");
+          stopTalkingAnimation();
+        },
+        playTalkingVariant: (variantIdx, clipIdx) => {
+          try {
+            console.log(
+              `🎬 Avvio talking variant ${variantIdx}, clip ${clipIdx}...`
+            );
+            if (
+              !talkingAnimationMixer ||
+              !humanoid ||
+              !talkingAnimationVariants.length
+            ) {
+              console.warn("❌ Talking animations non caricate");
+              return;
+            }
+            const variant =
+              talkingAnimationVariants[
+              variantIdx % talkingAnimationVariants.length
+              ];
+            if (!variant || !variant.length) {
+              console.warn(`❌ Variante ${variantIdx} non trovata`);
+              return;
+            }
+            const clip = variant[clipIdx % variant.length];
+            if (!clip || !clip.clip) {
+              console.warn(
+                `❌ Clip ${clipIdx} non trovata in variante ${variantIdx}`
+              );
+              return;
+            }
+            if (currentTalkingAnimation) currentTalkingAnimation.stop();
+            currentTalkingAnimation = talkingAnimationMixer.clipAction(
+              clip.clip
+            );
+            currentTalkingAnimation.clampWhenFinished = false;
+            currentTalkingAnimation.loop = window.THREE.LoopOnce;
+
+            currentTalkingAnimation.play();
+            const dur = currentTalkingAnimation.getClip().duration;
+            if (window.__talkingTimeoutId)
+              clearTimeout(window.__talkingTimeoutId);
+            window.__talkingTimeoutId = setTimeout(() => {
+              //restoreIdleAnimations();
+              window.__talkingTimeoutId = null;
+            }, dur * 1000);
+            talkingAnimationActive = true;
+            console.log(`✓ Talking animation avviata: ${clip.name}`);
+          } catch (e) {
+            console.warn("❌ Errore:", e);
+          }
+        },
+
+        // === IDLE ANIMATIONS ===
+        playIdle: () => {
+          try {
+            console.log("🎬 Avvio idle animations...");
+            if (!idleAnimationMixer || !idleAnimationActions.length) {
+              console.warn("❌ Idle animations non caricate");
+              return;
+            }
+            idleAnimationActive = true;
+            idleAnimationActions.forEach((action, idx) => {
+              action.play();
+              console.log(`  ↳ Idle action ${idx}: ${action.getClip().name}`);
+            });
+            if (currentTalkingAnimation) currentTalkingAnimation.stop();
+            currentTalkingAnimation = null;
+            talkingAnimationActive = false;
+            console.log("✓ Idle animations avviate");
+          } catch (e) {
+            console.warn("❌ Errore:", e);
+          }
+        },
+        stopIdle: () => {
+          try {
+            console.log("🛑 Fermo idle animations...");
+            if (idleAnimationActions && idleAnimationActions.length) {
+              idleAnimationActions.forEach((action, idx) => {
+                action.stop();
+              });
+            }
+            idleAnimationActive = false;
+            console.log("✓ Idle animations fermate");
+          } catch (e) {
+            console.warn("❌ Errore:", e);
+          }
+        },
+
+        // === INFO ===
+        listVariants: () => {
+          console.group("📋 Talking Animation Variants");
+          talkingAnimationVariants.forEach((variant, vidx) => {
+            console.group(`Variant ${vidx} (${variant.length} clips)`);
+            variant.forEach((clip, cidx) => {
+              console.log(
+                `  Clip ${cidx}: ${clip.name} (${clip.clip.duration.toFixed(
+                  2
+                )}s)`
+              );
+            });
+            console.groupEnd();
+          });
+          console.groupEnd();
+        },
+        listIdle: () => {
+          console.group("📋 Idle Animations");
+          if (idleAnimationActions && idleAnimationActions.length) {
+            idleAnimationActions.forEach((action, idx) => {
+              console.log(
+                `Idle ${idx}: ${action.getClip().name} (${action
+                  .getClip()
+                  .duration.toFixed(2)}s)`
+              );
+            });
+          } else {
+            console.log("❌ Nessuna idle animation caricata");
+          }
+          console.groupEnd();
+        },
+
+        status: () => {
+          console.group("📊 Animation Status");
+          console.log("Humanoid loaded:", !!humanoid);
+          console.log(
+            "Idle animations loaded:",
+            idleAnimationActions?.length || 0
+          );
+          console.log(
+            "Talking variants loaded:",
+            talkingAnimationVariants?.length || 0
+          );
+          console.log("Idle active:", idleAnimationActive);
+          console.log("Talking active:", talkingAnimationActive);
+          console.log(
+            "Current talking animation:",
+            currentTalkingAnimation?.getClip?.()?.name || "None"
+          );
+          console.groupEnd();
+        },
+
+        // === HELP ===
+        help: () => {
+          console.log(
+            `%c🎬 EnjoyTalk 3D - Animation Console API`,
+            "color: #6366f1; font-size: 14px; font-weight: bold;"
+          );
+          console.log(
+            `
+%c--- TALKING ANIMATIONS ---
+enjoyTalkConsole.playTalking()           // Avvia una talking animation casuale
+enjoyTalkConsole.stopTalking()           // Ferma la talking animation
+enjoyTalkConsole.playTalkingVariant(v, c) // Avvia variante v, clip c (es: playTalkingVariant(0, 1))
+
+%c--- IDLE ANIMATIONS ---
+enjoyTalkConsole.playIdle()              // Riavvia le idle animations
+enjoyTalkConsole.stopIdle()              // Ferma le idle animations
+
+%c--- INFO & DEBUG ---
+enjoyTalkConsole.listVariants()         // Elenca tutte le talking animation variants
+enjoyTalkConsole.listIdle()             // Elenca tutte le idle animations
+enjoyTalkConsole.status()               // Mostra lo stato corrente
+enjoyTalkConsole.help()                 // Mostra questa guida
+          `,
+            "color: #10b981; font-size: 12px;",
+            "color: #f59e0b; font-size: 12px;",
+            "color: #8b5cf6; font-size: 12px;"
+          );
+        },
+      };
+
+      // Mostra il messaggio di benvenuto
+      console.log(
+        "%c✅ EnjoyTalk 3D Console API pronta! Digita: enjoyTalkConsole.help()",
+        "color: #10b981; font-weight: bold; font-size: 13px;"
+      );
+
+      // Callback per l'evento 'finished' del mixer
+
+      function onTalkingFinished(event) {
+        try {
+          console.log(
+            "ANIMATION [FINISHED] Talking animation finita, ritorno a idle..."
+          );
+          if (
+            talkingAnimationActive &&
+            idleAnimationMixer &&
+            currentTalkingAnimation
+          ) {
+            talkingAnimationActive = false;
+            idleAnimationActive = true;
+
+            // Ferma la talking animation
+            currentTalkingAnimation.stop();
+
+            // Riaccendi le idle animations visibili
+            if (idleAnimationActions && idleAnimationActions.length > 0) {
+              idleAnimationActions.forEach((action, idx) => {
+                try {
+                  // Assicura che l'azione sia visibile e in playing
+                  action.weight = 1.0;
+                  action.loop = window.THREE.LoopRepeat;
+
+                  // Se non sta girando, falla partire
+                  if (!action.isRunning()) {
+                    action.play();
+                  }
+
+                  console.log(
+                    `ANIMATION [FINISHED]   ↳ Idle action ${idx}: ${action.getClip().name
+                    }, weight: ${action.weight}, running: ${action.isRunning()}`
+                  );
+                } catch (e) {
+                  console.warn(
+                    `ANIMATION [FINISHED] Errore riavvio idle action ${idx}:`,
+                    e
+                  );
+                }
+              });
+              console.log(
+                `ANIMATION [FINISHED] ✓ Idle animations ripristinate (${idleAnimationActions.length} actions)`
+              );
+            }
+          }
+        } catch (e) {
+          console.warn("ANIMATION [FINISHED] ❌ Errore:", e);
+        }
+      }
+    });
+
+    return {};
+  },
+});
 </script>
