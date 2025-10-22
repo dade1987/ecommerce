@@ -10,6 +10,7 @@ use App\Models\Team;
 use App\Models\Product;
 use App\Models\Event;
 use App\Models\Order;
+use App\Services\EmbeddingCacheService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use OpenAI;
@@ -19,11 +20,31 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class RealtimeChatController extends Controller
 {
     public OpenAIClient $client;
+    private ?Team $cachedTeam = null;
+    private ?string $cachedTeamSlug = null;
+    private ?EmbeddingCacheService $embeddingService = null;
 
     public function __construct()
     {
         $apiKey = config('openapi.key');
         $this->client = OpenAI::client($apiKey);
+        $this->embeddingService = new EmbeddingCacheService($this->client);
+    }
+
+    /**
+     * Ottiene Team dal cache locale durante la richiesta
+     */
+    private function getTeamCached(string $teamSlug): ?Team
+    {
+        if ($this->cachedTeamSlug === $teamSlug && $this->cachedTeam !== null) {
+            return $this->cachedTeam;
+        }
+        $team = Team::where('slug', $teamSlug)->first();
+        if ($team) {
+            $this->cachedTeam = $team;
+            $this->cachedTeamSlug = $teamSlug;
+        }
+        return $team;
     }
 
     /**
@@ -66,7 +87,7 @@ class RealtimeChatController extends Controller
 
                 // Greeting immediato
                 if (mb_strtolower($userInput) === mb_strtolower(trans('enjoy-work.greeting', [], $locale))) {
-                    $team = Team::where('slug', $teamSlug)->first();
+                    $team = $this->getTeamCached($teamSlug);
                     $welcomeMessage = $team ? (string) $team->welcome_message : (string) trans('enjoy-work.welcome_message_fallback', [], $locale);
                     $this->streamTextByWord($welcomeMessage, $flush);
 
@@ -108,8 +129,9 @@ class RealtimeChatController extends Controller
                         // Ricostruisci breve history dal nostro storage per mantenere il contesto nelle Chat Completions
                         $historyRecords = Quoter::where('thread_id', $streamThreadId)
                             ->orderBy('id', 'asc')
+                            ->select(['id', 'role', 'content'])
                             ->limit(12)
-                            ->get(['role','content']);
+                            ->get();
                         $historyMessages = [];
                         if ($historyRecords->count() > 0) {
                             // Evita di duplicare l'ultimo messaggio utente appena inserito
@@ -414,6 +436,8 @@ class RealtimeChatController extends Controller
                     );
 
                     // 4) Loop finché non termina o richiede azione
+                    $pollDelayMs = 100; // Inizio con 100ms
+                    $maxPollDelayMs = 500;
                     while (in_array($run->status, ['queued', 'in_progress', 'requires_action'])) {
                         if ($run->status === 'requires_action' && isset($run->requiredAction)) {
                             $toolCalls = $run->requiredAction->submitToolOutputs->toolCalls;
@@ -462,9 +486,12 @@ class RealtimeChatController extends Controller
                                 runId: $run->id,
                                 parameters: [ 'tool_outputs' => $toolOutputs ]
                             );
+                            // Reset delay dopo tool call completato
+                            $pollDelayMs = 100;
                         }
 
-                        sleep(1);
+                        usleep($pollDelayMs * 1000); // Converti ms in microsecondi
+                        $pollDelayMs = min($pollDelayMs * 1.5, $maxPollDelayMs); // Backoff esponenziale: 100 -> 150 -> 225 -> 338 -> 500
                         $run = $this->client->threads()->runs()->retrieve(threadId: $assistantThreadId, runId: $run->id);
                     }
 
@@ -537,7 +564,7 @@ class RealtimeChatController extends Controller
     private function buildContextForMessage(string $teamSlug, string $userInput, string $locale): string
     {
         try {
-            $team = Team::where('slug', $teamSlug)->first();
+            $team = $this->getTeamCached($teamSlug);
             if (! $team) return '';
 
             // FAQ pertinenti
@@ -579,7 +606,7 @@ class RealtimeChatController extends Controller
                 return null;
             }
 
-            $team = Team::where('slug', $teamSlug)->first();
+            $team = $this->getTeamCached($teamSlug);
             if (!$team) {
                 return null;
             }
@@ -676,15 +703,10 @@ class RealtimeChatController extends Controller
     private function tryEmbeddingSimilarity(string $textA, string $textB): ?float
     {
         try {
-            if (!$this->client) { return null; }
-            $resp = $this->client->embeddings()->create([
-                'model' => 'text-embedding-3-small',
-                'input' => [$textA, $textB],
-            ]);
-            $vecA = $resp->data[0]->embedding ?? null;
-            $vecB = $resp->data[1]->embedding ?? null;
-            if (!$vecA || !$vecB) { return null; }
-            return $this->cosineSimilarity($vecA, $vecB);
+            if (!$this->embeddingService) {
+                return null;
+            }
+            return $this->embeddingService->textSimilarity($textA, $textB);
         } catch (\Throwable $e) {
             Log::warning('RealtimeChatController.tryEmbeddingSimilarity fallback', ['error' => $e->getMessage()]);
             return null;
@@ -693,15 +715,7 @@ class RealtimeChatController extends Controller
 
     private function cosineSimilarity(array $a, array $b): float
     {
-        $dot = 0.0; $normA = 0.0; $normB = 0.0;
-        $len = min(count($a), count($b));
-        for ($i = 0; $i < $len; $i++) {
-            $dot += $a[$i] * $b[$i];
-            $normA += $a[$i] * $a[$i];
-            $normB += $b[$i] * $b[$i];
-        }
-        if ($normA <= 0.0 || $normB <= 0.0) { return 0.0; }
-        return $dot / (sqrt($normA) * sqrt($normB));
+        return EmbeddingCacheService::cosineSimilarity($a, $b);
     }
 
     private function formatResponseContent(string $content): string
@@ -722,7 +736,11 @@ class RealtimeChatController extends Controller
             'teamSlug'     => $teamSlug,
         ]);
 
-        $team = Team::where('slug', $teamSlug)->firstOrFail();
+        $team = $this->getTeamCached($teamSlug);
+        if (!$team) {
+            Log::error('fetchProductData: Team non trovato', ['teamSlug' => $teamSlug]);
+            return [];
+        }
         $query = Product::where('team_id', $team->id);
 
         if (!empty($productNames)) {
@@ -741,7 +759,11 @@ class RealtimeChatController extends Controller
     private function fetchAddressData($teamSlug)
     {
         Log::info('fetchAddressData: Inizio recupero dati indirizzo', ['teamSlug' => $teamSlug]);
-        $team = Team::where('slug', $teamSlug)->firstOrFail();
+        $team = $this->getTeamCached($teamSlug);
+        if (!$team) {
+            Log::error('fetchAddressData: Team non trovato', ['teamSlug' => $teamSlug]);
+            return [];
+        }
         Log::info('fetchAddressData: Dati indirizzo ricevuti', ['addressData' => $team->toArray()]);
         return $team->toArray();
     }
@@ -749,7 +771,11 @@ class RealtimeChatController extends Controller
     private function fetchAvailableTimes($teamSlug)
     {
         Log::info('fetchAvailableTimes: Inizio recupero orari disponibili', ['teamSlug' => $teamSlug]);
-        $team = Team::where('slug', $teamSlug)->firstOrFail();
+        $team = $this->getTeamCached($teamSlug);
+        if (!$team) {
+            Log::error('fetchAvailableTimes: Team non trovato', ['teamSlug' => $teamSlug]);
+            return [];
+        }
         $events = Event::where('team_id', $team->id)
             ->where('name', 'Disponibile')
             ->where('starts_at', '>=', now())
@@ -768,7 +794,11 @@ class RealtimeChatController extends Controller
             'productIds'   => $productIds,
             'teamSlug'     => $teamSlug,
         ]);
-        $team = Team::where('slug', $teamSlug)->firstOrFail();
+        $team = $this->getTeamCached($teamSlug);
+        if (!$team) {
+            Log::error('createOrder: Team non trovato', ['teamSlug' => $teamSlug]);
+            return ['error' => 'Team non trovato'];
+        }
 
         $order = new Order();
         $order->team_id = $team->id;
@@ -806,20 +836,30 @@ class RealtimeChatController extends Controller
                 $customer->name = $userName;
                 $customer->save();
             } else {
+                $team = $this->getTeamCached($teamSlug);
+                if (!$team) {
+                    Log::error('submitUserData: Team non trovato', ['teamSlug' => $teamSlug]);
+                    return ['error' => 'Team non trovato'];
+                }
                 Customer::create([
                     'uuid' => $activityUuid,
                     'phone' => $userPhone,
                     'email' => $userEmail,
                     'name' => $userName,
-                    'team_id' => Team::where('slug', $teamSlug)->first()->id,
+                    'team_id' => $team->id,
                 ]);
             }
         } else {
+            $team = $this->getTeamCached($teamSlug);
+            if (!$team) {
+                Log::error('submitUserData: Team non trovato', ['teamSlug' => $teamSlug]);
+                return ['error' => 'Team non trovato'];
+            }
             Customer::create([
                 'phone' => $userPhone,
                 'email' => $userEmail,
                 'name' => $userName,
-                'team_id' => Team::where('slug', $teamSlug)->first()->id,
+                'team_id' => $team->id,
             ]);
         }
 
@@ -829,7 +869,11 @@ class RealtimeChatController extends Controller
     private function fetchFAQs($teamSlug, $query)
     {
         Log::info('fetchFAQs: Inizio recupero FAQ', ['teamSlug' => $teamSlug, 'query' => $query]);
-        $team = Team::where('slug', $teamSlug)->firstOrFail();
+        $team = $this->getTeamCached($teamSlug);
+        if (!$team) {
+            Log::error('fetchFAQs: Team non trovato', ['teamSlug' => $teamSlug]);
+            return [];
+        }
         try {
             $faqs = Faq::where('team_id', $team->id)
                 ->whereRaw('MATCH(question, answer) AGAINST(? IN NATURAL LANGUAGE MODE)', [$query])
