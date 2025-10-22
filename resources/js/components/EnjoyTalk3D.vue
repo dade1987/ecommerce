@@ -128,23 +128,12 @@ export default defineComponent({
       // stato minimale esposto secondo Options API
       isListening: false,
       advancedLipsyncOn: false,
-      heygenApiKey: this.heygenApiKey || '',
-      heygenServerUrl: this.heygenServerUrl || 'https://api.heygen.com',
-      locale: this.locale || 'it-IT',
-      teamLogo: this.teamLogo || '/images/logoai.jpeg',
     }
   },
   mounted() {
     try {
       // Priorità: props ricevuti > dataset dell'elemento > valori di default
-      if (this.$el) {
-        console.log('EnjoyTalk3D mounted:', { dataset: this.$el.dataset, props: { heygenApiKey: this.heygenApiKey, heygenServerUrl: this.heygenServerUrl } });
-        this.heygenApiKey = this.heygenApiKey || this.$el.dataset.heygenApiKey || ''
-        this.heygenServerUrl = this.heygenServerUrl || this.$el.dataset.heygenServerUrl || 'https://api.heygen.com'
-        this.locale = this.locale || this.$el.dataset.locale || 'it-IT'
-        this.teamLogo = this.teamLogo || this.$el.dataset.teamLogo || '/images/logoai.jpeg'
-      }
-
+      // I props sono già gestiti in setup(), niente da fare qui
       this.initLibraries().then(() => {
         try { this.setupScene && this.setupScene() } catch { }
         try { setTimeout(() => { try { this.loadHumanoid && this.loadHumanoid() } catch { } }, 0) } catch { }
@@ -482,6 +471,16 @@ export default defineComponent({
         relaxDone: false,
       };
       
+      // Animazione idle mixata da GLB esterno
+      let idleAnimationMixer = null;
+      let idleAnimationActions = [];
+      let idleAnimationActive = false;
+
+      // Talking animations casuali
+      let talkingAnimationMixer = null;
+      let talkingAnimationVariants = []; // array di array, uno per ogni variant
+      let currentTalkingAnimation = null;
+      let talkingAnimationActive = false;
 
       const debugOverlay = document.getElementById('debugOverlay');
       const debugContent = document.getElementById('debugContent');
@@ -1085,8 +1084,21 @@ export default defineComponent({
         animationId = requestAnimationFrame(animate);
         head.position.y = 0.2 + Math.sin(performance.now() / 1200) * 0.01;
 
+        // Aggiorna il mixer dell'animazione idle se attivo
+        if (idleAnimationMixer && idleAnimationActive) {
+          idleAnimationMixer.update(0.016); // ~60fps
+        }
+
+        // Aggiorna il mixer dell'animazione talking se attivo
+        if (talkingAnimationMixer && talkingAnimationActive) {
+          talkingAnimationMixer.update(0.016); // ~60fps
+        }
+
         // Subtle idle body/facial animation when not speaking
-        applyIdleBody();
+        // Disabilita applyIdleBody se il mixer idle è attivo (per evitare sovrapposizione)
+        if (!idleAnimationActive) {
+          applyIdleBody();
+        }
         applyIdleFacial(performance.now() * 0.001);
         applyConversationGestures();
         armsRelaxed = true;
@@ -1281,9 +1293,9 @@ export default defineComponent({
             const chosen = femaleVoices[0] || itVoices.find(v => prefNames.some(n => (v.name || '').includes(n))) || itVoices[0] || voices.find(v => /Italian/i.test(v.name)) || voices[0];
             if (chosen) utter.voice = chosen;
             if (browserTtsStatus) browserTtsStatus.textContent = chosen ? `Voce: ${chosen.name}` : 'Voce IT non trovata (usa default)';
-            utter.onstart = () => { try { const nowT = performance.now(); const textClean = (item.text || '').replace(/\s+/g, ' ').trim(); const words = textClean.split(/\s+/).filter(Boolean); const charCount = textClean.length; const wordCount = words.length || Math.max(1, Math.round(charCount / 5)); const periods = (textClean.match(/[.!?…]/g) || []).length; const commas = (textClean.match(/[,:;]/g) || []).length; const parens = (textClean.match(/[()\-\u2013\u2014]/g) || []).length; const rate = (typeof utter.rate === 'number' && utter.rate > 0) ? utter.rate : 1; let estSec = ((wordCount * 0.55) * 0.5 + (charCount / 13.5) * 0.5) + (periods * 0.55 + commas * 0.32 + parens * 0.22) + 0.4; estSec = estSec / rate; estSec = Math.max(2.2, estSec); visemeSchedule = []; enqueueTextVisemes(item.text || '', Math.floor(estSec * 1000), nowT); } catch { } };
+            utter.onstart = () => { try { playRandomTalkingAnimation(); const nowT = performance.now(); const textClean = (item.text || '').replace(/\s+/g, ' ').trim(); const words = textClean.split(/\s+/).filter(Boolean); const charCount = textClean.length; const wordCount = words.length || Math.max(1, Math.round(charCount / 5)); const periods = (textClean.match(/[.!?…]/g) || []).length; const commas = (textClean.match(/[,:;]/g) || []).length; const parens = (textClean.match(/[()\-\u2013\u2014]/g) || []).length; const rate = (typeof utter.rate === 'number' && utter.rate > 0) ? utter.rate : 1; let estSec = ((wordCount * 0.55) * 0.5 + (charCount / 13.5) * 0.5) + (periods * 0.55 + commas * 0.32 + parens * 0.22) + 0.4; estSec = estSec / rate; estSec = Math.max(2.2, estSec); visemeSchedule = []; enqueueTextVisemes(item.text || '', Math.floor(estSec * 1000), nowT); } catch { } };
             utter.onend = () => {
-              try { visemeSchedule = []; visemeTargets = { jawOpen: 0, mouthFunnel: 0, mouthPucker: 0, mouthSmileL: 0, mouthSmileR: 0, mouthClose: 0 }; forceFullCloseUntil = performance.now() + 220; visemeActiveUntil = performance.now() + 180; visemeStrength = 0; if (Array.isArray(visemeMeshes)) { for (const vm of visemeMeshes) { const infl = vm.mesh && vm.mesh.morphTargetInfluences; const idxs = vm.indices || {}; if (!infl) continue; try { if (idxs.mouthFunnel >= 0) infl[idxs.mouthFunnel] = 0; } catch { } try { if (idxs.mouthPucker >= 0) infl[idxs.mouthPucker] = 0; } catch { } try { if (idxs.mouthSmileL >= 0) infl[idxs.mouthSmileL] = 0; } catch { } try { if (idxs.mouthSmileR >= 0) infl[idxs.mouthSmileR] = 0; } catch { } try { if (idxs.mouthClose >= 0) infl[idxs.mouthClose] = 0; } catch { } try { if (idxs.jawOpen >= 0) infl[idxs.jawOpen] = 0; } catch { } } } if (humanoid && humanoid.updateMatrixWorld) humanoid.updateMatrixWorld(true); } catch { }
+              try { stopTalkingAnimation(); visemeSchedule = []; visemeTargets = { jawOpen: 0, mouthFunnel: 0, mouthPucker: 0, mouthSmileL: 0, mouthSmileR: 0, mouthClose: 0 }; forceFullCloseUntil = performance.now() + 220; visemeActiveUntil = performance.now() + 180; visemeStrength = 0; if (Array.isArray(visemeMeshes)) { for (const vm of visemeMeshes) { const infl = vm.mesh && vm.mesh.morphTargetInfluences; const idxs = vm.indices || {}; if (!infl) continue; try { if (idxs.mouthFunnel >= 0) infl[idxs.mouthFunnel] = 0; } catch { } try { if (idxs.mouthPucker >= 0) infl[idxs.mouthPucker] = 0; } catch { } try { if (idxs.mouthSmileL >= 0) infl[idxs.mouthSmileL] = 0; } catch { } try { if (idxs.mouthSmileR >= 0) infl[idxs.mouthSmileR] = 0; } catch { } try { if (idxs.mouthClose >= 0) infl[idxs.mouthClose] = 0; } catch { } try { if (idxs.jawOpen >= 0) infl[idxs.jawOpen] = 0; } catch { } } } if (humanoid && humanoid.updateMatrixWorld) humanoid.updateMatrixWorld(true); } catch { }
               visemeActiveUntil = 0; visemeStrength = 0; lastSpokenTail = (lastSpokenTail + ' ' + item.text).slice(-400); lastSentToTts = ''; playNextInQueue();
             };
             utter.onerror = () => { if (item.url) { ttsPlayer.src = item.url; ttsPlayer.play().catch(() => { isSpeaking = false; }); } else { isSpeaking = false; playNextInQueue(); } };
@@ -1302,11 +1314,11 @@ export default defineComponent({
           visemeTargets = { jawOpen: 0, mouthFunnel: 0, mouthPucker: 0, mouthSmileL: 0, mouthSmileR: 0, mouthClose: 0 };
           forceFullCloseUntil = performance.now() + 220; visemeActiveUntil = performance.now() + 180;
           try { if (Array.isArray(visemeMeshes)) { for (const vm of visemeMeshes) { const infl = vm.mesh && vm.mesh.morphTargetInfluences; const idxs = vm.indices || {}; if (!infl) continue; if (idxs.mouthFunnel >= 0) infl[idxs.mouthFunnel] = 0; if (idxs.mouthPucker >= 0) infl[idxs.mouthPucker] = 0; if (idxs.mouthSmileL >= 0) infl[idxs.mouthSmileL] = 0; if (idxs.mouthSmileR >= 0) infl[idxs.mouthSmileR] = 0; if (idxs.mouthClose >= 0) infl[idxs.mouthClose] = 0; if (idxs.jawOpen >= 0) infl[idxs.jawOpen] = 0; } } if (humanoid && humanoid.updateMatrixWorld) humanoid.updateMatrixWorld(true); } catch { }
-          ttsPlayer.removeEventListener('ended', onEnded); playNextInQueue();
+          stopTalkingAnimation(); ttsPlayer.removeEventListener('ended', onEnded); playNextInQueue();
         };
         const onError = () => { console.error('TTS: Playback error for:', item.text.substring(0, 50)); URL.revokeObjectURL(item.url); ttsPlayer.removeEventListener('ended', onEnded); ttsPlayer.removeEventListener('error', onError); isSpeaking = false; cloudAudioSpeaking = false; playNextInQueue(); };
         ttsPlayer.addEventListener('ended', onEnded); ttsPlayer.addEventListener('error', onError);
-        const onPlaying = () => { try { visemeSchedule = []; } catch { } try { ttsPlayer.removeEventListener('playing', onPlaying); } catch { } };
+        const onPlaying = () => { try { playRandomTalkingAnimation(); visemeSchedule = []; } catch { } try { ttsPlayer.removeEventListener('playing', onPlaying); } catch { } };
         ttsPlayer.addEventListener('playing', onPlaying);
         ttsPlayer.play().then(() => { cloudAudioSpeaking = true; }).catch((err) => { console.error('TTS: Play failed:', err); isSpeaking = false; onError(); });
       }
@@ -1566,11 +1578,13 @@ export default defineComponent({
           }
           function loadWithFBX() { return new Promise((resolve, reject) => { try { const loader = new FBXLoaderCtor(); console.log('Carico humanoid FBX da', fbxUrl); loader.load(fbxUrl, (obj) => { try { obj.updateMatrixWorld(true); } catch { } attachHumanoid(obj); resolve(true); }, undefined, (err) => { console.warn('Impossibile caricare FBX', err); reject(err); }); } catch (e) { reject(e); } }); }
           function loadWithGLTF() { return new Promise((resolve, reject) => { try { if (!GLTFLoaderCtor) { reject(new Error('GLTFLoader non disponibile')); return; } const loader = new GLTFLoaderCtor(); console.log('Carico humanoid GLB da', glbUrl); loader.load(glbUrl, (gltf) => { attachHumanoid(gltf.scene); resolve(true); }, undefined, (err) => { console.warn('Impossibile caricare GLB', err); reject(err); }); } catch (e) { reject(e); } }); }
+          function loadIdleAnimation() { return new Promise((resolve) => { try { if (!GLTFLoaderCtor) { resolve(false); return; } idleAnimationActions = []; idleAnimationMixer = null; idleAnimationActive = false; const idleAnimUrl = '/images/animation-library-master/feminine/glb/idle/F_Standing_Idle_Variations_003.glb' + '?v=' + Date.now(); const loader = new GLTFLoaderCtor(); loader.load(idleAnimUrl, (gltf) => { try { if (humanoid && gltf.animations && gltf.animations.length > 0) { idleAnimationMixer = new window.THREE.AnimationMixer(humanoid); gltf.animations.forEach(clip => { try { const action = idleAnimationMixer.clipAction(clip); if (action) { action.loop = window.THREE.LoopRepeat; idleAnimationActions.push(action); } } catch(e) { console.warn('Errore caricamento azione animazione:', e); } }); console.log('Idle animation caricata:', gltf.animations.length, 'clips'); if (idleAnimationActions.length > 0) { idleAnimationActive = true; idleAnimationActions.forEach(a => a.play()); } resolve(true); } else { resolve(false); } } catch(e) { console.warn('Errore caricamento idle animation:', e); resolve(false); } }, undefined, (err) => { console.warn('Impossibile caricare idle animation', err); resolve(false); }); } catch(e) { console.warn('Errore loadIdleAnimation:', e); resolve(false); } }); }
+          function loadTalkingAnimations() { return new Promise((resolve) => { try { if (!GLTFLoaderCtor) { resolve(false); return; } const loader = new GLTFLoaderCtor(); let loadedCount = 0; talkingAnimationVariants = []; talkingAnimationMixer = null; currentTalkingAnimation = null; talkingAnimationActive = false; for (let i = 1; i <= 6; i++) { const variant = String(i).padStart(3, '0'); const talkUrl = `/images/animation-library-master/feminine/glb/expression/F_Talking_Variations_${variant}.glb` + '?v=' + Date.now(); loader.load(talkUrl, (gltf) => { try { if (gltf.animations && gltf.animations.length > 0) { const variantClips = gltf.animations.map(clip => ({ clip, name: clip.name })); talkingAnimationVariants.push(variantClips); console.log(`Talking variant ${variant} caricata: ${gltf.animations.length} clips`); } loadedCount++; if (loadedCount === 6) { if (talkingAnimationVariants.length > 0 && humanoid && window.THREE) { talkingAnimationMixer = new window.THREE.AnimationMixer(humanoid); console.log('Tutte le talking animations caricate:', talkingAnimationVariants.length, 'varianti'); resolve(true); } else { console.warn('Errore: variants=', talkingAnimationVariants.length, 'humanoid=', !!humanoid, 'THREE=', !!window.THREE); resolve(false); } } } catch(e) { console.warn(`Errore caricamento talking ${variant}:`, e); loadedCount++; if (loadedCount === 6) resolve(talkingAnimationVariants.length > 0); } }, undefined, (err) => { console.warn(`Impossibile caricare talking variant ${variant}`, err); loadedCount++; if (loadedCount === 6) resolve(talkingAnimationVariants.length > 0); }); } } catch(e) { console.warn('Errore loadTalkingAnimations:', e); resolve(false); } }); }
           (async () => {
             try {
               if (humanoid) return; // già caricato
-              if (GLTFLoaderCtor) { await loadWithGLTF(); return }
-              if (FBXLoaderCtor && fbxUrl) { await loadWithFBX(); return }
+              if (GLTFLoaderCtor) { await loadWithGLTF(); await loadIdleAnimation(); await loadTalkingAnimations(); return }
+              if (FBXLoaderCtor && fbxUrl) { await loadWithFBX(); await loadIdleAnimation(); await loadTalkingAnimations(); return }
             } catch (e) { console.warn('Nessun modello caricato', e) }
             finally { humanoidLoading = false }
           })();
@@ -1599,6 +1613,70 @@ export default defineComponent({
         } catch (e) { console.warn('fitCameraToObject error', e); }
       }
 
+      function playRandomTalkingAnimation() {
+        try {
+          console.log('playRandomTalkingAnimation chiamata. mixer=', !!talkingAnimationMixer, 'humanoid=', !!humanoid, 'variants=', talkingAnimationVariants.length);
+          if (!talkingAnimationMixer || !humanoid || talkingAnimationVariants.length === 0) {
+            console.warn('Condizioni non soddisfatte per talking animation');
+            return;
+          }
+          // Ferma la talking animation precedente
+          if (currentTalkingAnimation) {
+            try { currentTalkingAnimation.stop(); } catch { }
+          }
+          // Sceglie una variante casuale (0-6)
+          const variantIdx = Math.floor(Math.random() * talkingAnimationVariants.length);
+          const variant = talkingAnimationVariants[variantIdx];
+          if (!variant || variant.length === 0) {
+            console.warn('Variante non trovata o vuota:', variantIdx);
+            return;
+          }
+          // Sceglie una clip casuale della variante
+          const clipIdx = Math.floor(Math.random() * variant.length);
+          const clipData = variant[clipIdx];
+          if (!clipData || !clipData.clip) {
+            console.warn('Clip non trovata:', variantIdx, clipIdx);
+            return;
+          }
+          console.log(`Avvia talking animation: variant ${variantIdx}, clip ${clipIdx} (${clipData.name})`);
+          // Crea una nuova azione per questa clip
+          currentTalkingAnimation = talkingAnimationMixer.clipAction(clipData.clip);
+          if (currentTalkingAnimation) {
+            currentTalkingAnimation.clampWhenFinished = false;
+            currentTalkingAnimation.loop = window.THREE.LoopOnce;
+            // CrossFade dalle idle animations alla talking per una transizione fluida
+            const fadeDuration = 0.3; // 300ms di transizione
+            if (idleAnimationActions && idleAnimationActions.length > 0) {
+              idleAnimationActions.forEach(action => {
+                action.crossFadeTo(currentTalkingAnimation, fadeDuration, true);
+              });
+            }
+            currentTalkingAnimation.play();
+            talkingAnimationActive = true;
+            console.log('Talking animation avviata con crossFade');
+          } else {
+            console.warn('Azione non creata');
+          }
+        } catch (e) { console.warn('Errore playRandomTalkingAnimation:', e); }
+      }
+
+      function stopTalkingAnimation() {
+        try {
+          if (currentTalkingAnimation) {
+            // CrossFade di ritorno alle idle animations per una transizione fluida
+            const fadeDuration = 0.3; // 300ms di transizione
+            if (idleAnimationActions && idleAnimationActions.length > 0) {
+              idleAnimationActions.forEach(action => {
+                currentTalkingAnimation.crossFadeTo(action, fadeDuration, true);
+              });
+            }
+            currentTalkingAnimation.stop();
+            currentTalkingAnimation = null;
+            talkingAnimationActive = false;
+            console.log('Talking animation fermata con crossFade alle idle');
+          }
+        } catch (e) { console.warn('Errore stopTalkingAnimation:', e); }
+      }
 
     })
 
