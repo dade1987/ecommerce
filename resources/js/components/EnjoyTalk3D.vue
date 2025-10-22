@@ -131,6 +131,13 @@ export default defineComponent({
       type: String,
       default: "/images/logoai.jpeg",
     },
+    teamSlug: {
+      type: String,
+      default: () => {
+        // Fallback: leggi dal pathname se non fornito via prop
+        return window.location.pathname.split("/").pop()
+      }
+    },
   },
   data() {
     return {
@@ -331,7 +338,7 @@ export default defineComponent({
       const useAdvancedLipsync = $id("useAdvancedLipsync");
       const heygenVideo = $id("heygenVideo");
       const heygenAudio = $id("heygenAudio");
-      const teamSlug = window.location.pathname.split("/").pop();
+      const teamSlug = props.teamSlug || window.location.pathname.split("/").pop();
       const urlParams = new URLSearchParams(window.location.search);
       const uuid = urlParams.get("uuid");
       const locale = props.locale || "it-IT";

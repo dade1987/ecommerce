@@ -1,0 +1,21 @@
+{
+  "_EnjoyTalk3D-98bd99c2.js": {
+    "file": "chunks/EnjoyTalk3D-98bd99c2.js"
+  },
+  "resources/js/app.js": {
+    "file": "main.js",
+    "imports": [
+      "_EnjoyTalk3D-98bd99c2.js"
+    ],
+    "isEntry": true,
+    "src": "resources/js/app.js"
+  },
+  "resources/js/enjoy-talk-3d-element.js": {
+    "file": "enjoyTalk3D.js",
+    "imports": [
+      "_EnjoyTalk3D-98bd99c2.js"
+    ],
+    "isEntry": true,
+    "src": "resources/js/enjoy-talk-3d-element.js"
+  }
+}

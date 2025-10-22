@@ -1,0 +1,1 @@
+import{c as t,E as a}from"./chunks/EnjoyTalk3D-98bd99c2.js";const e=document.getElementById("enjoyTalkRoot"),o={};e&&(o.heygenApiKey=e.dataset.heygenApiKey||"",o.heygenServerUrl=e.dataset.heygenServerUrl||"https://api.heygen.com",o.locale=e.dataset.locale||"it-IT",o.teamLogo=e.dataset.teamLogo||"/images/logoai.jpeg");t(a,o).mount("#enjoyTalkRoot");

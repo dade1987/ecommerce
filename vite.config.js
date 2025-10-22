@@ -19,4 +19,17 @@ export default defineConfig({
             publicDirectory: "public_html",
         }),
     ],
+    build: {
+        rollupOptions: {
+            input: {
+                main: 'resources/js/app.js',
+                enjoyTalk3D: 'resources/js/enjoy-talk-3d-element.js'
+            },
+            output: {
+                entryFileNames: '[name].js',
+                chunkFileNames: 'chunks/[name]-[hash].js',
+                dir: 'public_html/js'
+            }
+        }
+    }
 });
