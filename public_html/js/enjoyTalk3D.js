@@ -1,1 +1,0 @@
-import{E as e,d as t}from"./chunks/EnjoyTalk3D-98bd99c2.js";const n={...e,props:{teamSlug:{type:String,required:!1,default:()=>window.location.pathname.split("/").pop()}}},o=t(n);customElements.define("enjoy-talk-3d",o);

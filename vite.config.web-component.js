@@ -9,6 +9,10 @@ import vue from '@vitejs/plugin-vue';
  */
 export default defineConfig({
     plugins: [vue()],
+    define: {
+        'process.env.NODE_ENV': JSON.stringify('production'),
+        'process.env': '({})',
+    },
     build: {
         outDir: 'public_html/js',
         lib: {
@@ -21,7 +25,10 @@ export default defineConfig({
                 format: 'iife',
                 name: 'EnjoyTalk3D',
                 entryFileNames: 'enjoyTalk3D.standalone.js',
-                extend: true
+                extend: true,
+                globals: {
+                    process: 'undefined'
+                }
             }
         }
     }
