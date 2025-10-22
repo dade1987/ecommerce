@@ -128,23 +128,10 @@ export default defineComponent({
       // stato minimale esposto secondo Options API
       isListening: false,
       advancedLipsyncOn: false,
-      heygenApiKey: this.heygenApiKey || '',
-      heygenServerUrl: this.heygenServerUrl || 'https://api.heygen.com',
-      locale: this.locale || 'it-IT',
-      teamLogo: this.teamLogo || '/images/logoai.jpeg',
     }
   },
   mounted() {
     try {
-      // Priorità: props ricevuti > dataset dell'elemento > valori di default
-      if (this.$el) {
-        console.log('EnjoyTalk3D mounted:', { dataset: this.$el.dataset, props: { heygenApiKey: this.heygenApiKey, heygenServerUrl: this.heygenServerUrl } });
-        this.heygenApiKey = this.heygenApiKey || this.$el.dataset.heygenApiKey || ''
-        this.heygenServerUrl = this.heygenServerUrl || this.$el.dataset.heygenServerUrl || 'https://api.heygen.com'
-        this.locale = this.locale || this.$el.dataset.locale || 'it-IT'
-        this.teamLogo = this.teamLogo || this.$el.dataset.teamLogo || '/images/logoai.jpeg'
-      }
-
       this.initLibraries().then(() => {
         try { this.setupScene && this.setupScene() } catch { }
         try { setTimeout(() => { try { this.loadHumanoid && this.loadHumanoid() } catch { } }, 0) } catch { }
@@ -391,12 +378,12 @@ export default defineComponent({
         }
       } catch { }
       let morphMesh = null, morphIndex = -1, morphValue = 0;
-      const visemeIndices = { jawOpen: -1, mouthFunnel: -1, mouthPucker: -1, mouthSmileL: -1, mouthSmileR: -1, mouthClose: -1 };
+      const visemeIndices = { jawOpen: -1, mouthFunnel: -1, mouthPucker: -1, mouthSmileL: -1, mouthSmileR: -1, mouthClose: -1, mouthStretchL: -1, mouthStretchR: -1, tongueOut: -1 };
       let visemeActiveUntil = 0;
       let visemeStrength = 0;
-      let lastVisemes = { jawOpen: 0, mouthFunnel: 0, mouthPucker: 0, mouthSmileL: 0, mouthSmileR: 0, mouthClose: 0 };
-      const deadband = { jawOpen: 0.02, mouthFunnel: 0.02, mouthPucker: 0.02, mouthSmileL: 0.02, mouthSmileR: 0.02, mouthClose: 0.02 };
-      let visemeTargets = { jawOpen: 0, mouthFunnel: 0, mouthPucker: 0, mouthSmileL: 0, mouthSmileR: 0, mouthClose: 0 };
+      let lastVisemes = { jawOpen: 0, mouthFunnel: 0, mouthPucker: 0, mouthSmileL: 0, mouthSmileR: 0, mouthClose: 0, mouthStretchL: 0, mouthStretchR: 0, tongueOut: 0 };
+      const deadband = { jawOpen: 0.02, mouthFunnel: 0.02, mouthPucker: 0.02, mouthSmileL: 0.02, mouthSmileR: 0.02, mouthClose: 0.02, mouthStretchL: 0.02, mouthStretchR: 0.02, tongueOut: 0.02 };
+      let visemeTargets = { jawOpen: 0, mouthFunnel: 0, mouthPucker: 0, mouthSmileL: 0, mouthSmileR: 0, mouthClose: 0, mouthStretchL: 0, mouthStretchR: 0, tongueOut: 0 };
       let visemeMeshes = [];
       let visemeSchedule = [];
       const textVisemeEnabled = true;
@@ -415,41 +402,140 @@ export default defineComponent({
       let talkSmoothed = 0; const TALK_ALPHA = 0.2; const TALK_ON = 0.04; const TALK_OFF = 0.015;
       const lipConfig = { restJawOpen: 0.25, minLipSeparation: 0.12, maxMouthClose: 0.25, closeThresholdForSeparation: 0.2, visemeStrengthAlpha: 0.15, morphSmoothingBeta: 0.16, jawSmoothingAlpha: 0.12, smileStrength: 0.3 };
 
-      function enqueueTextVisemes(text, totalDurationMs = null, startAtMs = null) {
+      function enqueueTextVisemes(tokensOrText, totalDurationMs = null, startAtMs = null) {
+        // DOCUMENTAZIONE:
+        // Modalità 1 - Token OVR (consigliato):
+        //    enqueueTextVisemes([
+        //      { viseme: 'AA', startTime: 0, endTime: 150 },
+        //      { viseme: 'IH', startTime: 150, endTime: 300 },
+        //    ])
+        //
+        // Modalità 2 - Testo con durata (fallback):
+        //    enqueueTextVisemes("Ciao", 2000, performance.now())
+        //    Genera automaticamente token OVR dal testo basato sulla durata
+        
+        // Mappatura standard OVR viseme -> blendshapes ARKit con weights 0-1
+        const ovrToBlendshape = {
+          sil: { jawOpen: 0, mouthClose: 0, mouthFunnel: 0, mouthPucker: 0, mouthSmileL: 0, mouthSmileR: 0, mouthStretchL: 0, mouthStretchR: 0, tongueOut: 0 },
+          PP: { jawOpen: 0.05, mouthClose: 0.85, mouthFunnel: 0, mouthPucker: 0.1, mouthSmileL: 0, mouthSmileR: 0, mouthStretchL: 0, mouthStretchR: 0, tongueOut: 0 },
+          FF: { jawOpen: 0.2, mouthClose: 0.4, mouthFunnel: 0.5, mouthPucker: 0.2, mouthSmileL: 0, mouthSmileR: 0, mouthStretchL: 0, mouthStretchR: 0, tongueOut: 0 },
+          TH: { jawOpen: 0.3, mouthClose: 0.1, mouthFunnel: 0.2, mouthPucker: 0, mouthSmileL: 0, mouthSmileR: 0, mouthStretchL: 0, mouthStretchR: 0, tongueOut: 0.7 },
+          DD: { jawOpen: 0.1, mouthClose: 0.9, mouthFunnel: 0, mouthPucker: 0, mouthSmileL: 0, mouthSmileR: 0, mouthStretchL: 0, mouthStretchR: 0, tongueOut: 0.3 },
+          KK: { jawOpen: 0.35, mouthClose: 0.3, mouthFunnel: 0.2, mouthPucker: 0, mouthSmileL: 0, mouthSmileR: 0, mouthStretchL: 0, mouthStretchR: 0, tongueOut: 0 },
+          CH: { jawOpen: 0.4, mouthClose: 0.2, mouthFunnel: 0.4, mouthPucker: 0.1, mouthSmileL: 0, mouthSmileR: 0, mouthStretchL: 0, mouthStretchR: 0, tongueOut: 0 },
+          SS: { jawOpen: 0.15, mouthClose: 0.25, mouthFunnel: 0.75, mouthPucker: 0.1, mouthSmileL: 0, mouthSmileR: 0, mouthStretchL: 0, mouthStretchR: 0, tongueOut: 0 },
+          NN: { jawOpen: 0.3, mouthClose: 0.5, mouthFunnel: 0.1, mouthPucker: 0, mouthSmileL: 0, mouthSmileR: 0, mouthStretchL: 0, mouthStretchR: 0, tongueOut: 0 },
+          RR: { jawOpen: 0.4, mouthClose: 0.1, mouthFunnel: 0.4, mouthPucker: 0.2, mouthSmileL: 0, mouthSmileR: 0, mouthStretchL: 0, mouthStretchR: 0, tongueOut: 0.4 },
+          AA: { jawOpen: 0.75, mouthClose: 0, mouthFunnel: 0.1, mouthPucker: 0, mouthSmileL: 0.3, mouthSmileR: 0.3, mouthStretchL: 0.2, mouthStretchR: 0.2, tongueOut: 0 },
+          E: { jawOpen: 0.45, mouthClose: 0, mouthFunnel: 0, mouthPucker: 0, mouthSmileL: 0.5, mouthSmileR: 0.5, mouthStretchL: 0.3, mouthStretchR: 0.3, tongueOut: 0 },
+          IH: { jawOpen: 0.35, mouthClose: 0.05, mouthFunnel: 0, mouthPucker: 0, mouthSmileL: 0.6, mouthSmileR: 0.6, mouthStretchL: 0.4, mouthStretchR: 0.4, tongueOut: 0.1 },
+          OH: { jawOpen: 0.55, mouthClose: 0.1, mouthFunnel: 0.65, mouthPucker: 0.5, mouthSmileL: 0.1, mouthSmileR: 0.1, mouthStretchL: 0, mouthStretchR: 0, tongueOut: 0 },
+          OU: { jawOpen: 0.45, mouthClose: 0.15, mouthFunnel: 0.85, mouthPucker: 0.75, mouthSmileL: 0, mouthSmileR: 0, mouthStretchL: 0, mouthStretchR: 0, tongueOut: 0 }
+        };
+
+        // Converti testo a token OVR se necessario
+        const textToTokens = (text, durationMs) => {
+          if (!text || typeof text !== 'string' || !durationMs) return null;
+          const charCount = text.length;
+          const charDuration = durationMs / charCount;
+          const tokens = [];
+          let currentTime = 0;
+          
+          // Mapping completo italiano → 15 visemi OVR
+          const charToViseme = {
+            // Vocali
+            'a': 'AA',
+            'e': 'E',
+            'i': 'IH',
+            'o': 'OH',
+            'u': 'OU',
+            // Labiali (p, b, m)
+            'p': 'PP', 'b': 'PP', 'm': 'PP',
+            // Fricative (f, v)
+            'f': 'FF', 'v': 'FF',
+            // Dentali/Plosive (t, d, n)
+            't': 'DD', 'd': 'DD',
+            // Nasali (n, ng)
+            'n': 'NN',
+            // Velare (k, g)
+            'k': 'KK', 'g': 'KK',
+            // Sibilanti (s, z)
+            's': 'SS', 'z': 'SS',
+            // Rotiche (r)
+            'r': 'RR',
+            // Affricative (c davanti e/i, ch)
+            'c': 'CH',
+            'h': 'TH',
+            // Spazi e punteggiatura = silenzio
+            ' ': 'sil', '.': 'sil', ',': 'sil', '!': 'sil', '?': 'sil',
+            ';': 'sil', ':': 'sil', '-': 'sil',
+          };
+          
+          for (let i = 0; i < text.length; i++) {
+            const char = text[i].toLowerCase();
+            const viseme = charToViseme[char] || 'sil';
+            
+            const targets = ovrToBlendshape[viseme] || ovrToBlendshape.sil;
+            tokens.push({
+              viseme,
+              startTime: currentTime,
+              endTime: currentTime + charDuration,
+              targets: targets
+            });
+            currentTime += charDuration;
+          }
+          
+          return tokens;
+        };
+
         try {
-          if (!text || typeof text !== 'string') return;
-          const now = performance.now();
-          const start = (typeof startAtMs === 'number' ? startAtMs : now);
-          const clean = String(text).replace(/\s+/g, ' ').trim();
-          const chars = Math.max(1, clean.length);
-          const baseDur = 95;
-          const dur = (typeof totalDurationMs === 'number' && isFinite(totalDurationMs) && totalDurationMs > 200) ? Math.max(40, totalDurationMs / chars) : baseDur;
-          let accEnd = (visemeSchedule.length > 0 ? visemeSchedule[visemeSchedule.length - 1].end : start);
-          const syllables = clean.toLowerCase().replace(/[^a-z\s]/g, '').replace(/([aeiou])[aeiou]+/g, '$1').match(/[^aeiou]*[aeiou]+/g) || [];
-          for (const syl of syllables) {
-            const t = { jawOpen: 0, mouthFunnel: 0, mouthPucker: 0, mouthSmileL: 0, mouthSmileR: 0, mouthClose: 0 };
-            if (syl.includes('o') || syl.includes('u')) { t.mouthFunnel = 0.8; t.mouthPucker = 0.6; t.jawOpen = 0.3; }
-            else if (syl.includes('a')) { t.jawOpen = 0.6; t.mouthSmileL = 0.2; t.mouthSmileR = 0.2; }
-            else if (syl.includes('e') || syl.includes('i')) { t.mouthSmileL = 0.4; t.mouthSmileR = 0.4; t.jawOpen = 0.35; }
-            if (syl.startsWith('p') || syl.startsWith('b') || syl.startsWith('m')) { t.mouthClose = 0.9; t.jawOpen *= 0.5; }
-            else if (syl.startsWith('t') || syl.startsWith('d') || syl.startsWith('n')) { t.mouthClose = 0.6; t.jawOpen *= 0.7; }
-            else if (syl.startsWith('f') || syl.startsWith('v') || syl.startsWith('s')) { t.mouthFunnel = Math.max(t.mouthFunnel, 0.3); t.jawOpen *= 0.8; }
-            const sylDur = dur * (syl.length * 0.8);
-            const s = accEnd; const e = s + sylDur;
-            visemeSchedule.push({ start: s, end: e, targets: t });
-            accEnd = e;
+          const isSpeakingNow = window.speechSynthesis && window.speechSynthesis.speaking;
+          const shouldLog = isSpeakingNow || isSpeaking;
+          
+          let tokens = tokensOrText;
+          
+          // Se è un array di token OVR
+          if (Array.isArray(tokensOrText)) {
+            if (shouldLog) console.log('[VISEME ENQUEUE] Token array received with', tokensOrText.length, 'tokens');
           }
-          for (const ch of clean) {
-            if (/[.,;:!?]/.test(ch)) {
-              const t = { jawOpen: 0, mouthFunnel: 0, mouthPucker: 0, mouthSmileL: 0, mouthSmileR: 0, mouthClose: 0.6 };
-              const pauseDur = dur * 1.6;
-              const s = accEnd; const e = s + pauseDur;
-              visemeSchedule.push({ start: s, end: e, targets: t });
-              accEnd = e;
+          // Se è testo, converti a token
+          else if (typeof tokensOrText === 'string' && totalDurationMs) {
+            if (shouldLog) console.log('[VISEME ENQUEUE] Text received:', tokensOrText.substring(0, 50), '- Duration:', totalDurationMs, 'ms');
+            tokens = textToTokens(tokensOrText, totalDurationMs);
+            if (!tokens || tokens.length === 0) {
+              console.warn('[VISEME ENQUEUE] Failed to convert text to tokens');
+              return;
             }
+            if (shouldLog) console.log('[VISEME ENQUEUE] Generated', tokens.length, 'tokens from text');
           }
+          else {
+            console.warn('[VISEME ENQUEUE] Invalid input: expected array of tokens or (text, duration)');
+            return;
+          }
+          
+          if (!Array.isArray(tokens) || tokens.length === 0) return;
+          
+          const now = performance.now();
+          const baseTime = startAtMs || now;
+          
+          visemeSchedule = [];
+          
+          for (const token of tokens) {
+            const { viseme, startTime, endTime, targets } = token;
+            
+            visemeSchedule.push({
+              start: baseTime + startTime,
+              end: baseTime + endTime,
+              targets: targets
+            });
+          }
+          
+          if (shouldLog) console.log('[VISEME ENQUEUE] Schedule created with', visemeSchedule.length, 'items, duration:', visemeSchedule[visemeSchedule.length - 1].end - baseTime, 'ms');
+          
           if (visemeSchedule.length > 120) visemeSchedule = visemeSchedule.slice(-120);
-        } catch { }
+        } catch (e) { 
+          console.error('[VISEME ENQUEUE] ERROR:', e);
+        }
       }
       try { instance.proxy.loadHumanoid = loadHumanoid } catch { }
 
@@ -481,6 +567,10 @@ export default defineComponent({
         relaxPhase: 0,
         relaxDone: false,
       };
+      // Talking animation state
+      let talkingAnimMixer = null;
+      let talkingAnimAction = null;
+      let talkingAnimClip = null;
       
 
       const debugOverlay = document.getElementById('debugOverlay');
@@ -726,7 +816,7 @@ export default defineComponent({
         restStableUntil = performance.now() + 300;
         // reset visemi/bocca a riposo
         try {
-          visemeTargets = { jawOpen: 0, mouthFunnel: 0, mouthPucker: 0, mouthSmileL: 0, mouthSmileR: 0, mouthClose: 0 };
+          visemeTargets = { jawOpen: 0, mouthFunnel: 0, mouthPucker: 0, mouthSmileL: 0, mouthSmileR: 0, mouthClose: 0, mouthStretchL: 0, mouthStretchR: 0, tongueOut: 0 };
           visemeSchedule = []; visemeStrength = 0; morphValue = 0;
           if (Array.isArray(visemeMeshes)) {
             for (const vm of visemeMeshes) {
@@ -737,6 +827,9 @@ export default defineComponent({
               if (idxs.mouthSmileR >= 0) infl[idxs.mouthSmileR] = 0;
               if (idxs.mouthClose >= 0) infl[idxs.mouthClose] = 0;
               if (idxs.jawOpen >= 0) infl[idxs.jawOpen] = 0;
+              if (idxs.mouthStretchL >= 0) infl[idxs.mouthStretchL] = 0;
+              if (idxs.mouthStretchR >= 0) infl[idxs.mouthStretchR] = 0;
+              if (idxs.tongueOut >= 0) infl[idxs.tongueOut] = 0;
             }
           }
           if (humanoid && humanoid.updateMatrixWorld) humanoid.updateMatrixWorld(true);
@@ -1126,25 +1219,29 @@ export default defineComponent({
 
         if (textVisemeEnabled && !forcedClosing) {
           if (!talking && performance.now() < restStableUntil) {
-            visemeTargets = { jawOpen: 0, mouthFunnel: 0, mouthPucker: 0, mouthSmileL: lipConfig.smileStrength, mouthSmileR: lipConfig.smileStrength, mouthClose: 0 };
+            visemeTargets = { jawOpen: 0, mouthFunnel: 0, mouthPucker: 0, mouthSmileL: lipConfig.smileStrength, mouthSmileR: lipConfig.smileStrength, mouthClose: 0, mouthStretchL: 0, mouthStretchR: 0, tongueOut: 0 };
             visemeActiveUntil = performance.now() + 120;
           }
         }
         if (textVisemeEnabled && (!analyser || !cloudAudioSpeaking) && !forcedClosing) {
-          if (forcedClosing) { visemeTargets = { jawOpen: 0, mouthFunnel: 0, mouthPucker: 0, mouthSmileL: 0, mouthSmileR: 0, mouthClose: 0 }; visemeActiveUntil = performance.now() + 60; }
-          const nowT = performance.now(); visemeSchedule = visemeSchedule.filter(it => it.end > nowT); const active = visemeSchedule.find(it => it.start <= nowT && it.end > nowT);
-          if (active) { const blend = Math.max(0, Math.min(1, (nowT - active.start) / Math.max(1, (active.end - active.start)))); visemeTargets = { jawOpen: active.targets.jawOpen * blend, mouthFunnel: active.targets.mouthFunnel * blend, mouthPucker: active.targets.mouthPucker * blend, mouthSmileL: active.targets.mouthSmileL * blend, mouthSmileR: active.targets.mouthSmileR * blend, mouthClose: active.targets.mouthClose * blend, }; visemeActiveUntil = nowT + 120; } else if (!talking) { visemeTargets = { jawOpen: 0, mouthFunnel: 0, mouthPucker: 0, mouthSmileL: lipConfig.smileStrength, mouthSmileR: lipConfig.smileStrength, mouthClose: 0 }; }
+          if (forcedClosing) { visemeTargets = { jawOpen: 0, mouthFunnel: 0, mouthPucker: 0, mouthSmileL: 0, mouthSmileR: 0, mouthClose: 0, mouthStretchL: 0, mouthStretchR: 0, tongueOut: 0 }; visemeActiveUntil = performance.now() + 60; }
+          const nowT = performance.now(); 
+          visemeSchedule = visemeSchedule.filter(it => it.end > nowT); 
+          const active = visemeSchedule.find(it => it.start <= nowT && it.end > nowT);
+          if (active) { const blend = Math.max(0, Math.min(1, (nowT - active.start) / Math.max(1, (active.end - active.start)))); visemeTargets = { jawOpen: active.targets.jawOpen * blend, mouthFunnel: active.targets.mouthFunnel * blend, mouthPucker: active.targets.mouthPucker * blend, mouthSmileL: active.targets.mouthSmileL * blend, mouthSmileR: active.targets.mouthSmileR * blend, mouthClose: active.targets.mouthClose * blend, mouthStretchL: active.targets.mouthStretchL * blend, mouthStretchR: active.targets.mouthStretchR * blend, tongueOut: active.targets.tongueOut * blend }; visemeActiveUntil = nowT + 120; } else if (!talking) { visemeTargets = { jawOpen: 0, mouthFunnel: 0, mouthPucker: 0, mouthSmileL: lipConfig.smileStrength, mouthSmileR: lipConfig.smileStrength, mouthClose: 0, mouthStretchL: 0, mouthStretchR: 0, tongueOut: 0 }; }
         }
         try { if (useBrowserTts && useBrowserTts.checked && 'speechSynthesis' in window && window.speechSynthesis.speaking) { visemeActiveUntil = performance.now() + 240; } } catch { }
         const now = performance.now();
         const restJawOpen = lipConfig.restJawOpen;
         let appliedJaw = null;
         if ((Array.isArray(visemeMeshes) && visemeMeshes.length > 0 && (visemeActiveUntil > now)) || (!jawBone && morphMesh && morphIndex >= 0)) {
+          console.log('[VISEME APPLY] Applying visemes - visemeMeshes:', visemeMeshes.length, 'visemeActiveUntil > now:', visemeActiveUntil > now);
           visemeStrength = visemeStrength * (1 - lipConfig.visemeStrengthAlpha) + lipConfig.visemeStrengthAlpha;
           for (const vm of visemeMeshes) {
             const infl = vm.mesh.morphTargetInfluences; if (!infl) continue;
+            console.log('[VISEME APPLY] Processing mesh:', vm.mesh.name, 'with', Object.keys(vm.indices).length, 'indices');
             const smooth = (key, target) => { const prev = lastVisemes[key] || 0; const diff = target - prev; if (Math.abs(diff) < (deadband[key] || 0.02)) return prev; const alpha = lipConfig.morphSmoothingBeta; const v = prev * (1 - alpha) + target * alpha; lastVisemes[key] = v; return v; };
-            const setIdx = (idx, val, key) => { if (idx >= 0) infl[idx] = infl[idx] * 0.7 + Math.max(0, Math.min(1, smooth(key, val) * visemeStrength)) * 0.3; };
+            const setIdx = (idx, val, key) => { if (idx >= 0) { const smoothed = smooth(key, val); infl[idx] = infl[idx] * 0.7 + Math.max(0, Math.min(1, smoothed * visemeStrength)) * 0.3; console.log('[VISEME SETIDX]', key, '- idx:', idx, 'val:', val.toFixed(3), 'smoothed:', smoothed.toFixed(3), 'visemeStrength:', visemeStrength.toFixed(3), 'result:', infl[idx].toFixed(3)); } };
             let jawv = Math.min(1, Math.max(0, visemeTargets.jawOpen + (cloudAudioSpeaking ? 0 : restJawOpen)));
             const roundness = Math.min(1, visemeTargets.mouthFunnel + visemeTargets.mouthPucker);
             const closeSuppression = Math.max(0, 1 - jawv * 1.5 - roundness * 0.9);
@@ -1159,6 +1256,9 @@ export default defineComponent({
             setIdx(vm.indices.mouthSmileL, visemeTargets.mouthSmileL * 1.05 * (1 + lipConfig.smileStrength), 'mouthSmileL');
             setIdx(vm.indices.mouthSmileR, visemeTargets.mouthSmileR * 1.05 * (1 + lipConfig.smileStrength), 'mouthSmileR');
             setIdx(vm.indices.mouthClose, constrainedClose, 'mouthClose');
+            setIdx(vm.indices.mouthStretchL, visemeTargets.mouthStretchL || 0, 'mouthStretchL');
+            setIdx(vm.indices.mouthStretchR, visemeTargets.mouthStretchR || 0, 'mouthStretchR');
+            setIdx(vm.indices.tongueOut, visemeTargets.tongueOut || 0, 'tongueOut');
             const t = performance.now();
             if (t >= nextBlinkAt) { blinkPhase = 0.001; nextBlinkAt = t + (2200 + Math.random() * 2200); }
             if (blinkPhase > 0) {
@@ -1195,6 +1295,7 @@ export default defineComponent({
           const a = lipConfig.jawSmoothingAlpha; const jb = window.__jawGeomPrev * (1 - a) + jawForBone * a; window.__jawGeomPrev = jb; jaw.rotation.x = -(jb * 0.5);
         }
         renderer.render(scene, camera);
+        if (talkingAnimMixer) talkingAnimMixer.update(0.016);
       }
 
       function checkForTtsChunks() {
@@ -1281,9 +1382,13 @@ export default defineComponent({
             const chosen = femaleVoices[0] || itVoices.find(v => prefNames.some(n => (v.name || '').includes(n))) || itVoices[0] || voices.find(v => /Italian/i.test(v.name)) || voices[0];
             if (chosen) utter.voice = chosen;
             if (browserTtsStatus) browserTtsStatus.textContent = chosen ? `Voce: ${chosen.name}` : 'Voce IT non trovata (usa default)';
-            utter.onstart = () => { try { const nowT = performance.now(); const textClean = (item.text || '').replace(/\s+/g, ' ').trim(); const words = textClean.split(/\s+/).filter(Boolean); const charCount = textClean.length; const wordCount = words.length || Math.max(1, Math.round(charCount / 5)); const periods = (textClean.match(/[.!?…]/g) || []).length; const commas = (textClean.match(/[,:;]/g) || []).length; const parens = (textClean.match(/[()\-\u2013\u2014]/g) || []).length; const rate = (typeof utter.rate === 'number' && utter.rate > 0) ? utter.rate : 1; let estSec = ((wordCount * 0.55) * 0.5 + (charCount / 13.5) * 0.5) + (periods * 0.55 + commas * 0.32 + parens * 0.22) + 0.4; estSec = estSec / rate; estSec = Math.max(2.2, estSec); visemeSchedule = []; enqueueTextVisemes(item.text || '', Math.floor(estSec * 1000), nowT); } catch { } };
+            let ttsStartTime = null;
+            utter.onstart = () => { try { ttsStartTime = performance.now(); const nowT = performance.now(); const textClean = (item.text || '').replace(/\s+/g, ' ').trim(); const charCount = textClean.length; const rate = (typeof utter.rate === 'number' && utter.rate > 0) ? utter.rate : 1; let estSec = (charCount / 16) / rate; estSec = Math.max(0.8, Math.min(20, estSec)); visemeSchedule = []; enqueueTextVisemes(item.text || '', Math.floor(estSec * 1000), nowT); if (isSpeaking) console.log('[TTS VISEME] Started - estimated duration:', estSec.toFixed(2), 'sec, chars:', charCount); playTalkingAnimation(); } catch { } };
             utter.onend = () => {
-              try { visemeSchedule = []; visemeTargets = { jawOpen: 0, mouthFunnel: 0, mouthPucker: 0, mouthSmileL: 0, mouthSmileR: 0, mouthClose: 0 }; forceFullCloseUntil = performance.now() + 220; visemeActiveUntil = performance.now() + 180; visemeStrength = 0; if (Array.isArray(visemeMeshes)) { for (const vm of visemeMeshes) { const infl = vm.mesh && vm.mesh.morphTargetInfluences; const idxs = vm.indices || {}; if (!infl) continue; try { if (idxs.mouthFunnel >= 0) infl[idxs.mouthFunnel] = 0; } catch { } try { if (idxs.mouthPucker >= 0) infl[idxs.mouthPucker] = 0; } catch { } try { if (idxs.mouthSmileL >= 0) infl[idxs.mouthSmileL] = 0; } catch { } try { if (idxs.mouthSmileR >= 0) infl[idxs.mouthSmileR] = 0; } catch { } try { if (idxs.mouthClose >= 0) infl[idxs.mouthClose] = 0; } catch { } try { if (idxs.jawOpen >= 0) infl[idxs.jawOpen] = 0; } catch { } } } if (humanoid && humanoid.updateMatrixWorld) humanoid.updateMatrixWorld(true); } catch { }
+              const realDuration = ttsStartTime ? (performance.now() - ttsStartTime) : 0;
+              if (isSpeaking) console.log('[TTS VISEME] Ended - actual duration:', (realDuration/1000).toFixed(2), 'sec');
+              stopTalkingAnimation();
+              try { visemeSchedule = []; visemeTargets = { jawOpen: 0, mouthFunnel: 0, mouthPucker: 0, mouthSmileL: 0, mouthSmileR: 0, mouthClose: 0, mouthStretchL: 0, mouthStretchR: 0, tongueOut: 0 }; forceFullCloseUntil = performance.now() + 220; visemeActiveUntil = performance.now() + 180; visemeStrength = 0; if (Array.isArray(visemeMeshes)) { for (const vm of visemeMeshes) { const infl = vm.mesh && vm.mesh.morphTargetInfluences; const idxs = vm.indices || {}; if (!infl) continue; try { if (idxs.mouthFunnel >= 0) infl[idxs.mouthFunnel] = 0; } catch { } try { if (idxs.mouthPucker >= 0) infl[idxs.mouthPucker] = 0; } catch { } try { if (idxs.mouthSmileL >= 0) infl[idxs.mouthSmileL] = 0; } catch { } try { if (idxs.mouthSmileR >= 0) infl[idxs.mouthSmileR] = 0; } catch { } try { if (idxs.mouthClose >= 0) infl[idxs.mouthClose] = 0; } catch { } try { if (idxs.jawOpen >= 0) infl[idxs.jawOpen] = 0; } catch { } try { if (idxs.mouthStretchL >= 0) infl[idxs.mouthStretchL] = 0; } catch { } try { if (idxs.mouthStretchR >= 0) infl[idxs.mouthStretchR] = 0; } catch { } try { if (idxs.tongueOut >= 0) infl[idxs.tongueOut] = 0; } catch { } } } if (humanoid && humanoid.updateMatrixWorld) humanoid.updateMatrixWorld(true); } catch { }
               visemeActiveUntil = 0; visemeStrength = 0; lastSpokenTail = (lastSpokenTail + ' ' + item.text).slice(-400); lastSentToTts = ''; playNextInQueue();
             };
             utter.onerror = () => { if (item.url) { ttsPlayer.src = item.url; ttsPlayer.play().catch(() => { isSpeaking = false; }); } else { isSpeaking = false; playNextInQueue(); } };
@@ -1299,9 +1404,9 @@ export default defineComponent({
           lastSpokenTail = (lastSpokenTail + ' ' + item.text).slice(-400);
           console.log('TTS: Finished playing:', item.text.substring(0, 50));
           cloudAudioSpeaking = false; visemeSchedule = [];
-          visemeTargets = { jawOpen: 0, mouthFunnel: 0, mouthPucker: 0, mouthSmileL: 0, mouthSmileR: 0, mouthClose: 0 };
+          visemeTargets = { jawOpen: 0, mouthFunnel: 0, mouthPucker: 0, mouthSmileL: 0, mouthSmileR: 0, mouthClose: 0, mouthStretchL: 0, mouthStretchR: 0, tongueOut: 0 };
           forceFullCloseUntil = performance.now() + 220; visemeActiveUntil = performance.now() + 180;
-          try { if (Array.isArray(visemeMeshes)) { for (const vm of visemeMeshes) { const infl = vm.mesh && vm.mesh.morphTargetInfluences; const idxs = vm.indices || {}; if (!infl) continue; if (idxs.mouthFunnel >= 0) infl[idxs.mouthFunnel] = 0; if (idxs.mouthPucker >= 0) infl[idxs.mouthPucker] = 0; if (idxs.mouthSmileL >= 0) infl[idxs.mouthSmileL] = 0; if (idxs.mouthSmileR >= 0) infl[idxs.mouthSmileR] = 0; if (idxs.mouthClose >= 0) infl[idxs.mouthClose] = 0; if (idxs.jawOpen >= 0) infl[idxs.jawOpen] = 0; } } if (humanoid && humanoid.updateMatrixWorld) humanoid.updateMatrixWorld(true); } catch { }
+          try { if (Array.isArray(visemeMeshes)) { for (const vm of visemeMeshes) { const infl = vm.mesh && vm.mesh.morphTargetInfluences; const idxs = vm.indices || {}; if (!infl) continue; if (idxs.mouthFunnel >= 0) infl[idxs.mouthFunnel] = 0; if (idxs.mouthPucker >= 0) infl[idxs.mouthPucker] = 0; if (idxs.mouthSmileL >= 0) infl[idxs.mouthSmileL] = 0; if (idxs.mouthSmileR >= 0) infl[idxs.mouthSmileR] = 0; if (idxs.mouthClose >= 0) infl[idxs.mouthClose] = 0; if (idxs.jawOpen >= 0) infl[idxs.jawOpen] = 0; if (idxs.mouthStretchL >= 0) infl[idxs.mouthStretchL] = 0; if (idxs.mouthStretchR >= 0) infl[idxs.mouthStretchR] = 0; if (idxs.tongueOut >= 0) infl[idxs.tongueOut] = 0; } } if (humanoid && humanoid.updateMatrixWorld) humanoid.updateMatrixWorld(true); } catch { }
           ttsPlayer.removeEventListener('ended', onEnded); playNextInQueue();
         };
         const onError = () => { console.error('TTS: Playback error for:', item.text.substring(0, 50)); URL.revokeObjectURL(item.url); ttsPlayer.removeEventListener('ended', onEnded); ttsPlayer.removeEventListener('error', onError); isSpeaking = false; cloudAudioSpeaking = false; playNextInQueue(); };
@@ -1423,8 +1528,6 @@ export default defineComponent({
                 if (!jawBone && obj.type === 'Bone' && (name.includes('jaw') || name.includes('lowerjaw') || name.includes('mandible') || name.includes('mixamorigjaw'))) {
                   jawBone = obj;
                 }
-
-                console.log('Bones mapped:', Object.keys(bonesMap).length, '/', boneNames.length);
 
                 if (obj.isMesh) { try { const keys = obj.morphTargetDictionary ? Object.keys(obj.morphTargetDictionary) : []; console.log('Mesh:', obj.name, 'hasMorph:', !!obj.morphTargetDictionary, 'keys:', keys); } catch { } }
                 if (!jawBone && obj.isSkinnedMesh && obj.skeleton && Array.isArray(obj.skeleton.bones)) {
@@ -1599,6 +1702,74 @@ export default defineComponent({
         } catch (e) { console.warn('fitCameraToObject error', e); }
       }
 
+      function loadTalkingAnimation() {
+        if (!humanoid || !window.FBXLoader || !scene) return;
+        try {
+          const FBXLoaderCtor = window.FBXLoader;
+          const loader = new FBXLoaderCtor();
+          loader.load('/public_html/images/Talking.fbx', (fbx) => {
+            try {
+              // Estrai l'animazione dal modello FBX
+              if (fbx.animations && fbx.animations.length > 0) {
+                talkingAnimClip = fbx.animations[0];
+                talkingAnimMixer = new window.THREE.AnimationMixer(humanoid);
+                talkingAnimAction = talkingAnimMixer.clipAction(talkingAnimClip);
+                talkingAnimAction.clampWhenFinished = true;
+                console.log('[ANIMATION] Talking animation loaded:', talkingAnimClip.name, 'duration:', talkingAnimClip.duration.toFixed(2), 's');
+              }
+            } catch (e) {
+              console.error('[ANIMATION] Error extracting animation:', e);
+            }
+          }, undefined, (err) => {
+            console.error('[ANIMATION] Error loading Talking.fbx:', err);
+          });
+        } catch (e) {
+          console.error('[ANIMATION] Error in loadTalkingAnimation:', e);
+        }
+      }
+
+      function playTalkingAnimation() {
+        if (!talkingAnimMixer || !talkingAnimAction) return;
+        try {
+          talkingAnimAction.reset();
+          talkingAnimAction.play();
+          console.log('[ANIMATION] Playing talking animation');
+        } catch (e) {
+          console.error('[ANIMATION] Error playing animation:', e);
+        }
+      }
+
+      function stopTalkingAnimation() {
+        if (!talkingAnimAction) return;
+        try {
+          talkingAnimAction.stop();
+          console.log('[ANIMATION] Stopped talking animation');
+        } catch (e) {
+          console.error('[ANIMATION] Error stopping animation:', e);
+        }
+      }
+
+      function fitCameraToObject(camera, object, offset = 1.25) {
+        try {
+          const box = new THREE.Box3().setFromObject(object);
+          const size = box.getSize(new THREE.Vector3());
+          const center = box.getCenter(new THREE.Vector3());
+          const aspect = (camera.aspect && isFinite(camera.aspect)) ? camera.aspect : 1;
+          const vFOV = THREE.MathUtils.degToRad(camera.fov);
+          const hFOV = 2 * Math.atan(Math.tan(vFOV / 2) * aspect);
+          const distV = (size.y / 2) / Math.tan(vFOV / 2);
+          const distH = (size.x / 2) / Math.tan(hFOV / 2);
+          let dist = Math.max(distV, distH) * (offset || 1);
+          const dir = new THREE.Vector3().subVectors(camera.position, center).normalize();
+          if (!isFinite(dir.lengthSq()) || dir.lengthSq() === 0) dir.set(0, 0, 1);
+          camera.position.copy(center.clone().add(dir.multiplyScalar(dist)));
+          camera.near = Math.max(0.01, dist / 100);
+          camera.far = Math.max(camera.near + 1, dist * 10 + size.length());
+          camera.lookAt(center);
+          camera.updateProjectionMatrix();
+          try { console.log('CAM fitCameraToObject', { pos: camera.position.toArray(), fov: camera.fov, center: center.toArray(), size: size.toArray(), dist, aspect }); } catch { }
+        } catch (e) { console.warn('fitCameraToObject error', e); }
+      }
 
     })
 
