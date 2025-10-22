@@ -53,6 +53,11 @@ class TeamResource extends Resource
                 TextInput::make('phone')
                     ->maxLength(255)
                     ->default(null),
+                TextInput::make('website')
+                    ->url()
+                    ->placeholder('https://example.com')
+                    ->maxLength(255)
+                    ->default(null),
                 TextInput::make('welcome_message')
                     ->maxLength(255)
                     ->default(null),
@@ -81,6 +86,8 @@ class TeamResource extends Resource
                 TextColumn::make('postal_code')
                     ->searchable(),
                 TextColumn::make('phone')
+                    ->searchable(),
+                TextColumn::make('website')
                     ->searchable(),
             ])
             ->filters([
