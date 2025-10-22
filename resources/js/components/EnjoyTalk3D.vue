@@ -1139,6 +1139,7 @@ export default defineComponent({
       let ttsBuffer = "";
       let speakQueue = [];
       let isSpeaking = false;
+      let talkingAnimationStartedForCurrentResponse = false;
       let lastSpokenTail = "";
       let lastSentToTts = "";
       let ttsProcessedLength = 0;
@@ -2808,7 +2809,7 @@ export default defineComponent({
               const afterIdx = findNextNonSpace(text, endIndex);
               const nextIsUpper =
                 afterIdx >= 0
-                  ? /[A-ZÀ-Ý\(\["'“”‘’]/.test(text[afterIdx])
+                  ? /[A-ZÀ-Ý\(\["'“"']/.test(text[afterIdx])
                   : true;
               if (afterIdx < 0 || nextIsUpper || text[afterIdx - 1] === "\n") {
                 lastSafe = endIndex;
@@ -2936,6 +2937,7 @@ export default defineComponent({
       function playNextInQueue() {
         if (!speakQueue.length) {
           isSpeaking = false;
+          talkingAnimationStartedForCurrentResponse = false;
           console.log("TTS: Queue empty, stopping");
           return;
         }
@@ -2987,7 +2989,11 @@ export default defineComponent({
                 : "Voce IT non trovata (usa default)";
             utter.onstart = () => {
               try {
-                playRandomTalkingAnimation();
+                // Solo avvia animazione al primo chunk della risposta
+                if (!talkingAnimationStartedForCurrentResponse) {
+                  talkingAnimationStartedForCurrentResponse = true;
+                  playRandomTalkingAnimation();
+                }
                 const nowT = performance.now();
                 const textClean = (item.text || "").replace(/\s+/g, " ").trim();
                 const words = textClean.split(/\s+/).filter(Boolean);
@@ -3151,7 +3157,11 @@ export default defineComponent({
         ttsPlayer.addEventListener("error", onError);
         const onPlaying = () => {
           try {
-            playRandomTalkingAnimation();
+            // Solo avvia animazione al primo chunk della risposta
+            if (!talkingAnimationStartedForCurrentResponse) {
+              talkingAnimationStartedForCurrentResponse = true;
+              playRandomTalkingAnimation();
+            }
             visemeSchedule = [];
           } catch { }
           try {
