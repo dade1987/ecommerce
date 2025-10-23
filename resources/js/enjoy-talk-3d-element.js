@@ -12,7 +12,7 @@
 
 import { defineCustomElement } from 'vue'
 import EnjoyTalk3D from './components/EnjoyTalk3D.vue'
-import '../css/tailwind.css'
+import '../css/app.css'
 
 // Salva l'origin del server backend (da dove è stato caricato LO SCRIPT)
 // Es: https://cavalliniservice.com/js/enjoyTalk3D.standalone.js → https://cavalliniservice.com
