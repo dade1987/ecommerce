@@ -422,6 +422,14 @@ class RealtimeChatWebsiteController extends Controller
                 foreach ($capturedToolCalls as $call) {
                     $args = json_decode($call['arguments'] ?? '{}', true) ?: [];
                     $out = '';
+                    
+                    // LOG: Cosa stiamo ricevendo da GPT
+                    Log::info('RealtimeChatWebsiteController.toolCall executed', [
+                        'thread_id' => $streamThreadId,
+                        'tool_name' => $call['name'],
+                        'arguments' => $args,
+                    ]);
+                    
                     switch ($call['name']) {
                         case 'getProductInfo':
                             $out = $this->fetchProductData($args['product_names'] ?? [], $teamSlug);
@@ -701,63 +709,161 @@ class RealtimeChatWebsiteController extends Controller
 
     private function createOrder($userPhone, $deliveryDate, $productIds, $teamSlug, string $locale)
     {
+        Log::info('createOrder called', [
+            'user_phone' => $userPhone,
+            'delivery_date' => $deliveryDate,
+            'product_ids' => $productIds,
+            'team_slug' => $teamSlug,
+        ]);
+
         $team = $this->getTeamCached($teamSlug);
         if (!$team) {
+            Log::error('createOrder: Team not found', ['team_slug' => $teamSlug]);
             return ['error' => 'Team non trovato'];
         }
 
-        $order = new Order();
-        $order->team_id = $team->id;
-        $order->delivery_date = $deliveryDate;
-        $order->phone = $userPhone;
-        $order->save();
-
-        if (!empty($productIds)) {
-            $order->products()->attach($productIds);
+        // Validazione: verifica che almeno phone e date siano presenti
+        if (!$userPhone || !$deliveryDate) {
+            Log::warning('createOrder: Missing required fields', [
+                'phone' => $userPhone,
+                'delivery_date' => $deliveryDate,
+            ]);
+            return [
+                'error' => 'Mancano informazioni necessarie per l\'ordine: numero di telefono e data di consegna obbligatori.',
+                'received' => [
+                    'phone' => $userPhone,
+                    'delivery_date' => $deliveryDate,
+                    'product_ids_count' => count((array)$productIds),
+                ],
+            ];
         }
 
-        return [
-            'order_id' => $order->id,
-            'message' => trans('enjoywork3d_prompts.order_created_successfully', [], $locale),
-        ];
+        try {
+            $order = new Order();
+            $order->team_id = $team->id;
+            $order->delivery_date = $deliveryDate;
+            $order->phone = $userPhone;
+            $order->save();
+
+            Log::info('createOrder: Order created', [
+                'order_id' => $order->id,
+                'team_id' => $team->id,
+            ]);
+
+            if (!empty($productIds)) {
+                $order->products()->attach($productIds);
+                Log::info('createOrder: Products attached', [
+                    'order_id' => $order->id,
+                    'product_count' => count($productIds),
+                ]);
+            }
+
+            return [
+                'order_id' => $order->id,
+                'message' => trans('enjoywork3d_prompts.order_created_successfully', [], $locale),
+                'details' => [
+                    'phone' => $userPhone,
+                    'delivery_date' => $deliveryDate,
+                    'products' => count((array)$productIds),
+                ],
+            ];
+        } catch (\Throwable $e) {
+            Log::error('createOrder: Exception', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return [
+                'error' => 'Errore durante la creazione dell\'ordine: ' . $e->getMessage(),
+            ];
+        }
     }
 
     private function submitUserData($userPhone, $userEmail, $userName, $teamSlug, string $locale, ?string $activityUuid)
     {
-        if ($activityUuid) {
-            $customer = Customer::where('uuid', $activityUuid)->first();
-            if ($customer) {
-                $customer->phone = $userPhone;
-                $customer->email = $userEmail;
-                $customer->name = $userName;
-                $customer->save();
+        Log::info('submitUserData called', [
+            'user_phone' => $userPhone,
+            'user_email' => $userEmail,
+            'user_name' => $userName,
+            'team_slug' => $teamSlug,
+            'activity_uuid' => $activityUuid,
+        ]);
+
+        // Validazione
+        if (!$userPhone || !$userEmail || !$userName) {
+            Log::warning('submitUserData: Missing required fields', [
+                'phone' => $userPhone,
+                'email' => $userEmail,
+                'name' => $userName,
+            ]);
+            return [
+                'error' => 'Mancano informazioni anagrafiche: nome, email e telefono obbligatori.',
+                'received' => [
+                    'phone' => $userPhone,
+                    'email' => $userEmail,
+                    'name' => $userName,
+                ],
+            ];
+        }
+
+        try {
+            if ($activityUuid) {
+                $customer = Customer::where('uuid', $activityUuid)->first();
+                if ($customer) {
+                    $customer->phone = $userPhone;
+                    $customer->email = $userEmail;
+                    $customer->name = $userName;
+                    $customer->save();
+                    Log::info('submitUserData: Updated existing customer', [
+                        'customer_id' => $customer->id,
+                    ]);
+                } else {
+                    $team = $this->getTeamCached($teamSlug);
+                    if (!$team) {
+                        Log::error('submitUserData: Team not found', ['team_slug' => $teamSlug]);
+                        return ['error' => 'Team non trovato'];
+                    }
+                    $customer = Customer::create([
+                        'uuid' => $activityUuid,
+                        'phone' => $userPhone,
+                        'email' => $userEmail,
+                        'name' => $userName,
+                        'team_id' => $team->id,
+                    ]);
+                    Log::info('submitUserData: Created new customer', [
+                        'customer_id' => $customer->id,
+                    ]);
+                }
             } else {
                 $team = $this->getTeamCached($teamSlug);
                 if (!$team) {
+                    Log::error('submitUserData: Team not found', ['team_slug' => $teamSlug]);
                     return ['error' => 'Team non trovato'];
                 }
-                Customer::create([
-                    'uuid' => $activityUuid,
+                $customer = Customer::create([
                     'phone' => $userPhone,
                     'email' => $userEmail,
                     'name' => $userName,
                     'team_id' => $team->id,
                 ]);
+                Log::info('submitUserData: Created new customer (no uuid)', [
+                    'customer_id' => $customer->id,
+                ]);
             }
-        } else {
-            $team = $this->getTeamCached($teamSlug);
-            if (!$team) {
-                return ['error' => 'Team non trovato'];
-            }
-            Customer::create([
-                'phone' => $userPhone,
-                'email' => $userEmail,
-                'name' => $userName,
-                'team_id' => $team->id,
-            ]);
-        }
 
-        return trans('enjoywork3d_prompts.user_data_submitted', [], $locale);
+            return [
+                'success' => true,
+                'message' => trans('enjoywork3d_prompts.user_data_submitted', [], $locale),
+                'customer_name' => $userName,
+            ];
+        } catch (\Throwable $e) {
+            Log::error('submitUserData: Exception', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return [
+                'error' => 'Errore durante il salvataggio dei dati: ' . $e->getMessage(),
+            ];
+        }
     }
 
     private function fetchFAQs($teamSlug, $query)
