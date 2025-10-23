@@ -19,3 +19,13 @@
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [L]
 </IfModule>
+
+# CORS Headers solo per /images/
+<Directory /images>
+    <IfModule mod_headers.c>
+        Header always set Access-Control-Allow-Origin "*"
+        Header always set Access-Control-Allow-Methods "GET, HEAD, OPTIONS"
+        Header always set Access-Control-Allow-Headers "Content-Type, Origin"
+        Header always set Access-Control-Max-Age "3600"
+    </IfModule>
+</Directory>
