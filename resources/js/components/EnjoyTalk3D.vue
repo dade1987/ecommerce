@@ -3422,7 +3422,7 @@ export default defineComponent({
 
           // Costruisci l'URL del GLB
           let finalGlbUrl = "/images/68f78ddb4530fb061a1349d5.glb"; // default
-          
+
           // Se glbUrl è fornito dal prop
           if (instance.props.glbUrl && instance.props.glbUrl.trim()) {
             const glbUrlProp = instance.props.glbUrl;
@@ -3441,7 +3441,7 @@ export default defineComponent({
             const webComponentOrigin = window.__ENJOY_TALK_3D_ORIGIN__ || window.location.origin;
             finalGlbUrl = `${webComponentOrigin}/images/68f78ddb4530fb061a1349d5.glb`;
           }
-          
+
           const glbUrl = finalGlbUrl + "?v=" + Date.now();
           function attachHumanoid(root) {
             try {
@@ -4005,8 +4005,9 @@ export default defineComponent({
                 idleAnimationActions = [];
                 idleAnimationMixer = null;
                 idleAnimationActive = false;
+                const webComponentOrigin = window.__ENJOY_TALK_3D_ORIGIN__ || window.location.origin;
                 const idleAnimUrl =
-                  "/images/animation-library-master/feminine/glb/idle/F_Standing_Idle_Variations_003.glb" +
+                  webComponentOrigin + "/images/animation-library-master/feminine/glb/idle/F_Standing_Idle_Variations_003.glb" +
                   "?v=" +
                   Date.now();
                 const loader = new GLTFLoaderCtor();
@@ -4091,8 +4092,9 @@ export default defineComponent({
                 talkingAnimationActive = false;
                 for (let i = 1; i <= 6; i++) {
                   const variant = String(i).padStart(3, "0");
+                  const webComponentOrigin = window.__ENJOY_TALK_3D_ORIGIN__ || window.location.origin;
                   const talkUrl =
-                    `/images/animation-library-master/feminine/glb/expression/F_Talking_Variations_${variant}.glb` +
+                    webComponentOrigin + `/images/animation-library-master/feminine/glb/expression/F_Talking_Variations_${variant}.glb` +
                     "?v=" +
                     Date.now();
                   loader.load(
