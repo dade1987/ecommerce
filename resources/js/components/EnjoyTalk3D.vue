@@ -1444,7 +1444,7 @@ export default defineComponent({
         }, 800);
         console.log("TTS: Starting new conversation, resetting state");
         try {
-          console.log("SSE: connecting", { team: teamSlug, uuid, locale });
+          console.log("SSE: connecting", { team: teamSlug, uuid, locale, threadId });
         } catch { }
         thinkingBubble.classList.remove("hidden");
         try {
@@ -1486,6 +1486,7 @@ export default defineComponent({
           locale,
           ts: String(Date.now()),
         });
+        // IMPORTANTE: Passa sempre il threadId esistente al server
         if (threadId) params.set("thread_id", threadId);
         if (assistantThreadId)
           params.set("assistant_thread_id", assistantThreadId);
@@ -1509,7 +1510,9 @@ export default defineComponent({
                 try {
                   const tok = JSON.parse(data.token);
                   if (tok && tok.thread_id) {
+                    // SINCRONIZZA IL THREAD ID DALLA RESPONSE
                     threadId = tok.thread_id;
+                    console.log("SSE: threadId sincronizzato dal server:", threadId);
                     return;
                   }
                   if (tok && tok.assistant_thread_id) {
@@ -1590,7 +1593,7 @@ export default defineComponent({
             done = true;
             thinkingBubble.classList.add("hidden");
             try {
-              console.log("SSE: done event received");
+              console.log("SSE: done event received, threadId memorizzato:", threadId);
             } catch { }
             if (sseConnectWatchdog) {
               try {
@@ -1628,7 +1631,7 @@ export default defineComponent({
           );
           currentEvtSource = evtSource;
           try {
-            console.log("SSE: connecting", {
+            console.log("SSE: connecting with:", {
               team: teamSlug,
               uuid,
               locale,

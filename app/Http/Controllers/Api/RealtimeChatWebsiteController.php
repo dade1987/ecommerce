@@ -102,6 +102,15 @@ class RealtimeChatWebsiteController extends Controller
             };
 
             $streamThreadId = (string) (request()->query('thread_id') ?: str()->uuid());
+            
+            // LOG: quale thread stiamo usando e se è nuovo o ricevuto dal client
+            Log::info('RealtimeChatWebsiteController.websiteStream START', [
+                'thread_id' => $streamThreadId,
+                'received_thread_id' => request()->query('thread_id'),
+                'is_new' => !request()->query('thread_id'),
+                'team_slug' => $teamSlug,
+            ]);
+            
             $flush(['token' => json_encode(['thread_id' => $streamThreadId])]);
             $flush(['status' => 'started']);
 
@@ -165,6 +174,7 @@ class RealtimeChatWebsiteController extends Controller
                 Log::error('RealtimeChatWebsiteController.websiteStream error', [
                     'error' => $e->getMessage(),
                     'trace' => $e->getTraceAsString(),
+                    'thread_id' => $streamThreadId,
                 ]);
                 $flush(['error' => 'Errore durante l\'analisi: ' . $e->getMessage()], 'error');
                 $flush(['token' => ''], 'done');
@@ -215,6 +225,16 @@ class RealtimeChatWebsiteController extends Controller
                 ->select(['id', 'role', 'content'])
                 ->limit(12)
                 ->get();
+            
+            Log::info('RealtimeChatWebsiteController.analyzeAndStreamResponse history', [
+                'thread_id' => $streamThreadId,
+                'history_count' => $historyRecords->count(),
+                'history_roles' => $historyRecords->pluck('role')->toArray(),
+                'history_preview' => $historyRecords->map(fn($r) => [
+                    'role' => $r->role,
+                    'content' => mb_substr($r->content, 0, 100),
+                ])->toArray(),
+            ]);
             
             $historyMessages = [];
             if ($historyRecords->count() > 0) {
