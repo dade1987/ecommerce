@@ -25,6 +25,12 @@ export default defineConfig({
                 format: 'iife',
                 name: 'EnjoyTalk3D',
                 entryFileNames: 'enjoyTalk3D.standalone.js',
+                assetFileNames: (assetInfo) => {
+                    if (assetInfo.name.endsWith('.css')) {
+                        return 'enjoyTalk3D.standalone.[ext]';
+                    }
+                    return assetInfo.name;
+                },
                 extend: true,
                 globals: {
                     process: 'undefined'

@@ -12,7 +12,20 @@
 
 import { defineCustomElement } from 'vue'
 import EnjoyTalk3D from './components/EnjoyTalk3D.vue'
-import '../css/app.css'
+import cssText from '../css/app.css?inline'
+
+// Inietta CSS nel documento se non è già presente
+function injectStylesIfNeeded() {
+  if (!document.getElementById('enjoy-talk-3d-styles')) {
+    const style = document.createElement('style')
+    style.id = 'enjoy-talk-3d-styles'
+    style.textContent = cssText
+    document.head.appendChild(style)
+  }
+}
+
+// Chiama injectStylesIfNeeded prima di montare
+injectStylesIfNeeded()
 
 // Salva l'origin del server backend (da dove è stato caricato LO SCRIPT)
 // Es: https://cavalliniservice.com/js/enjoyTalk3D.standalone.js → https://cavalliniservice.com
