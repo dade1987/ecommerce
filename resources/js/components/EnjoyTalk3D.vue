@@ -3422,22 +3422,26 @@ export default defineComponent({
 
           // Costruisci l'URL del GLB
           let finalGlbUrl = "/images/68f78ddb4530fb061a1349d5.glb"; // default
-
+          
           // Se glbUrl è fornito dal prop
-          if (instance.props.glbUrl) {
+          if (instance.props.glbUrl && instance.props.glbUrl.trim()) {
             const glbUrlProp = instance.props.glbUrl;
-            // Se è un URL esterno, usa il proxy del backend di quel dominio
+            // Se è un URL esterno, usa il proxy
             if (glbUrlProp.startsWith('http')) {
-              // Estrai il dominio dall'URL del GLB
               const glbUrlObj = new URL(glbUrlProp);
-              const glbOrigin = glbUrlObj.origin; // https://cavalliniservice.com
+              const glbOrigin = glbUrlObj.origin;
               finalGlbUrl = `${glbOrigin}/api/proxy-glb?url=${encodeURIComponent(glbUrlProp)}`;
             } else {
-              // Se è un path relativo, usalo direttamente
-              finalGlbUrl = glbUrlProp;
+              // Se è un path relativo, usalo con l'origin del web component
+              const webComponentOrigin = window.__ENJOY_TALK_3D_ORIGIN__ || window.location.origin;
+              finalGlbUrl = `${webComponentOrigin}${glbUrlProp}`;
             }
+          } else {
+            // Usa il default dal web component origin
+            const webComponentOrigin = window.__ENJOY_TALK_3D_ORIGIN__ || window.location.origin;
+            finalGlbUrl = `${webComponentOrigin}/images/68f78ddb4530fb061a1349d5.glb`;
           }
-
+          
           const glbUrl = finalGlbUrl + "?v=" + Date.now();
           function attachHumanoid(root) {
             try {

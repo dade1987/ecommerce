@@ -3,17 +3,26 @@
  * Espone il componente Vue EnjoyTalk3D come Web Component custom per essere usato in qualsiasi sito
  * 
  * Uso di base:
- * <link rel="stylesheet" href="https://tuodominio.com/js/enjoyTalk3D.standalone.css">
- * <script src="https://tuodominio.com/js/enjoyTalk3D.standalone.js"><\/script>
+ * <script src="https://cavalliniservice.com/js/enjoyTalk3D.standalone.js"><\/script>
  * <enjoy-talk-3d team-slug="mio-team"><\/enjoy-talk-3d>
  * 
  * Attributi supportati:
  * - team-slug: (REQUIRED) Lo slug del team da usare per le richieste API
- * - glb-url: (OPTIONAL) URL personalizzato del modello GLB (default: /images/68f78ddb4530fb061a1349d5.glb)
  */
 
 import { defineCustomElement } from 'vue'
 import EnjoyTalk3D from './components/EnjoyTalk3D.vue'
+
+// Salva l'origin del server backend (da dove è stato caricato LO SCRIPT)
+// Es: https://cavalliniservice.com/js/enjoyTalk3D.standalone.js → https://cavalliniservice.com
+window.__ENJOY_TALK_3D_ORIGIN__ = window.__ENJOY_TALK_3D_ORIGIN__ || (() => {
+  try {
+    const scriptUrl = document.currentScript?.src || import.meta.url
+    return new URL(scriptUrl).origin
+  } catch {
+    return window.location.origin
+  }
+})()
 
 // Modifica il componente per accettare props
 const componentWithProps = {
@@ -29,8 +38,7 @@ const componentWithProps = {
     },
     glbUrl: {
       type: String,
-      required: false,
-      default: '/images/68f78ddb4530fb061a1349d5.glb'
+      default: ""
     }
   }
 }
