@@ -3,8 +3,8 @@
  * Espone il componente Vue EnjoyTalk3D come Web Component custom per essere usato in qualsiasi sito
  * 
  * Uso di base:
- * <script src="https://cavalliniservice.com/js/enjoyTalk3D.standalone.js"><\/script>
- * <enjoy-talk-3d team-slug="mio-team"><\/enjoy-talk-3d>
+ * <script src="https://cavalliniservice.com/js/enjoyTalk3D.standalone.js"></script>
+ * <enjoy-talk-3d team-slug="mio-team"></enjoy-talk-3d>
  * 
  * Attributi supportati:
  * - team-slug: (REQUIRED) Lo slug del team da usare per le richieste API
@@ -12,6 +12,7 @@
 
 import { defineCustomElement } from 'vue'
 import EnjoyTalk3D from './components/EnjoyTalk3D.vue'
+import '../css/tailwind.css'
 
 // Salva l'origin del server backend (da dove è stato caricato LO SCRIPT)
 // Es: https://cavalliniservice.com/js/enjoyTalk3D.standalone.js → https://cavalliniservice.com
