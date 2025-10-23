@@ -65,3 +65,4 @@ customElements.define('enjoy-talk-3d', EnjoyTalk3DElement)
 
 // Export per uso come modulo
 export default EnjoyTalk3DElement
+
