@@ -1622,8 +1622,9 @@ export default defineComponent({
             if (currentEvtSource) currentEvtSource.close();
           } catch { }
 
+          const webComponentOrigin = window.__ENJOY_TALK_3D_ORIGIN__ || window.location.origin;
           evtSource = new EventSource(
-            `/api/chatbot/website-stream?${params.toString()}`
+            `${webComponentOrigin}/api/chatbot/website-stream?${params.toString()}`
           );
           currentEvtSource = evtSource;
           try {
