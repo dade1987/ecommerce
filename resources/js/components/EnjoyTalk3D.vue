@@ -3419,19 +3419,23 @@ export default defineComponent({
             return;
           }
           const fbxUrl = "";
-          const glbUrl = (() => {
-            // Se glbUrl è fornito
-            if (this.glbUrl) {
-              // Se è un URL esterno (http/https), usa il proxy del backend
-              if (this.glbUrl.startsWith('http')) {
-                return `/api/proxy-glb?url=${encodeURIComponent(this.glbUrl)}&v=${Date.now()}`;
-              }
+          
+          // Costruisci l'URL del GLB
+          let finalGlbUrl = "/images/68f78ddb4530fb061a1349d5.glb"; // default
+          
+          // Se glbUrl è fornito dal prop
+          if (instance.props.glbUrl) {
+            const glbUrlProp = instance.props.glbUrl;
+            // Se è un URL esterno, usa il proxy del backend
+            if (glbUrlProp.startsWith('http')) {
+              finalGlbUrl = `/api/proxy-glb?url=${encodeURIComponent(glbUrlProp)}`;
+            } else {
               // Se è un path relativo, usalo direttamente
-              return this.glbUrl + "?v=" + Date.now();
+              finalGlbUrl = glbUrlProp;
             }
-            // Default
-            return "/images/68f78ddb4530fb061a1349d5.glb" + "?v=" + Date.now();
-          })();
+          }
+          
+          const glbUrl = finalGlbUrl + "?v=" + Date.now();
           function attachHumanoid(root) {
             try {
               humanoid = root;
