@@ -138,6 +138,10 @@ export default defineComponent({
         return window.location.pathname.split("/").pop()
       }
     },
+    glbUrl: {
+      type: String,
+      default: "/images/68f78ddb4530fb061a1349d5.glb",
+    },
   },
   data() {
     return {
@@ -3416,7 +3420,7 @@ export default defineComponent({
           }
           const fbxUrl = "";
           const glbUrl =
-            "/images/68f78ddb4530fb061a1349d5.glb" + "?v=" + Date.now();
+            this.$props?.glbUrl || "/images/68f78ddb4530fb061a1349d5.glb" + "?v=" + Date.now();
           function attachHumanoid(root) {
             try {
               humanoid = root;
