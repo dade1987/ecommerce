@@ -3419,16 +3419,19 @@ export default defineComponent({
             return;
           }
           const fbxUrl = "";
-          
+
           // Costruisci l'URL del GLB
           let finalGlbUrl = "/images/68f78ddb4530fb061a1349d5.glb"; // default
           
           // Se glbUrl è fornito dal prop
           if (instance.props.glbUrl) {
             const glbUrlProp = instance.props.glbUrl;
-            // Se è un URL esterno, usa il proxy del backend
+            // Se è un URL esterno, usa il proxy del backend di quel dominio
             if (glbUrlProp.startsWith('http')) {
-              finalGlbUrl = `/api/proxy-glb?url=${encodeURIComponent(glbUrlProp)}`;
+              // Estrai il dominio dall'URL del GLB
+              const glbUrlObj = new URL(glbUrlProp);
+              const glbOrigin = glbUrlObj.origin; // https://cavalliniservice.com
+              finalGlbUrl = `${glbOrigin}/api/proxy-glb?url=${encodeURIComponent(glbUrlProp)}`;
             } else {
               // Se è un path relativo, usalo direttamente
               finalGlbUrl = glbUrlProp;
