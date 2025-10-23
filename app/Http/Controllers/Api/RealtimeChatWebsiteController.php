@@ -220,11 +220,12 @@ class RealtimeChatWebsiteController extends Controller
             }
 
             // Ricostruisci history dal nostro storage per mantenere il contesto
+            // Prendi gli ULTIMI 50 messaggi (DESC), poi riordina per cronologia (ASC)
             $historyRecords = Quoter::where('thread_id', $streamThreadId)
-                ->orderBy('id', 'asc')
-                ->select(['id', 'role', 'content'])
+                ->orderBy('id', 'desc')
                 ->limit(12)
-                ->get();
+                ->get(['id', 'role', 'content', 'created_at'])
+                ->reverse();  // Riinverte per ordine cronologico crescente
             
             Log::info('RealtimeChatWebsiteController.analyzeAndStreamResponse history', [
                 'thread_id' => $streamThreadId,
@@ -232,25 +233,52 @@ class RealtimeChatWebsiteController extends Controller
                 'history_roles' => $historyRecords->pluck('role')->toArray(),
                 'history_preview' => $historyRecords->map(fn($r) => [
                     'role' => $r->role,
+                    'created_at' => $r->created_at,
                     'content' => mb_substr($r->content, 0, 100),
                 ])->toArray(),
             ]);
             
             $historyMessages = [];
             if ($historyRecords->count() > 0) {
-                // Evita di duplicare l'ultimo messaggio utente appena inserito
                 $records = $historyRecords->toArray();
-                $last = end($records);
-                if ($last && ($last['role'] ?? '') === 'user' && (string) ($last['content'] ?? '') === (string) $userInput) {
-                    array_pop($records);
-                }
+                
+                // Rimuovi TUTTI i record che hanno role='user' e content uguale al messaggio attuale
+                // (potrebbe esserci il messaggio appena inserito)
+                $records = array_filter($records, function($r) use ($userInput) {
+                    $isUserMsg = ($r['role'] ?? '') === 'user';
+                    $isSameContent = (string)($r['content'] ?? '') === (string)$userInput;
+                    return !($isUserMsg && $isSameContent);
+                });
+                
+                // Riordina dopo il filter
+                $records = array_values($records);
+                
                 foreach ($records as $r) {
                     $role = ($r['role'] ?? '') === 'chatbot' ? 'assistant' : 'user';
-                    $content = (string) ($r['content'] ?? '');
+                    $content = (string)($r['content'] ?? '');
                     if ($content !== '') {
-                        $historyMessages[] = ['role' => $role, 'content' => $content];
+                        // Formato: "[14:30] Utente: messaggio" o "[14:35] Assistente: risposta"
+                        $timestamp = '';
+                        if (!empty($r['created_at'])) {
+                            try {
+                                $time = \Carbon\Carbon::parse($r['created_at'])->format('H:i');
+                                $timestamp = "[$time] ";
+                            } catch (\Exception $e) {
+                                // Ignora errori nel parsing
+                            }
+                        }
+                        $historyMessages[] = [
+                            'role' => $role,
+                            'content' => $timestamp . $content
+                        ];
                     }
                 }
+                
+                Log::info('RealtimeChatWebsiteController.analyzeAndStreamResponse history filtered', [
+                    'thread_id' => $streamThreadId,
+                    'history_before_filter' => $historyRecords->count(),
+                    'history_after_filter' => count($historyMessages),
+                ]);
             }
 
             $messages = [
