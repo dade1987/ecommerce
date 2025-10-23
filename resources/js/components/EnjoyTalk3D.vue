@@ -4006,9 +4006,11 @@ export default defineComponent({
                 idleAnimationMixer = null;
                 idleAnimationActive = false;
                 const webComponentOrigin = window.__ENJOY_TALK_3D_ORIGIN__ || window.location.origin;
+                const idleAnimPathRelative = "/images/animation-library-master/feminine/glb/idle/F_Standing_Idle_Variations_003.glb";
+                const idleAnimAbsolute = webComponentOrigin + idleAnimPathRelative;
                 const idleAnimUrl =
-                  webComponentOrigin + "/images/animation-library-master/feminine/glb/idle/F_Standing_Idle_Variations_003.glb" +
-                  "?v=" +
+                  webComponentOrigin + `/api/proxy-glb?url=${encodeURIComponent(idleAnimAbsolute)}` +
+                  "&v=" +
                   Date.now();
                 const loader = new GLTFLoaderCtor();
                 loader.load(
@@ -4090,12 +4092,14 @@ export default defineComponent({
                 talkingAnimationMixer = null;
                 currentTalkingAnimation = null;
                 talkingAnimationActive = false;
+                const webComponentOrigin = window.__ENJOY_TALK_3D_ORIGIN__ || window.location.origin;
                 for (let i = 1; i <= 6; i++) {
                   const variant = String(i).padStart(3, "0");
-                  const webComponentOrigin = window.__ENJOY_TALK_3D_ORIGIN__ || window.location.origin;
+                  const talkPathRelative = `/images/animation-library-master/feminine/glb/expression/F_Talking_Variations_${variant}.glb`;
+                  const talkAbsolute = webComponentOrigin + talkPathRelative;
                   const talkUrl =
-                    webComponentOrigin + `/images/animation-library-master/feminine/glb/expression/F_Talking_Variations_${variant}.glb` +
-                    "?v=" +
+                    webComponentOrigin + `/api/proxy-glb?url=${encodeURIComponent(talkAbsolute)}` +
+                    "&v=" +
                     Date.now();
                   loader.load(
                     talkUrl,
