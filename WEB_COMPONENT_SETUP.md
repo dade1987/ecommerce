@@ -13,16 +13,14 @@ npm run build:web-component
 ```
 
 Output:
-- `public_html/js/enjoyTalk3D.standalone.js` - JavaScript bundle
-- `public_html/js/enjoyTalk3D.standalone.css` - Stili CSS
+- `public_html/js/enjoyTalk3D.standalone.js` - JavaScript bundle (include CSS inline)
 
 ## Utilizzo
 
-### 1. Copia i file sul tuo server
+### 1. Copia il file sul tuo server
 
-Copia entrambi i file su un server accessibile pubblicamente:
+Copia il file su un server accessibile pubblicamente:
 - `enjoyTalk3D.standalone.js`
-- `enjoyTalk3D.standalone.css`
 
 ### 2. Includi nel tuo HTML
 
@@ -30,8 +28,7 @@ Copia entrambi i file su un server accessibile pubblicamente:
 <!DOCTYPE html>
 <html>
 <head>
-    <!-- IMPORTANTE: Includi il CSS PRIMA dello script -->
-    <link rel="stylesheet" href="https://tuodominio.com/js/enjoyTalk3D.standalone.css">
+    <!-- Niente CSS da includere, è inline nel JS -->
 </head>
 <body>
     <!-- Web Component -->
@@ -40,7 +37,7 @@ Copia entrambi i file su un server accessibile pubblicamente:
         glb-url="https://tuodominio.com/models/avatar.glb">
     </enjoy-talk-3d>
 
-    <!-- IMPORTANTE: Includi lo script DOPO il tag body -->
+    <!-- Script (lo carica anche gli stili) -->
     <script src="https://tuodominio.com/js/enjoyTalk3D.standalone.js"></script>
 </body>
 </html>
@@ -65,18 +62,9 @@ URL personalizzato del modello 3D (GLB/GLTF). Se non fornito, usa il default.
 **Causa**: Il file GLB non è trovato (404), quindi il server restituisce HTML.
 
 **Soluzione**:
-1. Verifica che il file `enjoyTalk3D.standalone.css` sia incluso **prima** dello script
-2. Verifica che il file GLB sia accessibile (controlla l'URL nel DevTools Network tab)
-3. Se usi un URL personalizzato con `glb-url`, assicurati che sia corretto e CORS enabled
-
-### ❌ "Stili non visibili"
-
-**Causa**: Il file CSS non è incluso o il path è sbagliato.
-
-**Soluzione**:
-1. Includi il tag `<link rel="stylesheet">` con il CSS
-2. Verifica nel DevTools che il CSS sia scaricato (tab Network)
-3. Verifica che il path sia corretto e il file sia raggiungibile
+1. Verifica che il file GLB sia accessibile (controlla l'URL nel DevTools Network tab)
+2. Se usi un URL personalizzato con `glb-url`, assicurati che sia corretto e CORS enabled
+3. Se il GLB è su un dominio diverso, abilita CORS nell'header del server
 
 ### ❌ "Team non trovato" o "Errore API"
 

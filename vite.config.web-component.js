@@ -5,7 +5,7 @@ import vue from '@vitejs/plugin-vue';
  * Configurazione Vite separata per il Web Component standalone
  * 
  * Esegui con: npm run build:web-component
- * Output: public_html/js/enjoyTalk3D.standalone.js + enjoyTalk3D.standalone.css
+ * Output: public_html/js/enjoyTalk3D.standalone.js (include CSS inline)
  */
 export default defineConfig({
     plugins: [vue()],
@@ -25,7 +25,6 @@ export default defineConfig({
                 format: 'iife',
                 name: 'EnjoyTalk3D',
                 entryFileNames: 'enjoyTalk3D.standalone.js',
-                assetFileNames: 'enjoyTalk3D.standalone.[ext]',
                 extend: true,
                 globals: {
                     process: 'undefined'
@@ -33,11 +32,6 @@ export default defineConfig({
             }
         },
         cssCodeSplit: false,
-        minify: 'terser',
-        terserOptions: {
-            compress: {
-                drop_console: false,
-            }
-        }
+        minify: 'esbuild'
     }
 });
