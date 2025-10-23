@@ -83,7 +83,7 @@ class RealtimeChatWebsiteController extends Controller
     }
 
     /**
-     * Endpoint SSE: Analizza domanda dai siti web + contesto completo + tools in UNA SOLA chiamata GPT
+     * Endpoint SSE: Analizza domanda dai siti web + contesto completo + streaming nativo Chat API
      * GET /api/chatbot/website-stream?message=...&team=...&locale=it
      */
     public function websiteStream(Request $request)
@@ -150,7 +150,7 @@ class RealtimeChatWebsiteController extends Controller
                 // Costruisci contesto completo (FAQ, indirizzo, prodotti)
                 $context = $this->buildContextForMessage($teamSlug, $userInput, $locale);
 
-                // UNA SOLA CHIAMATA GPT CON TUTTO: website content + contesto + tools + streaming
+                // CHAT API STREAMING CON WEBSITE CONTENT E CONTESTO
                 $this->analyzeAndStreamResponse(
                     websiteContent: $websiteContent,
                     context: $context,
@@ -179,7 +179,7 @@ class RealtimeChatWebsiteController extends Controller
     }
 
     /**
-     * UNA SOLA CHIAMATA GPT STREAMING: analizza website content + contesto + tools con Assistants API
+     * Chat API STREAMING: analizza website content + contesto + tools con streaming nativo
      */
     private function analyzeAndStreamResponse(
         string $websiteContent,
@@ -198,7 +198,7 @@ class RealtimeChatWebsiteController extends Controller
                 $websiteContent = mb_substr($websiteContent, 0, $maxContentLength) . "\n...[contenuto troncato]";
             }
 
-            // Costruisci contesto completo: website + context + tools
+            // Costruisci system prompt con website content
             $systemPrompt = (string) trans('enjoywork3d_prompts.instructions', ['locale' => $locale], $locale);
             
             if (!empty($websiteContent)) {
@@ -209,116 +209,265 @@ class RealtimeChatWebsiteController extends Controller
                 $systemPrompt .= "\n\nContesto aggiuntivo per il team {$teamSlug}:\n{$context}";
             }
 
-            // Determina/crea thread Assistants
-            $assistantThreadId = (string) (request()->query('assistant_thread_id') ?? '');
-            $maybeThreadId = (string) (request()->query('thread_id') ?? '');
-            if ($assistantThreadId === '' && (str_starts_with($maybeThreadId, 'thread_') || substr($maybeThreadId, 0, 7) === 'thread_')) {
-                $assistantThreadId = $maybeThreadId;
+            // Ricostruisci history dal nostro storage per mantenere il contesto
+            $historyRecords = Quoter::where('thread_id', $streamThreadId)
+                ->orderBy('id', 'asc')
+                ->select(['id', 'role', 'content'])
+                ->limit(12)
+                ->get();
+            
+            $historyMessages = [];
+            if ($historyRecords->count() > 0) {
+                // Evita di duplicare l'ultimo messaggio utente appena inserito
+                $records = $historyRecords->toArray();
+                $last = end($records);
+                if ($last && ($last['role'] ?? '') === 'user' && (string) ($last['content'] ?? '') === (string) $userInput) {
+                    array_pop($records);
+                }
+                foreach ($records as $r) {
+                    $role = ($r['role'] ?? '') === 'chatbot' ? 'assistant' : 'user';
+                    $content = (string) ($r['content'] ?? '');
+                    if ($content !== '') {
+                        $historyMessages[] = ['role' => $role, 'content' => $content];
+                    }
+                }
             }
-            if ($assistantThreadId === '') {
-                $assistantThreadId = $this->client->threads()->create([])->id;
-            }
-            $flush(['token' => json_encode(['assistant_thread_id' => $assistantThreadId])]);
 
-            // Aggiungi messaggio utente al thread
-            $this->client->threads()->messages()->create($assistantThreadId, [
-                'role'    => 'user',
-                'content' => (string) $userInput,
+            $messages = [
+                ['role' => 'system', 'content' => $systemPrompt],
+            ];
+            if (!empty($historyMessages)) {
+                $messages = array_merge($messages, $historyMessages);
+            }
+            $messages[] = ['role' => 'system', 'content' => "Parametri tool fissi:\nteam_slug={$teamSlug}"];
+            $messages[] = ['role' => 'user', 'content' => (string) $userInput];
+
+            // Definizione tools per function-calling (Chat Completions)
+            $tools = [
+                [
+                    'type' => 'function',
+                    'function' => [
+                        'name' => 'getProductInfo',
+                        'description' => 'Recupera informazioni sui prodotti, servizi, attività del menu tramite i loro nomi.',
+                        'parameters' => [
+                            'type' => 'object',
+                            'properties' => [
+                                'product_names' => [
+                                    'type' => 'array',
+                                    'items' => ['type' => 'string'],
+                                    'description' => 'Nomi dei prodotti, servizi, attività da recuperare.'
+                                ],
+                            ],
+                            'required' => [],
+                        ],
+                    ],
+                ],
+                [
+                    'type' => 'function',
+                    'function' => [
+                        'name' => 'getAddressInfo',
+                        'description' => "Recupera informazioni sull'indirizzo dell'azienda, compreso indirizzo e numero di telefono.",
+                        'parameters' => [
+                            'type' => 'object',
+                            'properties' => [
+                                'team_slug' => [ 'type' => 'string', 'description' => "Slug del team per recuperare l'indirizzo." ],
+                            ],
+                            'required' => ['team_slug'],
+                        ],
+                    ],
+                ],
+                [
+                    'type' => 'function',
+                    'function' => [
+                        'name' => 'getAvailableTimes',
+                        'description' => 'Recupera gli orari disponibili per un appuntamento.',
+                        'parameters' => [
+                            'type' => 'object',
+                            'properties' => [ 'team_slug' => [ 'type' => 'string', 'description' => 'Slug del team per recuperare gli orari disponibili.' ] ],
+                            'required' => ['team_slug'],
+                        ],
+                    ],
+                ],
+                [
+                    'type' => 'function',
+                    'function' => [
+                        'name' => 'createOrder',
+                        'description' => 'Crea un ordine con i dati forniti.',
+                        'parameters' => [
+                            'type' => 'object',
+                            'properties' => [
+                                'user_phone' => [ 'type' => 'string', 'description' => "Numero di telefono dell'utente per la prenotazione." ],
+                                'delivery_date' => [ 'type' => 'string', 'description' => "Data di consegna dell'ordine, includendo ora, minuti e secondi di inizio." ],
+                                'product_ids' => [ 'type' => 'array', 'items' => ['type' => 'integer'], 'description' => "ID dei prodotti, servizi, attività da includere nell'ordine." ],
+                            ],
+                            'required' => ['user_phone','delivery_date','product_ids'],
+                        ],
+                    ],
+                ],
+                [
+                    'type' => 'function',
+                    'function' => [
+                        'name' => 'submitUserData',
+                        'description' => "Registra i dati anagrafici dell'utente e risponde ringraziando. Dati trattati in conformità al GDPR.",
+                        'parameters' => [
+                            'type' => 'object',
+                            'properties' => [
+                                'user_phone' => [ 'type' => 'string' ],
+                                'user_email' => [ 'type' => 'string' ],
+                                'user_name'  => [ 'type' => 'string' ],
+                            ],
+                            'required' => ['user_phone','user_email','user_name'],
+                        ],
+                    ],
+                ],
+                [
+                    'type' => 'function',
+                    'function' => [
+                        'name' => 'getFAQs',
+                        'description' => 'Recupera le domande frequenti (FAQ) dal sistema in base a una query.',
+                        'parameters' => [
+                            'type' => 'object',
+                            'properties' => [ 'team_slug' => [ 'type' => 'string' ], 'query' => [ 'type' => 'string' ] ],
+                            'required' => ['team_slug','query'],
+                        ],
+                    ],
+                ],
+                [
+                    'type' => 'function',
+                    'function' => [
+                        'name' => 'fallback',
+                        'description' => 'Risponde a domande non inerenti al contesto con il messaggio predefinito.',
+                        'parameters' => [
+                            'type' => 'object',
+                            'properties' => new \stdClass()
+                        ],
+                    ],
+                ],
+            ];
+
+            $final = '';
+            $capturedToolCalls = [];
+
+            // STREAMING NATIVO Chat API
+            $stream = $this->client->chat()->createStreamed([
+                'model' => 'gpt-4o-mini',
+                'temperature' => 0.7,
+                'messages' => $messages,
+                'tools' => $tools,
+                'tool_choice' => 'auto',
             ]);
 
-            // Avvia run con strumenti
-            $run = $this->client->threads()->runs()->create(
-                threadId: $assistantThreadId,
-                parameters: [
-                    'assistant_id' => 'asst_34SA8ZkwlHiiXxNufoZYddn0',
-                    'instructions' => $systemPrompt,
-                    'model'  => 'gpt-4o',
-                    'tools'  => [
-                        [ 'type' => 'function', 'function' => [ 'name' => 'getProductInfo', 'description' => 'Recupera informazioni sui prodotti, servizi, attività del menu tramite i loro nomi.', 'parameters' => [ 'type' => 'object', 'properties' => [ 'product_names' => [ 'type' => 'array', 'items' => ['type' => 'string'], 'description' => 'Nomi dei prodotti, servizi, attività da recuperare.' ] ], 'required' => [] ] ] ],
-                        [ 'type' => 'function', 'function' => [ 'name' => 'getAddressInfo', 'description' => 'Recupera informazioni sull\'indirizzo dell\'azienda, compreso indirizzo e numero di telefono.', 'parameters' => [ 'type' => 'object', 'properties' => [ 'team_slug' => [ 'type' => 'string', 'description' => 'Slug del team per recuperare l\'indirizzo.' ] ], 'required' => ['team_slug'] ] ] ],
-                        [ 'type' => 'function', 'function' => [ 'name' => 'getAvailableTimes', 'description' => 'Recupera gli orari disponibili per un appuntamento.', 'parameters' => [ 'type' => 'object', 'properties' => [ 'team_slug' => [ 'type' => 'string', 'description' => 'Slug del team per recuperare gli orari disponibili.' ] ], 'required' => ['team_slug'] ] ] ],
-                        [ 'type' => 'function', 'function' => [ 'name' => 'createOrder', 'description' => 'Crea un ordine con i dati forniti.', 'parameters' => [ 'type' => 'object', 'properties' => [ 'user_phone' => [ 'type' => 'string', 'description' => 'Numero di telefono dell\'utente per la prenotazione.' ], 'delivery_date' => [ 'type' => 'string', 'description' => 'Data di consegna dell\'ordine, includendo ora, minuti e secondi di inizio.' ], 'product_ids' => [ 'type' => 'array', 'items' => ['type' => 'integer'], 'description' => 'ID dei prodotti, servizi, attività da includere nell\'ordine.' ] ], 'required' => ['user_phone','delivery_date','product_ids'] ] ] ],
-                        [ 'type' => 'function', 'function' => [ 'name' => 'submitUserData', 'description' => 'Registra i dati anagrafici dell\'utente e risponde ringraziando. Dati trattati in conformità al GDPR.', 'parameters' => [ 'type' => 'object', 'properties' => [ 'user_phone' => [ 'type' => 'string', 'description' => 'Numero di telefono dell\'utente' ], 'user_email' => [ 'type' => 'string', 'description' => 'Email dell\'utente' ], 'user_name' => [ 'type' => 'string', 'description' => 'Nome dell\'utente' ] ], 'required' => ['user_phone','user_email','user_name'] ] ] ],
-                        [ 'type' => 'function', 'function' => [ 'name' => 'getFAQs', 'description' => 'Recupera le domande frequenti (FAQ) dal sistema in base a una query.', 'parameters' => [ 'type' => 'object', 'properties' => [ 'team_slug' => [ 'type' => 'string', 'description' => 'Slug del team per recuperare le FAQ.' ], 'query' => [ 'type' => 'string', 'description' => 'Query per cercare nelle FAQ.' ] ], 'required' => ['team_slug','query'] ] ] ],
-                        [ 'type' => 'function', 'function' => [ 'name' => 'fallback', 'description' => 'Risponde a domande non inerenti al contesto con il messaggio predefinito.', 'parameters' => [ 'type' => 'object', 'properties' => new \stdClass() ] ] ],
-                    ],
-                ]
-            );
+            foreach ($stream as $response) {
+                $delta = $response->choices[0]->delta ?? null;
+                if ($delta === null) { continue; }
 
-            // Loop finché non termina o richiede azione
-            $pollDelayMs = 100;
-            $maxPollDelayMs = 500;
-            while (in_array($run->status, ['queued', 'in_progress', 'requires_action'])) {
-                if ($run->status === 'requires_action' && isset($run->requiredAction)) {
-                    $toolCalls = $run->requiredAction->submitToolOutputs->toolCalls;
-                    $toolOutputs = [];
-
-                    foreach ($toolCalls as $toolCall) {
-                        $functionName = $toolCall->function->name;
-                        $arguments = json_decode($toolCall->function->arguments, true);
-                        $output = '';
-
-                        switch ($functionName) {
-                            case 'getProductInfo':
-                                $output = $this->fetchProductData($arguments['product_names'] ?? [], $teamSlug);
-                                break;
-                            case 'getAddressInfo':
-                                $output = $this->fetchAddressData($teamSlug);
-                                break;
-                            case 'getAvailableTimes':
-                                $output = $this->fetchAvailableTimes($teamSlug);
-                                break;
-                            case 'createOrder':
-                                $output = $this->createOrder($arguments['user_phone'] ?? null, $arguments['delivery_date'] ?? null, $arguments['product_ids'] ?? [], $teamSlug, $locale);
-                                break;
-                            case 'submitUserData':
-                                $output = $this->submitUserData($arguments['user_phone'] ?? null, $arguments['user_email'] ?? null, $arguments['user_name'] ?? null, $teamSlug, $locale, $activityUuid);
-                                break;
-                            case 'getFAQs':
-                                $output = $this->fetchFAQs($teamSlug, $arguments['query'] ?? '');
-                                break;
-                            case 'fallback':
-                                $output = ['message' => trans('enjoywork3d_prompts.fallback_message', [], $locale)];
-                                break;
-                        }
-
-                        $toolOutputs[] = [
-                            'tool_call_id' => $toolCall->id,
-                            'output'       => json_encode($output),
-                        ];
-                    }
-
-                    $run = $this->client->threads()->runs()->submitToolOutputs(
-                        threadId: $assistantThreadId,
-                        runId: $run->id,
-                        parameters: [ 'tool_outputs' => $toolOutputs ]
-                    );
-                    $pollDelayMs = 100;
+                // Token di testo
+                $piece = $delta->content ?? null;
+                if ($piece !== null && $piece !== '') {
+                    $final .= $piece;
+                    $flush(['token' => $piece]);
                 }
 
-                usleep($pollDelayMs * 1000);
-                $pollDelayMs = min($pollDelayMs * 1.5, $maxPollDelayMs);
-                $run = $this->client->threads()->runs()->retrieve(threadId: $assistantThreadId, runId: $run->id);
+                // Tool calls (supporta snake_case e camelCase)
+                $toolCallsDelta = $delta->tool_calls ?? ($delta->toolCalls ?? null);
+                if ($toolCallsDelta && is_array($toolCallsDelta)) {
+                    foreach ($toolCallsDelta as $tc) {
+                        $id = $tc->id ?? null;
+                        $fn = $tc->function->name ?? null;
+                        $argsPart = $tc->function->arguments ?? '';
+                        if ($id && $fn !== null) {
+                            if (!isset($capturedToolCalls[$id])) {
+                                $capturedToolCalls[$id] = ['id' => $id, 'name' => $fn, 'arguments' => ''];
+                            }
+                            $capturedToolCalls[$id]['arguments'] .= $argsPart;
+                        }
+                    }
+                }
             }
 
-            // Recupera messaggio finale e streamma
-            if ($run->status === 'completed') {
-                $messages = $this->client->threads()->messages()->list($assistantThreadId)->data;
-                $content = $messages[0]->content[0]->text->value ?? 'Nessuna risposta trovata.';
+            // Se sono state richieste tool calls, esegui e poi prosegui con un secondo streaming
+            if (!empty($capturedToolCalls)) {
+                $assistantToolMessage = [
+                    'role' => 'assistant',
+                    'tool_calls' => array_values(array_map(function($c){
+                        return [
+                            'id' => $c['id'],
+                            'type' => 'function',
+                            'function' => [ 'name' => $c['name'], 'arguments' => $c['arguments'] ],
+                        ];
+                    }, $capturedToolCalls)),
+                ];
 
+                $toolOutputMessages = [];
+                foreach ($capturedToolCalls as $call) {
+                    $args = json_decode($call['arguments'] ?? '{}', true) ?: [];
+                    $out = '';
+                    switch ($call['name']) {
+                        case 'getProductInfo':
+                            $out = $this->fetchProductData($args['product_names'] ?? [], $teamSlug);
+                            break;
+                        case 'getAddressInfo':
+                            $out = $this->fetchAddressData($teamSlug);
+                            break;
+                        case 'getAvailableTimes':
+                            $out = $this->fetchAvailableTimes($teamSlug);
+                            break;
+                        case 'createOrder':
+                            $out = $this->createOrder($args['user_phone'] ?? null, $args['delivery_date'] ?? null, $args['product_ids'] ?? [], $teamSlug, $locale);
+                            break;
+                        case 'submitUserData':
+                            $out = $this->submitUserData($args['user_phone'] ?? null, $args['user_email'] ?? null, $args['user_name'] ?? null, $teamSlug, $locale, $activityUuid);
+                            break;
+                        case 'getFAQs':
+                            $out = $this->fetchFAQs($teamSlug, $args['query'] ?? '');
+                            break;
+                        case 'fallback':
+                            $out = ['message' => trans('enjoywork3d_prompts.fallback_message', [], $locale)];
+                            break;
+                    }
+                    $toolOutputMessages[] = [
+                        'role' => 'tool',
+                        'tool_call_id' => $call['id'],
+                        'content' => json_encode($out),
+                    ];
+                }
+
+                // Prosegui con secondo streaming che produce il testo finale e streamma token
+                $secondMessages = array_merge($messages, [$assistantToolMessage], $toolOutputMessages);
+                $final2 = '';
+                $stream2 = $this->client->chat()->createStreamed([
+                    'model' => 'gpt-4o-mini',
+                    'temperature' => 0.7,
+                    'messages' => $secondMessages,
+                ]);
+                foreach ($stream2 as $response2) {
+                    $piece2 = $response2->choices[0]->delta->content
+                        ?? ($response2->choices[0]->message->content ?? null);
+                    if ($piece2 !== null && $piece2 !== '') {
+                        $final2 .= $piece2;
+                        $flush(['token' => $piece2]);
+                    }
+                }
+
+                $finalOut = $final2 !== '' ? $final2 : ($final !== '' ? $final : 'Mi dispiace, non sono riuscito a generare una risposta.');
                 Quoter::create([
                     'thread_id' => $streamThreadId,
                     'role'      => 'chatbot',
-                    'content'   => $content,
+                    'content'   => $finalOut,
                 ]);
-
-                $this->streamTextByWord((string) $content, $flush);
                 $flush(['token' => ''], 'done');
-            } else {
-                Log::error('RealtimeChatWebsiteController.analyzeAndStreamResponse Assistants run not completed', ['status' => $run->status]);
-                $flush(['error' => 'assistants_failed: '.$run->status], 'error');
-                $flush(['token' => ''], 'done');
+                return;
             }
+
+            // Nessuna tool call: abbiamo già streammato il testo
+            $finalOut = $final !== '' ? $final : 'Mi dispiace, non sono riuscito a generare una risposta.';
+            Quoter::create([
+                'thread_id' => $streamThreadId,
+                'role'      => 'chatbot',
+                'content'   => $finalOut,
+            ]);
+
+            $flush(['token' => ''], 'done');
         } catch (\Throwable $e) {
             Log::error('RealtimeChatWebsiteController.analyzeAndStreamResponse', [
                 'error' => $e->getMessage(),
