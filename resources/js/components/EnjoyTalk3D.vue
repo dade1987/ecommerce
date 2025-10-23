@@ -1617,8 +1617,9 @@ export default defineComponent({
           try {
             if (currentEvtSource) currentEvtSource.close();
           } catch { }
+
           evtSource = new EventSource(
-            `/api/chatbot/stream?${params.toString()}`
+            `/api/chatbot/website-stream?${params.toString()}`
           );
           currentEvtSource = evtSource;
           try {

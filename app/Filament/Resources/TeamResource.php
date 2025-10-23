@@ -6,7 +6,9 @@ use App\Filament\Resources\TeamResource\Pages;
 use App\Filament\Resources\TeamResource\RelationManagers;
 use App\Models\Team;
 use Filament\Forms;
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TagsInput;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
 use Filament\Forms\Set;
@@ -53,10 +55,18 @@ class TeamResource extends Resource
                 TextInput::make('phone')
                     ->maxLength(255)
                     ->default(null),
-                TextInput::make('website')
-                    ->url()
-                    ->placeholder('https://example.com')
-                    ->maxLength(255)
+                Repeater::make('websites')
+                    ->label('Siti Web')
+                    ->schema([
+                        TextInput::make('0')
+                            ->label('URL')
+                            ->required()
+                            ->url()
+                            ->placeholder('https://example.com')
+                    ])
+                    ->addActionLabel('Aggiungi URL')
+                    ->collapsible()
+                    ->collapsed(false)
                     ->default(null),
                 TextInput::make('welcome_message')
                     ->maxLength(255)
@@ -87,7 +97,7 @@ class TeamResource extends Resource
                     ->searchable(),
                 TextColumn::make('phone')
                     ->searchable(),
-                TextColumn::make('website')
+                TextColumn::make('websites')
                     ->searchable(),
             ])
             ->filters([

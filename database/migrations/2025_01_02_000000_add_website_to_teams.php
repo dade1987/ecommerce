@@ -12,7 +12,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('teams', function (Blueprint $table) {
-            $table->string('website')->nullable()->after('phone');
+            // Cambia website singolo a websites (JSON array)
+            if (Schema::hasColumn('teams', 'website')) {
+                $table->dropColumn('website');
+            }
+            $table->json('websites')->nullable()->after('phone');
         });
     }
 
@@ -22,7 +26,10 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('teams', function (Blueprint $table) {
-            $table->dropColumn('website');
+            if (Schema::hasColumn('teams', 'websites')) {
+                $table->dropColumn('websites');
+            }
+            $table->string('website')->nullable()->after('phone');
         });
     }
 };

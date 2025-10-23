@@ -59,6 +59,60 @@ class WebsiteScraperService
     }
 
     /**
+     * Scrapa il contenuto di una lista di siti web del Team e lo cachea
+     */
+    public function scrapeTeamWebsites(array $websites, string $teamId): ?string
+    {
+        if (empty($websites)) {
+            return null;
+        }
+
+        $cacheKey = self::CACHE_PREFIX . md5($teamId . ':' . implode('|', $websites));
+
+        // Prova cache
+        $cached = Cache::get($cacheKey);
+        if ($cached !== null) {
+            Log::info('WebsiteScraperService: Contenuto lista da cache', ['teamId' => $teamId, 'count' => count($websites)]);
+            return $cached;
+        }
+
+        $allContent = [];
+        foreach ($websites as $website) {
+            if (!$website || trim($website) === '') {
+                continue;
+            }
+
+            try {
+                $content = $this->fetchAndCleanContent($website);
+                if ($content && strlen($content) > 0) {
+                    $allContent[] = "=== Sito: {$website} ===\n{$content}";
+                }
+            } catch (\Throwable $e) {
+                Log::warning('WebsiteScraperService: Errore nel scraping di un URL', [
+                    'error' => $e->getMessage(),
+                    'website' => $website,
+                ]);
+            }
+        }
+
+        if (empty($allContent)) {
+            return null;
+        }
+
+        $combinedContent = implode("\n\n", $allContent);
+
+        // Cachea per 7 giorni
+        Cache::put($cacheKey, $combinedContent, self::CACHE_TTL);
+        Log::info('WebsiteScraperService: Scraping lista completato', [
+            'teamId' => $teamId,
+            'urlsCount' => count($websites),
+            'contentLength' => strlen($combinedContent),
+        ]);
+
+        return $combinedContent;
+    }
+
+    /**
      * Fetcha il contenuto HTML e lo pulisce
      */
     private function fetchAndCleanContent(string $website): ?string

@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\CalzaturieroController;
 use App\Http\Controllers\Api\ChatbotController;
 use App\Http\Controllers\Api\SommelierApiController;
 use App\Http\Controllers\Api\RealtimeChatController;
+use App\Http\Controllers\Api\RealtimeChatWebsiteController;
 use App\Http\Controllers\Api\TtsController;
 use App\Http\Controllers\Api\SommelierChatbotController;
 use App\Http\Controllers\QuoterController;
@@ -135,6 +136,7 @@ Route::post('/calzaturiero/process-order/{slug}', [CalzaturieroController::class
 
 Route::post('/chatbot', [ChatbotController::class, 'handleChat']);
 Route::get('/chatbot/stream', [RealtimeChatController::class, 'stream']);
+Route::get('/chatbot/website-stream', [RealtimeChatWebsiteController::class, 'websiteStream']);
 Route::post('/tts', [TtsController::class, 'synthesize']);
 
 // Endpoint per il chatbot sommelier
