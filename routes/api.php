@@ -139,6 +139,32 @@ Route::get('/chatbot/stream', [RealtimeChatController::class, 'stream']);
 Route::get('/chatbot/website-stream', [RealtimeChatWebsiteController::class, 'websiteStream']);
 Route::post('/tts', [TtsController::class, 'synthesize']);
 
+// Proxy GLB endpoint: il backend fetcha il file e lo serve senza CORS issues
+Route::get('/proxy-glb', function (Request $request) {
+    $glbUrl = $request->query('url');
+    
+    if (!$glbUrl) {
+        return response()->json(['error' => 'GLB URL required'], 400);
+    }
+    
+    try {
+        $client = new \GuzzleHttp\Client([
+            'timeout' => 30,
+            'verify' => false,
+        ]);
+        
+        $response = $client->get($glbUrl);
+        
+        return response($response->getBody(), 200)
+            ->header('Content-Type', 'model/gltf-binary')
+            ->header('Content-Length', $response->getHeader('Content-Length')[0] ?? '')
+            ->header('Access-Control-Allow-Origin', '*');
+    } catch (\Throwable $e) {
+        \Illuminate\Support\Facades\Log::error('proxy-glb error', ['url' => $glbUrl, 'error' => $e->getMessage()]);
+        return response()->json(['error' => 'Impossibile caricare GLB'], 500);
+    }
+});
+
 // Endpoint per il chatbot sommelier
 Route::post('sommelier/chat', [SommelierChatbotController::class, 'handleChat']);
 Route::post('sommelier/thread', [SommelierChatbotController::class, 'createThread']);

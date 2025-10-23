@@ -3419,8 +3419,19 @@ export default defineComponent({
             return;
           }
           const fbxUrl = "";
-          const glbUrl =
-            (this.glbUrl) || "/images/68f78ddb4530fb061a1349d5.glb" + "?v=" + Date.now();
+          const glbUrl = (() => {
+            // Se glbUrl è fornito
+            if (this.glbUrl) {
+              // Se è un URL esterno (http/https), usa il proxy del backend
+              if (this.glbUrl.startsWith('http')) {
+                return `/api/proxy-glb?url=${encodeURIComponent(this.glbUrl)}&v=${Date.now()}`;
+              }
+              // Se è un path relativo, usalo direttamente
+              return this.glbUrl + "?v=" + Date.now();
+            }
+            // Default
+            return "/images/68f78ddb4530fb061a1349d5.glb" + "?v=" + Date.now();
+          })();
           function attachHumanoid(root) {
             try {
               humanoid = root;
