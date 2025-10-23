@@ -3422,7 +3422,7 @@ export default defineComponent({
 
           // Costruisci l'URL del GLB
           let finalGlbUrl = "/images/68f78ddb4530fb061a1349d5.glb"; // default
-          
+
           // Se glbUrl è fornito dal prop
           if (instance.props.glbUrl) {
             const glbUrlProp = instance.props.glbUrl;
@@ -3437,7 +3437,7 @@ export default defineComponent({
               finalGlbUrl = glbUrlProp;
             }
           }
-          
+
           const glbUrl = finalGlbUrl + "?v=" + Date.now();
           function attachHumanoid(root) {
             try {
