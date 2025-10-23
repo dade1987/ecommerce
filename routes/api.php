@@ -139,6 +139,29 @@ Route::get('/chatbot/stream', [RealtimeChatController::class, 'stream']);
 Route::get('/chatbot/website-stream', [RealtimeChatWebsiteController::class, 'websiteStream']);
 Route::post('/tts', [TtsController::class, 'synthesize']);
 
+// Endpoint per servire immagini/risorse statiche con CORS
+Route::get('/static/{filename}', function (Request $request, $filename) {
+    // Whitelist di estensioni permesse
+    $allowedExtensions = ['glb', 'gltf', 'png', 'jpg', 'jpeg', 'webp', 'gif', 'svg'];
+    $pathinfo = pathinfo($filename);
+    $extension = strtolower($pathinfo['extension'] ?? '');
+    
+    if (!in_array($extension, $allowedExtensions)) {
+        return response()->json(['error' => 'File type not allowed'], 403);
+    }
+    
+    // Costruisci il path dalla cartella public
+    $filePath = public_path($filename);
+    
+    // Verifica che il file esista e sia dentro public_html
+    if (!file_exists($filePath) || !str_starts_with(realpath($filePath), realpath(public_path()))) {
+        return response()->json(['error' => 'File not found'], 404);
+    }
+    
+    // Serve il file (CORS headers aggiunti automaticamente dal middleware)
+    return response()->file($filePath);
+})->where('filename', '.*');
+
 // CORS è gestito dal config/cors.php e dal middleware \Illuminate\Http\Middleware\HandleCors
 
 // Endpoint per il chatbot sommelier

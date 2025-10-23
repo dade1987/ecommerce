@@ -3422,23 +3422,23 @@ export default defineComponent({
           const fbxUrl = "";
 
           // Costruisci l'URL del GLB
-          let finalGlbUrl = "/images/68f78ddb4530fb061a1349d5.glb"; // default
+          let finalGlbUrl = "/api/static/images/68f78ddb4530fb061a1349d5.glb"; // default
 
           // Se glbUrl è fornito dal prop
           if (instance.props.glbUrl && instance.props.glbUrl.trim()) {
             const glbUrlProp = instance.props.glbUrl;
-            // URL esterno: caricalo direttamente (CORS configurato nel backend)
+            // URL esterno: caricalo direttamente
             if (glbUrlProp.startsWith('http')) {
               finalGlbUrl = glbUrlProp;
             } else {
-              // Se è un path relativo, usalo con l'origin del web component
+              // Se è un path relativo, usalo via API
               const webComponentOrigin = window.__ENJOY_TALK_3D_ORIGIN__ || window.location.origin;
-              finalGlbUrl = `${webComponentOrigin}${glbUrlProp}`;
+              finalGlbUrl = `${webComponentOrigin}/api/static/${glbUrlProp.replace(/^\//, '')}`;
             }
           } else {
             // Usa il default dal web component origin
             const webComponentOrigin = window.__ENJOY_TALK_3D_ORIGIN__ || window.location.origin;
-            finalGlbUrl = `${webComponentOrigin}/images/68f78ddb4530fb061a1349d5.glb`;
+            finalGlbUrl = `${webComponentOrigin}/api/static/images/68f78ddb4530fb061a1349d5.glb`;
           }
 
           const glbUrl = finalGlbUrl + "?v=" + Date.now();
@@ -4006,9 +4006,8 @@ export default defineComponent({
                 idleAnimationActive = false;
                 const webComponentOrigin = window.__ENJOY_TALK_3D_ORIGIN__ || window.location.origin;
                 const idleAnimPathRelative = "/images/animation-library-master/feminine/glb/idle/F_Standing_Idle_Variations_003.glb";
-                const idleAnimAbsolute = webComponentOrigin + idleAnimPathRelative;
                 const idleAnimUrl =
-                  idleAnimAbsolute +
+                  webComponentOrigin + `/api/static${idleAnimPathRelative}` +
                   "?v=" +
                   Date.now();
                 const loader = new GLTFLoaderCtor();
@@ -4095,9 +4094,8 @@ export default defineComponent({
                 for (let i = 1; i <= 6; i++) {
                   const variant = String(i).padStart(3, "0");
                   const talkPathRelative = `/images/animation-library-master/feminine/glb/expression/F_Talking_Variations_${variant}.glb`;
-                  const talkAbsolute = webComponentOrigin + talkPathRelative;
                   const talkUrl =
-                    talkAbsolute +
+                    webComponentOrigin + `/api/static${talkPathRelative}` +
                     "?v=" +
                     Date.now();
                   loader.load(
