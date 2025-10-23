@@ -257,19 +257,10 @@ class RealtimeChatWebsiteController extends Controller
                     $role = ($r['role'] ?? '') === 'chatbot' ? 'assistant' : 'user';
                     $content = (string)($r['content'] ?? '');
                     if ($content !== '') {
-                        // Formato: "[14:30] Utente: messaggio" o "[14:35] Assistente: risposta"
-                        $timestamp = '';
-                        if (!empty($r['created_at'])) {
-                            try {
-                                $time = \Carbon\Carbon::parse($r['created_at'])->format('H:i');
-                                $timestamp = "[$time] ";
-                            } catch (\Exception $e) {
-                                // Ignora errori nel parsing
-                            }
-                        }
+                        // Passa il content pulito senza timestamp a GPT
                         $historyMessages[] = [
                             'role' => $role,
-                            'content' => $timestamp . $content
+                            'content' => $content
                         ];
                     }
                 }
