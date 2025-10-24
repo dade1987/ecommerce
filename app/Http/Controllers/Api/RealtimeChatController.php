@@ -149,6 +149,12 @@ class RealtimeChatController extends Controller
                 // Modalità: per default usa streaming nativo Chat Completions; se ?assistants=1 oppure esiste assistant_thread_id
                 $incomingAssistantThreadId = (string) (request()->query('assistant_thread_id') ?? '');
                 $useAssistants = (bool) request()->query('assistants', false) || ($incomingAssistantThreadId !== '');
+                Log::debug('chat stream mode decision', [
+                    'useAssistants' => $useAssistants,
+                    'incomingAssistantThreadId' => $incomingAssistantThreadId,
+                    'streamThreadId' => $streamThreadId,
+                    'teamSlug' => $teamSlug,
+                ]);
 
                 if (! $useAssistants) {
                     try {
@@ -175,6 +181,11 @@ class RealtimeChatController extends Controller
                             }
                         }
 
+                        Log::debug('chat history built', [
+                            'thread_id' => $streamThreadId,
+                            'history_count' => count($historyMessages),
+                        ]);
+
                         $messages = [
                             ['role' => 'system', 'content' => (string) trans('enjoywork3d_prompts.instructions', ['locale' => $locale], $locale)],
                         ];
@@ -183,10 +194,35 @@ class RealtimeChatController extends Controller
                         }
                         // Suggerisci parametri fissi per i tool (aiuta il modello a compilare gli argomenti)
                         $messages[] = ['role' => 'system', 'content' => "Parametri tool fissi:\nteam_slug={$teamSlug}"];
+                        // Regole rigide tool-calling
+                        $messages[] = ['role' => 'system', 'content' => (
+                            'Regole tool-calling (rigide):\n'.
+                            '- Usa i tool quando l\'utente vuole compiere un\'azione.\n'.
+                            '- Non dichiarare mai esiti (es. ordine creato) senza output del tool.\n'.
+                            '- Non chiamare createOrder finché non hai: user_phone, delivery_date (data+ora), product_ids.\n'.
+                            '- Se manca un dato, chiedilo esplicitamente prima di chiamare il tool.\n'.
+                            '- Quando chiami un tool, fornisci tutti i campi required in snake_case.'
+                        )];
                         if (!empty($historyMessages)) {
                             $messages = array_merge($messages, $historyMessages);
                         }
                         $messages[] = ['role' => 'user', 'content' => (string) $userInput];
+
+                        // Log anteprima messaggi (senza testi lunghi)
+                        try {
+                            $preview = array_map(function ($m) {
+                                $c = (string) ($m['content'] ?? '');
+                                $len = mb_strlen($c);
+                                return [
+                                    'role' => $m['role'] ?? '',
+                                    'content_preview' => mb_substr($c, 0, 180) . ($len > 180 ? '…' : ''),
+                                    'content_len' => $len,
+                                ];
+                            }, $messages);
+                            Log::debug('chat completion messages preview', ['messages_preview' => $preview]);
+                        } catch (\Throwable $e) {
+                            Log::debug('chat completion messages preview failed', ['error' => $e->getMessage()]);
+                        }
 
                         // Definizione tools per function-calling (Chat Completions)
                         $tools = [
@@ -292,12 +328,29 @@ class RealtimeChatController extends Controller
                             ],
                         ];
 
+                        // Log riepilogo tools
+                        try {
+                            $toolSummary = array_map(function ($t) {
+                                $fn = $t['function'] ?? [];
+                                $params = $fn['parameters']['properties'] ?? [];
+                                $required = $fn['parameters']['required'] ?? [];
+                                return [
+                                    'name' => $fn['name'] ?? '',
+                                    'required' => $required,
+                                    'properties' => array_keys($params),
+                                ];
+                            }, $tools);
+                            Log::debug('chat completion tools summary', ['tools' => $toolSummary]);
+                        } catch (\Throwable $e) {
+                            Log::debug('chat completion tools summary failed', ['error' => $e->getMessage()]);
+                        }
+
                         $final = '';
                         $capturedToolCalls = [];
 
                         $stream = $this->client->chat()->createStreamed([
                             'model' => 'gpt-4o-mini',
-                            'temperature' => 0.7,
+                            'temperature' => 0.2,
                             'messages' => $messages,
                             'tools' => $tools,
                             'tool_choice' => 'auto',
@@ -329,6 +382,32 @@ class RealtimeChatController extends Controller
                                     }
                                 }
                             }
+
+                            // In alcuni SDK l'ultimo frame contiene i tool_calls completi nel message (non in delta)
+                            $finalMessage = $response->choices[0]->message ?? null;
+                            if ($finalMessage) {
+                                $messageToolCalls = $finalMessage->tool_calls ?? ($finalMessage->toolCalls ?? null);
+                                if ($messageToolCalls && is_array($messageToolCalls)) {
+                                    foreach ($messageToolCalls as $tc) {
+                                        $id = $tc->id ?? null;
+                                        $fn = $tc->function->name ?? null;
+                                        $argsFull = $tc->function->arguments ?? '';
+                                        Log::debug('stream message tool_call summary', [
+                                            'tool' => $fn,
+                                            'args_len' => is_string($argsFull) ? mb_strlen($argsFull) : 0,
+                                        ]);
+                                        if ($id && $fn !== null) {
+                                            if (!isset($capturedToolCalls[$id])) {
+                                                $capturedToolCalls[$id] = ['id' => $id, 'name' => $fn, 'arguments' => ''];
+                                            }
+                                            // Sovrascrive con la versione completa se presente
+                                            if ($argsFull !== '') {
+                                                $capturedToolCalls[$id]['arguments'] = $argsFull;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
 
                         // Se sono state richieste tool calls, esegui e poi prosegui con un secondo streaming
@@ -347,6 +426,17 @@ class RealtimeChatController extends Controller
                             $toolOutputMessages = [];
                             foreach ($capturedToolCalls as $call) {
                                 $args = json_decode($call['arguments'] ?? '{}', true) ?: [];
+                                if (($call['arguments'] ?? '') === '') {
+                                    Log::debug('stream tool_call arguments missing; proceeding empty', [
+                                        'tool' => $call['name'] ?? null,
+                                        'call_id' => $call['id'] ?? null,
+                                    ]);
+                                }
+                                Log::debug('stream tool_call arguments raw', [
+                                    'tool' => $call['name'] ?? null,
+                                    'raw'  => $call['arguments'] ?? null,
+                                ]);
+                                $args = $this->normalizeToolArgs($args, $call['name'] ?? null);
                                 $out = '';
                                 switch ($call['name']) {
                                     case 'getProductInfo':
@@ -359,7 +449,17 @@ class RealtimeChatController extends Controller
                                         $out = $this->fetchAvailableTimes($teamSlug);
                                         break;
                                     case 'createOrder':
-                                        $out = $this->createOrder($args['user_phone'] ?? null, $args['delivery_date'] ?? null, $args['product_ids'] ?? [], $teamSlug, $locale);
+                                        $missing = [];
+                                        foreach (['user_phone','delivery_date','product_ids'] as $rk) {
+                                            if (!isset($args[$rk]) || ($rk === 'product_ids' && empty($args[$rk])) || ($rk !== 'product_ids' && trim((string)($args[$rk] ?? '')) === '')) {
+                                                $missing[] = $rk;
+                                            }
+                                        }
+                                        if (!empty($missing)) {
+                                            $out = ['error' => 'missing_required_fields', 'missing' => $missing];
+                                        } else {
+                                            $out = $this->createOrder($args['user_phone'] ?? null, $args['delivery_date'] ?? null, $args['product_ids'] ?? [], $teamSlug, $locale);
+                                        }
                                         break;
                                     case 'submitUserData':
                                         $out = $this->submitUserData($args['user_phone'] ?? null, $args['user_email'] ?? null, $args['user_name'] ?? null, $teamSlug, $locale, $activityUuid);
@@ -383,7 +483,7 @@ class RealtimeChatController extends Controller
                             $final2 = '';
                             $stream2 = $this->client->chat()->createStreamed([
                                 'model' => 'gpt-4o-mini',
-                                'temperature' => 0.7,
+                                'temperature' => 0.2,
                                 'messages' => $secondMessages,
                             ]);
                             foreach ($stream2 as $response2) {
@@ -472,6 +572,11 @@ class RealtimeChatController extends Controller
                             foreach ($toolCalls as $toolCall) {
                                 $functionName = $toolCall->function->name;
                                 $arguments = json_decode($toolCall->function->arguments, true);
+                                Log::debug('assistants tool_call arguments raw', [
+                                    'tool' => $functionName,
+                                    'raw'  => $toolCall->function->arguments ?? null,
+                                ]);
+                                $arguments = $this->normalizeToolArgs($arguments, $functionName);
                                 $output = '';
 
                                 switch ($functionName) {
@@ -750,6 +855,50 @@ class RealtimeChatController extends Controller
         $formattedContent = preg_replace('/\*\*(.*?)\*\*/', '<strong>$1</strong>', $formattedContent);
         $formattedContent = preg_replace('/(\d+\.\s)/', '<strong>$1</strong>', $formattedContent);
         return $formattedContent;
+    }
+
+    /**
+     * Normalizza le chiavi degli argomenti dei tool (camelCase -> snake_case) e applica una tipizzazione leggera
+     */
+    private function normalizeToolArgs($args, ?string $functionName = null): array
+    {
+        if (!is_array($args)) {
+            return [];
+        }
+
+        $normalized = [];
+        foreach ($args as $key => $value) {
+            $k = $key;
+            if ($k === 'userPhone') { $k = 'user_phone'; }
+            if ($k === 'userEmail') { $k = 'user_email'; }
+            if ($k === 'userName')  { $k = 'user_name'; }
+            if ($k === 'deliveryDate') { $k = 'delivery_date'; }
+            if ($k === 'productIds') { $k = 'product_ids'; }
+            if ($k === 'teamSlug') { $k = 'team_slug'; }
+            $normalized[$k] = $value;
+        }
+
+        if ($functionName === 'createOrder' || $functionName === null) {
+            if (isset($normalized['product_ids']) && is_array($normalized['product_ids'])) {
+                $normalized['product_ids'] = array_values(array_map(function ($v) { return (int) $v; }, $normalized['product_ids']));
+            }
+            if (isset($normalized['user_phone'])) {
+                $normalized['user_phone'] = (string) $normalized['user_phone'];
+            }
+            if (isset($normalized['delivery_date'])) {
+                $normalized['delivery_date'] = (string) $normalized['delivery_date'];
+            }
+        }
+
+        if ($functionName === 'submitUserData' || $functionName === null) {
+            foreach (['user_phone','user_email','user_name'] as $k) {
+                if (isset($normalized[$k])) {
+                    $normalized[$k] = (string) $normalized[$k];
+                }
+            }
+        }
+
+        return $normalized;
     }
 
     // ====== Metodi helper copiati da ChatbotController ======
