@@ -15,6 +15,7 @@ export default defineConfig({
     },
     build: {
         outDir: 'public_html/js',
+        emptyOutDir: false,
         lib: {
             entry: 'resources/js/enjoy-talk-3d-element.js',
             name: 'EnjoyTalk3D',
