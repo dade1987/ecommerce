@@ -23,6 +23,8 @@ function injectStylesIfNeeded() {
     style.textContent = cssText
     document.head.appendChild(style)
     console.log('LOG style added', style, document.getElementById('enjoy-talk-3d-styles'))
+
+    document.getElementById('teamLogo').style.display = 'none'
   }
 }
 
