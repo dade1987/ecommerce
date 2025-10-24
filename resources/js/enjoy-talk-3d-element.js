@@ -24,8 +24,10 @@ function injectStylesIfNeeded() {
   }
 }
 
-// Chiama injectStylesIfNeeded prima di montare
-injectStylesIfNeeded()
+window.addEventListener('load', () => {
+  // Chiama injectStylesIfNeeded prima di montare
+  injectStylesIfNeeded()
+});
 
 // Salva l'origin del server backend (da dove è stato caricato LO SCRIPT)
 // Es: https://cavalliniservice.com/js/enjoyTalk3D.standalone.js → https://cavalliniservice.com
