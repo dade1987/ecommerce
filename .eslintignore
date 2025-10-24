@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+vendor/
+
+# Build outputs
+public/
+public_html/
+build/
+.vite/
+dist/
+
+# Storage and cache
+storage/
+bootstrap/cache/
+
+# Laradock
+laradock/
+
+# Packages
+packages/
+
+# Config files (già gestiti nel config)
+*.config.js
+postcss.config.js
+tailwind.config.js
+vite.config.js
+

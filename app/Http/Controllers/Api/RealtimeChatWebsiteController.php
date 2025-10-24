@@ -84,7 +84,7 @@ class RealtimeChatWebsiteController extends Controller
 
     /**
      * Endpoint SSE: Analizza domanda dai siti web + contesto completo + streaming nativo Chat API
-     * GET /api/chatbot/website-stream?message=...&team=...&locale=it
+     * GET /api/chatbot/website-stream?message=...&team=...&locale=it&assistants=1
      */
     public function websiteStream(Request $request)
     {
@@ -148,28 +148,183 @@ class RealtimeChatWebsiteController extends Controller
                     return;
                 }
 
-                // Scrapa i siti web del team
-                $websites = $team->websites ?? [];
-                $normalizedWebsites = empty($websites) || !is_array($websites) ? [] : $this->normalizeWebsites($websites);
-                $websiteContent = '';
-                if (!empty($normalizedWebsites)) {
-                    $websiteContent = $this->scraperService->scrapeTeamWebsites($normalizedWebsites, (string) $team->id) ?? '';
+                // Determina se usare Assistants o Chat Completions
+                $incomingAssistantThreadId = (string) (request()->query('assistant_thread_id') ?? '');
+                $useAssistants = (bool) request()->query('assistants', false) || ($incomingAssistantThreadId !== '');
+                Log::debug('website stream mode decision', [
+                    'useAssistants' => $useAssistants,
+                    'incomingAssistantThreadId' => $incomingAssistantThreadId,
+                    'streamThreadId' => $streamThreadId,
+                    'teamSlug' => $teamSlug,
+                ]);
+
+                if (! $useAssistants) {
+                    // MODALITÀ CHAT COMPLETIONS: Scrapa i siti web del team
+                    $websites = $team->websites ?? [];
+                    $normalizedWebsites = empty($websites) || !is_array($websites) ? [] : $this->normalizeWebsites($websites);
+                    $websiteContent = '';
+                    if (!empty($normalizedWebsites)) {
+                        $websiteContent = $this->scraperService->scrapeTeamWebsites($normalizedWebsites, (string) $team->id) ?? '';
+                    }
+
+                    // Costruisci contesto completo (FAQ, indirizzo, prodotti)
+                    $context = $this->buildContextForMessage($teamSlug, $userInput, $locale);
+
+                    // CHAT API STREAMING CON WEBSITE CONTENT E CONTESTO
+                    $this->analyzeAndStreamResponse(
+                        websiteContent: $websiteContent,
+                        context: $context,
+                        userInput: $userInput,
+                        teamSlug: $teamSlug,
+                        streamThreadId: $streamThreadId,
+                        locale: $locale,
+                        activityUuid: $activityUuid,
+                        flush: $flush
+                    );
+                } else {
+                    // MODALITÀ ASSISTANTS API
+                    try {
+                        // 1) Determina/crea thread Assistants
+                        $assistantThreadId = (string) (request()->query('assistant_thread_id') ?? '');
+                        $maybeThreadId = (string) (request()->query('thread_id') ?? '');
+                        if ($assistantThreadId === '' && (str_starts_with($maybeThreadId, 'thread_') || substr($maybeThreadId, 0, 7) === 'thread_')) {
+                            $assistantThreadId = $maybeThreadId;
+                        }
+                        if ($assistantThreadId === '') {
+                            $assistantThreadId = $this->client->threads()->create([])->id;
+                        }
+                        // Comunica al client l'assistant_thread_id così lo persiste
+                        $flush(['token' => json_encode(['assistant_thread_id' => $assistantThreadId])]);
+
+                        // 2) Aggiunge messaggio utente al thread
+                        $this->client->threads()->messages()->create($assistantThreadId, [
+                            'role'    => 'user',
+                            'content' => (string) $userInput,
+                        ]);
+
+                        // Scrapa i siti web per il contesto
+                        $websites = $team->websites ?? [];
+                        $normalizedWebsites = empty($websites) || !is_array($websites) ? [] : $this->normalizeWebsites($websites);
+                        $websiteContent = '';
+                        if (!empty($normalizedWebsites)) {
+                            $websiteContent = $this->scraperService->scrapeTeamWebsites($normalizedWebsites, (string) $team->id) ?? '';
+                        }
+
+                        // Taglia il contenuto se troppo lungo
+                        if (strlen($websiteContent) > 12000) {
+                            $websiteContent = mb_substr($websiteContent, 0, 12000) . "\n...[contenuto troncato]";
+                        }
+
+                        // Costruisci system prompt con website content
+                        $systemPrompt = (string) trans('enjoywork3d_prompts.instructions', ['locale' => $locale], $locale);
+                        if (!empty($websiteContent)) {
+                            $systemPrompt .= "\n\nPRIORITA': Contenuto dai siti web aziendali:\n\n{$websiteContent}";
+                        }
+
+                        // 3) Avvia run con strumenti
+                        $run = $this->client->threads()->runs()->create(
+                            threadId: $assistantThreadId,
+                            parameters: [
+                                'assistant_id' => 'asst_34SA8ZkwlHiiXxNufoZYddn0',
+                                'instructions' => $systemPrompt,
+                                'model'  => 'gpt-4o',
+                                'tools'  => [
+                                    [ 'type' => 'function', 'function' => [ 'name' => 'getProductInfo', 'description' => 'Recupera informazioni sui prodotti, servizi, attività del menu tramite i loro nomi.', 'parameters' => [ 'type' => 'object', 'properties' => [ 'product_names' => [ 'type' => 'array', 'items' => ['type' => 'string'], 'description' => 'Nomi dei prodotti, servizi, attività da recuperare.' ] ], 'required' => [] ] ] ],
+                                    [ 'type' => 'function', 'function' => [ 'name' => 'getAddressInfo', 'description' => 'Recupera informazioni sull\'indirizzo dell\'azienda, compreso indirizzo e numero di telefono.', 'parameters' => [ 'type' => 'object', 'properties' => [ 'team_slug' => [ 'type' => 'string', 'description' => 'Slug del team per recuperare l\'indirizzo.' ] ], 'required' => ['team_slug'] ] ] ],
+                                    [ 'type' => 'function', 'function' => [ 'name' => 'getAvailableTimes', 'description' => 'Recupera gli orari disponibili per un appuntamento.', 'parameters' => [ 'type' => 'object', 'properties' => [ 'team_slug' => [ 'type' => 'string', 'description' => 'Slug del team per recuperare gli orari disponibili.' ] ], 'required' => ['team_slug'] ] ] ],
+                                    [ 'type' => 'function', 'function' => [ 'name' => 'createOrder', 'description' => 'Crea un ordine con i dati forniti.', 'parameters' => [ 'type' => 'object', 'properties' => [ 'user_phone' => [ 'type' => 'string', 'description' => 'Numero di telefono dell\'utente per la prenotazione.' ], 'delivery_date' => [ 'type' => 'string', 'description' => 'Data di consegna dell\'ordine, includendo ora, minuti e secondi di inizio.' ], 'product_ids' => [ 'type' => 'array', 'items' => ['type' => 'integer'], 'description' => 'ID dei prodotti, servizi, attività da includere nell\'ordine.' ] ], 'required' => ['user_phone','delivery_date','product_ids'] ] ] ],
+                                    [ 'type' => 'function', 'function' => [ 'name' => 'submitUserData', 'description' => 'Registra i dati anagrafici dell\'utente e risponde ringraziando. Dati trattati in conformità al GDPR.', 'parameters' => [ 'type' => 'object', 'properties' => [ 'user_phone' => [ 'type' => 'string', 'description' => 'Numero di telefono dell\'utente' ], 'user_email' => [ 'type' => 'string', 'description' => 'Email dell\'utente' ], 'user_name' => [ 'type' => 'string', 'description' => 'Nome dell\'utente' ] ], 'required' => ['user_phone','user_email','user_name'] ] ] ],
+                                    [ 'type' => 'function', 'function' => [ 'name' => 'getFAQs', 'description' => 'Recupera le domande frequenti (FAQ) dal sistema in base a una query.', 'parameters' => [ 'type' => 'object', 'properties' => [ 'team_slug' => [ 'type' => 'string', 'description' => 'Slug del team per recuperare le FAQ.' ], 'query' => [ 'type' => 'string', 'description' => 'Query per cercare nelle FAQ.' ] ], 'required' => ['team_slug','query'] ] ] ],
+                                    [ 'type' => 'function', 'function' => [ 'name' => 'fallback', 'description' => 'Risponde a domande non inerenti al contesto con il messaggio predefinito.', 'parameters' => [ 'type' => 'object', 'properties' => new \stdClass() ] ] ],
+                                ],
+                            ]
+                        );
+
+                        // 4) Loop finché non termina o richiede azione
+                        $pollDelayMs = 100;
+                        $maxPollDelayMs = 500;
+                        while (in_array($run->status, ['queued', 'in_progress', 'requires_action'])) {
+                            if ($run->status === 'requires_action' && isset($run->requiredAction)) {
+                                $toolCalls = $run->requiredAction->submitToolOutputs->toolCalls;
+                                $toolOutputs = [];
+
+                                foreach ($toolCalls as $toolCall) {
+                                    $functionName = $toolCall->function->name;
+                                    $arguments = json_decode($toolCall->function->arguments, true);
+                                    Log::debug('assistants tool_call arguments raw', [
+                                        'tool' => $functionName,
+                                        'raw'  => $toolCall->function->arguments ?? null,
+                                    ]);
+                                    $arguments = $this->normalizeToolArgs($arguments, $functionName);
+                                    $output = '';
+
+                                    switch ($functionName) {
+                                        case 'getProductInfo':
+                                            $output = $this->fetchProductData($arguments['product_names'] ?? [], $teamSlug);
+                                            break;
+                                        case 'getAddressInfo':
+                                            $output = $this->fetchAddressData($teamSlug);
+                                            break;
+                                        case 'getAvailableTimes':
+                                            $output = $this->fetchAvailableTimes($teamSlug);
+                                            break;
+                                        case 'createOrder':
+                                            $output = $this->createOrder($arguments['user_phone'] ?? null, $arguments['delivery_date'] ?? null, $arguments['product_ids'] ?? [], $teamSlug, $locale);
+                                            break;
+                                        case 'submitUserData':
+                                            $output = $this->submitUserData($arguments['user_phone'] ?? null, $arguments['user_email'] ?? null, $arguments['user_name'] ?? null, $teamSlug, $locale, $activityUuid);
+                                            break;
+                                        case 'getFAQs':
+                                            $output = $this->fetchFAQs($teamSlug, $arguments['query'] ?? '');
+                                            break;
+                                        case 'fallback':
+                                            $output = ['message' => trans('enjoywork3d_prompts.fallback_message', [], $locale)];
+                                            break;
+                                    }
+
+                                    $toolOutputs[] = [
+                                        'tool_call_id' => $toolCall->id,
+                                        'output'       => json_encode($output),
+                                    ];
+                                }
+
+                                $run = $this->client->threads()->runs()->submitToolOutputs(
+                                    threadId: $assistantThreadId,
+                                    runId: $run->id,
+                                    parameters: [ 'tool_outputs' => $toolOutputs ]
+                                );
+                                $pollDelayMs = 100;
+                            }
+
+                            usleep($pollDelayMs * 1000);
+                            $pollDelayMs = min($pollDelayMs * 1.5, $maxPollDelayMs);
+                            $run = $this->client->threads()->runs()->retrieve(threadId: $assistantThreadId, runId: $run->id);
+                        }
+
+                        // 5) Recupera messaggio finale e streamma
+                        if ($run->status === 'completed') {
+                            $messages = $this->client->threads()->messages()->list($assistantThreadId)->data;
+                            $content = $messages[0]->content[0]->text->value ?? 'Nessuna risposta trovata.';
+
+                            Quoter::create([
+                                'thread_id' => $streamThreadId,
+                                'role'      => 'chatbot',
+                                'content'   => $content,
+                            ]);
+
+                            $this->streamTextByWord((string) $content, $flush);
+                            $flush(['token' => ''], 'done');
+                        } else {
+                            Log::error('RealtimeChatWebsiteController.assistants run not completed', ['status' => $run->status]);
+                            $flush(['error' => 'assistants_failed: '.$run->status], 'error');
+                            $flush(['token' => ''], 'done');
+                        }
+                    } catch (\Throwable $e) {
+                        Log::error('RealtimeChatWebsiteController.assistants error', ['error' => $e->getMessage()]);
+                        $flush(['error' => 'assistants_exception: '.$e->getMessage()], 'error');
+                        $flush(['token' => ''], 'done');
+                    }
                 }
-
-                // Costruisci contesto completo (FAQ, indirizzo, prodotti)
-                $context = $this->buildContextForMessage($teamSlug, $userInput, $locale);
-
-                // CHAT API STREAMING CON WEBSITE CONTENT E CONTESTO
-                $this->analyzeAndStreamResponse(
-                    websiteContent: $websiteContent,
-                    context: $context,
-                    userInput: $userInput,
-                    teamSlug: $teamSlug,
-                    streamThreadId: $streamThreadId,
-                    locale: $locale,
-                    activityUuid: $activityUuid,
-                    flush: $flush
-                );
             } catch (\Throwable $e) {
                 Log::error('RealtimeChatWebsiteController.websiteStream error', [
                     'error' => $e->getMessage(),
@@ -906,5 +1061,46 @@ class RealtimeChatWebsiteController extends Controller
                 ->toArray();
         }
         return $faqs;
+    }
+
+    private function normalizeToolArgs($args, string $functionName): array
+    {
+        if (!is_array($args)) {
+            return [];
+        }
+
+        $normalized = [];
+        foreach ($args as $key => $value) {
+            $k = $key;
+            if ($k === 'userPhone') { $k = 'user_phone'; }
+            if ($k === 'userEmail') { $k = 'user_email'; }
+            if ($k === 'userName')  { $k = 'user_name'; }
+            if ($k === 'deliveryDate') { $k = 'delivery_date'; }
+            if ($k === 'productIds') { $k = 'product_ids'; }
+            if ($k === 'teamSlug') { $k = 'team_slug'; }
+            $normalized[$k] = $value;
+        }
+
+        if ($functionName === 'createOrder' || $functionName === null) {
+            if (isset($normalized['product_ids']) && is_array($normalized['product_ids'])) {
+                $normalized['product_ids'] = array_values(array_map(function ($v) { return (int) $v; }, $normalized['product_ids']));
+            }
+            if (isset($normalized['user_phone'])) {
+                $normalized['user_phone'] = (string) $normalized['user_phone'];
+            }
+            if (isset($normalized['delivery_date'])) {
+                $normalized['delivery_date'] = (string) $normalized['delivery_date'];
+            }
+        }
+
+        if ($functionName === 'submitUserData' || $functionName === null) {
+            foreach (['user_phone','user_email','user_name'] as $k) {
+                if (isset($normalized[$k])) {
+                    $normalized[$k] = (string) $normalized[$k];
+                }
+            }
+        }
+
+        return $normalized;
     }
 }

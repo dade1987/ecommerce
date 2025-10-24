@@ -1628,9 +1628,12 @@ export default defineComponent({
           } catch { }
 
           const webComponentOrigin = window.__ENJOY_TALK_3D_ORIGIN__ || window.location.origin;
-          evtSource = new EventSource(
-            `${webComponentOrigin}/api/chatbot/stream?${params.toString()}`
-          );
+          // Se teamSlug è disponibile, usa il website-stream endpoint (Assistant API)
+          // Altrimenti usa lo stream endpoint (fallback Chat Completion o Assistant)
+          const endpoint = teamSlug && teamSlug.trim()
+            ? `/api/chatbot/website-stream?${params.toString()}`
+            : `/api/chatbot/stream?${params.toString()}`;
+          evtSource = new EventSource(`${webComponentOrigin}${endpoint}`);
           currentEvtSource = evtSource;
           try {
             console.log("SSE: connecting with:", {
