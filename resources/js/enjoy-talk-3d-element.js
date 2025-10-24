@@ -25,6 +25,9 @@ function injectStylesIfNeeded() {
     console.log('LOG style added', style, document.getElementById('enjoy-talk-3d-styles'))
 
     document.getElementById('teamLogo').style.display = 'none'
+    document.body.style.backgroundColor = 'black'
+
+    console.log('LOG body background color', document.body.style.backgroundColor)
   }
 }
 
