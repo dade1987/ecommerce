@@ -347,6 +347,7 @@ export default defineComponent({
       const uuid = urlParams.get("uuid");
       const locale = props.locale || "it-IT";
       const debugEnabled = urlParams.get("debug") === "1";
+      const assistantsEnabled = urlParams.get("assistants") === "1";
       // rootEl già risolto dal ref/instance
       const HEYGEN_CONFIG = {
         apiKey: props.heygenApiKey || hostEl?.dataset?.heygenApiKey || "",
@@ -1486,6 +1487,7 @@ export default defineComponent({
           locale,
           ts: String(Date.now()),
         });
+        if (assistantsEnabled) params.set("assistants", "1");
         // IMPORTANTE: Passa sempre il threadId esistente al server
         if (threadId) params.set("thread_id", threadId);
         if (assistantThreadId)
