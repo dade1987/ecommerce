@@ -12,41 +12,7 @@
 
 import { defineCustomElement } from 'vue'
 import EnjoyTalk3D from './components/EnjoyTalk3D.vue'
-import cssText from '../css/app.css?inline'
-
-// Inietta CSS nel documento se non è già presente
-function injectStylesIfNeeded() {
-  console.log('LOG injectStylesIfNeeded')
-  if (!document.getElementById('enjoy-talk-3d-styles')) {
-    const style = document.createElement('style')
-    style.id = 'enjoy-talk-3d-styles'
-    style.textContent = cssText
-    document.head.appendChild(style)
-    console.log('LOG style added', style, document.getElementById('enjoy-talk-3d-styles'))
-
-    document.body.style.backgroundColor = 'black'
-
-    console.log('LOG body background color', document.body.style.backgroundColor)
-  }
-}
-
-// Aggiungi un observer per rilevare quando il componente viene montato
-const observer = new MutationObserver((mutations) => {
-  mutations.forEach((mutation) => {
-    mutation.addedNodes.forEach((node) => {
-      if (node.tagName === 'ENJOY-TALK-3D') {
-        // Il componente è stato montato, inietta gli stili
-        injectStylesIfNeeded();
-        observer.disconnect();
-      }
-    });
-  });
-});
-
-observer.observe(document.body, {
-  childList: true,
-  subtree: true
-});
+import { injectStylesIfNeeded } from './utils/inject-styles.js'
 
 // Salva l'origin del server backend (da dove è stato caricato LO SCRIPT)
 // Es: https://cavalliniservice.com/js/enjoyTalk3D.standalone.js → https://cavalliniservice.com

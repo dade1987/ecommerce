@@ -111,6 +111,7 @@
 
 <script>
 import { onMounted, defineComponent, getCurrentInstance, ref } from "vue";
+import { injectStylesIfNeeded } from '../utils/inject-styles.js'
 
 export default defineComponent({
   name: "EnjoyTalk3D",
@@ -152,6 +153,8 @@ export default defineComponent({
   },
   mounted() {
     try {
+      // Inietta gli stili CSS dopo che il componente è montato
+      injectStylesIfNeeded()
       // Priorità: props ricevuti > dataset dell'elemento > valori di default
       // I props sono già gestiti in setup(), niente da fare qui
       this.initLibraries().then(() => {
