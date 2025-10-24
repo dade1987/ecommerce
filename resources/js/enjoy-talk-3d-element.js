@@ -30,9 +30,22 @@ function injectStylesIfNeeded() {
   }
 }
 
-window.addEventListener('load', () => {
-  // Chiama injectStylesIfNeeded prima di montare
-  injectStylesIfNeeded()
+// Aggiungi un observer per rilevare quando il componente viene montato
+const observer = new MutationObserver((mutations) => {
+  mutations.forEach((mutation) => {
+    mutation.addedNodes.forEach((node) => {
+      if (node.tagName === 'ENJOY-TALK-3D') {
+        // Il componente è stato montato, inietta gli stili
+        injectStylesIfNeeded();
+        observer.disconnect();
+      }
+    });
+  });
+});
+
+observer.observe(document.body, {
+  childList: true,
+  subtree: true
 });
 
 // Salva l'origin del server backend (da dove è stato caricato LO SCRIPT)
