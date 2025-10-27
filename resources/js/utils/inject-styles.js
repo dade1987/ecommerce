@@ -16,3 +16,4 @@ export function injectStylesIfNeeded() {
         console.log('LOG body background color', document.body.style.backgroundColor)
     }
 }
+

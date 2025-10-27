@@ -17,8 +17,7 @@
           </div>
           <video id="heygenVideo"
             class="hidden w-full h-auto max-h-[calc(100dvh-220px)] rounded-md border border-slate-700 bg-black" autoplay
-            playsinline></video>
-          <audio id="heygenAudio" class="hidden" autoplay></audio>
+            playsinline controls></video>
         </div>
 
         <!-- Fumetto di pensiero -->
@@ -344,7 +343,6 @@ export default defineComponent({
       const videoAvatarStatus = $id("videoAvatarStatus");
       const useAdvancedLipsync = $id("useAdvancedLipsync");
       const heygenVideo = $id("heygenVideo");
-      const heygenAudio = $id("heygenAudio");
       const teamSlug = props.teamSlug || window.location.pathname.split("/").pop();
       const urlParams = new URLSearchParams(window.location.search);
       const uuid = urlParams.get("uuid");
@@ -1411,9 +1409,6 @@ export default defineComponent({
             const unlock = async () => {
               try {
                 await heygenVideo?.play();
-              } catch { }
-              try {
-                await heygenAudio?.play();
               } catch { }
               document.removeEventListener("click", unlock);
               document.removeEventListener("touchstart", unlock);
@@ -3269,18 +3264,13 @@ export default defineComponent({
                   heygen.mediaStream.addTrack(track.mediaStreamTrack);
                   if (heygenVideo) {
                     heygenVideo.srcObject = heygen.mediaStream;
-                    heygenVideo.muted = true;
                     await heygenVideo.play().catch(() => { });
                   }
                   videoAvatarStatus &&
                     (videoAvatarStatus.textContent = "Video connesso");
                 }
                 if (track.kind === "audio") {
-                  const audioStream = new MediaStream([track.mediaStreamTrack]);
-                  if (heygenAudio) {
-                    heygenAudio.srcObject = audioStream;
-                    await heygenAudio.play().catch(() => { });
-                  }
+                  heygen.mediaStream.addTrack(track.mediaStreamTrack);
                   videoAvatarStatus &&
                     (videoAvatarStatus.textContent = "Audio connesso");
                 }
@@ -3324,11 +3314,6 @@ export default defineComponent({
           try {
             if (heygenVideo?.srcObject && heygenVideo.paused) {
               await heygenVideo.play();
-            }
-          } catch { }
-          try {
-            if (heygenAudio?.srcObject && heygenAudio.paused) {
-              await heygenAudio.play();
             }
           } catch { }
           heygen.started = true;
@@ -3387,12 +3372,6 @@ export default defineComponent({
             heygenVideo.pause();
           } catch { }
           heygenVideo.srcObject = null;
-        }
-        if (heygenAudio) {
-          try {
-            heygenAudio.pause();
-          } catch { }
-          heygenAudio.srcObject = null;
         }
         heygen = {
           sessionInfo: null,
