@@ -35,6 +35,37 @@
           class="hidden absolute top-4 right-4 bg-rose-600/90 text-white text-xs font-semibold px-2.5 py-1 rounded-md shadow animate-pulse">
           🎤 Ascolto...
         </div>
+        <!-- Loading Overlay -->
+        <div id="loadingOverlay"
+          class="hidden absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-30 rounded-md">
+          <div class="flex flex-col items-center gap-6">
+            <!-- Spinner animato migliorato -->
+            <div class="relative w-16 h-16">
+              <div class="absolute inset-0 bg-gradient-to-r from-indigo-600 to-emerald-600 rounded-full animate-spin"
+                style="border-radius: 50%; -webkit-mask-image: radial-gradient(circle 10px at center, transparent 100%, black 100%); mask-image: radial-gradient(circle 10px at center, transparent 100%, black 100%);">
+              </div>
+              <div class="absolute inset-2 bg-black rounded-full flex items-center justify-center">
+                <div class="w-2 h-2 bg-gradient-to-r from-indigo-400 to-emerald-400 rounded-full animate-pulse"></div>
+              </div>
+            </div>
+            <!-- Testo e barra di progresso -->
+            <div class="text-center">
+              <div class="text-white text-base font-medium mb-3">Caricamento avatar...</div>
+              <div class="w-48 h-1.5 bg-slate-700 rounded-full overflow-hidden">
+                <div class="h-full bg-gradient-to-r from-indigo-600 to-emerald-600 rounded-full animate-pulse"
+                  style="width: 65%;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Conversa con Me Button -->
+        <div id="conversaBtnContainer"
+          class="hidden absolute inset-0 flex items-center justify-center z-25 pointer-events-auto rounded-md">
+          <button id="conversaBtn"
+            class="px-6 py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors whitespace-nowrap text-lg sm:text-xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105">
+            💬 Conversa con Me
+          </button>
+        </div>
         <!-- Debug Overlay (mostrato con ?debug=1) -->
         <div id="debugOverlay"
           class="hidden absolute left-1/2 -translate-x-1/2 top-3 z-10 w-full max-w-[520px] px-3 sm:px-0"
@@ -154,6 +185,11 @@ export default defineComponent({
     try {
       // Inietta gli stili CSS dopo che il componente è montato
       injectStylesIfNeeded()
+      // Mostra l'overlay di caricamento
+      const loadingOverlay = document.getElementById("loadingOverlay");
+      if (loadingOverlay) {
+        loadingOverlay.classList.remove("hidden");
+      }
       // Priorità: props ricevuti > dataset dell'elemento > valori di default
       // I props sono già gestiti in setup(), niente da fare qui
       this.initLibraries().then(() => {
@@ -343,6 +379,9 @@ export default defineComponent({
       const videoAvatarStatus = $id("videoAvatarStatus");
       const useAdvancedLipsync = $id("useAdvancedLipsync");
       const heygenVideo = $id("heygenVideo");
+      const conversaBtn = $id("conversaBtn");
+      const loadingOverlay = $id("loadingOverlay");
+      const conversaBtnContainer = $id("conversaBtnContainer");
       const teamSlug = props.teamSlug || window.location.pathname.split("/").pop();
       const urlParams = new URLSearchParams(window.location.search);
       const uuid = urlParams.get("uuid");
@@ -2021,6 +2060,25 @@ export default defineComponent({
         }
       });
 
+      // Listener per bottone "Conversa con Me"
+      conversaBtn?.addEventListener("click", async () => {
+        const prompt = "salutami e spiegami che cosa sai fare";
+        // Nascondi il container del bottone
+        if (conversaBtnContainer) {
+          conversaBtnContainer.classList.add("hidden");
+        }
+        try {
+          if (!audioCtx)
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          if (audioCtx.state === "suspended") await audioCtx.resume();
+        } catch { }
+        try {
+          instance.proxy.startStream(prompt);
+        } catch {
+          startStream(prompt);
+        }
+      });
+
       // Cleanup orchestrator esposto per beforeUnmount()
       try {
         instance.proxy._cleanup = () => {
@@ -3395,6 +3453,10 @@ export default defineComponent({
       function loadHumanoid() {
         if (humanoid || humanoidLoading) return;
         humanoidLoading = true;
+        // Mostra l'overlay di caricamento
+        if (loadingOverlay) {
+          loadingOverlay.classList.remove("hidden");
+        }
         try {
           const FBXLoaderCtor = window.FBXLoader;
           const GLTFLoaderCtor = window.GLTFLoader;
@@ -4197,6 +4259,14 @@ export default defineComponent({
               console.warn("ANIMATION [LOADING] ❌ Nessun modello caricato", e);
             } finally {
               humanoidLoading = false;
+              // Nascondi l'overlay di caricamento
+              if (loadingOverlay) {
+                loadingOverlay.classList.add("hidden");
+              }
+              // Mostra il bottone "Conversa con Me"
+              if (conversaBtnContainer) {
+                conversaBtnContainer.classList.remove("hidden");
+              }
               console.log(
                 "ANIMATION [LOADING] Completato (humanoidLoading = false)"
               );
@@ -4205,6 +4275,14 @@ export default defineComponent({
         } catch (e) {
           console.warn("Errore loadHumanoid()", e);
           humanoidLoading = false;
+          // Nascondi l'overlay di caricamento in caso di errore
+          if (loadingOverlay) {
+            loadingOverlay.classList.add("hidden");
+          }
+          // Mostra il bottone anche in caso di errore
+          if (conversaBtnContainer) {
+            conversaBtnContainer.classList.remove("hidden");
+          }
         }
       }
 
