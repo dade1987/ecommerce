@@ -15,9 +15,6 @@
           <div id="avatarStage"
             class="bg-[#111827] border border-slate-700 rounded-md overflow-hidden w-full h-auto max-h-[calc(100dvh-220px)] aspect-[3/4]">
           </div>
-          <video id="heygenVideo"
-            class="hidden w-full h-auto max-h-[calc(100dvh-220px)] rounded-md border border-slate-700 bg-black" autoplay
-            playsinline controls></video>
         </div>
 
         <!-- Fumetto di pensiero -->
@@ -60,10 +57,10 @@
         </div>
         <!-- Conversa con Me Button -->
         <div id="conversaBtnContainer"
-          class="hidden absolute inset-0 flex items-center justify-center z-25 pointer-events-auto rounded-md">
+          class="hidden absolute inset-0 flex items-center justify-center z-25 pointer-events-auto rounded-md bg-black/40 backdrop-blur-sm">
           <button id="conversaBtn"
             class="px-6 py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors whitespace-nowrap text-lg sm:text-xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105">
-            💬 Conversa con Me
+            🎤 Parla con Me
           </button>
         </div>
         <!-- Debug Overlay (mostrato con ?debug=1) -->
@@ -117,15 +114,10 @@
           </div>
           <div class="mt-2 flex items-center gap-3 text-slate-300 text-xs sm:text-sm">
             <label class="inline-flex items-center gap-2 cursor-pointer select-none">
-              <input id="useVideoAvatar" type="checkbox" class="accent-indigo-600" />
-              <span>Video Avatar</span>
-            </label>
-            <label class="inline-flex items-center gap-2 cursor-pointer select-none">
               <input id="useBrowserTts" type="checkbox" class="accent-indigo-600" checked />
               <span>Usa TTS del browser (italiano)</span>
             </label>
             <span id="browserTtsStatus" class="opacity-70"></span>
-            <span id="videoAvatarStatus" class="opacity-70"></span>
             <label class="inline-flex items-center gap-2 cursor-pointer select-none ml-auto">
               <input id="useAdvancedLipsync" type="checkbox" class="accent-emerald-600" />
               <span>LipSync avanzato (WebAudio)</span>
@@ -253,11 +245,9 @@ export default defineComponent({
           rootEl && rootEl.querySelector
             ? rootEl.querySelector("#" + id)
             : document.getElementById(id);
-        const useVideoAvatar = $("#useVideoAvatar");
         const useBrowserTts = $("#useBrowserTts");
         const browserTtsStatus = $("#browserTtsStatus");
         const useAdvancedLipsync = $("#useAdvancedLipsync");
-        if (useVideoAvatar) useVideoAvatar.checked = false;
         if ("speechSynthesis" in window && useBrowserTts) {
           useBrowserTts.checked = true;
           if (browserTtsStatus)
@@ -374,11 +364,8 @@ export default defineComponent({
       const ttsPlayer = $id("ttsPlayer");
       const thinkingBubble = $id("thinkingBubble");
       const useBrowserTts = $id("useBrowserTts");
-      const useVideoAvatar = $id("useVideoAvatar");
       const browserTtsStatus = $id("browserTtsStatus");
-      const videoAvatarStatus = $id("videoAvatarStatus");
       const useAdvancedLipsync = $id("useAdvancedLipsync");
-      const heygenVideo = $id("heygenVideo");
       const conversaBtn = $id("conversaBtn");
       const loadingOverlay = $id("loadingOverlay");
       const conversaBtnContainer = $id("conversaBtnContainer");
@@ -389,15 +376,6 @@ export default defineComponent({
       const debugEnabled = urlParams.get("debug") === "1";
       const assistantsEnabled = urlParams.get("assistants") === "1";
       // rootEl già risolto dal ref/instance
-      const HEYGEN_CONFIG = {
-        apiKey: props.heygenApiKey || hostEl?.dataset?.heygenApiKey || "",
-        serverUrl:
-          props.heygenServerUrl ||
-          hostEl?.dataset?.heygenServerUrl ||
-          "https://api.heygen.com",
-      };
-      const heygenAvatar = (urlParams.get("avatar") || "").trim();
-      const heygenVoice = (urlParams.get("voice") || "").trim();
       const ua = navigator.userAgent || "";
       const isAndroid = /Android/i.test(ua);
       const isChrome =
@@ -1203,14 +1181,6 @@ export default defineComponent({
       let speechAmp = 0;
       let speechAmpTarget = 0;
       let speechAmpTimer = null;
-      let heygen = {
-        sessionInfo: null,
-        room: null,
-        mediaStream: null,
-        sessionToken: null,
-        connecting: false,
-        started: false,
-      };
       // Idle animation state
       let idleState = {
         baseSet: false,
@@ -1423,44 +1393,6 @@ export default defineComponent({
         }
       } catch { }
 
-      try {
-        useVideoAvatar?.addEventListener("change", async () => {
-          if (useVideoAvatar.checked) {
-            // Pre-check config
-            if (!HEYGEN_CONFIG.apiKey || !HEYGEN_CONFIG.serverUrl) {
-              try {
-                if (videoAvatarStatus)
-                  videoAvatarStatus.textContent = "Config mancante";
-              } catch { }
-              try {
-                useVideoAvatar.checked = false;
-              } catch { }
-              console.warn("HEYGEN: missing apiKey/serverUrl");
-              return;
-            }
-            $id("avatarStage")?.classList.add("hidden");
-            heygenVideo?.classList.remove("hidden");
-            try {
-              await heygenEnsureSession();
-            } catch (e) {
-              console.error("HEYGEN: ensure session failed", e);
-            }
-            const unlock = async () => {
-              try {
-                await heygenVideo?.play();
-              } catch { }
-              document.removeEventListener("click", unlock);
-              document.removeEventListener("touchstart", unlock);
-            };
-            document.addEventListener("click", unlock);
-            document.addEventListener("touchstart", unlock);
-          } else {
-            await heygenClose();
-            $id("avatarStage")?.classList.remove("hidden");
-            heygenVideo?.classList.add("hidden");
-          }
-        });
-      } catch { }
 
       try {
         useAdvancedLipsync?.addEventListener("change", async () => {
@@ -2925,14 +2857,7 @@ export default defineComponent({
           : sanitizeForTts(text);
         if (!norm || norm.length < 3) return;
         if (speakQueue.some((item) => item.text === norm)) return;
-        if (useVideoAvatar && useVideoAvatar.checked) {
-          try {
-            heygenSendRepeat(norm);
-          } catch (e) {
-            console.error("HEYGEN repeat failed", e);
-          }
-          return;
-        }
+
         if (
           useBrowserTts &&
           useBrowserTts.checked &&
