@@ -13,7 +13,7 @@
 import { defineCustomElement } from 'vue'
 import EnjoyTalk3D from './components/EnjoyTalk3D.vue'
 import { injectStylesIfNeeded } from './utils/inject-styles.js'
-import cssText from '../css/app.css?inline'
+import cssText from '../css/app.css'
 
 // Salva l'origin del server backend (da dove è stato caricato LO SCRIPT)
 // Es: https://cavalliniservice.com/js/enjoyTalk3D.standalone.js → https://cavalliniservice.com
