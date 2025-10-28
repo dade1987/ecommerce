@@ -12,6 +12,7 @@ export default defineConfig({
     define: {
         'process.env.NODE_ENV': JSON.stringify('production'),
         'process.env': '({})',
+        'import.meta.env.VITE_IS_WEB_COMPONENT': true,
     },
     css: {
         postcss: './postcss.config.js'
