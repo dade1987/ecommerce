@@ -13,6 +13,7 @@
 import { defineCustomElement } from 'vue'
 import EnjoyTalk3D from './components/EnjoyTalk3D.vue'
 import { injectStylesIfNeeded } from './utils/inject-styles.js'
+import cssText from '../css/app.css?inline'
 
 // Salva l'origin del server backend (da dove è stato caricato LO SCRIPT)
 // Es: https://cavalliniservice.com/js/enjoyTalk3D.standalone.js → https://cavalliniservice.com
@@ -41,7 +42,9 @@ const componentWithProps = {
       type: String,
       default: ""
     }
-  }
+  },
+  // Inietta gli stili Tailwind nel Shadow DOM del custom element
+  styles: [cssText]
 }
 
 // Converti il componente Vue in Web Component
@@ -49,6 +52,9 @@ const EnjoyTalk3DElement = defineCustomElement(componentWithProps)
 
 // Registra il custom element
 customElements.define('enjoy-talk-3d', EnjoyTalk3DElement)
+
+// Inietta anche nel documento per gli elementi globali (opzionale)
+injectStylesIfNeeded()
 
 // Export per uso come modulo
 export default EnjoyTalk3DElement
