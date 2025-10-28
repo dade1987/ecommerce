@@ -176,7 +176,7 @@ export default defineComponent({
   mounted() {
     try {
       // Inietta gli stili CSS dopo che il componente è montato
-      injectStylesIfNeeded()
+      // injectStylesIfNeeded()
       // Mostra l'overlay di caricamento
       const loadingOverlay = document.getElementById("loadingOverlay");
       if (loadingOverlay) {
