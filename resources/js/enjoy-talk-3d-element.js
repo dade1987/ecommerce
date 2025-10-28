@@ -53,9 +53,6 @@ const EnjoyTalk3DElement = defineCustomElement(componentWithProps)
 // Registra il custom element
 customElements.define('enjoy-talk-3d', EnjoyTalk3DElement)
 
-// Inietta anche nel documento per gli elementi globali (opzionale)
-injectStylesIfNeeded()
-
 // Export per uso come modulo
 export default EnjoyTalk3DElement
 
