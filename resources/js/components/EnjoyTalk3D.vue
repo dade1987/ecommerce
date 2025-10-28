@@ -1,5 +1,5 @@
 <template>
-  <div ref="rootEl" id="enjoyTalkRoot" class="flex flex-col sm:min-h-[100dvh] w-full bg-[#0f172a] pb-[96px] sm:pb-0">
+  <div ref="rootEl" id="enjoyTalkRoot" class="flex flex-col md:min-h-[100dvh] w-full bg-[#0f172a] pb-[96px] sm:pb-0">
     <div class="px-4 py-4">
       <div class="mx-auto w-full max-w-[520px] flex items-center gap-3">
         <img id="teamLogo" :src="teamLogo" alt="EnjoyTalk 3D"
