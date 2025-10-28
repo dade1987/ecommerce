@@ -13,6 +13,9 @@ export default defineConfig({
         'process.env.NODE_ENV': JSON.stringify('production'),
         'process.env': '({})',
     },
+    css: {
+        postcss: './postcss.config.js'
+    },
     build: {
         outDir: 'public_html/js',
         emptyOutDir: false,
