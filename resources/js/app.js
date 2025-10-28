@@ -1,3 +1,6 @@
+import './bootstrap';
+
+
 import { createApp } from 'vue'
 import EnjoyTalk3D from './components/EnjoyTalk3D.vue'
 import EnjoyHen from './components/EnjoyHen.vue'
@@ -25,3 +28,4 @@ if (rootElHen) {
 }
 
 createApp(EnjoyHen, propsHen).mount('#enjoyHeyRoot')
+

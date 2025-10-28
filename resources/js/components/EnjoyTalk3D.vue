@@ -2209,290 +2209,7 @@ export default defineComponent({
         } catch { }
       }
 
-      function ensureBasePose() {
-        if (idleState.baseSet) return;
-        const set = (name, bone) => {
-          if (bone)
-            idleState.basePose[name] = {
-              rot: bone.rotation.clone(),
-              pos: bone.position.clone(),
-            };
-        };
-        set("Hips", bonesMap["Hips"]);
-        set("Spine", bonesMap["Spine"]);
-        set("Spine1", bonesMap["Spine1"]);
-        set("Spine2", bonesMap["Spine2"]);
-        set("Neck", bonesMap["Neck"]);
-        set("Head", headBone);
-        set("LeftShoulder", shoulderLBone);
-        set("RightShoulder", shoulderRBone);
-        set("LeftArm", armLBone);
-        set("RightArm", armRBone);
-        set("LeftForeArm", forearmLBone);
-        set("RightForeArm", forearmRBone);
-        idleState.baseSet = true;
-      }
 
-      function applyConversationGestures() {
-        // Empty - disabled for now
-      }
-
-      function applyIdleFacial(t) {
-        try {
-          const talking =
-            cloudAudioSpeaking ||
-            (window.speechSynthesis && window.speechSynthesis.speaking);
-          if (
-            talking ||
-            !Array.isArray(visemeMeshes) ||
-            visemeMeshes.length === 0
-          )
-            return;
-          for (const vm of visemeMeshes) {
-            const infl = vm.mesh && vm.mesh.morphTargetInfluences;
-            const idxs = vm.indices || {};
-            if (!infl) continue;
-            const s = (a, min = 0, max = 1) => Math.max(min, Math.min(max, a));
-            const v = (amp, w, phase = 0) =>
-              (0.5 + 0.5 * Math.sin(w * t + phase)) * amp;
-            // Brows
-            if (idxs.browInnerUp >= 0)
-              infl[idxs.browInnerUp] = s(v(0.06, 0.5, 0.7));
-            if (idxs.browOuterUpLeft >= 0)
-              infl[idxs.browOuterUpLeft] = s(v(0.05, 0.45, 1.4));
-            if (idxs.browOuterUpRight >= 0)
-              infl[idxs.browOuterUpRight] = s(v(0.05, 0.47, 2.1));
-            if (idxs.browDownLeft >= 0)
-              infl[idxs.browDownLeft] = s(v(0.03, 0.35, 2.7));
-            if (idxs.browDownRight >= 0)
-              infl[idxs.browDownRight] = s(v(0.03, 0.33, 1.9));
-            // Eyes subtle squint/ wide
-            if (idxs.eyeSquintLeft >= 0)
-              infl[idxs.eyeSquintLeft] = s(v(0.04, 0.8, 0.9));
-            if (idxs.eyeSquintRight >= 0)
-              infl[idxs.eyeSquintRight] = s(v(0.04, 0.78, 1.3));
-            if (idxs.eyeWideLeft >= 0)
-              infl[idxs.eyeWideLeft] = s(v(0.02, 0.9, 0.2));
-            if (idxs.eyeWideRight >= 0)
-              infl[idxs.eyeWideRight] = s(v(0.02, 0.92, 0.4));
-            // Nose tiny movement
-            if (idxs.noseSneerLeft >= 0)
-              infl[idxs.noseSneerLeft] = s(v(0.01, 0.5, 0.3));
-            if (idxs.noseSneerRight >= 0)
-              infl[idxs.noseSneerRight] = s(v(0.01, 0.52, 0.6));
-            // Mouth resting micro-tension
-            if (idxs.mouthDimpleLeft >= 0)
-              infl[idxs.mouthDimpleLeft] = s(v(0.025, 0.7, 0.5));
-            if (idxs.mouthDimpleRight >= 0)
-              infl[idxs.mouthDimpleRight] = s(v(0.025, 0.68, 1.1));
-            if (idxs.mouthPressLeft >= 0)
-              infl[idxs.mouthPressLeft] = s(v(0.02, 0.55, 1.6));
-            if (idxs.mouthPressRight >= 0)
-              infl[idxs.mouthPressRight] = s(v(0.02, 0.57, 2.0));
-            if (idxs.mouthUpperUpLeft >= 0)
-              infl[idxs.mouthUpperUpLeft] = s(v(0.02, 0.4, 1.4));
-            if (idxs.mouthUpperUpRight >= 0)
-              infl[idxs.mouthUpperUpRight] = s(v(0.02, 0.42, 0.8));
-            if (idxs.mouthFrownLeft >= 0)
-              infl[idxs.mouthFrownLeft] = s(v(0.015, 0.5, 2.2));
-            if (idxs.mouthFrownRight >= 0)
-              infl[idxs.mouthFrownRight] = s(v(0.015, 0.52, 2.6));
-            if (idxs.mouthStretchLeft >= 0)
-              infl[idxs.mouthStretchLeft] = s(v(0.015, 0.35, 0.9));
-            if (idxs.mouthStretchRight >= 0)
-              infl[idxs.mouthStretchRight] = s(v(0.015, 0.37, 1.2));
-            if (idxs.mouthRollLower >= 0)
-              infl[idxs.mouthRollLower] = s(v(0.02, 0.5, 1.9));
-            if (idxs.mouthRollUpper >= 0)
-              infl[idxs.mouthRollUpper] = s(v(0.02, 0.48, 0.4));
-            // Cheeks
-            if (idxs.cheekPuff >= 0)
-              infl[idxs.cheekPuff] = s(v(0.01, 0.27, 1.3));
-            if (idxs.cheekSquintLeft >= 0)
-              infl[idxs.cheekSquintLeft] = s(v(0.02, 0.7, 0.5));
-            if (idxs.cheekSquintRight >= 0)
-              infl[idxs.cheekSquintRight] = s(v(0.02, 0.72, 0.7));
-            // Smile from lipConfig
-            if (idxs.mouthSmileL >= 0)
-              infl[idxs.mouthSmileL] = s(lipConfig.smileStrength);
-            if (idxs.mouthSmileR >= 0)
-              infl[idxs.mouthSmileR] = s(lipConfig.smileStrength);
-          }
-        } catch { }
-      }
-
-      function applyIdleBody() {
-        try {
-          if (!humanoid) return;
-          ensureBasePose();
-          const now = performance.now();
-
-          const t = now * 0.001;
-          const breathe =
-            0.006 * (0.5 + 0.5 * Math.sin((t + idleState.breatheOffset) * 0.9));
-          const sway = 0.01 * Math.sin((t + idleState.swayOffset) * 0.25);
-          // Breathing on spine chain
-          const applySpine = (name, mul) => {
-            const b = bonesMap[name];
-            const base = idleState.basePose[name];
-            if (!b || !base) return;
-            b.rotation.x = base.rot.x + breathe * mul;
-          };
-          applySpine("Spine", 0.7);
-          applySpine("Spine1", 0.9);
-          applySpine("Spine2", 1.0);
-          // Hips subtle sway/shift
-          const hips = bonesMap["Hips"];
-          const baseH = idleState.basePose["Hips"];
-          if (hips && baseH) {
-            hips.rotation.y = baseH.rot.y + sway * 0.5;
-          }
-          // Shoulders and arms relaxed pendulum
-          const lSh = shoulderLBone,
-            rSh = shoulderRBone,
-            lA = armLBone,
-            rA = armRBone,
-            lF = forearmLBone,
-            rF = forearmRBone;
-
-          // Set arms to final position immediately at startup
-          if (!idleState.relaxDone && lA && rA) {
-            lA.rotation.x = 1;
-            lA.rotation.z = -0.5;
-            rA.rotation.x = 1;
-            rA.rotation.z = 0.5;
-            idleState.relaxDone = true;
-            // update base pose for arms
-            if (idleState.basePose["LeftArm"])
-              idleState.basePose["LeftArm"].rot = lA.rotation.clone();
-            if (idleState.basePose["RightArm"])
-              idleState.basePose["RightArm"].rot = rA.rotation.clone();
-          } else if (idleState.relaxDone && lA && rA) {
-            // Keep arms in position
-            lA.rotation.x = 1;
-            lA.rotation.z = -0.5;
-            rA.rotation.x = 1;
-            rA.rotation.z = 0.5;
-          }
-
-          // Arms and forearms stay static after initial relax
-          // (removed animated movements - keeping them still)
-
-          // Head micro movements and occasional nod/glance
-          if (headBone && idleState.basePose["Head"]) {
-            const base = idleState.basePose["Head"].rot;
-            // default subtle drift
-            let yaw = 0.02 * Math.sin(t * 0.35 + 0.7);
-            let pitch = 0.015 * Math.sin(t * 0.5 + 1.3);
-            let roll = 0.01 * Math.sin(t * 0.4 + 2.1);
-            // scheduled head glance with hold
-            if (
-              now >= idleState.nextHeadGlanceAt &&
-              idleState.headGlancePhase === 0
-            ) {
-              idleState.headGlancePhase = 0.001;
-              idleState.headGlanceTarget = {
-                yaw: (Math.random() - 0.5) * 0.35,
-                pitch: (Math.random() - 0.5) * 0.12,
-              };
-            }
-            if (idleState.headGlancePhase > 0) {
-              idleState.headGlancePhase = Math.min(
-                1,
-                idleState.headGlancePhase + 0.08
-              );
-              const ease =
-                idleState.headGlancePhase <= 0.5
-                  ? 2 * idleState.headGlancePhase * idleState.headGlancePhase
-                  : 1 - Math.pow(-2 * idleState.headGlancePhase + 2, 2) / 2;
-              yaw += idleState.headGlanceTarget.yaw * ease;
-              pitch += idleState.headGlanceTarget.pitch * ease;
-              if (
-                idleState.headGlancePhase >= 1 &&
-                idleState.headGlanceHoldUntil === 0
-              ) {
-                idleState.headGlanceHoldUntil =
-                  now + (400 + Math.random() * 500);
-              }
-              if (
-                idleState.headGlanceHoldUntil &&
-                now > idleState.headGlanceHoldUntil
-              ) {
-                // return to center
-                idleState.headGlancePhase = 0;
-                idleState.headGlanceHoldUntil = 0;
-                idleState.nextHeadGlanceAt =
-                  now + (2400 + Math.random() * 2800);
-                // invert target so easing back blends nicely
-                idleState.headGlanceTarget = { yaw: 0, pitch: 0 };
-              }
-            }
-            headBone.rotation.y = base.y + yaw;
-            headBone.rotation.x = base.x + pitch;
-            headBone.rotation.z = base.z + roll;
-            // scheduled micro nod
-            if (
-              now >= idleState.nextHeadNodAt &&
-              idleState.headNodPhase === 0
-            ) {
-              idleState.headNodPhase = 0.001; // start
-            }
-            if (idleState.headNodPhase > 0) {
-              idleState.headNodPhase = Math.min(
-                1,
-                idleState.headNodPhase + 0.06
-              );
-              const k =
-                idleState.headNodPhase <= 0.5
-                  ? idleState.headNodPhase * 2
-                  : 1 - (idleState.headNodPhase - 0.5) * 2;
-              headBone.rotation.x +=
-                0.03 *
-                Math.sin(Math.PI * Math.pow(Math.max(0, Math.min(1, k)), 1.4));
-              if (idleState.headNodPhase >= 1) {
-                idleState.headNodPhase = 0;
-                idleState.nextHeadNodAt = now + (3500 + Math.random() * 5000);
-              }
-            }
-          }
-          // Eyes quick micro saccades using eye bones if present
-          const lEye = bonesMap["LeftEye"];
-          const rEye = bonesMap["RightEye"];
-          if (lEye && rEye) {
-            if (now >= idleState.nextGlanceAt && idleState.glancePhase === 0) {
-              idleState.glancePhase = 0.001;
-              idleState.glanceTarget = {
-                yaw: (Math.random() - 0.5) * 0.18,
-                pitch: (Math.random() - 0.5) * 0.12,
-              };
-            }
-            if (idleState.glancePhase > 0) {
-              idleState.glancePhase = Math.min(1, idleState.glancePhase + 0.18);
-              const ease =
-                idleState.glancePhase <= 0.5
-                  ? 2 * idleState.glancePhase * idleState.glancePhase
-                  : 1 - Math.pow(-2 * idleState.glancePhase + 2, 2) / 2;
-              lEye.rotation.y = idleState.glanceTarget.yaw * ease;
-              rEye.rotation.y = idleState.glanceTarget.yaw * ease;
-              lEye.rotation.x = idleState.glanceTarget.pitch * ease;
-              rEye.rotation.x = idleState.glanceTarget.pitch * ease;
-              if (idleState.glancePhase >= 1) {
-                idleState.glancePhase = 0;
-                idleState.nextGlanceAt = now + (900 + Math.random() * 1900);
-              }
-            } else {
-              // drift back to center slowly
-              lEye.rotation.y *= 0.9;
-              rEye.rotation.y *= 0.9;
-              lEye.rotation.x *= 0.9;
-              rEye.rotation.x *= 0.9;
-            }
-          }
-          try {
-            humanoid.updateMatrixWorld(true);
-          } catch { }
-        } catch { }
-      }
 
       function animate() {
         const forcedClosing = performance.now() < (forceFullCloseUntil || 0);
@@ -2585,9 +2302,11 @@ export default defineComponent({
           visemeMeshes.length > 0 &&
           visemeActiveUntil > now
         ) {
+          // Ramp-up più veloce per cloud TTS
+          const alphaRampUp = cloudAudioSpeaking ? 0.4 : lipConfig.visemeStrengthAlpha;
           visemeStrength =
-            visemeStrength * (1 - lipConfig.visemeStrengthAlpha) +
-            lipConfig.visemeStrengthAlpha;
+            visemeStrength * (1 - alphaRampUp) +
+            alphaRampUp;
           for (const vm of visemeMeshes) {
             const infl = vm.mesh.morphTargetInfluences;
             if (!infl) continue;
@@ -2613,7 +2332,7 @@ export default defineComponent({
                 infl[idx] =
                   infl[idx] * 0.7 +
                   Math.max(0, Math.min(1, smoothed * visemeStrength)) *
-                  0.3; /*console.log('[VISEME SETIDX]', key, '- idx:', idx, 'val:', val.toFixed(3), 'smoothed:', smoothed.toFixed(3), 'visemeStrength:', visemeStrength.toFixed(3), 'result:', infl[idx].toFixed(3)); */
+                  0.3;
               }
             };
             let jawv = Math.min(
@@ -2667,7 +2386,7 @@ export default defineComponent({
           visemeStrength = 0;
           const target = Math.min(
             1,
-            amp * 2.0 + (cloudAudioSpeaking ? 0 : restJawOpen * 0.6)
+            (cloudAudioSpeaking ? 0 : restJawOpen * 0.6)
           );
           morphValue = morphValue * 0.82 + target * 0.18;
           morphMesh.morphTargetInfluences[morphIndex] = morphValue;
@@ -2678,10 +2397,6 @@ export default defineComponent({
         if (jawBone) {
           if (jawBone.type === "Bone") {
             window.__jawBonePrev = window.__jawBonePrev ?? 0;
-            const ampDrive = Math.min(
-              1,
-              (typeof audioAmp === "number" ? audioAmp : 0) * 1.4
-            );
             let jawFromVisemes = Math.max(
               Math.min(
                 1,
@@ -2689,8 +2404,7 @@ export default defineComponent({
                   0,
                   visemeTargets.jawOpen + (cloudAudioSpeaking ? 0 : restJawOpen)
                 )
-              ),
-              ampDrive
+              )
             );
             const jawForBone = Math.max(
               lipConfig.minLipSeparation,
@@ -2716,7 +2430,7 @@ export default defineComponent({
             lipConfig.minLipSeparation,
             appliedJaw !== null
               ? appliedJaw
-              : amp * 0.9 + (cloudAudioSpeaking ? 0 : restJawOpen * 0.2)
+              : (cloudAudioSpeaking ? 0 : restJawOpen * 0.2)
           );
           const a = lipConfig.jawSmoothingAlpha;
           const jb = window.__jawGeomPrev * (1 - a) + jawForBone * a;
@@ -3098,14 +2812,6 @@ export default defineComponent({
         if (audioCtx.state === "suspended") {
           audioCtx.resume().catch(() => { });
         }
-        if (!mediaNode) {
-          mediaNode = audioCtx.createMediaElementSource(ttsPlayer);
-          analyser = audioCtx.createAnalyser();
-          analyser.fftSize = 2048;
-          dataArray = new Uint8Array(analyser.fftSize);
-          mediaNode.connect(analyser);
-          analyser.connect(audioCtx.destination);
-        }
         const onEnded = () => {
           URL.revokeObjectURL(item.url);
           lastSpokenTail = (lastSpokenTail + " " + item.text).slice(-400);
@@ -3164,7 +2870,13 @@ export default defineComponent({
               talkingAnimationStartedForCurrentResponse = true;
               playRandomTalkingAnimation();
             }
-            visemeSchedule = [];
+            // Popola visemeSchedule in base alla durata dell'audio
+            if (ttsPlayer.duration && item.text) {
+              const durationMs = ttsPlayer.duration * 1000;
+              enqueueTextVisemes(item.text, durationMs, performance.now());
+            } else {
+              visemeSchedule = [];
+            }
           } catch { }
           try {
             ttsPlayer.removeEventListener("playing", onPlaying);
