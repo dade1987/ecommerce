@@ -10,7 +10,7 @@
     "src": "resources/css/filament/admin/theme.css"
   },
   "resources/js/app.js": {
-    "file": "assets/app-650c1e63.js",
+    "file": "assets/app-d4d963d8.js",
     "isEntry": true,
     "src": "resources/js/app.js"
   }

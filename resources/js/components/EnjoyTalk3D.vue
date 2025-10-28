@@ -97,7 +97,7 @@
 
     <!-- Controlli -->
     <div id="controlsBar"
-      class="fixed bottom-0 left-0 w-full border-t border-slate-700 bg-[#0f172a] z-20 pb-[env(safe-area-inset-bottom)]">
+      class="bottom-0 left-0 w-full border-t border-slate-700 bg-[#0f172a] z-20 pb-[env(safe-area-inset-bottom)]">
       <div class="px-3 py-3 sm:px-4 sm:py-4">
         <div class="mx-auto w-full max-w-[520px] px-3 sm:px-0">
           <div class="flex flex-wrap w-full gap-2 items-center min-w-0">
