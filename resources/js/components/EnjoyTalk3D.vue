@@ -1,7 +1,7 @@
 <template>
   <div ref="rootEl" id="enjoyTalkRoot"
     :class="['flex flex-col', !isWebComponent && 'min-h-[100dvh]', 'w-full bg-[#0f172a] pb-[96px] sm:pb-0']">
-    <div class="px-4 py-4">
+    <div class="px-4 py-4" v-if="!isWebComponent">
       <div class="mx-auto w-full max-w-[520px] flex items-center gap-3">
         <img id="teamLogo" :src="teamLogo" alt="EnjoyTalk 3D"
           class="w-10 h-10 rounded-full object-cover border border-slate-600" />
@@ -113,7 +113,7 @@
               🎤 Parla
             </button>
           </div>
-          <div class="mt-2 flex items-center gap-3 text-slate-300 text-xs sm:text-sm">
+          <div class="mt-2 flex items-center gap-3 text-slate-300 text-xs sm:text-sm" v-if="!isWebComponent">
             <label class="inline-flex items-center gap-2 cursor-pointer select-none">
               <input id="useBrowserTts" type="checkbox" class="accent-indigo-600" checked />
               <span>Usa TTS del browser (italiano)</span>
