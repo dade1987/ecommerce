@@ -115,7 +115,7 @@
           </div>
           <div :class="['mt-2 flex items-center gap-3 text-slate-300 text-xs sm:text-sm', isWebComponent && 'hidden']">
             <label class="inline-flex items-center gap-2 cursor-pointer select-none">
-              <input id="useBrowserTts" type="checkbox" class="accent-indigo-600" checked />
+              <input id="useBrowserTts" type="checkbox" class="accent-indigo-600" />
               <span>Usa TTS del browser (italiano)</span>
             </label>
             <span id="browserTtsStatus" class="opacity-70"></span>
@@ -249,11 +249,6 @@ export default defineComponent({
         const useBrowserTts = $("#useBrowserTts");
         const browserTtsStatus = $("#browserTtsStatus");
         const useAdvancedLipsync = $("#useAdvancedLipsync");
-        if ("speechSynthesis" in window && useBrowserTts) {
-          useBrowserTts.checked = true;
-          if (browserTtsStatus)
-            browserTtsStatus.textContent = "TTS browser attivo";
-        }
         const ua = navigator.userAgent || "";
         const isChrome =
           !!window.chrome &&
