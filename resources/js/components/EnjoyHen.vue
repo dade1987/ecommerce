@@ -245,7 +245,22 @@ export default defineComponent({
       const teamSlug = this.teamSlug || window.location.pathname.split("/").pop();
       this.heygenAvatar = (urlParams.get("avatar") || "").trim();
       this.heygenVoice = (urlParams.get("voice") || "").trim();
-      const debugEnabled = urlParams.get("debug") === "1";
+      let debugEnabled = urlParams.get("debug") === "1";
+
+      // Disabilita debug su mobile per default (causa frame drops)
+      const ua = navigator.userAgent.toLowerCase();
+      const isMobile = /android|iphone|ipad|ipod/i.test(ua);
+      if (isMobile && !urlParams.get("debug")) {
+        debugEnabled = false;
+      }
+
+      // Se debug disabilitato, disabilita tutti i console.log globalmente
+      if (!debugEnabled) {
+        console.log = () => { };
+        console.warn = () => { };
+        console.error = () => { };
+        console.info = () => { };
+      }
 
       console.log("[EnjoyHen] initComponent() params:", {
         uuid: this.uuid,
@@ -254,6 +269,7 @@ export default defineComponent({
         heygenVoice: this.heygenVoice,
         props_heygenApiKey: this.heygenApiKey?.substring(0, 10) + "...",
         debugEnabled,
+        isMobile,
       });
 
       // Inizializza debug overlay
