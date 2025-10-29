@@ -59,6 +59,34 @@
               🎤 Inizia Chat
             </button>
           </div>
+
+          <!-- Debug Overlay (mostrato con ?debug=1) -->
+          <div id="debugOverlay" class="hidden absolute left-1/2 -translate-x-1/2 top-3 z-10 w-full max-w-2xl px-3"
+            style="pointer-events: auto">
+            <div class="bg-black/70 backdrop-blur-sm border border-slate-600 rounded-md overflow-hidden shadow-lg">
+              <div
+                class="flex items-center justify-between px-3 py-2 border-b border-slate-700 bg-black/60 sticky top-0">
+                <div class="text-slate-200 text-xs font-semibold">Debug</div>
+                <div class="flex items-center gap-2">
+                  <button id="debugCopy"
+                    class="text-[11px] px-2 py-1 bg-slate-700/70 hover:bg-slate-600 text-white rounded">
+                    Copia
+                  </button>
+                  <button id="debugClear"
+                    class="text-[11px] px-2 py-1 bg-slate-700/70 hover:bg-slate-600 text-white rounded">
+                    Pulisci
+                  </button>
+                  <button id="debugClose"
+                    class="text-[11px] px-2 py-1 bg-slate-700/70 hover:bg-slate-600 text-white rounded">
+                    Chiudi
+                  </button>
+                </div>
+              </div>
+              <div class="max-h-[50vh] overflow-auto p-2 text-[11px] font-mono text-slate-200 leading-relaxed">
+                <div id="debugContent" class="space-y-1"></div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Listening Badge -->
@@ -198,6 +226,11 @@ export default defineComponent({
       this.loadingOverlay = $("loadingOverlay");
       this.videoAvatarStatus = $("videoAvatarStatus");
       this.feedbackMsg = $("feedbackMsg");
+      this.debugOverlay = $("debugOverlay");
+      this.debugContent = $("debugContent");
+      this.debugCloseBtn = $("debugClose");
+      this.debugClearBtn = $("debugClear");
+      this.debugCopyBtn = $("debugCopy");
 
       console.log("[EnjoyHen] initComponent() DOM elements found:", {
         heygenVideo: !!this.heygenVideo,
@@ -212,6 +245,7 @@ export default defineComponent({
       const teamSlug = this.teamSlug || window.location.pathname.split("/").pop();
       this.heygenAvatar = (urlParams.get("avatar") || "").trim();
       this.heygenVoice = (urlParams.get("voice") || "").trim();
+      const debugEnabled = urlParams.get("debug") === "1";
 
       console.log("[EnjoyHen] initComponent() params:", {
         uuid: this.uuid,
@@ -219,7 +253,11 @@ export default defineComponent({
         heygenAvatar: this.heygenAvatar,
         heygenVoice: this.heygenVoice,
         props_heygenApiKey: this.heygenApiKey?.substring(0, 10) + "...",
+        debugEnabled,
       });
+
+      // Inizializza debug overlay
+      this.initDebugOverlay(debugEnabled);
 
       this.HEYGEN_CONFIG = {
         apiKey: this.heygenApiKey || document.getElementById("enjoyHeyRoot")?.dataset?.heygenApiKey || "",
@@ -245,6 +283,141 @@ export default defineComponent({
       this.setupEventListeners();
       this.showStartChatButton();
       console.log("[EnjoyHen] initComponent() complete");
+    },
+
+    initDebugOverlay(debugEnabled) {
+      if (!debugEnabled) return;
+
+      const originalConsole = {
+        log: console.log,
+        warn: console.warn,
+        error: console.error,
+        info: console.info,
+      };
+
+      const formatForLog = (arg) => {
+        try {
+          if (arg instanceof Error)
+            return arg.stack || arg.name + ": " + arg.message;
+          if (typeof arg === "object") {
+            return JSON.stringify(arg, (k, v) => {
+              if (v instanceof Node) return `[Node ${v.nodeName}]`;
+              if (v === window) return "[Window]";
+              if (v === document) return "[Document]";
+              return v;
+            });
+          }
+          return String(arg);
+        } catch (_) {
+          try {
+            return String(arg);
+          } catch {
+            return "[unserializable]";
+          }
+        }
+      };
+
+      const appendDebugLine = (type, args) => {
+        if (!this.debugContent) return;
+        const time = new Date().toLocaleTimeString();
+        const line = document.createElement("div");
+        line.className = "whitespace-pre-wrap break-words";
+        try {
+          const msg = Array.from(args || [])
+            .map(formatForLog)
+            .join(" ");
+          line.textContent = `[${time}] ${type.toUpperCase()} ${msg}`;
+        } catch {
+          line.textContent = `[${time}] ${type.toUpperCase()} [log append failed]`;
+        }
+        this.debugContent.appendChild(line);
+        try {
+          const max = 400;
+          while (this.debugContent.childNodes.length > max)
+            this.debugContent.removeChild(this.debugContent.firstChild);
+        } catch { }
+        try {
+          this.debugContent.parentElement.scrollTop =
+            this.debugContent.parentElement.scrollHeight;
+        } catch { }
+      };
+
+      try {
+        if (this.debugOverlay) {
+          this.debugOverlay.classList.remove("hidden");
+        }
+      } catch { }
+
+      try {
+        const add = (el, evt, fn) => {
+          try {
+            el && el.addEventListener(evt, fn);
+          } catch { }
+        };
+        add(this.debugCloseBtn, "click", () => {
+          if (this.debugOverlay) this.debugOverlay.classList.add("hidden");
+        });
+        add(this.debugClearBtn, "click", () => {
+          if (this.debugContent) this.debugContent.innerHTML = "";
+        });
+        add(this.debugCopyBtn, "click", async () => {
+          try {
+            const lines = Array.from(this.debugContent?.children || []).map(
+              (n) => n.textContent || ""
+            );
+            const text = lines.join("\n");
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              await navigator.clipboard.writeText(text);
+            } else {
+              const ta = document.createElement("textarea");
+              ta.value = text;
+              document.body.appendChild(ta);
+              ta.select();
+              document.execCommand("copy");
+              document.body.removeChild(ta);
+            }
+            console.log("DEBUG: logs copied", { lines: lines.length });
+          } catch (e) {
+            console.error("DEBUG: copy failed", e);
+          }
+        });
+      } catch { }
+
+      try {
+        ["log", "warn", "error", "info"].forEach((m) => {
+          console[m] = function (...a) {
+            try {
+              appendDebugLine(m, a);
+            } catch { }
+            try {
+              originalConsole[m].apply(console, a);
+            } catch { }
+          };
+        });
+      } catch { }
+
+      try {
+        window.addEventListener("error", (e) => {
+          appendDebugLine("windowError", [
+            e.message,
+            `${e.filename}:${e.lineno}:${e.colno}`,
+          ]);
+        });
+        window.addEventListener("unhandledrejection", (e) => {
+          const r = e.reason;
+          appendDebugLine("promiseRejection", [
+            (r && (r.stack || r.message)) || String(r),
+          ]);
+        });
+      } catch { }
+
+      appendDebugLine("info", [
+        "Debug overlay enabled",
+        {
+          ua: navigator.userAgent,
+          locale: this.locale,
+        },
+      ]);
     },
 
     setupEventListeners() {
