@@ -1658,6 +1658,9 @@ export default defineComponent({
       } catch { }
 
       const onSend = async () => {
+        if (conversaBtnContainer) {
+          conversaBtnContainer.classList.add("hidden");
+        }
         try {
           if (!audioCtx)
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -1673,6 +1676,9 @@ export default defineComponent({
       $id("sendBtn")?.addEventListener("click", onSend);
       $id("textInput")?.addEventListener("keyup", async (e) => {
         if (e.key === "Enter") {
+          if (conversaBtnContainer) {
+            conversaBtnContainer.classList.add("hidden");
+          }
           try {
             if (!audioCtx)
               audioCtx = new (window.AudioContext ||
@@ -1796,6 +1802,9 @@ export default defineComponent({
       } catch { }
 
       micBtn?.addEventListener("click", async () => {
+        if (conversaBtnContainer) {
+          conversaBtnContainer.classList.add("hidden");
+        }
         if (isListening && recognition) {
           try {
             recognition.stop();
