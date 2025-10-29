@@ -1,6 +1,6 @@
 <template>
   <div ref="rootEl" id="enjoyHenRoot"
-    :class="['flex flex-col', !isWebComponent && 'min-h-[100dvh]', 'w-full bg-[#0f172a] pb-[96px] sm:pb-0']">
+    :class="['flex flex-col', !isWebComponent && 'min-h-[100dvh] max-h-[100dvh]', 'w-full bg-[#0f172a] overflow-hidden']">
     <!-- Header -->
     <div class="px-4 py-4 border-b border-slate-700" v-if="!isWebComponent">
       <div class="mx-auto w-full max-w-2xl flex items-center gap-3">
@@ -11,7 +11,7 @@
     </div>
 
     <!-- Main Content -->
-    <div class="flex-1 flex items-center justify-center p-4">
+    <div class="flex-1 flex items-center justify-center p-4 overflow-y-auto">
       <div class="w-full max-w-2xl">
         <!-- Video Avatar -->
         <div class="relative mb-6 rounded-lg overflow-hidden bg-black border border-slate-700">
@@ -66,24 +66,29 @@
           class="hidden px-3 py-2 bg-rose-600/90 text-white text-sm font-semibold rounded-md shadow animate-pulse text-center mb-4">
           🎤 Ascolto...
         </div>
+      </div>
+    </div>
 
-        <!-- Input Controls -->
-        <div class="space-y-3">
-          <div class="flex gap-2">
+    <!-- Input Controls Bar -->
+    <div id="controlsBar"
+      class="bottom-0 left-0 w-full border-t border-slate-700 bg-[#0f172a] z-20 pb-[env(safe-area-inset-bottom)]">
+      <div class="px-3 py-3 sm:px-4 sm:py-4">
+        <div class="mx-auto w-full max-w-2xl">
+          <div class="flex flex-wrap w-full gap-2 items-center min-w-0">
             <input id="textInput" type="text" placeholder="Scrivi il tuo messaggio..."
-              class="flex-1 px-4 py-3 bg-slate-700 text-white border border-slate-600 rounded-lg placeholder-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+              class="flex-1 min-w-0 px-3 py-3 bg-slate-700 text-white border border-slate-600 rounded-lg placeholder-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 text-sm sm:text-base" />
             <button id="sendBtn"
-              class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors whitespace-nowrap">
-              Invia
+              class="px-3 py-3 sm:px-4 sm:py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors whitespace-nowrap text-sm sm:text-base font-medium">
+              📤 Invia
             </button>
             <button id="micBtn"
-              class="px-6 py-3 bg-rose-600 hover:bg-rose-700 text-white font-medium rounded-lg transition-colors whitespace-nowrap">
+              class="px-3 py-3 sm:px-4 sm:py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-lg transition-colors whitespace-nowrap text-sm sm:text-base font-medium">
               🎤 Parla
             </button>
           </div>
 
           <!-- Feedback -->
-          <div id="feedbackMsg" class="text-sm text-slate-400 text-center min-h-5"></div>
+          <div id="feedbackMsg" class="text-sm text-slate-400 text-center min-h-5 mt-2"></div>
         </div>
       </div>
     </div>
