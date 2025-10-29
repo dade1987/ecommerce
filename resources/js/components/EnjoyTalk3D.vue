@@ -1078,47 +1078,71 @@ export default defineComponent({
 
           // Se è un array di token OVR
           if (Array.isArray(tokensOrText)) {
-            if (shouldLog)
-              console.log(
-                "[VISEME ENQUEUE] Token array received with",
-                tokensOrText.length,
-                "tokens"
-              );
+            console.log(
+              "[LIPSYNC] enqueueTextVisemes - Token array mode, count:",
+              tokensOrText.length,
+              "| isSpeaking:",
+              isSpeaking,
+              "| visemeMeshes:",
+              visemeMeshes.length
+            );
           }
           // Se è testo, converti a token
           else if (typeof tokensOrText === "string" && totalDurationMs) {
-            if (shouldLog)
-              console.log(
-                "[VISEME ENQUEUE] Text received:",
-                tokensOrText.substring(0, 50),
-                "- Duration:",
-                totalDurationMs,
-                "ms"
-              );
+            console.log(
+              "[LIPSYNC] enqueueTextVisemes - Text mode | text:",
+              tokensOrText.substring(0, 60),
+              "| duration:",
+              totalDurationMs,
+              "ms | cloudAudioSpeaking:",
+              cloudAudioSpeaking,
+              "| isSpeaking:",
+              isSpeaking
+            );
             tokens = textToTokens(tokensOrText, totalDurationMs);
             if (!tokens || tokens.length === 0) {
-              console.warn("[VISEME ENQUEUE] Failed to convert text to tokens");
+              console.warn(
+                "[LIPSYNC] enqueueTextVisemes - ERROR: Failed to convert text to tokens"
+              );
               return;
             }
-            if (shouldLog)
-              console.log(
-                "[VISEME ENQUEUE] Generated",
-                tokens.length,
-                "tokens from text"
-              );
+            console.log(
+              "[LIPSYNC] enqueueTextVisemes - Generated",
+              tokens.length,
+              "tokens from text"
+            );
           } else {
             console.warn(
-              "[VISEME ENQUEUE] Invalid input: expected array of tokens or (text, duration)"
+              "[LIPSYNC] enqueueTextVisemes - ERROR: Invalid input (expected array or text+duration)",
+              "input type:",
+              typeof tokensOrText,
+              "totalDurationMs:",
+              totalDurationMs
             );
             return;
           }
 
-          if (!Array.isArray(tokens) || tokens.length === 0) return;
+          if (!Array.isArray(tokens) || tokens.length === 0) {
+            console.warn("[LIPSYNC] enqueueTextVisemes - ERROR: tokens array empty");
+            return;
+          }
 
           const now = performance.now();
           const baseTime = startAtMs || now;
 
-          visemeSchedule = [];
+          // NON azzerare completamente! Rimuovi solo i visemi scaduti per evitare gap
+          const prevScheduleLen = visemeSchedule.length;
+          visemeSchedule = visemeSchedule.filter((it) => it.end > now);
+
+          console.log(
+            "[LIPSYNC] enqueueTextVisemes - Keeping existing schedule | prevLen:",
+            prevScheduleLen,
+            "| afterFilterLen:",
+            visemeSchedule.length,
+            "| will append",
+            tokens.length,
+            "new tokens"
+          );
 
           for (const token of tokens) {
             const { viseme, startTime, endTime, targets } = token;
@@ -1130,19 +1154,33 @@ export default defineComponent({
             });
           }
 
-          if (shouldLog)
-            console.log(
-              "[VISEME ENQUEUE] Schedule created with",
-              visemeSchedule.length,
-              "items, duration:",
-              visemeSchedule[visemeSchedule.length - 1].end - baseTime,
-              "ms"
-            );
+          console.log(
+            "[LIPSYNC] enqueueTextVisemes - Schedule COMPLETE | count:",
+            visemeSchedule.length,
+            "| totalDuration:",
+            visemeSchedule.length > 0
+              ? visemeSchedule[visemeSchedule.length - 1].end - baseTime
+              : 0,
+            "ms | estimatedDuration:",
+            totalDurationMs || "unknown",
+            "ms | baseTime:",
+            baseTime,
+            "| now:",
+            now,
+            "| visemeStrength:",
+            visemeStrength.toFixed(3),
+            "| visemeActiveUntil:",
+            visemeActiveUntil,
+            "| firstViseme starts in:",
+            visemeSchedule.length > 0 ? (visemeSchedule[0].start - now).toFixed(0) + "ms" : "none",
+            "| lastViseme ends in:",
+            visemeSchedule.length > 0 ? (visemeSchedule[visemeSchedule.length - 1].end - now).toFixed(0) + "ms" : "none"
+          );
 
-          if (visemeSchedule.length > 120)
-            visemeSchedule = visemeSchedule.slice(-120);
+          if (visemeSchedule.length > 240)
+            visemeSchedule = visemeSchedule.slice(-240);
         } catch (e) {
-          console.error("[VISEME ENQUEUE] ERROR:", e);
+          console.error("[LIPSYNC] enqueueTextVisemes - EXCEPTION:", e);
         }
       }
       try {
@@ -2280,10 +2318,13 @@ export default defineComponent({
         // Viseme and lipsync
         if (textVisemeEnabled) {
           const nowT = performance.now();
+          const prevScheduleLen = visemeSchedule.length;
+          const prevLastEnd = visemeSchedule.length > 0 ? visemeSchedule[visemeSchedule.length - 1].end : 0;
           visemeSchedule = visemeSchedule.filter((it) => it.end > nowT);
           const active = visemeSchedule.find(
             (it) => it.start <= nowT && it.end > nowT
           );
+
           if (active) {
             const blend = Math.max(
               0,
@@ -2301,6 +2342,45 @@ export default defineComponent({
               mouthClose: active.targets.mouthClose * blend,
             };
             visemeActiveUntil = nowT + 120;
+            console.log(
+              "[LIPSYNC] frame animate - ACTIVE VISEME | blend:",
+              blend.toFixed(3),
+              "| jawOpen:",
+              visemeTargets.jawOpen.toFixed(3),
+              "| mouthFunnel:",
+              visemeTargets.mouthFunnel.toFixed(3),
+              "| cloudAudioSpeaking:",
+              cloudAudioSpeaking,
+              "| isSpeaking:",
+              isSpeaking,
+              "| meshCount:",
+              visemeMeshes.length,
+              "| viseme endTime in",
+              (active.end - nowT).toFixed(0),
+              "ms"
+            );
+          } else if (prevScheduleLen > 0) {
+            const timeToNextEnd = prevLastEnd > nowT ? prevLastEnd - nowT : 0;
+            const nextViseme = visemeSchedule.length > 0 ? visemeSchedule[0] : null;
+            const timeToNextStart = nextViseme ? nextViseme.start - nowT : -1;
+            console.log(
+              "[LIPSYNC] frame animate - NO ACTIVE VISEME | schedule filtered from",
+              prevScheduleLen,
+              "to",
+              visemeSchedule.length,
+              "| prevLastEnd was",
+              timeToNextEnd.toFixed(0),
+              "ms ago | nextVisemeStartsIn:",
+              timeToNextStart >= 0 ? timeToNextStart.toFixed(0) + "ms" : "none",
+              "| now:",
+              nowT.toFixed(0),
+              "| prevLastEnd:",
+              prevLastEnd.toFixed(0),
+              "| cloudAudioSpeaking:",
+              cloudAudioSpeaking,
+              "| isSpeaking:",
+              isSpeaking
+            );
           }
         }
 
@@ -2308,26 +2388,33 @@ export default defineComponent({
         const now = performance.now();
         const restJawOpen = lipConfig.restJawOpen;
         let appliedJaw = null;
+
+        let lipsyncApplied = false;
         if (
           Array.isArray(visemeMeshes) &&
           visemeMeshes.length > 0 &&
           visemeActiveUntil > now
         ) {
+          lipsyncApplied = true;
           // Ramp-up più veloce per cloud TTS
           const alphaRampUp = cloudAudioSpeaking ? 0.4 : lipConfig.visemeStrengthAlpha;
           visemeStrength =
             visemeStrength * (1 - alphaRampUp) +
             alphaRampUp;
+          console.log(
+            "[LIPSYNC] applying to meshes | visemeStrength ramp:",
+            visemeStrength.toFixed(3),
+            "| alphaRampUp:",
+            alphaRampUp.toFixed(3),
+            "| meshes:",
+            visemeMeshes.length,
+            "| activeUntil ms:",
+            (visemeActiveUntil - now).toFixed(0)
+          );
+
           for (const vm of visemeMeshes) {
             const infl = vm.mesh.morphTargetInfluences;
             if (!infl) continue;
-            console.log(
-              "[VISEME APPLY] Processing mesh:",
-              vm.mesh.name,
-              "with",
-              Object.keys(vm.indices).length,
-              "indices"
-            );
             const smooth = (key, target) => {
               const prev = lastVisemes[key] || 0;
               const diff = target - prev;
@@ -2394,6 +2481,7 @@ export default defineComponent({
           morphIndex >= 0 &&
           Array.isArray(morphMesh.morphTargetInfluences)
         ) {
+          lipsyncApplied = true;
           visemeStrength = 0;
           const target = Math.min(
             1,
@@ -2401,7 +2489,29 @@ export default defineComponent({
           );
           morphValue = morphValue * 0.82 + target * 0.18;
           morphMesh.morphTargetInfluences[morphIndex] = morphValue;
-          appliedJaw = Math.max(target, lipConfig.minLipSeparation);
+          /*console.log(
+            "[LIPSYNC] applying fallback morph target | meshName:",
+            morphMesh.name,
+            "| morphValue:",
+            morphValue.toFixed(3),
+            "| target:",
+            target.toFixed(3),
+            "| cloudAudio:",
+            cloudAudioSpeaking
+          );*/
+        } else if (visemeActiveUntil > now && !lipsyncApplied) {
+          console.log(
+            "[LIPSYNC] NOT applied - conditions not met | visemeActiveUntil > now:",
+            visemeActiveUntil > now,
+            "| meshes.length:",
+            visemeMeshes.length,
+            "| morphMesh exists:",
+            !!morphMesh,
+            "| morphIndex:",
+            morphIndex,
+            "| now:",
+            now
+          );
         }
 
         // Jaw bone animation
@@ -2743,6 +2853,18 @@ export default defineComponent({
                 estSec = estSec / rate;
                 estSec = Math.max(2.2, estSec);
                 visemeSchedule = [];
+                console.log(
+                  "[LIPSYNC] speechSynthesis onstart | text:",
+                  textClean.substring(0, 60),
+                  "| estDuration:",
+                  estSec.toFixed(2),
+                  "s | charCount:",
+                  charCount,
+                  "| wordCount:",
+                  wordCount,
+                  "| rate:",
+                  rate
+                );
                 enqueueTextVisemes(
                   item.text || "",
                   Math.floor(estSec * 1000),
@@ -2753,6 +2875,11 @@ export default defineComponent({
             utter.onend = () => {
               try {
                 //stopTalkingAnimation();
+                console.log(
+                  "[LIPSYNC] speechSynthesis onend | closing mouth | text:",
+                  item.text.substring(0, 50),
+                  "| forceClosing for 220ms"
+                );
                 visemeSchedule = [];
                 visemeTargets = {
                   jawOpen: 0,
@@ -2826,7 +2953,11 @@ export default defineComponent({
         const onEnded = () => {
           URL.revokeObjectURL(item.url);
           lastSpokenTail = (lastSpokenTail + " " + item.text).slice(-400);
-          console.log("TTS: Finished playing:", item.text.substring(0, 50));
+          console.log(
+            "[LIPSYNC] cloud TTS onEnded | closing mouth | text:",
+            item.text.substring(0, 50),
+            "| cloudAudioSpeaking: false"
+          );
           cloudAudioSpeaking = false;
           visemeSchedule = [];
           visemeTargets = {
@@ -2884,8 +3015,21 @@ export default defineComponent({
             // Popola visemeSchedule in base alla durata dell'audio
             if (ttsPlayer.duration && item.text) {
               const durationMs = ttsPlayer.duration * 1000;
+              console.log(
+                "[LIPSYNC] cloud TTS onPlaying | text:",
+                item.text.substring(0, 60),
+                "| audioDuration:",
+                durationMs.toFixed(0),
+                "ms | cloudAudioSpeaking: true"
+              );
               enqueueTextVisemes(item.text, durationMs, performance.now());
             } else {
+              console.log(
+                "[LIPSYNC] cloud TTS onPlaying - WARNING | no duration or text | duration:",
+                ttsPlayer.duration,
+                "| text:",
+                item.text.substring(0, 30)
+              );
               visemeSchedule = [];
             }
           } catch { }
@@ -2897,10 +3041,20 @@ export default defineComponent({
         ttsPlayer
           .play()
           .then(() => {
+            console.log(
+              "[LIPSYNC] cloud TTS play() started | text:",
+              item.text.substring(0, 50),
+              "| cloudAudioSpeaking: true"
+            );
             cloudAudioSpeaking = true;
           })
           .catch((err) => {
-            console.error("TTS: Play failed:", err);
+            console.error(
+              "[LIPSYNC] cloud TTS play() failed:",
+              err,
+              "| text:",
+              item.text.substring(0, 50)
+            );
             isSpeaking = false;
             onError();
           });
@@ -4146,6 +4300,10 @@ export default defineComponent({
       // ==================== CONSOLE API ====================
       // Espone un'interfaccia completa per controllare le animazioni da console
       window.enjoyTalkConsole = {
+        talk: (msg) => {
+          conversaBtnContainer.classList.add("hidden");
+          sendToTts(msg);
+        },
         // === TALKING ANIMATIONS ===
         playTalking: () => {
           console.log("🎬 Avvio talking animation...");
