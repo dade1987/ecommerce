@@ -420,6 +420,18 @@ export default defineComponent({
       ]);
     },
 
+    normalizeLangTag(lang, fallback) {
+      try {
+        const t = (lang || "").replace("_", "-").trim();
+        if (!t) return fallback;
+        const parts = t.split("-");
+        if (parts.length === 1) return parts[0].toLowerCase();
+        return parts[0].toLowerCase() + "-" + parts[1].toUpperCase();
+      } catch {
+        return fallback;
+      }
+    },
+
     setupEventListeners() {
       console.log("[EnjoyHen] setupEventListeners()");
       if (this.sendBtn) {
@@ -502,7 +514,35 @@ export default defineComponent({
         if (!Rec) throw new Error("Web Speech API non disponibile");
 
         this.recognition = new Rec();
-        this.recognition.lang = this.locale || "it-IT";
+
+        // Rilevamento lingua robusto (come in EnjoyTalk3D.vue)
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlLang = (urlParams.get("lang") || "").trim();
+        const navLang = (
+          navigator.language ||
+          (navigator.languages && navigator.languages[0]) ||
+          ""
+        ).trim();
+
+        const rawLang = urlLang || this.locale || navLang || "it-IT";
+
+        let recLang = this.normalizeLangTag(rawLang, "it-IT");
+        try {
+          if (/^it(\b|[-_])/i.test(rawLang) || rawLang.toLowerCase() === "it")
+            recLang = "it-IT";
+        } catch { }
+
+        this.recognition.lang = recLang;
+
+        console.log("SPEECH: Language detection", {
+          urlLang,
+          navLang,
+          propLocale: this.locale,
+          rawLang,
+          finalLang: recLang,
+          userAgent: navigator.userAgent.substring(0, 50)
+        });
+
         this.recognition.interimResults = false;
         this.recognition.continuous = false;
         this.recognition.maxAlternatives = 1;
