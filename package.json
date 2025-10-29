@@ -5,7 +5,8 @@
         "dev": "vite",
         "build": "vite build",
         "build:web-component": "vite build --config vite.config.web-component.js",
-        "build:all": "npm run build && npm run build:web-component",
+        "build:enjoy-hen": "vite build --config vite.config.enjoy-hen.js",
+        "build:all": "npm run build && npm run build:web-component && npm run build:enjoy-hen",
         "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs",
         "lint:fix": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs --fix"
     },
