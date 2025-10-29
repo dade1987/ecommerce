@@ -113,7 +113,7 @@
               🎤 Parla
             </button>
           </div>
-          <div class="mt-2 flex items-center gap-3 text-slate-300 text-xs sm:text-sm" v-if="!isWebComponent">
+          <div :class="['mt-2 flex items-center gap-3 text-slate-300 text-xs sm:text-sm', isWebComponent && 'hidden']">
             <label class="inline-flex items-center gap-2 cursor-pointer select-none">
               <input id="useBrowserTts" type="checkbox" class="accent-indigo-600" checked />
               <span>Usa TTS del browser (italiano)</span>
