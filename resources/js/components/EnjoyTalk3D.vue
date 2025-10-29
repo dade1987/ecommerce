@@ -1418,7 +1418,7 @@ export default defineComponent({
         try {
           console.log("SSE: connecting", { team: teamSlug, uuid, locale, threadId });
         } catch { }
-        thinkingBubble.classList.remove("hidden");
+        if (thinkingBubble) thinkingBubble.classList.remove("hidden");
         try {
           if (currentEvtSource) {
             currentEvtSource.close();
@@ -1495,7 +1495,7 @@ export default defineComponent({
                 } catch { }
                 if (firstToken) {
                   firstToken = false;
-                  thinkingBubble.classList.add("hidden");
+                  if (thinkingBubble) thinkingBubble.classList.add("hidden");
                   if (ttsKickTimer) {
                     try {
                       clearTimeout(ttsKickTimer);
@@ -1551,7 +1551,7 @@ export default defineComponent({
               }, delay);
               return;
             }
-            thinkingBubble.classList.add("hidden");
+            if (thinkingBubble) thinkingBubble.classList.add("hidden");
             if (ttsTick) {
               try {
                 clearInterval(ttsTick);
@@ -1564,7 +1564,7 @@ export default defineComponent({
               evtSource.close();
             } catch { }
             done = true;
-            thinkingBubble.classList.add("hidden");
+            if (thinkingBubble) thinkingBubble.classList.add("hidden");
             try {
               console.log("SSE: done event received, threadId memorizzato:", threadId);
             } catch { }
@@ -1746,9 +1746,9 @@ export default defineComponent({
         instance.proxy._stopAllSpeechOutput = stopAllSpeechOutput;
       } catch { }
       function setListeningUI(active) {
-        const badge = document.getElementById("listeningBadge");
+        const badge = $id("listeningBadge");
         if (active) {
-          badge.classList.remove("hidden");
+          if (badge) badge.classList.remove("hidden");
           micBtn.classList.remove("bg-rose-600");
           micBtn.classList.add(
             "bg-emerald-600",
@@ -1757,7 +1757,7 @@ export default defineComponent({
             "animate-pulse"
           );
         } else {
-          badge.classList.add("hidden");
+          if (badge) badge.classList.add("hidden");
           micBtn.classList.add("bg-rose-600");
           micBtn.classList.remove(
             "bg-emerald-600",
