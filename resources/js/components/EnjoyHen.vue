@@ -91,7 +91,7 @@
 </template>
 
 <script>
-import { onMounted, defineComponent, ref } from "vue";
+import { onMounted, defineComponent, ref, getCurrentInstance } from "vue";
 
 export default defineComponent({
   name: "EnjoyHen",
@@ -706,6 +706,15 @@ export default defineComponent({
         this.feedbackMsg.textContent = msg;
       }
     },
+  },
+  setup() {
+    const rootElRef = ref(null);
+    const isWebComponent = import.meta.env.VITE_IS_WEB_COMPONENT || false;
+
+    return {
+      isWebComponent,
+      rootElRef,
+    };
   },
 });
 </script>
