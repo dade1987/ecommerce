@@ -160,6 +160,7 @@ export default defineComponent({
   },
   mounted() {
     try {
+      console.log("[EnjoyHen] ✓ mounted(), isWebComponent:", import.meta.env.VITE_IS_WEB_COMPONENT);
       this.initComponent();
     } catch (e) {
       console.error("EnjoyHen mount error:", e);
@@ -167,11 +168,13 @@ export default defineComponent({
   },
   beforeUnmount() {
     try {
+      console.log("[EnjoyHen] beforeUnmount()");
       this.cleanup();
     } catch { }
   },
   methods: {
     initComponent() {
+      console.log("[EnjoyHen] initComponent() start");
       const $ = (id) => document.getElementById(id);
 
       this.heygenVideo = $("heygenVideo");
@@ -185,16 +188,37 @@ export default defineComponent({
       this.videoAvatarStatus = $("videoAvatarStatus");
       this.feedbackMsg = $("feedbackMsg");
 
+      console.log("[EnjoyHen] initComponent() DOM elements found:", {
+        heygenVideo: !!this.heygenVideo,
+        textInput: !!this.textInput,
+        sendBtn: !!this.sendBtn,
+        micBtn: !!this.micBtn,
+        startChatBtn: !!this.startChatBtn,
+      });
+
       const urlParams = new URLSearchParams(window.location.search);
       this.uuid = urlParams.get("uuid");
       const teamSlug = this.teamSlug || window.location.pathname.split("/").pop();
       this.heygenAvatar = (urlParams.get("avatar") || "").trim();
       this.heygenVoice = (urlParams.get("voice") || "").trim();
 
+      console.log("[EnjoyHen] initComponent() params:", {
+        uuid: this.uuid,
+        teamSlug,
+        heygenAvatar: this.heygenAvatar,
+        heygenVoice: this.heygenVoice,
+        props_heygenApiKey: this.heygenApiKey?.substring(0, 10) + "...",
+      });
+
       this.HEYGEN_CONFIG = {
         apiKey: this.heygenApiKey || document.getElementById("enjoyHeyRoot")?.dataset?.heygenApiKey || "",
         serverUrl: this.heygenServerUrl || document.getElementById("enjoyHeyRoot")?.dataset?.heygenServerUrl || "https://api.heygen.com",
       };
+
+      console.log("[EnjoyHen] initComponent() HEYGEN_CONFIG:", {
+        apiKey: this.HEYGEN_CONFIG.apiKey?.substring(0, 10) + "...",
+        serverUrl: this.HEYGEN_CONFIG.serverUrl,
+      });
 
       this.heygen = {
         sessionInfo: null,
@@ -209,26 +233,41 @@ export default defineComponent({
 
       this.setupEventListeners();
       this.showStartChatButton();
+      console.log("[EnjoyHen] initComponent() complete");
     },
 
     setupEventListeners() {
+      console.log("[EnjoyHen] setupEventListeners()");
       if (this.sendBtn) {
-        this.sendBtn.addEventListener("click", () => this.onSend());
+        this.sendBtn.addEventListener("click", () => {
+          console.log("[EnjoyHen] SEND button clicked");
+          this.onSend();
+        });
       }
       if (this.textInput) {
         this.textInput.addEventListener("keypress", (e) => {
-          if (e.key === "Enter") this.onSend();
+          if (e.key === "Enter") {
+            console.log("[EnjoyHen] ENTER key pressed");
+            this.onSend();
+          }
         });
       }
       if (this.micBtn) {
-        this.micBtn.addEventListener("click", () => this.onMicClick());
+        this.micBtn.addEventListener("click", () => {
+          console.log("[EnjoyHen] MIC button clicked");
+          this.onMicClick();
+        });
       }
       if (this.startChatBtn) {
-        this.startChatBtn.addEventListener("click", () => this.startChat());
+        this.startChatBtn.addEventListener("click", () => {
+          console.log("[EnjoyHen] START CHAT button clicked");
+          this.startChat();
+        });
       }
     },
 
     showStartChatButton() {
+      console.log("[EnjoyHen] showStartChatButton()");
       if (this.startChatContainer) {
         this.startChatContainer.classList.remove("hidden");
       }
@@ -238,6 +277,7 @@ export default defineComponent({
     },
 
     startChat() {
+      console.log("[EnjoyHen] startChat()");
       if (this.startChatContainer) {
         this.startChatContainer.classList.add("hidden");
       }
@@ -395,8 +435,13 @@ export default defineComponent({
     },
 
     async onSend() {
+      console.log("[EnjoyHen] onSend() called");
       const message = (this.textInput?.value || "").trim();
-      if (!message) return;
+      console.log("[EnjoyHen] onSend() message:", message);
+      if (!message) {
+        console.log("[EnjoyHen] onSend() empty message, returning");
+        return;
+      }
 
       this.textInput.value = "";
       this.textInput.disabled = true;
@@ -404,6 +449,7 @@ export default defineComponent({
       this.setFeedback("Invio in corso...");
 
       try {
+        console.log("[EnjoyHen] onSend() starting stream");
         await this.startStream(message);
       } catch (e) {
         console.error("Error starting stream:", e);
@@ -415,7 +461,11 @@ export default defineComponent({
     },
 
     async startStream(message) {
-      if (!message || message.trim() === "") return;
+      console.log("[EnjoyHen] startStream() start", { message });
+      if (!message || message.trim() === "") {
+        console.warn("[EnjoyHen] startStream() empty message, returning");
+        return;
+      }
 
       const params = new URLSearchParams({
         message,
@@ -430,12 +480,19 @@ export default defineComponent({
       const webComponentOrigin = window.__ENJOY_HEN_ORIGIN__ || window.location.origin;
       const endpoint = `/api/chatbot/neuron-website-stream?${params.toString()}`;
 
+      console.log("[EnjoyHen] startStream() endpoint:", {
+        webComponentOrigin,
+        endpoint,
+        fullUrl: `${webComponentOrigin}${endpoint}`,
+      });
+
       try {
         const thinkingBubble = document.getElementById("thinkingBubble");
         if (thinkingBubble) {
           thinkingBubble.classList.remove("hidden");
         }
 
+        console.log("[EnjoyHen] startStream() creating EventSource");
         const eventSource = new EventSource(`${webComponentOrigin}${endpoint}`);
 
         let collected = "";
@@ -443,11 +500,13 @@ export default defineComponent({
         this.setFeedback("Avatar sta rispondere...");
 
         eventSource.addEventListener("message", (e) => {
+          console.log("[EnjoyHen] EventSource message received", { data: e.data?.substring(0, 100) });
           try {
             const data = JSON.parse(e.data);
             if (data.token) {
               if (firstToken) {
                 firstToken = false;
+                console.log("[EnjoyHen] First token received, hiding thinking bubble");
                 if (thinkingBubble) {
                   thinkingBubble.classList.add("hidden");
                 }
@@ -456,10 +515,12 @@ export default defineComponent({
                 const tok = JSON.parse(data.token);
                 if (tok && tok.thread_id) {
                   this.threadId = tok.thread_id;
+                  console.log("[EnjoyHen] threadId updated:", tok.thread_id);
                   return;
                 }
               } catch { }
               collected += data.token;
+              console.log("[EnjoyHen] token collected, total length:", collected.length);
             }
           } catch (err) {
             console.warn("Parse error:", err);
@@ -467,6 +528,7 @@ export default defineComponent({
         });
 
         eventSource.addEventListener("done", () => {
+          console.log("[EnjoyHen] EventSource done event", { collected: collected.substring(0, 100) });
           try {
             eventSource.close();
           } catch { }
@@ -475,13 +537,16 @@ export default defineComponent({
           }
 
           const text = this.stripHtml(collected).trim();
+          console.log("[EnjoyHen] Processed text:", { text: text.substring(0, 100) });
           if (text) {
+            console.log("[EnjoyHen] sending to heygenSendRepeat");
             this.heygenSendRepeat(text);
           }
           this.setFeedback("");
         });
 
         eventSource.addEventListener("error", () => {
+          console.error("[EnjoyHen] EventSource error");
           try {
             eventSource.close();
           } catch { }
@@ -491,7 +556,7 @@ export default defineComponent({
           this.setFeedback("❌ Errore di connessione");
         });
       } catch (e) {
-        console.error("Stream error:", e);
+        console.error("[EnjoyHen] startStream() error:", e);
         this.setFeedback("❌ Errore dello stream");
       }
     },
