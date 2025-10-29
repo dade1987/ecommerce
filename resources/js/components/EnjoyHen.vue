@@ -1,8 +1,8 @@
 <template>
   <div ref="rootEl" id="enjoyHenRoot"
-    class="flex flex-col min-h-[100dvh] w-full bg-gradient-to-br from-slate-900 to-slate-800">
+    :class="['flex flex-col', !isWebComponent && 'min-h-[100dvh]', 'w-full bg-[#0f172a] pb-[96px] sm:pb-0']">
     <!-- Header -->
-    <div class="px-4 py-4 border-b border-slate-700">
+    <div class="px-4 py-4 border-b border-slate-700" v-if="!isWebComponent">
       <div class="mx-auto w-full max-w-2xl flex items-center gap-3">
         <img id="teamLogo" :src="teamLogo" alt="EnjoyHen"
           class="w-10 h-10 rounded-full object-cover border border-slate-600" />
