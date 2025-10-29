@@ -161,6 +161,8 @@ export default defineComponent({
   mounted() {
     try {
       console.log("[EnjoyHen] ✓ mounted(), isWebComponent:", import.meta.env.VITE_IS_WEB_COMPONENT);
+      this.rootEl = this.$el || document.getElementById("enjoyHenRoot");
+      console.log("[EnjoyHen] rootEl found:", !!this.rootEl);
       this.initComponent();
     } catch (e) {
       console.error("EnjoyHen mount error:", e);
@@ -175,7 +177,16 @@ export default defineComponent({
   methods: {
     initComponent() {
       console.log("[EnjoyHen] initComponent() start");
-      const $ = (id) => document.getElementById(id);
+
+      // Funzione per cercare elementi nel Shadow DOM o nel documento
+      const $ = (id) => {
+        if (this.rootEl && this.rootEl.querySelector) {
+          console.log(`[EnjoyHen] Searching for #${id} in rootEl`);
+          return this.rootEl.querySelector("#" + id);
+        }
+        console.log(`[EnjoyHen] Searching for #${id} in document`);
+        return document.getElementById(id);
+      };
 
       this.heygenVideo = $("heygenVideo");
       this.textInput = $("textInput");
