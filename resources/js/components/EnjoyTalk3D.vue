@@ -1506,7 +1506,7 @@ export default defineComponent({
         try {
           console.log("SSE: connecting", { team: teamSlug, uuid, locale, threadId });
         } catch { }
-        if (thinkingBubble) thinkingBubble.classList.remove("hidden");
+        if (!chatMode && thinkingBubble) thinkingBubble.classList.remove("hidden");
         try {
           if (currentEvtSource) {
             currentEvtSource.close();
@@ -1921,6 +1921,11 @@ export default defineComponent({
             if (conversaBtnContainer) {
               conversaBtnContainer.classList.add("hidden");
             }
+            // Nascondi il fumetto "Sto pensando..." in modalità chat
+            try {
+              const tb = rootEl && rootEl.querySelector ? rootEl.querySelector("#thinkingBubble") : document.getElementById("thinkingBubble");
+              if (tb) tb.classList.add("hidden");
+            } catch { }
             // Stop speaking/animations kick
             try { stopAllSpeechOutput(); } catch { }
             // Load history if possible
@@ -2207,6 +2212,14 @@ export default defineComponent({
               if (isFinal) {
                 isListening = false;
                 setListeningUI(false);
+                // In chat mode, mostra subito il messaggio dell'utente
+                if (chatMode) {
+                  const userMsg = (transcript || "").trim();
+                  if (userMsg) {
+                    chatMessagesData.push({ role: "user", content: userMsg });
+                    renderChatMessages();
+                  }
+                }
                 if (debugEnabled && liveText)
                   setTimeout(() => {
                     try {
