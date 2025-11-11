@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\RealtimeChatWebsiteController;
 use App\Http\Controllers\Api\NeuronWebsiteStreamController;
 use App\Http\Controllers\Api\TtsController;
 use App\Http\Controllers\Api\SommelierChatbotController;
+use App\Http\Controllers\Api\ChatTranscriptController;
 use App\Http\Controllers\QuoterController;
 use App\Http\Controllers\Api\TestController;
 use App\Http\Controllers\Api\StaticController;
@@ -140,6 +141,7 @@ Route::get('/chatbot/stream', [RealtimeChatController::class, 'stream']);
 Route::get('/chatbot/website-stream', [RealtimeChatWebsiteController::class, 'websiteStream']);
 Route::get('/chatbot/neuron-website-stream', [NeuronWebsiteStreamController::class, 'stream']);
 Route::post('/tts', [TtsController::class, 'synthesize']);
+Route::post('/chatbot/email-transcript', [ChatTranscriptController::class, 'emailTranscript']);
 
 // Endpoint per servire immagini/risorse statiche con CORS
 Route::get('/static/{filename}', function (Request $request, $filename) {

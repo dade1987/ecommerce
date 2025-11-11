@@ -64,6 +64,30 @@
             🎤 Parla con Me
           </button>
         </div>
+        <!-- Modal Trascrizione Email -->
+        <div id="emailTranscriptModal"
+          class="hidden absolute inset-0 flex items-center justify-center z-40 rounded-md bg-black/60 backdrop-blur-sm">
+          <div
+            class="w-full max-w-[480px] mx-4 bg-[#0b1220] border border-slate-700 rounded-xl shadow-2xl overflow-hidden">
+            <div class="px-4 py-3 border-b border-slate-700 bg-black/50 flex items-center justify-between">
+              <div class="text-slate-100 font-semibold text-base">Invia trascrizione via email</div>
+              <button id="sendTranscriptCancel"
+                class="text-slate-300 hover:text-white px-2 py-1 rounded-md hover:bg-slate-700/60">✕</button>
+            </div>
+            <div class="p-4 space-y-3">
+              <label class="block text-slate-300 text-sm">Indirizzo email destinatario</label>
+              <input id="emailTranscriptInput" type="email" placeholder="nome@esempio.com"
+                class="w-full px-3 py-2 bg-[#111827] text-white border border-slate-700 rounded-md placeholder-slate-400 focus:border-indigo-500 focus:outline-none" />
+              <div id="emailTranscriptStatus" class="text-xs text-slate-400 min-h-[1rem]"></div>
+            </div>
+            <div class="px-4 py-3 border-t border-slate-700 bg-black/50 flex items-center justify-end gap-2">
+              <button id="sendTranscriptCancel2"
+                class="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-md transition-colors text-sm">Annulla</button>
+              <button id="sendTranscriptConfirm"
+                class="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors text-sm font-semibold">Invia</button>
+            </div>
+          </div>
+        </div>
         <!-- Debug Overlay (mostrato con ?debug=1) -->
         <div id="debugOverlay"
           class="hidden absolute left-1/2 -translate-x-1/2 top-3 z-10 w-full max-w-[520px] px-3 sm:px-0"
@@ -111,6 +135,10 @@
             <button id="micBtn"
               class="px-3 py-3 sm:px-4 sm:py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-md transition-colors whitespace-nowrap text-sm sm:text-base">
               🎤 Parla
+            </button>
+            <button id="emailTranscriptBtn"
+              class="px-3 py-3 sm:px-4 sm:py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md transition-colors whitespace-nowrap text-sm sm:text-base">
+              📧 Trascrizione
             </button>
           </div>
           <div :class="['mt-2 flex items-center gap-3 text-slate-300 text-xs sm:text-sm', isWebComponent && 'hidden']">
@@ -366,6 +394,13 @@ export default defineComponent({
       const conversaBtn = $id("conversaBtn");
       const loadingOverlay = $id("loadingOverlay");
       const conversaBtnContainer = $id("conversaBtnContainer");
+      const emailBtn = $id("emailTranscriptBtn");
+      const emailModal = $id("emailTranscriptModal");
+      const emailInput = $id("emailTranscriptInput");
+      const emailStatus = $id("emailTranscriptStatus");
+      const emailCancel = $id("sendTranscriptCancel");
+      const emailCancel2 = $id("sendTranscriptCancel2");
+      const emailConfirm = $id("sendTranscriptConfirm");
       const teamSlug = props.teamSlug || window.location.pathname.split("/").pop();
       const urlParams = new URLSearchParams(window.location.search);
       const uuid = urlParams.get("uuid");
@@ -1726,6 +1761,56 @@ export default defineComponent({
           input.value = "";
         }
       });
+
+      // Gestione invio trascrizione via email
+      function openEmailModal() {
+        try {
+          if (emailStatus) emailStatus.textContent = "";
+          if (emailInput) emailInput.value = "";
+          if (emailModal) emailModal.classList.remove("hidden");
+        } catch { }
+      }
+      function closeEmailModal() {
+        try {
+          if (emailModal) emailModal.classList.add("hidden");
+        } catch { }
+      }
+      async function sendTranscriptEmail() {
+        try {
+          const email = (emailInput?.value || "").trim();
+          if (!email) {
+            if (emailStatus) emailStatus.textContent = "Inserisci un'email valida.";
+            return;
+          }
+          const tid = threadId || assistantThreadId;
+          if (!tid) {
+            if (emailStatus) emailStatus.textContent = "Nessun thread disponibile.";
+            return;
+          }
+          if (emailStatus) emailStatus.textContent = "Invio in corso...";
+          const res = await fetch("/api/chatbot/email-transcript", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, thread_id: tid }),
+          });
+          const js = await res.json().catch(() => ({}));
+          if (!res.ok || js.ok !== true) {
+            if (emailStatus)
+              emailStatus.textContent = js.error || "Errore nell'invio dell'email.";
+            return;
+          }
+          if (emailStatus) emailStatus.textContent = "✓ Trascrizione inviata con successo.";
+          setTimeout(() => closeEmailModal(), 900);
+        } catch {
+          if (emailStatus) emailStatus.textContent = "Errore imprevisto durante l'invio.";
+        }
+      }
+      try {
+        emailBtn?.addEventListener("click", openEmailModal);
+        emailCancel?.addEventListener("click", closeEmailModal);
+        emailCancel2?.addEventListener("click", closeEmailModal);
+        emailConfirm?.addEventListener("click", sendTranscriptEmail);
+      } catch { }
 
       async function stopAllSpeechOutput() {
         try {
