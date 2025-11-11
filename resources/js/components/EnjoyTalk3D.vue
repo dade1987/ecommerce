@@ -2938,7 +2938,8 @@ export default defineComponent({
         ttsRequestInFlight = true;
         try {
           console.log("TTS: Requesting audio for:", next.substring(0, 80));
-          const res = await fetch("/api/tts", {
+          const webComponentOrigin = window.__ENJOY_TALK_3D_ORIGIN__ || window.location.origin;
+          const res = await fetch(`${webComponentOrigin}/api/tts`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
