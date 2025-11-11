@@ -36,7 +36,7 @@
         </div>
         <!-- Badge ascolto microfono -->
         <div id="listeningBadge"
-          class="hidden absolute top-4 right-4 bg-rose-600/90 text-white text-xs font-semibold px-2.5 py-1 rounded-md shadow animate-pulse">
+          class="hidden absolute top-4 left-4 bg-rose-600/90 text-white text-xs font-semibold px-2.5 py-1 rounded-md shadow animate-pulse">
           🎤 Ascolto...
         </div>
         <!-- Loading Overlay -->
