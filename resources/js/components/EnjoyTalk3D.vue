@@ -1847,7 +1847,8 @@ export default defineComponent({
             return;
           }
           if (emailStatus) emailStatus.textContent = "Invio in corso...";
-          const res = await fetch("/api/chatbot/email-transcript", {
+          const webComponentOrigin = window.__ENJOY_TALK_3D_ORIGIN__ || window.location.origin;
+          const res = await fetch(`${webComponentOrigin}/api/chatbot/email-transcript`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ email, thread_id: tid }),
@@ -1898,7 +1899,8 @@ export default defineComponent({
       async function loadChatHistory() {
         try {
           if (!threadId) return;
-          const res = await fetch(`/api/chatbot/history?thread_id=${encodeURIComponent(threadId)}`);
+          const webComponentOrigin = window.__ENJOY_TALK_3D_ORIGIN__ || window.location.origin;
+          const res = await fetch(`${webComponentOrigin}/api/chatbot/history?thread_id=${encodeURIComponent(threadId)}`);
           if (!res.ok) return;
           const js = await res.json().catch(() => null);
           if (!js || !Array.isArray(js.messages)) return;
