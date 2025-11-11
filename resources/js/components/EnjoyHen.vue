@@ -132,11 +132,11 @@
               class="flex-1 min-w-0 px-3 py-3 bg-slate-700 text-white border border-slate-600 rounded-lg placeholder-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 text-sm sm:text-base" />
             <button id="sendBtn"
               class="px-3 py-3 sm:px-4 sm:py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors whitespace-nowrap text-sm sm:text-base font-medium">
-              📤 Invia
+              📤
             </button>
             <button id="micBtn"
               class="px-3 py-3 sm:px-4 sm:py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-lg transition-colors whitespace-nowrap text-sm sm:text-base font-medium">
-              🎤 Parla
+              🎤
             </button>
             <button id="emailTranscriptBtnHen"
               class="px-3 py-3 sm:px-4 sm:py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors whitespace-nowrap text-sm sm:text-base font-medium">
