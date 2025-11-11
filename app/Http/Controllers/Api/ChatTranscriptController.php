@@ -12,6 +12,28 @@ use App\Notifications\ChatTranscriptNotification;
 class ChatTranscriptController extends Controller
 {
     /**
+     * Restituisce la history della chat per thread_id.
+     */
+    public function history(Request $request)
+    {
+        $threadId = (string) $request->query('thread_id', '');
+        if ($threadId === '') {
+            return response()->json(['messages' => []]);
+        }
+        $messages = Quoter::where('thread_id', $threadId)
+            ->orderBy('created_at', 'asc')
+            ->get(['role', 'content', 'created_at'])
+            ->map(function ($m) {
+                return [
+                    'role' => $m->role,
+                    'content' => (string) $m->content,
+                    'created_at' => optional($m->created_at)->toIso8601String(),
+                ];
+            })
+            ->values();
+        return response()->json(['messages' => $messages]);
+    }
+    /**
      * Invia via email la trascrizione della chat per uno specifico thread_id.
      */
     public function emailTranscript(Request $request)

@@ -16,6 +16,12 @@
           <div id="avatarStage"
             class="bg-[#111827] border border-slate-700 rounded-md overflow-hidden w-full h-auto max-h-[calc(100dvh-220px)] aspect-[3/4]">
           </div>
+          <!-- Chat Panel (solo testo) -->
+          <div id="chatPanel"
+            class="hidden bg-[#111827] border border-slate-700 rounded-md overflow-hidden w-full h-auto max-h-[calc(100dvh-220px)] aspect-[3/4] flex flex-col">
+            <div id="chatMessages" class="flex-1 overflow-auto p-3 space-y-3">
+            </div>
+          </div>
         </div>
 
         <!-- Fumetto di pensiero -->
@@ -55,6 +61,13 @@
               </div>
             </div>
           </div>
+        </div>
+        <!-- Toggle Chat Mode -->
+        <div class="absolute top-4 right-4 z-30">
+          <button id="modeToggleBtn"
+            class="px-3 py-2 bg-slate-700/80 hover:bg-slate-600 text-white text-xs rounded-md border border-slate-600 shadow">
+            💬 Modalità chat
+          </button>
         </div>
         <!-- Conversa con Me Button -->
         <div id="conversaBtnContainer"
@@ -130,11 +143,11 @@
               class="flex-1 min-w-0 px-3 py-3 bg-[#111827] text-white border border-slate-700 rounded-md placeholder-slate-400 focus:border-indigo-500 focus:outline-none text-[15px] sm:text-base" />
             <button id="sendBtn"
               class="px-3 py-3 sm:px-4 sm:py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors whitespace-nowrap text-sm sm:text-base">
-              📤 Invia
+              📤
             </button>
             <button id="micBtn"
               class="px-3 py-3 sm:px-4 sm:py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-md transition-colors whitespace-nowrap text-sm sm:text-base">
-              🎤 Parla
+              🎤
             </button>
             <button id="emailTranscriptBtn"
               class="px-3 py-3 sm:px-4 sm:py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md transition-colors whitespace-nowrap text-sm sm:text-base">
@@ -401,6 +414,9 @@ export default defineComponent({
       const emailCancel = $id("sendTranscriptCancel");
       const emailCancel2 = $id("sendTranscriptCancel2");
       const emailConfirm = $id("sendTranscriptConfirm");
+      const modeToggleBtn = $id("modeToggleBtn");
+      const chatPanel = $id("chatPanel");
+      const chatMessagesEl = $id("chatMessages");
       const teamSlug = props.teamSlug || window.location.pathname.split("/").pop();
       const urlParams = new URLSearchParams(window.location.search);
       const uuid = urlParams.get("uuid");
@@ -1251,6 +1267,10 @@ export default defineComponent({
       let speechAmp = 0;
       let speechAmpTarget = 0;
       let speechAmpTimer = null;
+      // Chat-only mode
+      let chatMode = false;
+      let chatMessagesData = [];
+      let chatStreamingIndex = -1;
       // Idle animation state
       let idleState = {
         baseSet: false,
@@ -1518,6 +1538,7 @@ export default defineComponent({
         speakQueue.forEach((item) => URL.revokeObjectURL(item.url));
         speakQueue = [];
         isSpeaking = false;
+        chatStreamingIndex = -1;
         let collected = "";
         const params = new URLSearchParams({
           message,
@@ -1536,12 +1557,14 @@ export default defineComponent({
         let sseRetryCount = 0;
         let evtSource = null;
         let sseConnectWatchdog = null;
-        if (!ttsTick) {
-          ttsTick = setInterval(() => {
-            try {
-              checkForTtsChunks();
-            } catch { }
-          }, 120);
+        if (!chatMode) {
+          if (!ttsTick) {
+            ttsTick = setInterval(() => {
+              try {
+                checkForTtsChunks();
+              } catch { }
+            }, 120);
+          }
         }
         function bindSse() {
           evtSource.addEventListener("message", (e) => {
@@ -1574,10 +1597,25 @@ export default defineComponent({
                     clearTimeout(sseConnectWatchdog);
                     sseConnectWatchdog = null;
                   }
+                  // Avvia messaggio assistente in chatMode
+                  if (chatMode && chatStreamingIndex < 0) {
+                    chatMessagesData.push({ role: "assistant", content: "" });
+                    chatStreamingIndex = chatMessagesData.length - 1;
+                  }
                 }
                 collected += data.token;
-                ttsBuffer += data.token;
-                checkForTtsChunks();
+                if (!chatMode) {
+                  ttsBuffer += data.token;
+                  checkForTtsChunks();
+                } else {
+                  // Streaming nativo Neuron → aggiorna testo in tempo reale
+                  if (chatStreamingIndex >= 0) {
+                    try {
+                      chatMessagesData[chatStreamingIndex].content += data.token;
+                      renderChatMessages();
+                    } catch { }
+                  }
+                }
               }
             } catch (msgErr) {
               console.warn("Message parse error:", msgErr);
@@ -1642,22 +1680,27 @@ export default defineComponent({
               } catch { }
               sseConnectWatchdog = null;
             }
-            if (ttsBuffer.trim().length > 0) {
-              const remainingText = stripHtml(ttsBuffer).trim();
-              if (remainingText.length > 0) {
-                console.log(
-                  "TTS: Sending remaining text:",
-                  remainingText.substring(0, 50) + "..."
-                );
-                sendToTts(remainingText);
+            if (!chatMode) {
+              if (ttsBuffer.trim().length > 0) {
+                const remainingText = stripHtml(ttsBuffer).trim();
+                if (remainingText.length > 0) {
+                  console.log(
+                    "TTS: Sending remaining text:",
+                    remainingText.substring(0, 50) + "..."
+                  );
+                  sendToTts(remainingText);
+                }
+                ttsBuffer = "";
               }
-              ttsBuffer = "";
-            }
-            if (ttsTick) {
-              try {
-                clearInterval(ttsTick);
-              } catch { }
-              ttsTick = null;
+              if (ttsTick) {
+                try {
+                  clearInterval(ttsTick);
+                } catch { }
+                ttsTick = null;
+              }
+            } else {
+              // Chat-only: stream già applicato; finalizza indice
+              chatStreamingIndex = -1;
             }
           });
         }
@@ -1729,6 +1772,14 @@ export default defineComponent({
         if (conversaBtnContainer) {
           conversaBtnContainer.classList.add("hidden");
         }
+        // In chatMode, append user message immediately
+        if (chatMode) {
+          const message = (input?.value || "").trim();
+          if (message) {
+            chatMessagesData.push({ role: "user", content: message });
+            renderChatMessages();
+          }
+        }
         try {
           if (!audioCtx)
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -1753,6 +1804,14 @@ export default defineComponent({
                 window.webkitAudioContext)();
             if (audioCtx.state === "suspended") await audioCtx.resume();
           } catch { }
+          // In chatMode, append user message immediately also on ENTER
+          if (chatMode) {
+            const message = (input?.value || "").trim();
+            if (message) {
+              chatMessagesData.push({ role: "user", content: message });
+              renderChatMessages();
+            }
+          }
           try {
             instance.proxy.startStream(input.value);
           } catch {
@@ -1810,6 +1869,75 @@ export default defineComponent({
         emailCancel?.addEventListener("click", closeEmailModal);
         emailCancel2?.addEventListener("click", closeEmailModal);
         emailConfirm?.addEventListener("click", sendTranscriptEmail);
+      } catch { }
+
+      // ===== Chat Mode handling =====
+      function renderChatMessages() {
+        try {
+          if (!chatMessagesEl) return;
+          chatMessagesEl.innerHTML = "";
+          for (const m of chatMessagesData) {
+            const row = document.createElement("div");
+            row.className = "rounded-md border border-slate-700 p-2 " + (m.role === "user" ? "bg-slate-800/70" : "bg-slate-800/40");
+            const head = document.createElement("div");
+            head.className = "text-[11px] text-slate-400 mb-1";
+            head.textContent = (m.role === "user" ? "Tu" : "Assistente");
+            const body = document.createElement("div");
+            body.className = "text-[13px] text-slate-200 whitespace-pre-wrap";
+            body.textContent = stripHtml(m.content || "");
+            row.appendChild(head);
+            row.appendChild(body);
+            chatMessagesEl.appendChild(row);
+          }
+          // Autoscroll in basso
+          try {
+            chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+          } catch { }
+        } catch { }
+      }
+      async function loadChatHistory() {
+        try {
+          if (!threadId) return;
+          const res = await fetch(`/api/chatbot/history?thread_id=${encodeURIComponent(threadId)}`);
+          if (!res.ok) return;
+          const js = await res.json().catch(() => null);
+          if (!js || !Array.isArray(js.messages)) return;
+          chatMessagesData = js.messages.map((m) => ({
+            role: m.role,
+            content: m.content || "",
+          }));
+          renderChatMessages();
+        } catch { }
+      }
+      function setModeUI() {
+        try {
+          if (chatMode) {
+            // Hide 3D stage, show chat
+            const stage = rootEl && rootEl.querySelector ? rootEl.querySelector("#avatarStage") : document.getElementById("avatarStage");
+            if (stage) stage.classList.add("hidden");
+            if (chatPanel) chatPanel.classList.remove("hidden");
+            if (modeToggleBtn) modeToggleBtn.textContent = "🕴️ Modalità avatar";
+            // Nascondi il bottone "Conversa con Me" in modalità chat
+            if (conversaBtnContainer) {
+              conversaBtnContainer.classList.add("hidden");
+            }
+            // Stop speaking/animations kick
+            try { stopAllSpeechOutput(); } catch { }
+            // Load history if possible
+            loadChatHistory();
+          } else {
+            const stage = rootEl && rootEl.querySelector ? rootEl.querySelector("#avatarStage") : document.getElementById("avatarStage");
+            if (stage) stage.classList.remove("hidden");
+            if (chatPanel) chatPanel.classList.add("hidden");
+            if (modeToggleBtn) modeToggleBtn.textContent = "💬 Modalità chat";
+          }
+        } catch { }
+      }
+      try {
+        modeToggleBtn?.addEventListener("click", () => {
+          chatMode = !chatMode;
+          setModeUI();
+        });
       } catch { }
 
       async function stopAllSpeechOutput() {

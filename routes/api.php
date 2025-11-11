@@ -142,6 +142,7 @@ Route::get('/chatbot/website-stream', [RealtimeChatWebsiteController::class, 'we
 Route::get('/chatbot/neuron-website-stream', [NeuronWebsiteStreamController::class, 'stream']);
 Route::post('/tts', [TtsController::class, 'synthesize']);
 Route::post('/chatbot/email-transcript', [ChatTranscriptController::class, 'emailTranscript']);
+Route::get('/chatbot/history', [ChatTranscriptController::class, 'history']);
 
 // Endpoint per servire immagini/risorse statiche con CORS
 Route::get('/static/{filename}', function (Request $request, $filename) {
