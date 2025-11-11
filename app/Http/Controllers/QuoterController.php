@@ -65,7 +65,7 @@ class QuoterController extends Controller
             $run = $this->client->threads()->runs()->create(
                 threadId: $threadId,
                 parameters: [
-                    'assistant_id' => 'asst_34SA8ZkwlHiiXxNufoZYddn0',
+                    'assistant_id' => config('openapi.assistant_id'),
                 ]
             );
 
@@ -106,7 +106,7 @@ class QuoterController extends Controller
         $run = $this->client->threads()->runs()->create(
             threadId: $threadId,
             parameters: [
-                'assistant_id' => 'asst_34SA8ZkwlHiiXxNufoZYddn0',
+                'assistant_id' => config('openapi.assistant_id'),
                 'instructions' => __('quoter.assistant_instructions'),
                 'tools' => [
                     [

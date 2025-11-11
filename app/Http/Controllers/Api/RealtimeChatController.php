@@ -545,7 +545,7 @@ class RealtimeChatController extends Controller
                     $run = $this->client->threads()->runs()->create(
                         threadId: $assistantThreadId,
                         parameters: [
-                            'assistant_id' => 'asst_34SA8ZkwlHiiXxNufoZYddn0',
+                            'assistant_id' => config('openapi.assistant_id'),
                             'instructions' => trans('enjoywork3d_prompts.instructions', ['locale' => $locale], $locale),
                             'model'  => 'gpt-4o',
                             'tools'  => [

@@ -85,7 +85,7 @@ class Quoter extends Component
         $run = $this->getClient()->threads()->runs()->create(
             threadId: $threadId,
             parameters: [
-                'assistant_id' => 'asst_34SA8ZkwlHiiXxNufoZYddn0',
+                'assistant_id' => config('openapi.assistant_id'),
             ]
         );
 
@@ -124,7 +124,7 @@ class Quoter extends Component
         $run = $this->getClient()->threads()->runs()->create(
             threadId: $threadId,
             parameters: [
-                'assistant_id' => 'asst_34SA8ZkwlHiiXxNufoZYddn0',
+                'assistant_id' => config('openapi.assistant_id'),
                 'instructions' => 'Devi fare il preventivo per un azienda di fotovoltaico. Ti serve che ti carico il file della bolletta e alcune informazioni aggiuntive.',
                 'tools' => [
                     [

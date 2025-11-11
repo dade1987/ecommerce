@@ -225,7 +225,7 @@ class RealtimeChatWebsiteController extends Controller
                         $run = $this->client->threads()->runs()->create(
                             threadId: $assistantThreadId,
                             parameters: [
-                                'assistant_id' => 'asst_34SA8ZkwlHiiXxNufoZYddn0',
+                                'assistant_id' => config('openapi.assistant_id'),
                                 'instructions' => $systemPrompt,
                                 'model'  => 'gpt-4o',
                                 'tools'  => [

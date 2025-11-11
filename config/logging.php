@@ -36,12 +36,6 @@ return [
         'trace' => false,
     ],
 
-    'simulation' => [
-        'driver' => 'single',
-        'path' => storage_path('logs/simulation.log'),
-        'level' => 'info',
-    ],
-
     /*
     |--------------------------------------------------------------------------
     | Log Channels
@@ -122,6 +116,19 @@ return [
             'driver' => 'errorlog',
             'level' => env('LOG_LEVEL', 'debug'),
             'replace_placeholders' => true,
+        ],
+
+        'simulation' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/simulation.log'),
+            'level' => 'info',
+        ],
+
+        'webscraper' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/webscraper.log'),
+            'level' => env('WEBSCRAPER_LOG_LEVEL', 'info'),
+            'days' => 14,
         ],
 
         'null' => [

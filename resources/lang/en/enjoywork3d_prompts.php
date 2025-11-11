@@ -23,7 +23,7 @@ For questions outside the scope, use the fallback function.
 Describe the chatbot capabilities (retrieve services information, available times, how to book, etc.). In the end, when the user decides to book, ask for the phone number to complete the order.
 TXT,
     'user_data_submitted' => 'Thanks! Your data has been recorded successfully.',
-    'fallback_message' => 'For a more specific setup for your business contact 3487433620 Giuliano',
+    'fallback_message' => 'For a more specific setup for your business contact 0000000000 Giuliano',
     'order_created_successfully' => 'Thanks! Your order has been created successfully.',
 ];
 

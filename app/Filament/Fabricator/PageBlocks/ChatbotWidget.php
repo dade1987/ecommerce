@@ -4,6 +4,7 @@ namespace App\Filament\Fabricator\PageBlocks;
 
 use Filament\Forms\Components\Builder\Block;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Select;
 use Z3d0X\FilamentFabricator\PageBlocks\PageBlock;
 
 class ChatbotWidget extends PageBlock
@@ -16,6 +17,15 @@ class ChatbotWidget extends PageBlock
                     ->label('Team Slug')
                     ->required()
                     ->helperText('Inserisci lo slug del team per collegare il chatbot corretto.'),
+                Select::make('prompt_type')
+                    ->label('Tipo di Chat')
+                    ->options([
+                        'business' => 'Chat Aziendale (prodotti, servizi, prenotazioni)',
+                        'chat_libera' => 'Chat Libera (assistente generico)',
+                    ])
+                    ->default('business')
+                    ->required()
+                    ->helperText('Seleziona il tipo di assistente da utilizzare.'),
             ]);
     }
 

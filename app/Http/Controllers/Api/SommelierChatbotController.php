@@ -89,7 +89,7 @@ class SommelierChatbotController extends Controller
         $run = $this->client->threads()->runs()->create(
             threadId: $threadId,
             parameters: [
-                'assistant_id' => 'asst_34SA8ZkwlHiiXxNufoZYddn0',
+                'assistant_id' => config('openapi.assistant_id'),
                 'instructions' => 'Se l’utente richiede informazioni su un vino, esegui la function call getWineInfo. Se chiede suggerimenti per abbinamenti cibo-vino, esegui getWinePairing. Se vuole conoscere curiosità o aneddoti sul vino, esegui getWineTrivia. Se l’utente chiede eventi, degustazioni o promozioni, esegui getWineEvents. Per domande non inerenti al contesto enologico, utilizza la function fallback con il messaggio "Per ulteriori dettagli contatta il nostro sommelier". Prima di rispondere, chiedi il nome dell’utente per personalizzare l’esperienza.',
                 'model'        => 'gpt-4o',
                 'tools'        => [

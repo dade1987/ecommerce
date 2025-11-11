@@ -13,6 +13,8 @@ use App\Models\Faq;
 use GuzzleHttp\Client;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Modules\WebScraper\Facades\WebScraper;
+use Modules\WebScraper\Services\AiAnalyzerService;
 use OpenAI;
 use OpenAI\Client as OpenAIClient;
 use function Safe\json_decode;
@@ -46,8 +48,9 @@ class ChatbotController extends Controller
         $threadId = $request->input('thread_id');
         $userInput = $request->input('message');
         $teamSlug = $request->input('team');
-        $activityUuid = $request->input('uuid');  // UUID identificativo dell’attività
+        $activityUuid = $request->input('uuid');  // UUID identificativo dell'attività
         $locale = $request->input('locale', 'it'); // Default to Italian
+        $promptType = $request->input('prompt_type', 'business'); // 'business' o 'chat_libera'
 
         // Se non viene passato un thread_id, ne crea uno nuovo
         if (! $threadId) {
@@ -112,14 +115,17 @@ class ChatbotController extends Controller
             ]);
         }
 
+        // Determina quale prompt usare in base al tipo
+        $instructionKey = $promptType === 'chat_libera' ? 'instructions_chat_libera' : 'instructions';
+
         // Crea e gestisci il run con i vari tool disponibili
         $run = $this->client->threads()->runs()->create(
             threadId: $threadId,
             parameters: [
-                'assistant_id' => 'asst_34SA8ZkwlHiiXxNufoZYddn0',
-                'instructions' => trans('chatbot_prompts.instructions', ['locale' => $locale], $locale),
+                'assistant_id' => config('openapi.assistant_id'),
+                'instructions' => trans("chatbot_prompts.{$instructionKey}", ['locale' => $locale], $locale),
                 'model'  => 'gpt-4o',
-                'tools'  => [
+                'tools'  => $promptType === 'chat_libera' ? [] : [
                     [
                         'type'     => 'function',
                         'function' => [
@@ -255,7 +261,7 @@ class ChatbotController extends Controller
                             ],
                         ],
                     ],
-                    // FUNZIONE per "Che cosa può fare l’AI per la mia attività?"
+                    // FUNZIONE per "Che cosa può fare l'AI per la mia attività?"
                     [
                         'type'     => 'function',
                         'function' => [
@@ -270,6 +276,54 @@ class ChatbotController extends Controller
                                     ]
                                 ],
                                 'required' => ['user_uuid'],
+                            ],
+                        ],
+                    ],
+                    // FUNZIONE per scraping di URL specifico con query personalizzata
+                    [
+                        'type'     => 'function',
+                        'function' => [
+                            'name'        => 'scrapeUrl',
+                            'description' => 'Recupera informazioni specifiche da un URL fornito dall\'utente. Usa questa funzione quando l\'utente chiede "Ottieni informazioni da questo url [URL]" seguito da cosa cercare.',
+                            'parameters'  => [
+                                'type'       => 'object',
+                                'properties' => [
+                                    'url' => [
+                                        'type' => 'string',
+                                        'description' => 'L\'URL completo del sito web da analizzare (es: https://example.com)',
+                                    ],
+                                    'query' => [
+                                        'type' => 'string',
+                                        'description' => 'Cosa cercare o estrarre dal sito web (es: "trova i prezzi dei prodotti", "cerca informazioni di contatto", "estrai i servizi offerti")',
+                                    ]
+                                ],
+                                'required' => ['url', 'query'],
+                            ],
+                        ],
+                    ],
+                    // FUNZIONE per ricerca multi-pagina attraverso tutto il sito
+                    [
+                        'type'     => 'function',
+                        'function' => [
+                            'name'        => 'searchSite',
+                            'description' => 'Cerca informazioni attraverso tutte le pagine di un sito web. Usa questa funzione quando l\'utente chiede "Cerca nel sito [URL] le seguenti informazioni [QUERY]". Esplora più pagine del sito per trovare informazioni complete.',
+                            'parameters'  => [
+                                'type'       => 'object',
+                                'properties' => [
+                                    'url' => [
+                                        'type' => 'string',
+                                        'description' => 'L\'URL del sito web da esplorare (homepage o URL di partenza)',
+                                    ],
+                                    'query' => [
+                                        'type' => 'string',
+                                        'description' => 'Cosa cercare attraverso le pagine del sito (es: "trova tutti i prezzi dei prodotti", "cerca informazioni sui servizi", "trova tutte le pagine di contatto")',
+                                    ],
+                                    'max_pages' => [
+                                        'type' => 'integer',
+                                        'description' => 'Numero massimo di pagine da analizzare (default: 10)',
+                                    ]
+                                ],
+                                'required' => ['url', 'query'],
                             ],
                         ],
                     ],
@@ -310,6 +364,12 @@ class ChatbotController extends Controller
                         case 'scrapeSite':
                             $output = $this->scrapeSite($activityUuid);
                             break;
+                        case 'scrapeUrl':
+                            $output = $this->scrapeUrl($arguments['url'] ?? '', $arguments['query'] ?? '');
+                            break;
+                        case 'searchSite':
+                            $output = $this->searchSite($arguments['url'] ?? '', $arguments['query'] ?? '', $arguments['max_pages'] ?? 10);
+                            break;
                         case 'fallback':
                             $output = ['message' => trans('chatbot_prompts.fallback_message', [], $locale)];
                             break;
@@ -317,7 +377,7 @@ class ChatbotController extends Controller
 
                     $toolOutputs[] = [
                         'tool_call_id' => $toolCall->id,
-                        'output'       => json_encode($output),
+                        'output'       => \json_encode($output, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_IGNORE),
                     ];
                 }
 
@@ -340,17 +400,17 @@ class ChatbotController extends Controller
         if ($run->status === 'completed') {
             $messages = $this->client->threads()->messages()->list($threadId)->data;
             $content = $messages[0]->content[0]->text->value ?? 'Nessuna risposta trovata.';
-    
+
             // Salva il messaggio del chatbot nel modello Quoter
             Quoter::create([
                 'thread_id' => $threadId,
                 'role'      => 'chatbot',
                 'content'   => $content,
             ]);
-    
+
             // Formatta il contenuto della risposta
             $formattedContent = $this->formatResponseContent($content);
-    
+
             return response()->json([
                 'message'     => $formattedContent,
                 'thread_id'   => $threadId,
@@ -695,79 +755,253 @@ class ChatbotController extends Controller
     }
 
     /**
-     * Scrape (ma estrai solo testo) + analisi con GPT su come l'AI può aiutare l'attività.
+     * Scrape website with intelligent parsing + AI analysis on how AI can help the business.
+     * Uses WebScraper module for improved content extraction.
      */
     private function scrapeSite(?string $userUuid)
     {
         Log::info('scrapeSite: Inizio recupero Customer da uuid', ['userUuid' => $userUuid]);
 
-        if (! $userUuid) {
+        if (!$userUuid) {
             return ['error' => "Nessun UUID fornito per l'utente/attività."];
         }
 
         $customer = Customer::where('uuid', $userUuid)->first();
-        if (! $customer) {
+        if (!$customer) {
             Log::warning('scrapeSite: Nessun customer trovato', ['userUuid' => $userUuid]);
-
             return ['error' => 'Nessun cliente trovato per l\'UUID fornito.'];
         }
 
-        if (! $customer->website) {
+        if (!$customer->website) {
             Log::warning('scrapeSite: Nessun sito web associato a questo customer', ['userUuid' => $userUuid]);
-
             return ['error' => 'Nessun sito web specificato per questo utente.'];
         }
 
-        // 1) Scarica il contenuto dal sito
         try {
-            $client = new \GuzzleHttp\Client();
-            $response = $client->get($customer->website);
-            $html = $response->getBody()->getContents();
-        } catch (\Exception $e) {
-            Log::error('scrapeSite: Errore nello scraping', ['error' => $e->getMessage()]);
+            // Step 1: Scrape the website with intelligent parsing
+            $scrapedData = WebScraper::scrape($customer->website);
 
-            return ['error' => 'Impossibile recuperare il contenuto del sito.'];
-        }
+            if (isset($scrapedData['error'])) {
+                Log::error('scrapeSite: Errore nello scraping', ['error' => $scrapedData['error']]);
+                return ['error' => 'Impossibile recuperare il contenuto del sito.'];
+            }
 
-        // 2) Estrai il contenuto testuale (rimuovendo i tag HTML)
-        $dom = new \DOMDocument();
-        @$dom->loadHTML($html);
-        $body = $dom->getElementsByTagName('body')->item(0);
-        $plainText = strip_tags($dom->saveHTML($body));
+            // Step 2: Perform AI analysis on the scraped content
+            $analyzer = app(AiAnalyzerService::class);
+            $analysis = $analyzer->analyzeBusinessInfo($scrapedData);
 
-        // 3) Chiamata a GPT con il testo "pulito"
-        try {
-            Log::info('scrapeSite: Invio richiesta a GPT con testo pulito.');
+            if (isset($analysis['error'])) {
+                Log::error('scrapeSite: Errore durante l\'analisi AI', ['error' => $analysis['error']]);
+                return ['error' => 'Impossibile generare un riepilogo. Errore AI.'];
+            }
 
-            $analysisResponse = $this->client->chat()->create([
-                'model'    => 'gpt-4o',
-                'messages' => [
-                    [
-                        'role'    => 'system',
-                        'content' => 'Sei un AI Assistant specializzato in consulenza aziendale, marketing e automazione dei processi.',
-                    ],
-                    [
-                        'role'    => 'user',
-                        'content' => "Ecco il testo estratto dal sito:\n\n{$plainText}\n\n".
-                                     "In base a questi contenuti, descrivi in modo conciso come l'AI può aiutare questa attività ".
-                                     'a migliorare processi, marketing, vendite o altri aspetti rilevanti.',
-                    ],
-                ],
-                'temperature' => 0.7,
+            Log::info('scrapeSite: Scraping e analisi completati', [
+                'url' => $customer->website,
+                'content_length' => strlen($scrapedData['content']['main']),
+                'tokens_used' => $analysis['usage']['total_tokens'] ?? 0,
             ]);
 
-            $aiAnalysis = $analysisResponse->choices[0]->message->content ?? 'Nessuna analisi disponibile.';
-        } catch (\Exception $e) {
-            Log::error('scrapeSite: Errore durante la chiamata GPT.', ['error' => $e->getMessage()]);
+            // Return data in the same format as before for compatibility
+            return [
+                'site_content' => $scrapedData['content']['main'],
+                'ai_analysis' => $analysis['analysis'],
+                'metadata' => $scrapedData['metadata'],
+            ];
 
-            return ['error' => 'Impossibile generare un riepilogo. Errore GPT.'];
+        } catch (\Exception $e) {
+            Log::error('scrapeSite: Errore imprevisto', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return ['error' => 'Si è verificato un errore durante l\'elaborazione.'];
+        }
+    }
+
+    /**
+     * Scrape a specific URL with custom query for targeted information extraction.
+     * Example: "Ottieni informazioni da questo url https://example.com trova i prezzi"
+     */
+    private function scrapeUrl(string $url, string $query): array
+    {
+        Log::info('scrapeUrl: Inizio scraping URL con query personalizzata', [
+            'url' => $url,
+            'query' => $query,
+        ]);
+
+        if (empty($url)) {
+            return ['error' => 'URL non fornito.'];
         }
 
-        // Restituiamo i dati della function: testo e analisi GPT
-        return [
-            'site_content' => mb_substr($plainText, 0, 4000).'...',
-            'ai_analysis'  => $aiAnalysis,
-        ];
+        if (empty($query)) {
+            return ['error' => 'Query di ricerca non fornita.'];
+        }
+
+        try {
+            // Use Intelligent Crawler for comprehensive search
+            $crawler = app(\Modules\WebScraper\Services\IntelligentCrawlerService::class);
+            $searchResults = $crawler->intelligentSearch($url, $query, 3); // max depth 3
+
+            if (empty($searchResults['results'])) {
+                Log::warning('scrapeUrl: Nessun risultato trovato', [
+                    'url' => $url,
+                    'query' => $query,
+                    'pages_visited' => $searchResults['pages_visited'] ?? 0,
+                ]);
+                return ['error' => 'Non ho trovato informazioni rilevanti per la query richiesta.'];
+            }
+
+            Log::info('scrapeUrl: Ricerca intelligente completata', [
+                'url' => $url,
+                'query' => $query,
+                'results_found' => count($searchResults['results']),
+                'pages_visited' => $searchResults['pages_visited'],
+            ]);
+
+            // Aggregate all found results
+            $aggregatedContent = '';
+            foreach ($searchResults['results'] as $result) {
+                $aggregatedContent .= "\n\n=== {$result['title']} ({$result['url']}) ===\n";
+                $aggregatedContent .= $result['content_excerpt'];
+            }
+
+            // Perform AI analysis on aggregated results
+            $analyzer = app(\Modules\WebScraper\Services\AiAnalyzerService::class);
+            $mockScrapedData = [
+                'url' => $url,
+                'content' => ['main' => $aggregatedContent],
+                'metadata' => ['title' => 'Risultati aggregati'],
+            ];
+
+            $analysis = $analyzer->extractCustomInfo($mockScrapedData, $query);
+
+            if (isset($analysis['error'])) {
+                Log::error('scrapeUrl: Errore durante l\'analisi AI', [
+                    'url' => $url,
+                    'query' => $query,
+                    'error' => $analysis['error'],
+                ]);
+                return ['error' => 'Impossibile analizzare il contenuto: ' . $analysis['error']];
+            }
+
+            Log::info('scrapeUrl: Analisi AI completata', [
+                'url' => $url,
+                'query' => $query,
+                'tokens_used' => $analysis['usage']['total_tokens'] ?? 0,
+            ]);
+
+            // Return structured data
+            return [
+                'url' => $url,
+                'query' => $query,
+                'analysis' => $analysis['analysis'],
+                'pages_found' => count($searchResults['results']),
+                'pages_visited' => $searchResults['pages_visited'],
+                'results' => $searchResults['results'],
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('scrapeUrl: Errore imprevisto', [
+                'url' => $url,
+                'query' => $query,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return ['error' => 'Si è verificato un errore durante l\'elaborazione: ' . $e->getMessage()];
+        }
+    }
+
+    /**
+     * Search through multiple pages of a website for specific information.
+     * Uses intelligent menu-guided crawling with AI assistance.
+     * Example: "Cerca nel sito https://example.com i prezzi e i servizi"
+     */
+    private function searchSite(string $url, string $query, int $maxPages = 10): array
+    {
+        Log::info('searchSite: Inizio ricerca intelligente', [
+            'url' => $url,
+            'query' => $query,
+            'max_depth' => 3,
+        ]);
+
+        if (empty($url)) {
+            return ['error' => 'URL non fornito.'];
+        }
+
+        if (empty($query)) {
+            return ['error' => 'Query di ricerca non fornita.'];
+        }
+
+        try {
+            // Use Intelligent Crawler for menu-guided search
+            $crawler = app(\Modules\WebScraper\Services\IntelligentCrawlerService::class);
+            $searchResults = $crawler->intelligentSearch($url, $query, 3); // max depth 3
+
+            if (empty($searchResults['results'])) {
+                Log::warning('searchSite: Nessun risultato trovato', ['url' => $url, 'query' => $query]);
+                return [
+                    'url' => $url,
+                    'query' => $query,
+                    'pages_visited' => $searchResults['pages_visited'],
+                    'analysis' => 'Non sono state trovate informazioni specifiche su "' . $query . '" nelle pagine visitate.',
+                ];
+            }
+
+            // Scrape each found URL to get fresh, complete content
+            $foundPages = [];
+            $aggregatedData = [];
+            $scraper = app(\Modules\WebScraper\Services\WebScraperService::class);
+
+            Log::info('searchSite: Scraping individual pages', ['urls_count' => count($searchResults['results'])]);
+
+            foreach ($searchResults['results'] as $result) {
+                $foundPages[] = [
+                    'url' => $result['url'],
+                    'title' => $result['title'],
+                    'depth' => $result['depth'],
+                ];
+
+                // Scrape the full page (will use cache if available, or fetch and cache if not)
+                // Pass query to determine if footer content is needed
+                $scrapedData = $scraper->scrape($result['url'], ['query' => $query]);
+
+                if (!isset($scrapedData['error'])) {
+                    // Add full scraped data for AI analysis
+                    $aggregatedData[] = $scrapedData;
+                }
+            }
+
+            Log::info('searchSite: Pages scraped for AI analysis', ['pages_count' => count($aggregatedData)]);
+
+            // Use AI to analyze and summarize all found results
+            $analyzer = app(AiAnalyzerService::class);
+            $analysis = $analyzer->searchMultiplePages($aggregatedData, $query);
+
+            Log::info('searchSite: Ricerca completata', [
+                'url' => $url,
+                'query' => $query,
+                'pages_visited' => $searchResults['pages_visited'],
+                'results_found' => count($searchResults['results']),
+            ]);
+
+            // Return structured data
+            return [
+                'url' => $url,
+                'query' => $query,
+                'pages_visited' => $searchResults['pages_visited'],
+                'results_found' => count($searchResults['results']),
+                'analysis' => $analysis['analysis'] ?? 'Analisi completata',
+                'found_pages' => $foundPages,
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('searchSite: Errore imprevisto', [
+                'url' => $url,
+                'query' => $query,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return ['error' => 'Si è verificato un errore durante la ricerca: ' . $e->getMessage()];
+        }
     }
 
     private function formatResponseContent($content)

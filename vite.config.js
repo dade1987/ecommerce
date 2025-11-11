@@ -16,7 +16,24 @@ export default defineConfig({
                 'app/Http/Livewire/**',
                 'app/Tables/Columns/**',
             ],
-            publicDirectory: "public_html",
+            publicDirectory: "public",
+            valetTls: false,
+            detectTls: false
         }),
     ],
+    server: {
+        host: '0.0.0.0',
+        port: 5173,
+        strictPort: true,
+        cors: true,
+        hmr: {
+            port: 5173,
+            host: 'localhost',
+            protocol: 'ws'
+        },
+        watch: {
+            usePolling: true
+        },
+        origin: 'https://avatar-3d-v1.local'
+    }
 });

@@ -50,7 +50,7 @@ class RequestTimeSlotsAction
         $run = $this->getClient()->threads()->runs()->create(
             threadId: $threadId,
             parameters: [
-                'assistant_id' => 'asst_34SA8ZkwlHiiXxNufoZYddn0',
+                'assistant_id' => config('openapi.assistant_id'),
             ]
         );
 

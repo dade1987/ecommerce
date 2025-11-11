@@ -23,6 +23,6 @@ Per domande non inerenti al contesto, utilizza la function fallback.
 Descrivi le funzionalità del chatbot (come recuperare informazioni sui servizi, gli orari disponibili, come prenotare, ecc.). Alla fine, quando l'utente decide di prenotare, chiedi il numero di telefono per completare l'ordine.
 TXT,
     'user_data_submitted' => 'Grazie! I tuoi dati sono stati registrati con successo.',
-    'fallback_message' => 'Per un setup più specifico per la tua attività contatta 3487433620 Giuliano',
+    'fallback_message' => 'Per un setup più specifico per la tua attività contatta 0000000000 Admin',
     'order_created_successfully' => 'Grazie! Il tuo ordine è stato creato con successo.',
 ];
