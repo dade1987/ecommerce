@@ -243,27 +243,74 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   async function postMessage(message) {
-    try {
-      const response = await fetch('/api/chatbot', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+    return new Promise((resolve) => {
+      try {
+        const params = new URLSearchParams({
           message,
-          thread_id: threadId,
           team: teamSlug,
-          product_ids: productIds,
-          uuid: uuid, // Passa l'UUID all'API se disponibile
           locale: locale,
-          prompt_type: currentPromptType
-        }),
-      });
-      const data = await response.json();
-      threadId = data.thread_id;
-      return data;
-    } catch (error) {
-      console.error('Errore invio messaggio:', error);
-      return { message: translations.send_error_message };
-    }
+        });
+
+        if (uuid) {
+          params.set('uuid', uuid);
+        }
+
+        if (threadId) {
+          params.set('thread_id', threadId);
+        }
+
+        const endpoint = `/api/chatbot/neuron-website-stream?${params.toString()}`;
+        const evtSource = new EventSource(endpoint);
+        let collected = '';
+        let localThreadId = threadId;
+
+        evtSource.addEventListener('message', (e) => {
+          try {
+            const data = JSON.parse(e.data);
+            if (data.token) {
+              // Il primo token può contenere il thread_id in JSON
+              try {
+                const tok = JSON.parse(data.token);
+                if (tok && tok.thread_id) {
+                  localThreadId = tok.thread_id;
+                  return;
+                }
+              } catch (err) {
+                // token è solo testo, continua sotto
+              }
+              collected += data.token;
+            }
+          } catch (err) {
+            console.warn('Errore parsing SSE message:', err);
+          }
+        });
+
+        evtSource.addEventListener('done', () => {
+          try {
+            evtSource.close();
+          } catch (e) {}
+
+          threadId = localThreadId || threadId;
+          const finalMessage = collected || translations.send_error_message;
+
+          resolve({
+            message: finalMessage,
+            thread_id: threadId,
+          });
+        });
+
+        evtSource.addEventListener('error', (e) => {
+          console.error('Errore SSE:', e);
+          try {
+            evtSource.close();
+          } catch (err) {}
+          resolve({ message: translations.send_error_message });
+        });
+      } catch (error) {
+        console.error('Errore invio messaggio:', error);
+        resolve({ message: translations.send_error_message });
+      }
+    });
   }
 });
 </script>

@@ -14,6 +14,9 @@ use App\Models\Team;
 use App\Services\EmbeddingCacheService;
 use App\Services\WebsiteScraperService;
 use Illuminate\Support\Facades\Log;
+use Modules\WebScraper\Facades\WebScraper;
+use Modules\WebScraper\Services\AiAnalyzerService;
+use Modules\WebScraper\Services\SearchResultCacheService;
 use NeuronAI\Agent;
 use NeuronAI\Providers\AIProviderInterface;
 use NeuronAI\Providers\OpenAI\OpenAI;
@@ -129,6 +132,9 @@ class WebsiteAssistantAgent extends Agent
             $this->createSubmitUserDataTool(),
             $this->createGetFAQsTool(),
             $this->createFallbackTool(),
+            $this->createScrapeSiteTool(),
+            $this->createScrapeUrlTool(),
+            $this->createSearchSiteTool(),
         ];
 
         Log::debug('WebsiteAssistantAgent.tools', [
@@ -280,6 +286,97 @@ class WebsiteAssistantAgent extends Agent
             ->setCallable(fn () => [
                 'message' => trans('enjoywork3d_prompts.fallback_message', [], $this->locale ?? 'it')
             ]);
+    }
+
+    private function createScrapeSiteTool(): Tool
+    {
+        return Tool::make(
+            name: 'scrapeSite',
+            description: "Recupera il contenuto del sito web del cliente per rispondere a domande sull'attività."
+        )
+            ->addProperty(
+                ToolProperty::make(
+                    name: 'user_uuid',
+                    type: PropertyType::STRING,
+                    description: "UUID che identifica univocamente l'attività del cliente.",
+                    required: true
+                )
+            )
+            ->setCallable(fn (string $user_uuid) => $this->scrapeSite($user_uuid));
+    }
+
+    private function createScrapeUrlTool(): Tool
+    {
+        return Tool::make(
+            name: 'scrapeUrl',
+            description: "Estrae TUTTE le informazioni da una SINGOLA pagina web specifica.\n"
+                . "Usa SEMPRE questa funzione quando:\n"
+                . "- L'utente fornisce un URL specifico di una pagina prodotto (es: Amazon, eBay, e-commerce con /dp/, /product/, /item/)\n"
+                . "- L'URL NON è una homepage ma una pagina interna specifica\n"
+                . "- L'utente chiede \"caratteristiche\", \"dettagli\", \"specifiche\", \"descrizione\" di UN prodotto/articolo specifico\n"
+                . "Questa funzione analizza in profondità UNA SOLA pagina ed estrae tutto il suo contenuto."
+        )
+            ->addProperty(
+                ToolProperty::make(
+                    name: 'url',
+                    type: PropertyType::STRING,
+                    description: "L'URL completo della pagina specifica da analizzare (es: https://www.amazon.it/prodotto/dp/B07MW4D7LG/)",
+                    required: true
+                )
+            )
+            ->addProperty(
+                ToolProperty::make(
+                    name: 'query',
+                    type: PropertyType::STRING,
+                    description: "Cosa estrarre dalla pagina (es: \"tutte le caratteristiche del prodotto\", \"prezzo e descrizione\", \"specifiche tecniche\")",
+                    required: true
+                )
+            )
+            ->setCallable(fn (string $url, string $query) => $this->scrapeUrl($url, $query));
+    }
+
+    private function createSearchSiteTool(): Tool
+    {
+        return Tool::make(
+            name: 'searchSite',
+            description: "Cerca informazioni attraverso MULTIPLE pagine di un sito web.\n"
+                . "Usa questa funzione quando:\n"
+                . "- L'utente fornisce ESPLICITAMENTE un URL specifico (es: \"cerca nel sito https://example.com\", \"trova servizi su https://isofin.it\")\n"
+                . "- L'utente dice \"cerca nel sito web [URL]\" - usa SEMPRE quell'URL esatto, NON il sito del consumer corrente\n"
+                . "- L'utente chiede di cercare qualcosa in \"tutto il sito\", \"nelle pagine del sito\"\n"
+                . "- Serve esplorare più pagine per trovare informazioni distribuite\n\n"
+                . "IMPORTANTE: Se l'utente specifica un URL esplicito nel prompt, usa SEMPRE quell'URL nel parametro \"url\", NON usare il sito del consumer corrente.\n"
+                . "ESEMPI:\n"
+                . "- \"cerca nel sito https://isofin.it i servizi\" → usa url=\"https://isofin.it\"\n"
+                . "- \"trova prodotti su https://example.com\" → usa url=\"https://example.com\"\n"
+                . "- \"cerca informazioni nel mio sito\" → NON usare questa funzione, usa scrapeSite invece\n\n"
+                . "NON usare per singole pagine prodotto o URL specifici di una pagina."
+        )
+            ->addProperty(
+                ToolProperty::make(
+                    name: 'url',
+                    type: PropertyType::STRING,
+                    description: "L'URL del sito web da esplorare (homepage o URL di partenza)",
+                    required: true
+                )
+            )
+            ->addProperty(
+                ToolProperty::make(
+                    name: 'query',
+                    type: PropertyType::STRING,
+                    description: "Cosa cercare attraverso le pagine del sito (es: \"trova tutti i prezzi dei prodotti\", \"cerca informazioni sui servizi\", \"trova tutte le pagine di contatto\")",
+                    required: true
+                )
+            )
+            ->addProperty(
+                ToolProperty::make(
+                    name: 'max_pages',
+                    type: PropertyType::INTEGER,
+                    description: "Numero massimo di pagine da analizzare (default: 10)",
+                    required: true
+                )
+            )
+            ->setCallable(fn (string $url, string $query, int $max_pages = 10) => $this->searchSite($url, $query, $max_pages));
     }
 
     // ====== Helper Methods ======
@@ -560,6 +657,402 @@ class WebsiteAssistantAgent extends Agent
                 ->get(['question', 'answer'])
                 ->toArray();
         }
+    }
+
+    /**
+     * Scrape website with intelligent parsing + AI analysis on how AI can help the business.
+     * Usa il modulo WebScraper per estrarre e analizzare il contenuto del sito.
+     */
+    private function scrapeSite(?string $userUuid): array
+    {
+        Log::info('WebsiteAssistantAgent.scrapeSite: Inizio recupero Customer da uuid', ['userUuid' => $userUuid]);
+
+        if (!$userUuid) {
+            return ['error' => "Nessun UUID fornito per l'utente/attività."];
+        }
+
+        $customer = Customer::where('uuid', $userUuid)->first();
+        if (!$customer) {
+            Log::warning('WebsiteAssistantAgent.scrapeSite: Nessun customer trovato', ['userUuid' => $userUuid]);
+            return ['error' => 'Nessun cliente trovato per l\'UUID fornito.'];
+        }
+
+        if (!$customer->website) {
+            Log::warning('WebsiteAssistantAgent.scrapeSite: Nessun sito web associato a questo customer', ['userUuid' => $userUuid]);
+            return ['error' => 'Nessun sito web specificato per questo utente.'];
+        }
+
+        try {
+            $scrapedData = WebScraper::scrape($customer->website);
+
+            if (isset($scrapedData['error'])) {
+                Log::error('WebsiteAssistantAgent.scrapeSite: Errore nello scraping', ['error' => $scrapedData['error']]);
+                return ['error' => 'Impossibile recuperare il contenuto del sito.'];
+            }
+
+            $analyzer = app(AiAnalyzerService::class);
+            $analysis = $analyzer->analyzeBusinessInfo($scrapedData);
+
+            if (isset($analysis['error'])) {
+                Log::error('WebsiteAssistantAgent.scrapeSite: Errore durante l\'analisi AI', ['error' => $analysis['error']]);
+                return ['error' => 'Impossibile generare un riepilogo. Errore AI.'];
+            }
+
+            Log::info('WebsiteAssistantAgent.scrapeSite: Scraping e analisi completati', [
+                'url' => $customer->website,
+                'content_length' => strlen($scrapedData['content']['main']),
+                'tokens_used' => $analysis['usage']['total_tokens'] ?? 0,
+            ]);
+
+            return [
+                'site_content' => $scrapedData['content']['main'],
+                'ai_analysis' => $analysis['analysis'],
+                'metadata' => $scrapedData['metadata'],
+            ];
+        } catch (\Throwable $e) {
+            Log::error('WebsiteAssistantAgent.scrapeSite: Errore imprevisto', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return ['error' => 'Si è verificato un errore durante l\'elaborazione.'];
+        }
+    }
+
+    /**
+     * Scrape a specific URL with custom query for targeted information extraction.
+     */
+    private function scrapeUrl(string $url, string $query): array
+    {
+        Log::info('WebsiteAssistantAgent.scrapeUrl: Inizio scraping URL con query personalizzata', [
+            'url' => $url,
+            'query' => $query,
+        ]);
+
+        if (empty($url)) {
+            return ['error' => 'URL non fornito.'];
+        }
+
+        if (empty($query)) {
+            return ['error' => 'Query di ricerca non fornita.'];
+        }
+
+        try {
+            $isProductPage = $this->isProductPage($url);
+
+            if ($isProductPage) {
+                Log::info('WebsiteAssistantAgent.scrapeUrl: Detected product page, scraping entire content', ['url' => $url]);
+
+                $scraper = app(\Modules\WebScraper\Services\WebScraperService::class);
+                $scrapedData = $scraper->scrape($url, ['query' => $query]);
+
+                if (isset($scrapedData['error'])) {
+                    return ['error' => $scrapedData['error']];
+                }
+
+                $analyzer = app(AiAnalyzerService::class);
+                $analysis = $analyzer->extractCustomInfo($scrapedData, $query);
+
+                if (isset($analysis['error'])) {
+                    Log::error('WebsiteAssistantAgent.scrapeUrl: Errore durante l\'analisi AI', [
+                        'url' => $url,
+                        'query' => $query,
+                        'error' => $analysis['error'],
+                    ]);
+                    return ['error' => 'Impossibile analizzare il contenuto: ' . $analysis['error']];
+                }
+
+                Log::info('WebsiteAssistantAgent.scrapeUrl: Analisi AI completata (product page)', [
+                    'url' => $url,
+                    'query' => $query,
+                    'tokens_used' => $analysis['usage']['total_tokens'] ?? 0,
+                ]);
+
+                return [
+                    'url' => $url,
+                    'query' => $query,
+                    'analysis' => $analysis['analysis'],
+                    'pages_found' => 1,
+                    'pages_visited' => 1,
+                    'results' => [
+                        [
+                            'url' => $url,
+                            'title' => $scrapedData['metadata']['title'] ?? 'Product Page',
+                            'relevance' => 1.0,
+                        ],
+                    ],
+                ];
+            }
+
+            Log::info('WebsiteAssistantAgent.scrapeUrl: Using intelligent search with caching', ['url' => $url, 'query' => $query]);
+
+            $cacheService = app(SearchResultCacheService::class);
+            $cachedResults = $cacheService->getCachedOrSearch($url, $query, 3);
+            $resultsCount = is_array($cachedResults['results']) ? count($cachedResults['results']) : $cachedResults['results'];
+
+            if ($cachedResults['from_cache'] ?? false) {
+                Log::info('WebsiteAssistantAgent.scrapeUrl: Returning cached results', [
+                    'url' => $url,
+                    'query' => $query,
+                    'results_count' => $resultsCount,
+                    'cached_at' => $cachedResults['cached_at'] ?? null,
+                ]);
+
+                if (isset($cachedResults['reformulated_summary'])) {
+                    return [
+                        'url' => $url,
+                        'query' => $query,
+                        'analysis' => $cachedResults['reformulated_summary'],
+                        'pages_found' => $resultsCount,
+                        'pages_visited' => $cachedResults['pages_visited'],
+                        'results' => $cachedResults['results'],
+                        'from_cache' => true,
+                        'cached_at' => $cachedResults['cached_at'],
+                    ];
+                }
+            }
+
+            $searchResults = [
+                'results' => $cachedResults['results'],
+                'pages_visited' => $cachedResults['pages_visited'],
+                'query' => $cachedResults['query'],
+            ];
+
+            if (empty($searchResults['results'])) {
+                Log::warning('WebsiteAssistantAgent.scrapeUrl: Nessun risultato trovato', [
+                    'url' => $url,
+                    'query' => $query,
+                    'pages_visited' => $searchResults['pages_visited'] ?? 0,
+                ]);
+                return ['error' => 'Non ho trovato informazioni rilevanti per la query richiesta.'];
+            }
+
+            Log::info('WebsiteAssistantAgent.scrapeUrl: Ricerca intelligente completata', [
+                'url' => $url,
+                'query' => $query,
+                'results_found' => $resultsCount,
+                'pages_visited' => $searchResults['pages_visited'],
+            ]);
+
+            $aggregatedContent = '';
+            foreach ($searchResults['results'] as $result) {
+                $aggregatedContent .= "\n\n=== {$result['title']} ({$result['url']}) ===\n";
+                $aggregatedContent .= $result['content_excerpt'];
+            }
+
+            $analyzer = app(AiAnalyzerService::class);
+            $mockScrapedData = [
+                'url' => $url,
+                'content' => ['main' => $aggregatedContent],
+                'metadata' => ['title' => 'Risultati aggregati'],
+            ];
+
+            $analysis = $analyzer->extractCustomInfo($mockScrapedData, $query);
+
+            if (isset($analysis['error'])) {
+                Log::error('WebsiteAssistantAgent.scrapeUrl: Errore durante l\'analisi AI', [
+                    'url' => $url,
+                    'query' => $query,
+                    'error' => $analysis['error'],
+                ]);
+                return ['error' => 'Impossibile analizzare il contenuto: ' . $analysis['error']];
+            }
+
+            Log::info('WebsiteAssistantAgent.scrapeUrl: Analisi AI completata', [
+                'url' => $url,
+                'query' => $query,
+                'tokens_used' => $analysis['usage']['total_tokens'] ?? 0,
+            ]);
+
+            return [
+                'url' => $url,
+                'query' => $query,
+                'analysis' => $analysis['analysis'],
+                'pages_found' => $resultsCount,
+                'pages_visited' => $searchResults['pages_visited'],
+                'results' => $searchResults['results'],
+            ];
+        } catch (\Throwable $e) {
+            Log::error('WebsiteAssistantAgent.scrapeUrl: Errore imprevisto', [
+                'url' => $url,
+                'query' => $query,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return ['error' => 'Si è verificato un errore durante l\'elaborazione: ' . $e->getMessage()];
+        }
+    }
+
+    /**
+     * Search through multiple pages of a website for specific information.
+     * Usa ricerca intelligente multi-pagina con caching.
+     */
+    private function searchSite(string $url, string $query, int $maxPages = 10): array
+    {
+        Log::info('WebsiteAssistantAgent.searchSite: Inizio ricerca intelligente con caching', [
+            'url' => $url,
+            'query' => $query,
+            'max_depth' => 3,
+        ]);
+
+        if (empty($url)) {
+            return ['error' => 'URL non fornito.'];
+        }
+
+        if (empty($query)) {
+            return ['error' => 'Query di ricerca non fornita.'];
+        }
+
+        try {
+            $cacheService = app(SearchResultCacheService::class);
+            $cachedResults = $cacheService->getCachedOrSearch($url, $query, 3);
+
+            $resultsCount = is_array($cachedResults['results']) ? count($cachedResults['results']) : $cachedResults['results'];
+
+            if ($cachedResults['from_cache'] ?? false) {
+                Log::info('WebsiteAssistantAgent.searchSite: Returning cached results', [
+                    'url' => $url,
+                    'query' => $query,
+                    'results_count' => $resultsCount,
+                    'cached_at' => $cachedResults['cached_at'] ?? null,
+                ]);
+
+                if (isset($cachedResults['reformulated_summary'])) {
+                    return [
+                        'url' => $url,
+                        'query' => $query,
+                        'pages_visited' => $cachedResults['pages_visited'],
+                        'results_found' => $resultsCount,
+                        'analysis' => $cachedResults['reformulated_summary'],
+                        'from_cache' => true,
+                        'cached_at' => $cachedResults['cached_at'],
+                    ];
+                }
+
+                $foundPages = [];
+                foreach ($cachedResults['results'] as $result) {
+                    $foundPages[] = [
+                        'url' => $result['url'],
+                        'title' => $result['title'],
+                    ];
+                }
+
+                return [
+                    'url' => $url,
+                    'query' => $query,
+                    'pages_visited' => $cachedResults['pages_visited'],
+                    'results_found' => $resultsCount,
+                    'analysis' => 'Risultati trovati: ' . implode(', ', array_column($foundPages, 'title')),
+                    'found_pages' => $foundPages,
+                    'from_cache' => true,
+                ];
+            }
+
+            $searchResults = $cachedResults;
+
+            if (empty($searchResults['results'])) {
+                Log::warning('WebsiteAssistantAgent.searchSite: Nessun risultato trovato', ['url' => $url, 'query' => $query]);
+                return [
+                    'url' => $url,
+                    'query' => $query,
+                    'pages_visited' => $searchResults['pages_visited'],
+                    'analysis' => 'Non sono state trovate informazioni specifiche su "' . $query . '" nelle pagine visitate.',
+                ];
+            }
+
+            $foundPages = [];
+            $aggregatedData = [];
+            $scraper = app(\Modules\WebScraper\Services\WebScraperService::class);
+
+            Log::info('WebsiteAssistantAgent.searchSite: Scraping individual pages', ['urls_count' => count($searchResults['results'])]);
+
+            foreach ($searchResults['results'] as $result) {
+                $foundPages[] = [
+                    'url' => $result['url'],
+                    'title' => $result['title'],
+                    'depth' => $result['depth'] ?? 0,
+                ];
+
+                $scrapedData = $scraper->scrape($result['url'], ['query' => $query]);
+
+                if (!isset($scrapedData['error'])) {
+                    $aggregatedData[] = $scrapedData;
+                }
+            }
+
+            Log::info('WebsiteAssistantAgent.searchSite: Pages scraped for AI analysis', ['pages_count' => count($aggregatedData)]);
+
+            $analyzer = app(AiAnalyzerService::class);
+            $analysis = $analyzer->searchMultiplePages($aggregatedData, $query);
+            $aiAnalysisText = $analysis['analysis'] ?? 'Analisi completata';
+
+            Log::info('WebsiteAssistantAgent.searchSite: Ricerca completata', [
+                'url' => $url,
+                'query' => $query,
+                'pages_visited' => $searchResults['pages_visited'],
+                'results_found' => count($searchResults['results']),
+            ]);
+
+            $cacheService->cacheResults(
+                $url,
+                $query,
+                $searchResults['results'],
+                $searchResults['pages_visited'],
+                $aiAnalysisText
+            );
+
+            return [
+                'url' => $url,
+                'query' => $query,
+                'pages_visited' => $searchResults['pages_visited'],
+                'results_found' => count($searchResults['results']),
+                'analysis' => $aiAnalysisText,
+                'found_pages' => $foundPages,
+                'from_cache' => false,
+            ];
+        } catch (\Throwable $e) {
+            Log::error('WebsiteAssistantAgent.searchSite: Errore imprevisto', [
+                'url' => $url,
+                'query' => $query,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return ['error' => 'Si è verificato un errore durante la ricerca: ' . $e->getMessage()];
+        }
+    }
+
+    /**
+     * Detect if a URL is a specific product page (Amazon, eBay, Shopify, etc.)
+     */
+    private function isProductPage(string $url): bool
+    {
+        $productPatterns = [
+            '/amazon\.[a-z.]+\/(dp|product|gp\/product)\/[A-Z0-9]{10}/i',
+            '/ebay\.[a-z.]+\/itm\//i',
+            '/\/products\/[^\/]+\/?$/i',
+            '/\/(item|prodotto|articolo|product)\/[^\/]+/i',
+            '/\/product\/[^\/]+\/?$/i',
+            '/\/[a-z0-9-]+\.html$/i',
+        ];
+
+        foreach ($productPatterns as $pattern) {
+            if (preg_match($pattern, $url)) {
+                return true;
+            }
+        }
+
+        $nonProductPatterns = [
+            '/^https?:\/\/[^\/]+\/?$/i',
+            '/^https?:\/\/[^\/]+\/index\.(html|php)$/i',
+            '/\/(category|categories|collection|collections|c)\//i',
+        ];
+
+        foreach ($nonProductPatterns as $pattern) {
+            if (preg_match($pattern, $url)) {
+                return false;
+            }
+        }
+
+        return false;
     }
 
     private function tryEmbeddingSimilarity(string $textA, string $textB): ?float
