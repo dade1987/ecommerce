@@ -26,3 +26,7 @@ Homestead.json
 sitemap.xml
 public_html/images/animation-library-master/*
 storage/webscraper/webscraper.sqlite
+
+# SSL Certificates
+/docker-dev/certs/*.pem
+/docker-dev/certs/*.key
