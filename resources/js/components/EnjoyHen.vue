@@ -18,6 +18,31 @@
           <video id="heygenVideo" class="w-full h-auto rounded-lg" autoplay playsinline controls>
           </video>
 
+          <!-- Modal Trascrizione Email -->
+          <div id="emailTranscriptModalHen"
+            class="hidden absolute inset-0 flex items-center justify-center z-30 rounded-lg bg-black/60 backdrop-blur-sm">
+            <div
+              class="w-full max-w-lg mx-4 bg-[#0b1220] border border-slate-700 rounded-xl shadow-2xl overflow-hidden">
+              <div class="px-4 py-3 border-b border-slate-700 bg-black/50 flex items-center justify-between">
+                <div class="text-slate-100 font-semibold text-base">Invia trascrizione via email</div>
+                <button id="sendTranscriptCancelHen"
+                  class="text-slate-300 hover:text-white px-2 py-1 rounded-md hover:bg-slate-700/60">✕</button>
+              </div>
+              <div class="p-4 space-y-3">
+                <label class="block text-slate-300 text-sm">Indirizzo email destinatario</label>
+                <input id="emailTranscriptInputHen" type="email" placeholder="nome@esempio.com"
+                  class="w-full px-3 py-2 bg-[#111827] text-white border border-slate-700 rounded-md placeholder-slate-400 focus:border-indigo-500 focus:outline-none" />
+                <div id="emailTranscriptStatusHen" class="text-xs text-slate-400 min-h-[1rem]"></div>
+              </div>
+              <div class="px-4 py-3 border-t border-slate-700 bg-black/50 flex items-center justify-end gap-2">
+                <button id="sendTranscriptCancel2Hen"
+                  class="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-md transition-colors text-sm">Annulla</button>
+                <button id="sendTranscriptConfirmHen"
+                  class="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors text-sm font-semibold">Invia</button>
+              </div>
+            </div>
+          </div>
+
           <!-- Fumetto di pensiero -->
           <div id="thinkingBubble"
             class="hidden absolute top-4 left-1/2 transform -translate-x-1/2 bg-white rounded-lg px-4 py-2 shadow-lg border border-gray-300 z-10">
@@ -107,11 +132,15 @@
               class="flex-1 min-w-0 px-3 py-3 bg-slate-700 text-white border border-slate-600 rounded-lg placeholder-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 text-sm sm:text-base" />
             <button id="sendBtn"
               class="px-3 py-3 sm:px-4 sm:py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors whitespace-nowrap text-sm sm:text-base font-medium">
-              📤 Invia
+              📤
             </button>
             <button id="micBtn"
               class="px-3 py-3 sm:px-4 sm:py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-lg transition-colors whitespace-nowrap text-sm sm:text-base font-medium">
-              🎤 Parla
+              🎤
+            </button>
+            <button id="emailTranscriptBtnHen"
+              class="px-3 py-3 sm:px-4 sm:py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors whitespace-nowrap text-sm sm:text-base font-medium">
+              📧 Trascrizione
             </button>
           </div>
 
@@ -231,6 +260,13 @@ export default defineComponent({
       this.debugCloseBtn = $("debugClose");
       this.debugClearBtn = $("debugClear");
       this.debugCopyBtn = $("debugCopy");
+      this.emailTranscriptBtnHen = $("emailTranscriptBtnHen");
+      this.emailTranscriptModalHen = $("emailTranscriptModalHen");
+      this.emailTranscriptInputHen = $("emailTranscriptInputHen");
+      this.emailTranscriptStatusHen = $("emailTranscriptStatusHen");
+      this.emailTranscriptCancelHen = $("sendTranscriptCancelHen");
+      this.emailTranscriptCancel2Hen = $("sendTranscriptCancel2Hen");
+      this.emailTranscriptConfirmHen = $("sendTranscriptConfirmHen");
 
       console.log("[EnjoyHen] initComponent() DOM elements found:", {
         heygenVideo: !!this.heygenVideo,
@@ -299,6 +335,51 @@ export default defineComponent({
       this.setupEventListeners();
       this.showStartChatButton();
       console.log("[EnjoyHen] initComponent() complete");
+    },
+
+    openTranscriptModal() {
+      try {
+        if (this.emailTranscriptStatusHen) this.emailTranscriptStatusHen.textContent = "";
+        if (this.emailTranscriptInputHen) this.emailTranscriptInputHen.value = "";
+        if (this.emailTranscriptModalHen) this.emailTranscriptModalHen.classList.remove("hidden");
+      } catch { }
+    },
+
+    closeTranscriptModal() {
+      try {
+        if (this.emailTranscriptModalHen) this.emailTranscriptModalHen.classList.add("hidden");
+      } catch { }
+    },
+
+    async sendTranscriptEmail() {
+      try {
+        const email = (this.emailTranscriptInputHen?.value || "").trim();
+        if (!email) {
+          if (this.emailTranscriptStatusHen) this.emailTranscriptStatusHen.textContent = "Inserisci un'email valida.";
+          return;
+        }
+        const tid = this.threadId;
+        if (!tid) {
+          if (this.emailTranscriptStatusHen) this.emailTranscriptStatusHen.textContent = "Nessun thread disponibile.";
+          return;
+        }
+        if (this.emailTranscriptStatusHen) this.emailTranscriptStatusHen.textContent = "Invio in corso...";
+        const res = await fetch("/api/chatbot/email-transcript", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, thread_id: tid }),
+        });
+        const js = await res.json().catch(() => ({}));
+        if (!res.ok || js.ok !== true) {
+          if (this.emailTranscriptStatusHen)
+            this.emailTranscriptStatusHen.textContent = js.error || "Errore nell'invio dell'email.";
+          return;
+        }
+        if (this.emailTranscriptStatusHen) this.emailTranscriptStatusHen.textContent = "✓ Trascrizione inviata con successo.";
+        setTimeout(() => this.closeTranscriptModal(), 900);
+      } catch {
+        if (this.emailTranscriptStatusHen) this.emailTranscriptStatusHen.textContent = "Errore imprevisto durante l'invio.";
+      }
     },
 
     initDebugOverlay(debugEnabled) {
@@ -475,6 +556,18 @@ export default defineComponent({
           console.log("[EnjoyHen] START CHAT button clicked");
           this.startChat();
         });
+      }
+      if (this.emailTranscriptBtnHen) {
+        this.emailTranscriptBtnHen.addEventListener("click", () => this.openTranscriptModal());
+      }
+      if (this.emailTranscriptCancelHen) {
+        this.emailTranscriptCancelHen.addEventListener("click", () => this.closeTranscriptModal());
+      }
+      if (this.emailTranscriptCancel2Hen) {
+        this.emailTranscriptCancel2Hen.addEventListener("click", () => this.closeTranscriptModal());
+      }
+      if (this.emailTranscriptConfirmHen) {
+        this.emailTranscriptConfirmHen.addEventListener("click", () => this.sendTranscriptEmail());
       }
     },
 
