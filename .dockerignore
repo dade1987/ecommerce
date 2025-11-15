@@ -1,0 +1,57 @@
+# Docker files and folders
+docker-dev/
+docker-compose.yml
+Dockerfile
+Dockerfile-php
+
+# Node modules
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Laravel specific
+/vendor/
+/storage/*.key
+/storage/logs/*.log
+/storage/framework/cache/*
+/storage/framework/sessions/*
+/storage/framework/testing/*
+/storage/framework/views/*
+.env
+.env.backup
+.env.production
+.phpunit.result.cache
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Build artifacts
+/public/hot
+/public/storage
+/public/build
+/public/css
+/public/js
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+
+# Documentation
+README.md
+CHANGELOG.md
+docs/
+
+# Tests
+tests/
+phpunit.xml
+.phpunit.cache

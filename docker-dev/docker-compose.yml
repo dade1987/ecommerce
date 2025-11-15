@@ -1,0 +1,74 @@
+services:
+  nginx:
+    build: .
+    container_name: nginx_avatar-3d-v1-dev
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ../:/var/www/html  # Cartella ecommerce (parent dir)
+      - ./certs:/etc/ssl/certs     # Cartella per i certificati SSL
+      - ./nginx.conf:/etc/nginx/nginx.conf # Configurazione di Nginx
+    networks:
+      - avatar-3d-v1
+    depends_on:
+      - php
+      - db
+
+  php:
+    build:
+      context: .
+      dockerfile: Dockerfile-php
+    container_name: php_fpm_avatar-3d-v1-dev
+    ports:
+      - "5173:5173"
+    volumes:
+      - ../:/var/www/html
+    networks:
+      - avatar-3d-v1
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+    command: sh -c "php-fpm -D && cd /var/www/html && npm install && npm run dev -- --host 0.0.0.0"
+
+  db:
+    image: mysql:latest
+    container_name: mysql_db_avatar-3d-v1-dev
+    environment:
+      MYSQL_ROOT_PASSWORD: password_root
+      MYSQL_DATABASE: avatar-3d-v1
+      MYSQL_USER: avatar-3d-v1
+      MYSQL_PASSWORD: password
+    volumes:
+      - db_data_avatar-3d-v1:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    networks:
+      - avatar-3d-v1
+
+  memcached:
+    image: memcached:latest
+    container_name: memcached_avatar-3d-v1-dev
+    ports:
+      - "11211:11211"
+    networks:
+      - avatar-3d-v1
+
+  phpmyadmin:
+    image: phpmyadmin
+    container_name: phpmyadmin_avatar-3d-v1-dev
+    depends_on:
+      - db
+    ports:
+      - "8080:80"
+    environment:
+      PMA_HOST: db
+      UPLOAD_LIMIT: 1024M
+    networks:
+      - avatar-3d-v1
+
+networks:
+  avatar-3d-v1:
+    driver: bridge
+
+volumes:
+  db_data_avatar-3d-v1:
