@@ -84,13 +84,7 @@ class IntelligentCrawlerService
         }
 
         // STRATEGY 3: Menu-guided recursive crawling
-        // First, ALWAYS scrape the homepage to check footer and main content
-        Log::channel('webscraper')->info('IntelligentCrawler: STRATEGY 3 - Analyzing homepage');
-        if (!in_array($startUrl, $this->visitedUrls)) {
-            $this->scrapeSinglePage($startUrl, $query, 0, 'homepage');
-        }
-
-        // Then proceed with menu-guided crawling
+        // The searchRecursive function will handle the homepage scraping AND menu extraction
         Log::channel('webscraper')->info('IntelligentCrawler: STRATEGY 3 - Menu-guided crawling');
         $this->searchRecursive($startUrl, $query, 0, $maxDepth);
 
@@ -314,20 +308,111 @@ class IntelligentCrawlerService
     }
 
     /**
-     * Search for query keywords in menu items (PHP-level)
+     * Get Italian synonym dictionary for common business terms
+     */
+    protected function getItalianSynonyms(): array
+    {
+        return [
+            // Services / Solutions
+            'servizi' => ['servizio', 'service', 'soluzioni', 'soluzione', 'solution', 'attività', 'attivita', 'prestazioni', 'prestazione', 'offerte', 'offerta', 'cosa facciamo', 'facciamo'],
+            'soluzioni' => ['soluzione', 'solution', 'servizi', 'servizio', 'service', 'attività', 'attivita', 'prestazioni'],
+
+            // Products
+            'prodotti' => ['prodotto', 'product', 'products', 'articoli', 'articolo', 'items', 'catalogo', 'gamma'],
+            'catalogo' => ['prodotti', 'prodotto', 'products', 'articoli', 'gamma', 'listino'],
+
+            // Contacts
+            'contatti' => ['contatto', 'contact', 'contacts', 'indirizzo', 'telefono', 'email', 'dove siamo', 'dove', 'scrivici', 'chiamaci', 'ubicazione', 'location', 'sede', 'recapiti'],
+            'indirizzo' => ['contatti', 'dove siamo', 'dove', 'ubicazione', 'location', 'sede', 'dove trovarci'],
+
+            // About
+            'chi siamo' => ['chi', 'about', 'azienda', 'storia', 'mission', 'valori', 'team', 'noi', 'profilo'],
+            'azienda' => ['chi siamo', 'about', 'storia', 'profilo', 'chi', 'la nostra azienda'],
+
+            // Portfolio / Projects / Realizations
+            'portfolio' => ['progetti', 'progetto', 'projects', 'lavori', 'realizzazioni', 'realizzazione', 'casi studio', 'case study'],
+            'progetti' => ['progetto', 'portfolio', 'lavori', 'realizzazioni', 'projects', 'casi studio'],
+            'realizzazioni' => ['realizzazione', 'progetti', 'portfolio', 'lavori', 'projects', 'opere'],
+
+            // News / Blog
+            'news' => ['notizie', 'novita', 'blog', 'articoli', 'aggiornamenti', 'comunicati'],
+            'blog' => ['articoli', 'news', 'notizie', 'post', 'novita'],
+
+            // Support / Help / Guide
+            'supporto' => ['assistenza', 'aiuto', 'help', 'support', 'faq', 'guide', 'guida'],
+            'guide' => ['guida', 'tutorial', 'istruzioni', 'manuali', 'how to', 'come fare'],
+            'assistenza' => ['supporto', 'aiuto', 'help', 'support', 'servizio clienti'],
+
+            // Work / Career
+            'lavora con noi' => ['lavora', 'career', 'carriere', 'lavoro', 'opportunita', 'posizioni', 'candidature', 'assunzioni', 'recruiting'],
+            'carriere' => ['lavora con noi', 'lavoro', 'opportunita', 'career', 'posizioni'],
+
+            // Method / Approach
+            'metodo' => ['approccio', 'metodologia', 'come lavoriamo', 'processo', 'procedura', 'sistema'],
+
+            // Prices / Quotes
+            'prezzi' => ['prezzo', 'tariffe', 'tariffa', 'costi', 'costo', 'preventivi', 'preventivo', 'quotazioni'],
+            'preventivi' => ['preventivo', 'quote', 'quotazione', 'richiesta preventivo', 'prezzi'],
+        ];
+    }
+
+    /**
+     * Expand keywords with synonyms
+     */
+    protected function expandKeywordsWithSynonyms(array $keywords): array
+    {
+        $synonyms = $this->getItalianSynonyms();
+        $expandedKeywords = [];
+
+        foreach ($keywords as $keyword) {
+            // Add the original keyword
+            $expandedKeywords[] = $keyword;
+
+            // Check if this keyword is in the synonym dictionary
+            foreach ($synonyms as $mainWord => $variants) {
+                // If keyword matches main word, add all variants
+                if ($keyword === $mainWord) {
+                    $expandedKeywords = array_merge($expandedKeywords, $variants);
+                }
+                // If keyword matches a variant, add main word and all variants
+                else if (in_array($keyword, $variants)) {
+                    $expandedKeywords[] = $mainWord;
+                    $expandedKeywords = array_merge($expandedKeywords, $variants);
+                }
+            }
+        }
+
+        // Remove duplicates and return
+        return array_unique($expandedKeywords);
+    }
+
+    /**
+     * Search for query keywords in menu items (PHP-level with synonym support)
      */
     protected function searchInMenu(array $menuItems, string $query): array
     {
         $matches = [];
         $queryKeywords = $this->extractKeywords($query);
 
+        // Expand keywords with Italian synonyms
+        $expandedKeywords = $this->expandKeywordsWithSynonyms($queryKeywords);
+
+        Log::channel('webscraper')->info('IntelligentCrawler: Keyword expansion', [
+            'original' => $queryKeywords,
+            'expanded' => $expandedKeywords,
+        ]);
+
         foreach ($menuItems as $item) {
             $label = strtolower($item['label']);
             $url = strtolower($item['url']);
 
-            foreach ($queryKeywords as $keyword) {
+            foreach ($expandedKeywords as $keyword) {
                 if (stripos($label, $keyword) !== false || stripos($url, $keyword) !== false) {
                     $matches[] = $item;
+                    Log::channel('webscraper')->info('IntelligentCrawler: Menu match found', [
+                        'keyword' => $keyword,
+                        'menu_label' => $item['label'],
+                    ]);
                     break; // Match found, add item once
                 }
             }
@@ -439,15 +524,14 @@ PROMPT;
     }
 
     /**
-     * Fetch raw HTML (bypassing cache if needed)
+     * Fetch raw HTML (for menu extraction)
      */
     protected function fetchRawHtml(string $url): string
     {
         try {
             $scrapedData = $this->scraper->scrape($url);
-            // For menu extraction, we need to fetch again without boilerplate removal
-            // This is a simplification - in production you might want to store raw HTML
-            return $scrapedData['content']['main'] ?? '';
+            // Use raw_html if available (contains the full HTML with nav/menu)
+            return $scrapedData['raw_html'] ?? '';
         } catch (\Exception $e) {
             Log::channel('webscraper')->error('IntelligentCrawler: Failed to fetch raw HTML', [
                 'url' => $url,

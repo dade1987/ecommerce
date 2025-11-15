@@ -20,6 +20,9 @@ class WebScraperService implements ScraperInterface
         $this->parser = $parser;
         $this->config = config('webscraper', []);
 
+        // Select a random user agent from the configured list
+        $userAgent = $this->getRandomUserAgent();
+
         $this->httpClient = new Client([
             'timeout' => $this->config['scraping']['timeout'] ?? 60,
             'connect_timeout' => 10,
@@ -29,19 +32,43 @@ class WebScraperService implements ScraperInterface
                 'referer' => true,
             ],
             'headers' => [
-                'User-Agent' => $this->config['scraping']['user_agent'] ?? 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+                'User-Agent' => $userAgent,
+                'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
                 'Accept-Language' => 'it-IT,it;q=0.9,en-US;q=0.8,en;q=0.7',
-                'Accept-Encoding' => 'gzip, deflate, br',
+                'Accept-Encoding' => 'gzip, deflate, br, zstd',
                 'Connection' => 'keep-alive',
                 'Upgrade-Insecure-Requests' => '1',
                 'Sec-Fetch-Dest' => 'document',
                 'Sec-Fetch-Mode' => 'navigate',
                 'Sec-Fetch-Site' => 'none',
+                'Sec-Fetch-User' => '?1',
+                'Sec-Ch-Ua' => '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
+                'Sec-Ch-Ua-Mobile' => '?0',
+                'Sec-Ch-Ua-Platform' => '"macOS"',
+                'DNT' => '1',
                 'Cache-Control' => 'max-age=0',
             ],
+            'cookies' => true, // Enable cookie jar for session persistence
             'verify' => false, // Disable SSL verification for problematic sites
         ]);
+
+        Log::channel('webscraper')->debug('WebScraper: Using User-Agent', ['user_agent' => $userAgent]);
+    }
+
+    /**
+     * Get a random user agent from the configured list
+     */
+    protected function getRandomUserAgent(): string
+    {
+        $userAgents = $this->config['scraping']['user_agents'] ?? [];
+
+        if (empty($userAgents)) {
+            // Fallback to single user_agent config
+            return $this->config['scraping']['user_agent'] ?? 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
+        }
+
+        // Return a random user agent from the array
+        return $userAgents[array_rand($userAgents)];
     }
 
     /**
@@ -77,8 +104,38 @@ class WebScraperService implements ScraperInterface
         try {
             Log::channel('webscraper')->info('WebScraper: Starting scrape', ['url' => $url]);
 
-            // Fetch HTML
-            $html = $this->fetchHtml($url);
+            // Check if we should use headless browser for this URL
+            $useBrowser = BrowserScraperService::shouldUseBrowserScraping($url);
+
+            if ($useBrowser) {
+                Log::channel('webscraper')->info('WebScraper: Using headless browser for anti-bot protected site', ['url' => $url]);
+
+                $browserScraper = new BrowserScraperService();
+
+                if (!$browserScraper->isAvailable()) {
+                    Log::channel('webscraper')->warning('WebScraper: Headless browser not available, falling back to HTTP', ['url' => $url]);
+                    $html = $this->fetchHtml($url);
+                } else {
+                    $browserResult = $browserScraper->scrape($url);
+
+                    if (isset($browserResult['error'])) {
+                        Log::channel('webscraper')->error('WebScraper: Browser scraping failed, falling back to HTTP', [
+                            'url' => $url,
+                            'error' => $browserResult['error'],
+                        ]);
+                        $html = $this->fetchHtml($url);
+                    } else {
+                        $html = $browserResult['html'];
+                        Log::channel('webscraper')->info('WebScraper: Successfully fetched with headless browser', [
+                            'url' => $url,
+                            'html_length' => strlen($html),
+                        ]);
+                    }
+                }
+            } else {
+                // Fetch HTML with standard HTTP client
+                $html = $this->fetchHtml($url);
+            }
 
             if (empty($html)) {
                 return ['error' => 'Failed to fetch HTML content'];
@@ -103,6 +160,7 @@ class WebScraperService implements ScraperInterface
                 ],
                 'links' => $parsedData['links'] ?? [],
                 'images' => $parsedData['images'] ?? [],
+                'raw_html' => $html,  // Store raw HTML for menu extraction
                 'raw_html_length' => strlen($html),
             ];
 
@@ -256,7 +314,7 @@ class WebScraperService implements ScraperInterface
     /**
      * Normalize a URL (handle relative URLs, remove fragments, etc.)
      */
-    protected function normalizeUrl(string $url, string $baseUrl): ?string
+    public function normalizeUrl(string $url, string $baseUrl): ?string
     {
         // Remove fragment
         $url = preg_replace('/#.*$/', '', $url);

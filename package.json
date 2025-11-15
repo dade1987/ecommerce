@@ -33,6 +33,7 @@
     },
     "dependencies": {
         "@alpinejs/focus": "^3.13.0",
-        "frappe-gantt": "^1.0.3"
+        "frappe-gantt": "^1.0.3",
+        "playwright": "^1.56.1"
     }
 }

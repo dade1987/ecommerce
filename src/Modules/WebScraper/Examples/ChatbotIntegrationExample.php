@@ -168,11 +168,12 @@ class ChatbotIntegrationExample
         $summary = $analyzer->summarize($result);
 
         // Example 5: Direct dependency injection in controller
-        public function __construct(
-            protected AiAnalyzerService $aiAnalyzer
-        ) {
-            // Now available as $this->aiAnalyzer
-        }
+        // In your controller class, you would declare the constructor like this:
+        // public function __construct(
+        //     protected AiAnalyzerService $aiAnalyzer
+        // ) {
+        //     // Now available as $this->aiAnalyzer
+        // }
     }
 
     /**

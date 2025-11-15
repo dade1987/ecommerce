@@ -162,6 +162,12 @@ z     * Extract ALL text from HTML (including header, footer, nav, everything)
      */
     public function removeBoilerplate(string $html): string
     {
+        // FIRST: Remove script, style, and noscript tags with REGEX before DOM parsing
+        // This prevents JavaScript code from appearing in extracted text
+        $html = preg_replace('/<script\b[^>]*>.*?<\/script>/is', '', $html);
+        $html = preg_replace('/<style\b[^>]*>.*?<\/style>/is', '', $html);
+        $html = preg_replace('/<noscript\b[^>]*>.*?<\/noscript>/is', '', $html);
+
         $dom = $this->loadHtml($html);
         if (!$dom) {
             return $html;
@@ -169,15 +175,12 @@ z     * Extract ALL text from HTML (including header, footer, nav, everything)
 
         $xpath = new DOMXPath($dom);
 
-        // Elements to remove
+        // Elements to remove (scripts already removed above)
         $selectorsToRemove = [
             '//header',
             '//footer',
             '//nav',
             '//aside',
-            '//script',
-            '//style',
-            '//noscript',
             '//iframe',
             '//*[@class*="cookie"]',
             '//*[@id*="cookie"]',
@@ -284,16 +287,38 @@ z     * Extract ALL text from HTML (including header, footer, nav, everything)
         $xpath = new DOMXPath($dom);
         $menuItems = [];
 
-        // Selectors for common menu structures
+        // Selectors for common menu structures (ordered by specificity)
         $menuSelectors = [
+            // Standard HTML5 nav element
             '//nav//a',
             '//header//nav//a',
-            '//ul[@class*="menu"]//a',
-            '//ul[@class*="nav"]//a',
-            '//div[@class*="menu"]//a',
-            '//div[@class*="nav"]//a',
-            '//ul[@id*="menu"]//a',
-            '//ul[@id*="nav"]//a',
+
+            // Class-based selectors (most common)
+            '//ul[contains(@class, "menu")]//a',
+            '//ul[contains(@class, "nav")]//a',
+            '//ul[contains(@class, "navbar")]//a',
+            '//ol[contains(@class, "menu")]//a',
+            '//ol[contains(@class, "nav")]//a',
+            '//div[contains(@class, "menu")]//a',
+            '//div[contains(@class, "nav")]//a',
+            '//div[contains(@class, "navbar")]//a',
+
+            // ID-based selectors
+            '//ul[contains(@id, "menu")]//a',
+            '//ul[contains(@id, "nav")]//a',
+            '//div[contains(@id, "menu")]//a',
+            '//div[contains(@id, "nav")]//a',
+
+            // Role-based selectors (accessibility)
+            '//*[@role="navigation"]//a',
+
+            // Common framework patterns
+            '//ul[contains(@class, "uk-nav")]//a',  // UIKit
+            '//ul[contains(@class, "uk-navbar")]//a',
+            '//nav[contains(@class, "navbar")]//a',  // Bootstrap
+            '//ul[contains(@class, "main-menu")]//a',
+            '//ul[contains(@class, "primary-menu")]//a',
+            '//ul[contains(@class, "elementor-nav-menu")]//a',  // Elementor
         ];
 
         foreach ($menuSelectors as $selector) {
@@ -328,6 +353,11 @@ z     * Extract ALL text from HTML (including header, footer, nav, everything)
                 $seenUrls[] = $normalizedUrl;
             }
         }
+
+        Log::channel('webscraper')->info('HtmlParser: Extracted menu items', [
+            'total_found' => count($menuItems),
+            'unique_items' => count($uniqueItems),
+        ]);
 
         return array_slice($uniqueItems, 0, 50); // Limit to 50 menu items
     }

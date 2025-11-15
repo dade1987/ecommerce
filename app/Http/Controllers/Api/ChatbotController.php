@@ -15,6 +15,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Modules\WebScraper\Facades\WebScraper;
 use Modules\WebScraper\Services\AiAnalyzerService;
+use Modules\WebScraper\Services\SearchResultCacheService;
 use OpenAI;
 use OpenAI\Client as OpenAIClient;
 use function Safe\json_decode;
@@ -284,17 +285,21 @@ class ChatbotController extends Controller
                         'type'     => 'function',
                         'function' => [
                             'name'        => 'scrapeUrl',
-                            'description' => 'Recupera informazioni specifiche da un URL fornito dall\'utente. Usa questa funzione quando l\'utente chiede "Ottieni informazioni da questo url [URL]" seguito da cosa cercare.',
+                            'description' => 'Estrae TUTTE le informazioni da una SINGOLA pagina web specifica. Usa SEMPRE questa funzione quando:
+- L\'utente fornisce un URL specifico di una pagina prodotto (es: Amazon, eBay, e-commerce con /dp/, /product/, /item/)
+- L\'URL NON è una homepage ma una pagina interna specifica
+- L\'utente chiede "caratteristiche", "dettagli", "specifiche", "descrizione" di UN prodotto/articolo specifico
+Questa funzione analizza in profondità UNA SOLA pagina e estrae tutto il suo contenuto.',
                             'parameters'  => [
                                 'type'       => 'object',
                                 'properties' => [
                                     'url' => [
                                         'type' => 'string',
-                                        'description' => 'L\'URL completo del sito web da analizzare (es: https://example.com)',
+                                        'description' => 'L\'URL completo della pagina specifica da analizzare (es: https://www.amazon.it/prodotto/dp/B07MW4D7LG/)',
                                     ],
                                     'query' => [
                                         'type' => 'string',
-                                        'description' => 'Cosa cercare o estrarre dal sito web (es: "trova i prezzi dei prodotti", "cerca informazioni di contatto", "estrai i servizi offerti")',
+                                        'description' => 'Cosa estrarre dalla pagina (es: "tutte le caratteristiche del prodotto", "prezzo e descrizione", "specifiche tecniche")',
                                     ]
                                 ],
                                 'required' => ['url', 'query'],
@@ -306,7 +311,19 @@ class ChatbotController extends Controller
                         'type'     => 'function',
                         'function' => [
                             'name'        => 'searchSite',
-                            'description' => 'Cerca informazioni attraverso tutte le pagine di un sito web. Usa questa funzione quando l\'utente chiede "Cerca nel sito [URL] le seguenti informazioni [QUERY]". Esplora più pagine del sito per trovare informazioni complete.',
+                            'description' => 'Cerca informazioni attraverso MULTIPLE pagine di un sito web. Usa questa funzione quando:
+- L\'utente fornisce ESPLICITAMENTE un URL specifico (es: "cerca nel sito https://example.com", "trova servizi su https://isofin.it")
+- L\'utente dice "cerca nel sito web [URL]" - SEMPRE usa quell\'URL esatto, NON il sito del consumer corrente
+- L\'utente chiede di cercare qualcosa in "tutto il sito", "nelle pagine del sito"
+- Serve esplorare più pagine per trovare informazioni distribuite
+
+IMPORTANTE: Se l\'utente specifica un URL esplicito nel prompt, usa SEMPRE quell\'URL nel parametro "url", NON usare il sito del consumer corrente.
+ESEMPI:
+- "cerca nel sito https://isofin.it i servizi" → usa url="https://isofin.it"
+- "trova prodotti su https://example.com" → usa url="https://example.com"
+- "cerca informazioni nel mio sito" → NON usare questa funzione, usa scrapeSite invece
+
+NON usare per singole pagine prodotto o URL specifici di una pagina.',
                             'parameters'  => [
                                 'type'       => 'object',
                                 'properties' => [
@@ -837,9 +854,91 @@ class ChatbotController extends Controller
         }
 
         try {
-            // Use Intelligent Crawler for comprehensive search
-            $crawler = app(\Modules\WebScraper\Services\IntelligentCrawlerService::class);
-            $searchResults = $crawler->intelligentSearch($url, $query, 3); // max depth 3
+            // Check if this is a specific product page (Amazon, eBay, etc.)
+            $isProductPage = $this->isProductPage($url);
+
+            if ($isProductPage) {
+                // For product pages, scrape the ENTIRE page directly (no keyword search)
+                Log::info('scrapeUrl: Detected product page, scraping entire content', ['url' => $url]);
+
+                $scraper = app(\Modules\WebScraper\Services\WebScraperService::class);
+                $scrapedData = $scraper->scrape($url, ['query' => $query]);
+
+                if (isset($scrapedData['error'])) {
+                    return ['error' => $scrapedData['error']];
+                }
+
+                // Perform AI analysis on the FULL page content
+                $analyzer = app(\Modules\WebScraper\Services\AiAnalyzerService::class);
+                $analysis = $analyzer->extractCustomInfo($scrapedData, $query);
+
+                if (isset($analysis['error'])) {
+                    Log::error('scrapeUrl: Errore durante l\'analisi AI', [
+                        'url' => $url,
+                        'query' => $query,
+                        'error' => $analysis['error'],
+                    ]);
+                    return ['error' => 'Impossibile analizzare il contenuto: ' . $analysis['error']];
+                }
+
+                Log::info('scrapeUrl: Analisi AI completata (product page)', [
+                    'url' => $url,
+                    'query' => $query,
+                    'tokens_used' => $analysis['usage']['total_tokens'] ?? 0,
+                ]);
+
+                return [
+                    'url' => $url,
+                    'query' => $query,
+                    'analysis' => $analysis['analysis'],
+                    'pages_found' => 1,
+                    'pages_visited' => 1,
+                    'results' => [
+                        [
+                            'url' => $url,
+                            'title' => $scrapedData['metadata']['title'] ?? 'Product Page',
+                            'relevance' => 1.0,
+                        ]
+                    ],
+                ];
+            }
+
+            // For non-product pages, use intelligent search with keywords AND CACHING
+            Log::info('scrapeUrl: Using intelligent search with caching', ['url' => $url, 'query' => $query]);
+
+            $cacheService = app(SearchResultCacheService::class);
+            $cachedResults = $cacheService->getCachedOrSearch($url, $query, 3); // max depth 3
+
+            // Check if results come from cache
+            if ($cachedResults['from_cache'] ?? false) {
+                Log::info('scrapeUrl: Returning cached results', [
+                    'url' => $url,
+                    'query' => $query,
+                    'results_count' => count($cachedResults['results']),
+                    'cached_at' => $cachedResults['cached_at'] ?? null,
+                ]);
+
+                // If we have a reformulated summary from cache, use it directly
+                if (isset($cachedResults['reformulated_summary'])) {
+                    return [
+                        'url' => $url,
+                        'query' => $query,
+                        'analysis' => $cachedResults['reformulated_summary'],
+                        'pages_found' => count($cachedResults['results']),
+                        'pages_visited' => $cachedResults['pages_visited'],
+                        'results' => $cachedResults['results'],
+                        'from_cache' => true,
+                        'cached_at' => $cachedResults['cached_at'],
+                    ];
+                }
+            }
+
+            // Use fresh or cached search results
+            $searchResults = [
+                'results' => $cachedResults['results'],
+                'pages_visited' => $cachedResults['pages_visited'],
+                'query' => $cachedResults['query'],
+            ];
 
             if (empty($searchResults['results'])) {
                 Log::warning('scrapeUrl: Nessun risultato trovato', [
@@ -912,12 +1011,12 @@ class ChatbotController extends Controller
 
     /**
      * Search through multiple pages of a website for specific information.
-     * Uses intelligent menu-guided crawling with AI assistance.
+     * Uses intelligent menu-guided crawling with AI assistance + result caching.
      * Example: "Cerca nel sito https://example.com i prezzi e i servizi"
      */
     private function searchSite(string $url, string $query, int $maxPages = 10): array
     {
-        Log::info('searchSite: Inizio ricerca intelligente', [
+        Log::info('searchSite: Inizio ricerca intelligente con caching', [
             'url' => $url,
             'query' => $query,
             'max_depth' => 3,
@@ -932,9 +1031,54 @@ class ChatbotController extends Controller
         }
 
         try {
-            // Use Intelligent Crawler for menu-guided search
-            $crawler = app(\Modules\WebScraper\Services\IntelligentCrawlerService::class);
-            $searchResults = $crawler->intelligentSearch($url, $query, 3); // max depth 3
+            // Use SearchResultCacheService for intelligent caching
+            $cacheService = app(SearchResultCacheService::class);
+            $cachedResults = $cacheService->getCachedOrSearch($url, $query, 3); // max depth 3
+
+            // If results come from cache, return reformulated response immediately
+            if ($cachedResults['from_cache'] ?? false) {
+                Log::info('searchSite: Returning cached results', [
+                    'url' => $url,
+                    'query' => $query,
+                    'results_count' => count($cachedResults['results']),
+                    'cached_at' => $cachedResults['cached_at'] ?? null,
+                ]);
+
+                // If we have a reformulated summary, use it
+                if (isset($cachedResults['reformulated_summary'])) {
+                    return [
+                        'url' => $url,
+                        'query' => $query,
+                        'pages_visited' => $cachedResults['pages_visited'],
+                        'results_found' => count($cachedResults['results']),
+                        'analysis' => $cachedResults['reformulated_summary'],
+                        'from_cache' => true,
+                        'cached_at' => $cachedResults['cached_at'],
+                    ];
+                }
+
+                // Fallback if reformulation failed
+                $foundPages = [];
+                foreach ($cachedResults['results'] as $result) {
+                    $foundPages[] = [
+                        'url' => $result['url'],
+                        'title' => $result['title'],
+                    ];
+                }
+
+                return [
+                    'url' => $url,
+                    'query' => $query,
+                    'pages_visited' => $cachedResults['pages_visited'],
+                    'results_found' => count($cachedResults['results']),
+                    'analysis' => 'Risultati trovati: ' . implode(', ', array_column($foundPages, 'title')),
+                    'found_pages' => $foundPages,
+                    'from_cache' => true,
+                ];
+            }
+
+            // Fresh search results - need to scrape pages and do AI analysis
+            $searchResults = $cachedResults;
 
             if (empty($searchResults['results'])) {
                 Log::warning('searchSite: Nessun risultato trovato', ['url' => $url, 'query' => $query]);
@@ -957,7 +1101,7 @@ class ChatbotController extends Controller
                 $foundPages[] = [
                     'url' => $result['url'],
                     'title' => $result['title'],
-                    'depth' => $result['depth'],
+                    'depth' => $result['depth'] ?? 0,
                 ];
 
                 // Scrape the full page (will use cache if available, or fetch and cache if not)
@@ -975,6 +1119,7 @@ class ChatbotController extends Controller
             // Use AI to analyze and summarize all found results
             $analyzer = app(AiAnalyzerService::class);
             $analysis = $analyzer->searchMultiplePages($aggregatedData, $query);
+            $aiAnalysisText = $analysis['analysis'] ?? 'Analisi completata';
 
             Log::info('searchSite: Ricerca completata', [
                 'url' => $url,
@@ -983,14 +1128,19 @@ class ChatbotController extends Controller
                 'results_found' => count($searchResults['results']),
             ]);
 
+            // Update cache with AI analysis
+            // Note: getCachedOrSearch already cached the raw results, now we update with AI analysis
+            $cacheService->cacheResults($url, $query, $searchResults['results'], $searchResults['pages_visited'], $aiAnalysisText);
+
             // Return structured data
             return [
                 'url' => $url,
                 'query' => $query,
                 'pages_visited' => $searchResults['pages_visited'],
                 'results_found' => count($searchResults['results']),
-                'analysis' => $analysis['analysis'] ?? 'Analisi completata',
+                'analysis' => $aiAnalysisText,
                 'found_pages' => $foundPages,
+                'from_cache' => false,
             ];
 
         } catch (\Exception $e) {
@@ -1002,6 +1152,59 @@ class ChatbotController extends Controller
             ]);
             return ['error' => 'Si è verificato un errore durante la ricerca: ' . $e->getMessage()];
         }
+    }
+
+    /**
+     * Detect if a URL is a specific product page (Amazon, eBay, Shopify, etc.)
+     * Returns true for product pages, false for homepages and category pages
+     */
+    private function isProductPage(string $url): bool
+    {
+        // Product page URL patterns for common e-commerce sites
+        $productPatterns = [
+            // Amazon product pages (with /dp/ or /product/)
+            '/amazon\.[a-z.]+\/(dp|product|gp\/product)\/[A-Z0-9]{10}/i',
+
+            // eBay item pages
+            '/ebay\.[a-z.]+\/itm\//i',
+
+            // Shopify product pages (common pattern /products/)
+            '/\/products\/[^\/]+\/?$/i',
+
+            // Generic e-commerce product patterns
+            '/\/(item|prodotto|articolo|product)\/[^\/]+/i',
+
+            // Woocommerce and similar (common pattern /product/)
+            '/\/product\/[^\/]+\/?$/i',
+
+            // Magento (common pattern /[product-name].html)
+            '/\/[a-z0-9-]+\.html$/i',
+        ];
+
+        foreach ($productPatterns as $pattern) {
+            if (preg_match($pattern, $url)) {
+                return true;
+            }
+        }
+
+        // Check if it's a homepage or category page (return false for these)
+        $nonProductPatterns = [
+            // Homepage patterns
+            '/^https?:\/\/[^\/]+\/?$/i',
+            '/^https?:\/\/[^\/]+\/index\.(html|php)$/i',
+
+            // Category/collection pages
+            '/\/(category|categories|collection|collections|c)\//i',
+        ];
+
+        foreach ($nonProductPatterns as $pattern) {
+            if (preg_match($pattern, $url)) {
+                return false;
+            }
+        }
+
+        // Default: assume non-product page for safety
+        return false;
     }
 
     private function formatResponseContent($content)
