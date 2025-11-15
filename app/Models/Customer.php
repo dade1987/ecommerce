@@ -22,7 +22,6 @@ class Customer extends Model
         'website',
         'status',
         'uuid',
-        'visited_at',
     ];
 
     protected static function boot()

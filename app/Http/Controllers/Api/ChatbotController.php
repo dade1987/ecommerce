@@ -908,13 +908,14 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
 
             $cacheService = app(SearchResultCacheService::class);
             $cachedResults = $cacheService->getCachedOrSearch($url, $query, 3); // max depth 3
+            $results_count = is_array($cachedResults['results']) ? count($cachedResults['results']) : $cachedResults['results'];
 
             // Check if results come from cache
             if ($cachedResults['from_cache'] ?? false) {
                 Log::info('scrapeUrl: Returning cached results', [
                     'url' => $url,
                     'query' => $query,
-                    'results_count' => count($cachedResults['results']),
+                    'results_count' =>$results_count,
                     'cached_at' => $cachedResults['cached_at'] ?? null,
                 ]);
 
@@ -924,7 +925,7 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
                         'url' => $url,
                         'query' => $query,
                         'analysis' => $cachedResults['reformulated_summary'],
-                        'pages_found' => count($cachedResults['results']),
+                        'pages_found' => $results_count,
                         'pages_visited' => $cachedResults['pages_visited'],
                         'results' => $cachedResults['results'],
                         'from_cache' => true,
@@ -952,7 +953,7 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
             Log::info('scrapeUrl: Ricerca intelligente completata', [
                 'url' => $url,
                 'query' => $query,
-                'results_found' => count($searchResults['results']),
+                'results_found' => $results_count,
                 'pages_visited' => $searchResults['pages_visited'],
             ]);
 
@@ -993,7 +994,7 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
                 'url' => $url,
                 'query' => $query,
                 'analysis' => $analysis['analysis'],
-                'pages_found' => count($searchResults['results']),
+                'pages_found' => $results_count,
                 'pages_visited' => $searchResults['pages_visited'],
                 'results' => $searchResults['results'],
             ];
@@ -1035,12 +1036,14 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
             $cacheService = app(SearchResultCacheService::class);
             $cachedResults = $cacheService->getCachedOrSearch($url, $query, 3); // max depth 3
 
+            $results_count = is_array($cachedResults['results']) ? count($cachedResults['results']) : $cachedResults['results'];
             // If results come from cache, return reformulated response immediately
             if ($cachedResults['from_cache'] ?? false) {
                 Log::info('searchSite: Returning cached results', [
                     'url' => $url,
                     'query' => $query,
-                    'results_count' => count($cachedResults['results']),
+                    //'results_count' => count($cachedResults['results']),
+                    'results_count' => $results_count,
                     'cached_at' => $cachedResults['cached_at'] ?? null,
                 ]);
 
@@ -1050,7 +1053,7 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
                         'url' => $url,
                         'query' => $query,
                         'pages_visited' => $cachedResults['pages_visited'],
-                        'results_found' => count($cachedResults['results']),
+                        'results_found' => $results_count,
                         'analysis' => $cachedResults['reformulated_summary'],
                         'from_cache' => true,
                         'cached_at' => $cachedResults['cached_at'],
@@ -1070,7 +1073,7 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
                     'url' => $url,
                     'query' => $query,
                     'pages_visited' => $cachedResults['pages_visited'],
-                    'results_found' => count($cachedResults['results']),
+                    'results_found' => $results_count,
                     'analysis' => 'Risultati trovati: ' . implode(', ', array_column($foundPages, 'title')),
                     'found_pages' => $foundPages,
                     'from_cache' => true,

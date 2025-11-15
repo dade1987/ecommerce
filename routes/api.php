@@ -117,7 +117,6 @@ Route::get('/visit/{uuid}', function ($uuid) {
     }
 
     $customer->status = 'in_negotiation';
-    $customer->visited_at = now();
     $customer->save();
 
     return response()->json([
