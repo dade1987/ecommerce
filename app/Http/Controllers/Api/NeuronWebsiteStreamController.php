@@ -132,6 +132,7 @@ class NeuronWebsiteStreamController extends Controller
                 Log::info('NeuronWebsiteStreamController: Response completed', [
                     'thread_id' => $streamThreadId,
                     'content_length' => strlen($fullContent),
+                    'full_response' => $fullContent, // Log della risposta completa per debug
                 ]);
 
                 $flush(['token' => ''], 'done');

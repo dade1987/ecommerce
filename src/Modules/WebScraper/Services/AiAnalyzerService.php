@@ -168,10 +168,18 @@ Regole:
 3. Sii conciso ma completo
 4. Mantieni un formato strutturato e leggibile
 5. Rispondi sempre in italiano
+6. IMPORTANTE: Mantieni i numeri di telefono, partite IVA, codici fiscali ESATTAMENTE come appaiono. NON convertire in parole (es: 320.42.06795 rimane 320.42.06795, NON "tre due zero")
 PROMPT;
 
             // Build user prompt with the specific query
             $userPrompt = $this->buildCustomQueryPrompt($contentToAnalyze, $scrapedData, $query);
+
+            // Log the actual content being sent to AI for debugging number conversion issues
+            Log::debug('AiAnalyzer: Content sent to AI', [
+                'url' => $scrapedData['url'],
+                'query' => $query,
+                'content_preview' => substr($contentToAnalyze['main_content'] ?? '', 0, 500),
+            ]);
 
             // Call OpenAI API
             $response = Http::withHeaders([
@@ -265,7 +273,19 @@ PROMPT;
         $url = $scrapedData['url'];
         $title = $content['title'];
         $description = $content['description'];
-        $mainContent = substr($content['main_content'], 0, 8000); // Limit content size
+
+        // Use header + footer approach to capture complete page info
+        $fullContent = $content['main_content'];
+        $contentLength = strlen($fullContent);
+
+        if ($contentLength <= 12000) {
+            $mainContent = $fullContent;
+        } else {
+            // Extract header (first 8000) + footer (last 4000)
+            $header = substr($fullContent, 0, 8000);
+            $footer = substr($fullContent, -4000);
+            $mainContent = $header . "\n\n[...contenuto intermedio omesso...]\n\n" . $footer;
+        }
 
         $headings = '';
         foreach ($content['headings'] as $heading) {
@@ -305,7 +325,20 @@ PROMPT;
         $url = $scrapedData['url'];
         $title = $content['title'];
         $description = $content['description'];
-        $mainContent = substr($content['main_content'], 0, 8000); // Limit content size
+
+        // For contact queries, use full content to ensure footer data is included
+        // Otherwise limit to 12000 chars (header ~8000 + footer ~4000)
+        $fullContent = $content['main_content'];
+        $contentLength = strlen($fullContent);
+
+        if ($contentLength <= 12000) {
+            $mainContent = $fullContent;
+        } else {
+            // Extract header (first 8000) + footer (last 4000) to capture both navigation and contact info
+            $header = substr($fullContent, 0, 8000);
+            $footer = substr($fullContent, -4000);
+            $mainContent = $header . "\n\n[...contenuto intermedio omesso...]\n\n" . $footer;
+        }
 
         $headings = '';
         foreach ($content['headings'] as $heading) {
@@ -348,6 +381,7 @@ Sei un analista di business esperto. Analizza il sito web fornito ed estrai:
 3. **Target di mercato**: Identifica il pubblico target
 4. **Punti di forza**: Evidenzia i vantaggi competitivi
 5. **Contatti**: Estrai informazioni di contatto (email, telefono, indirizzo)
+   IMPORTANTE: Mantieni i numeri di telefono ESATTAMENTE come appaiono (es: 320.42.06795 o +39 320 4206795). NON convertire in parole.
 6. **Presenza online**: Social media, altre piattaforme
 7. **Proposizione di valore**: Qual è la loro proposta unica?
 

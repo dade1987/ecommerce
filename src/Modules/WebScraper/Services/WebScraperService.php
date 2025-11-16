@@ -475,12 +475,260 @@ class WebScraperService implements ScraperInterface
         if ($needsFooter) {
             // Use full content that includes footer, header, nav
             $result['content']['main'] = $result['content']['full'];
-            Log::channel('webscraper')->info('WebScraper: Using full content for AI analysis');
+
+            // Log preview of content to verify footer is included
+            $contentPreview = substr($result['content']['main'], -1000); // Last 1000 chars (likely contains footer)
+            Log::channel('webscraper')->info('WebScraper: Using full content for AI analysis', [
+                'content_length' => strlen($result['content']['main']),
+                'footer_preview' => $contentPreview,
+            ]);
         } else {
             // Keep clean main content (footer removed)
             Log::channel('webscraper')->info('WebScraper: Using clean main content for AI analysis');
         }
 
         return $result;
+    }
+
+    /**
+     * Scrape a single URL (alias for scrape method, used by indexer)
+     *
+     * @param string $url URL to scrape
+     * @param array $options Scraping options
+     * @return array Scraped data
+     */
+    public function scrapeSingleUrl(string $url, array $options = []): array
+    {
+        return $this->scrape($url, $options);
+    }
+
+    /**
+     * Search site with RAG (Retrieval-Augmented Generation)
+     *
+     * This method attempts to answer questions using pre-indexed content (fast & cheap).
+     * Falls back to traditional scraping if no indexed content is found.
+     *
+     * @param string $url Base URL of the site
+     * @param string $query User's question
+     * @param array $options Options: 'force_reindex', 'ttl_days', 'top_k', 'min_similarity'
+     * @return array Result with answer, sources, and metadata
+     */
+    public function searchWithRag(string $url, string $query, array $options = []): array
+    {
+        Log::channel('webscraper')->info('WebScraper: searchWithRag called', [
+            'url' => $url,
+            'query' => $query,
+            'options' => $options,
+        ]);
+
+        // Normalize domain: add www. if missing (for consistency with indexed data)
+        $domain = parse_url($url, PHP_URL_HOST);
+        if ($domain && !str_starts_with($domain, 'www.')) {
+            // Check if www version exists in database, use it
+            $wwwDomain = 'www.' . $domain;
+            $existsWithWww = \Modules\WebScraper\Models\WebscraperPage::where('domain', $wwwDomain)->exists();
+            if ($existsWithWww) {
+                $domain = $wwwDomain;
+                Log::channel('webscraper')->info('WebScraper: Normalized domain to www version', [
+                    'original' => parse_url($url, PHP_URL_HOST),
+                    'normalized' => $domain,
+                ]);
+            }
+        }
+
+        // Step 1: Try RAG search first (fast, uses indexed content)
+        try {
+            $qaService = app(ClientSiteQaService::class);
+
+            // Apply custom parameters if provided
+            if (isset($options['top_k'])) {
+                $qaService->setTopK($options['top_k']);
+            }
+            if (isset($options['min_similarity'])) {
+                $qaService->setMinSimilarity($options['min_similarity']);
+            }
+
+            $ragResult = $qaService->answerQuestion($query, $domain);
+
+            // If RAG found relevant chunks, return the answer
+            if ($ragResult['chunks_found'] > 0) {
+                Log::channel('webscraper')->info('WebScraper: RAG search successful', [
+                    'chunks_found' => $ragResult['chunks_found'],
+                    'sources_count' => count($ragResult['sources']),
+                ]);
+
+                return [
+                    'success' => true,
+                    'method' => 'rag',
+                    'answer' => $ragResult['answer'],
+                    'sources' => $ragResult['sources'],
+                    'chunks_found' => $ragResult['chunks_found'],
+                    'from_cache' => false,
+                ];
+            }
+
+            Log::channel('webscraper')->info('WebScraper: No RAG results, falling back to scraping');
+
+        } catch (\Exception $e) {
+            Log::channel('webscraper')->warning('WebScraper: RAG search failed, falling back to scraping', [
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        // Step 2: Fallback to traditional scraping + AI analysis
+        Log::channel('webscraper')->info('WebScraper: Starting traditional search + indexing');
+
+        try {
+            // Use IntelligentCrawlerService for smart searching
+            $crawler = app(IntelligentCrawlerService::class);
+            $maxPages = $options['max_pages'] ?? 10;
+            $searchResults = $crawler->intelligentSearch($url, $query, $maxPages);
+
+            if (empty($searchResults['results'])) {
+                return [
+                    'success' => false,
+                    'method' => 'scraping',
+                    'answer' => 'Non sono state trovate informazioni rilevanti su questo sito.',
+                    'sources' => [],
+                    'pages_visited' => $searchResults['pages_visited'] ?? 0,
+                ];
+            }
+
+            // Step 3: Index found pages for future RAG queries
+            $indexer = app(SiteIndexerService::class);
+            $urls = array_column($searchResults['results'], 'url');
+            $ttlDays = $options['ttl_days'] ?? 30;
+
+            Log::channel('webscraper')->info('WebScraper: Indexing pages for future RAG', [
+                'urls_count' => count($urls),
+                'ttl_days' => $ttlDays,
+            ]);
+
+            // Index asynchronously in background (don't wait for completion)
+            foreach ($urls as $pageUrl) {
+                try {
+                    $indexer->indexUrl($pageUrl, $ttlDays);
+                } catch (\Exception $e) {
+                    Log::channel('webscraper')->warning('WebScraper: Failed to index page', [
+                        'url' => $pageUrl,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+
+            // Step 4: Generate AI analysis from scraped content
+            $analyzer = app(AiAnalyzerService::class);
+
+            // Scrape each found URL
+            $aggregatedData = [];
+            foreach ($searchResults['results'] as $result) {
+                $scrapedData = $this->scrape($result['url'], ['query' => $query]);
+                if (!isset($scrapedData['error'])) {
+                    $aggregatedData[] = $scrapedData;
+                }
+            }
+
+            $analysis = $analyzer->searchMultiplePages($aggregatedData, $query);
+            $aiAnalysisText = $analysis['analysis'] ?? 'Analisi completata';
+
+            $sources = [];
+            foreach ($searchResults['results'] as $result) {
+                $sources[] = [
+                    'url' => $result['url'],
+                    'title' => $result['title'] ?? 'No title',
+                    'domain' => $domain,
+                ];
+            }
+
+            Log::channel('webscraper')->info('WebScraper: Traditional search completed', [
+                'pages_visited' => $searchResults['pages_visited'],
+                'results_found' => count($searchResults['results']),
+            ]);
+
+            return [
+                'success' => true,
+                'method' => 'scraping_with_indexing',
+                'answer' => $aiAnalysisText,
+                'sources' => $sources,
+                'pages_visited' => $searchResults['pages_visited'],
+                'results_found' => count($searchResults['results']),
+                'indexed_for_future' => true,
+            ];
+
+        } catch (\Exception $e) {
+            Log::channel('webscraper')->error('WebScraper: Traditional search failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return [
+                'success' => false,
+                'method' => 'error',
+                'answer' => 'Si è verificato un errore durante la ricerca.',
+                'error' => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Index a URL for RAG system
+     *
+     * @param string $url URL to index
+     * @param int|null $ttlDays Time-to-live in days (null = never expires)
+     * @return array Result with indexing status
+     */
+    public function indexForRag(string $url, ?int $ttlDays = 30): array
+    {
+        Log::channel('webscraper')->info('WebScraper: indexForRag called', [
+            'url' => $url,
+            'ttl_days' => $ttlDays,
+        ]);
+
+        try {
+            $indexer = app(SiteIndexerService::class);
+            $page = $indexer->indexUrl($url, $ttlDays);
+
+            return [
+                'success' => true,
+                'page_id' => $page->_id,
+                'url' => $page->url,
+                'chunks_created' => $page->chunk_count,
+                'word_count' => $page->word_count,
+                'indexed_at' => $page->indexed_at,
+                'expires_at' => $page->expires_at,
+            ];
+
+        } catch (\Exception $e) {
+            Log::channel('webscraper')->error('WebScraper: Indexing failed', [
+                'url' => $url,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Get RAG indexing statistics
+     *
+     * @return array Statistics
+     */
+    public function getRagStats(): array
+    {
+        try {
+            $indexer = app(SiteIndexerService::class);
+            return $indexer->getStats();
+        } catch (\Exception $e) {
+            Log::channel('webscraper')->error('WebScraper: Failed to get RAG stats', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'error' => $e->getMessage(),
+            ];
+        }
     }
 }

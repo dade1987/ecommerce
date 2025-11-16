@@ -385,7 +385,44 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
                             $output = $this->scrapeUrl($arguments['url'] ?? '', $arguments['query'] ?? '');
                             break;
                         case 'searchSite':
-                            $output = $this->searchSite($arguments['url'] ?? '', $arguments['query'] ?? '', $arguments['max_pages'] ?? 10);
+                            // Use new RAG-powered search (tries indexed content first, falls back to scraping)
+                            $scraper = app(\Modules\WebScraper\Services\WebScraperService::class);
+                            $ragResult = $scraper->searchWithRag(
+                                $arguments['url'] ?? '',
+                                $arguments['query'] ?? '',
+                                [
+                                    'max_pages' => $arguments['max_pages'] ?? 10,
+                                    'ttl_days' => 30,
+                                    'top_k' => 5,
+                                    'min_similarity' => 0.7,
+                                ]
+                            );
+
+                            // Format output for OpenAI
+                            if ($ragResult['success']) {
+                                $output = [
+                                    'url' => $arguments['url'] ?? '',
+                                    'query' => $arguments['query'] ?? '',
+                                    'analysis' => $ragResult['answer'],
+                                    'method' => $ragResult['method'],
+                                    'sources' => $ragResult['sources'],
+                                ];
+
+                                // Add method-specific metadata
+                                if ($ragResult['method'] === 'rag') {
+                                    $output['chunks_found'] = $ragResult['chunks_found'];
+                                } elseif ($ragResult['method'] === 'scraping_with_indexing') {
+                                    $output['pages_visited'] = $ragResult['pages_visited'];
+                                    $output['indexed_for_future'] = true;
+                                }
+                            } else {
+                                $output = [
+                                    'url' => $arguments['url'] ?? '',
+                                    'query' => $arguments['query'] ?? '',
+                                    'analysis' => $ragResult['answer'] ?? 'Nessuna informazione trovata.',
+                                    'error' => $ragResult['error'] ?? null,
+                                ];
+                            }
                             break;
                         case 'fallback':
                             $output = ['message' => trans('chatbot_prompts.fallback_message', [], $locale)];

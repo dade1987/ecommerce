@@ -1,8 +1,10 @@
 # Docker files and folders
-docker-dev/
-docker-compose.yml
-Dockerfile
-Dockerfile-php
+# Note: docker-dev-playwright/ contiene file necessari per il build (php.ini)
+# Escludiamo solo file Docker specifici non necessari
+docker-dev-playwright/Dockerfile
+docker-dev-playwright/nginx.conf
+docker-dev-playwright/docker-compose.yml
+docker-dev-playwright/certs/
 
 # Node modules
 node_modules/

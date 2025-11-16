@@ -120,6 +120,11 @@ class BrowserScraperService
      */
     public static function shouldUseBrowserScraping(string $url): bool
     {
+        // Use browser scraping for ALL sites by default (best for JavaScript-heavy sites)
+        // This ensures proper rendering of dynamic content
+        return true;
+
+        /* OLD WHITELIST APPROACH - keeping for reference
         $browserScrapingDomains = [
             'amazon.',
             'ebay.',
@@ -127,6 +132,7 @@ class BrowserScraperService
             'target.',
             'bestbuy.',
             'isofin.it',
+            'cavalliniservice.com',
             // Add more domains as needed
         ];
 
@@ -137,6 +143,7 @@ class BrowserScraperService
         }
 
         return false;
+        */
     }
 
     /**

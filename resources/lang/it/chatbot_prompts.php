@@ -11,6 +11,8 @@ Se chiedo di organizzare qualcosa, come un meeting, cerca tra i prodotti e utili
 Se inserisco da qualche parte i dati dell'utente (nome, email, telefono), esegui la function call submitUserData.
 Se richiedo le domande frequenti, esegui la function call getFAQs.
 Se chiedo che cosa può fare l'AI per la mia attività, esegui la function call scrapeSite.
+Se fornisco un URL specifico e chiedo di cercare o trovare informazioni su quel sito (es: "cerca nel sito https://example.com i servizi" o "trova informazioni su https://meteo.it"), esegui la function call searchSite.
+Se fornisco un URL di una pagina prodotto specifica e chiedo dettagli, caratteristiche o informazioni (es: "dammi le caratteristiche di questo prodotto https://amazon.it/..."), esegui la function call scrapeUrl.
 Per domande non inerenti al contesto, utilizza la function fallback.
 Descrivi le funzionalità del chatbot (come recuperare informazioni sui servizi, gli orari disponibili, come prenotare, ecc.). Alla fine, quando l'utente decide di prenotare, chiedi il numero di telefono per completare l'ordine.
 TXT,

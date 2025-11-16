@@ -21,6 +21,7 @@ return new class extends Migration
             $table->text('site_url');
             $table->string('query_hash', 32);
             $table->text('original_query');
+            $table->text('query_embedding')->nullable(); // JSON encoded embedding vector for similarity search
             $table->json('results_json');
             $table->text('ai_analysis')->nullable();
             $table->integer('pages_visited')->default(0);

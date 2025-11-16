@@ -9,52 +9,59 @@ use Modules\WebScraper\Models\SearchResultCache;
 class SearchResultCacheService
 {
     protected IntelligentCrawlerService $crawler;
+    protected EmbeddingService $embeddingService;
 
-    public function __construct(IntelligentCrawlerService $crawler)
+    public function __construct(IntelligentCrawlerService $crawler, EmbeddingService $embeddingService)
     {
         $this->crawler = $crawler;
+        $this->embeddingService = $embeddingService;
     }
 
     /**
      * Get cached search results or perform new search
-     * If cached, reformulate the response for variety
+     * Uses semantic similarity search to match related queries
      */
     public function getCachedOrSearch(string $url, string $query, int $maxDepth = 3): array
     {
-        // Check cache first
+        // Step 1: Check for exact match in cache
         $cached = SearchResultCache::getCached($url, $query);
 
         if ($cached !== null) {
-
-            $cacheCount = is_array($cached['results']) ? count($cached) : 0;
-            Log::channel('webscraper')->info('SearchResultCache: Using cached results', [
+            Log::channel('webscraper')->info('SearchResultCache: Exact cache hit', [
                 'url' => $url,
                 'query' => $query,
-                'results_count' => $cacheCount,
             ]);
 
-            // Reformulate the response for variety
-            $reformulated = $this->reformulateResponse($cached, $query);
-
-            return [
-                'query' => $query,
-                'pages_visited' => $cached['pages_visited'],
-                'results' => $cached['results'],
-                'reformulated_summary' => $reformulated,
-                'from_cache' => true,
-                'cached_at' => $cached['cached_at'],
-            ];
+            return $this->returnCachedResult($cached, $query, 'exact');
         }
 
-        // Cache miss - perform new search
-        Log::channel('webscraper')->info('SearchResultCache: Performing new search', [
+        // Step 2: Try semantic similarity search
+        Log::channel('webscraper')->info('SearchResultCache: No exact match, trying similarity search', [
+            'url' => $url,
+            'query' => $query,
+        ]);
+
+        $similarCached = $this->findSimilarCached($url, $query);
+
+        if ($similarCached !== null) {
+            Log::channel('webscraper')->info('SearchResultCache: Similar query found in cache', [
+                'original_query' => $query,
+                'matched_query' => $similarCached['matched_query'],
+                'similarity' => $similarCached['similarity'],
+            ]);
+
+            return $this->returnCachedResult($similarCached['cache_data'], $query, 'similarity');
+        }
+
+        // Step 3: Cache miss - perform new search
+        Log::channel('webscraper')->info('SearchResultCache: No similar match, performing new search', [
             'url' => $url,
             'query' => $query,
         ]);
 
         $searchResults = $this->crawler->intelligentSearch($url, $query, $maxDepth);
 
-        // Cache the results
+        // Cache the results with embedding
         $this->cacheResults($url, $query, $searchResults['results'], $searchResults['pages_visited']);
 
         return [
@@ -62,6 +69,98 @@ class SearchResultCacheService
             'pages_visited' => $searchResults['pages_visited'],
             'results' => $searchResults['results'],
             'from_cache' => false,
+            'match_type' => 'new_search',
+        ];
+    }
+
+    /**
+     * Find similar cached queries using semantic similarity
+     */
+    protected function findSimilarCached(string $url, string $query, float $threshold = 0.75): ?array
+    {
+        try {
+            // Get all cached queries for this URL
+            $allCached = SearchResultCache::where('url', $url)
+                ->where('expires_at', '>', now())
+                ->get();
+
+            if ($allCached->isEmpty()) {
+                Log::channel('webscraper')->debug('SearchResultCache: No cached queries for URL', ['url' => $url]);
+                return null;
+            }
+
+            // Prepare candidates with embeddings
+            $candidates = [];
+            foreach ($allCached as $cache) {
+                $embedding = $this->embeddingService->decodeEmbedding($cache->query_embedding);
+
+                if ($embedding !== null) {
+                    $candidates[] = [
+                        'query' => $cache->query,
+                        'embedding' => $embedding,
+                        'cache_data' => [
+                            'query' => $cache->query,
+                            'results' => json_decode($cache->results, true),
+                            'pages_visited' => $cache->pages_visited,
+                            'ai_analysis' => $cache->ai_analysis,
+                            'cached_at' => $cache->created_at->toIso8601String(),
+                        ],
+                    ];
+                }
+            }
+
+            if (empty($candidates)) {
+                Log::channel('webscraper')->debug('SearchResultCache: No candidates with embeddings');
+                return null;
+            }
+
+            // Find most similar query
+            $match = $this->embeddingService->findMostSimilar($query, $candidates, $threshold);
+
+            if ($match === null) {
+                return null;
+            }
+
+            return [
+                'matched_query' => $match['query'],
+                'similarity' => $match['similarity'],
+                'cache_data' => $match['candidate']['cache_data'],
+            ];
+
+        } catch (\Exception $e) {
+            Log::channel('webscraper')->error('SearchResultCache: Error in similarity search', [
+                'error' => $e->getMessage(),
+            ]);
+            return null;
+        }
+    }
+
+    /**
+     * Return cached result with reformulation
+     */
+    protected function returnCachedResult(array $cached, string $currentQuery, string $matchType): array
+    {
+        $cacheCount = is_array($cached['results']) ? count($cached['results']) : 0;
+
+        Log::channel('webscraper')->info('SearchResultCache: Using cached results', [
+            'current_query' => $currentQuery,
+            'cached_query' => $cached['query'] ?? 'unknown',
+            'results_count' => $cacheCount,
+            'match_type' => $matchType,
+        ]);
+
+        // Reformulate the response for variety and current query
+        $reformulated = $this->reformulateResponse($cached, $currentQuery);
+
+        return [
+            'query' => $currentQuery,
+            'pages_visited' => $cached['pages_visited'],
+            'results' => $cached['results'],
+            'reformulated_summary' => $reformulated,
+            'from_cache' => true,
+            'cached_at' => $cached['cached_at'] ?? null,
+            'match_type' => $matchType,
+            'original_cached_query' => $cached['query'] ?? null,
         ];
     }
 

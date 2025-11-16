@@ -4,6 +4,8 @@ namespace Modules\WebScraper\Services;
 
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
+use Modules\WebScraper\Services\SearchStrategies\SearchStrategySelector;
+use Modules\WebScraper\Services\SearchStrategies\SearchStrategyInterface;
 
 class IntelligentCrawlerService
 {
@@ -12,40 +14,115 @@ class IntelligentCrawlerService
     protected AiAnalyzerService $aiAnalyzer;
     protected SitemapService $sitemapService;
     protected SearchFormService $searchFormService;
+    protected SearchStrategySelector $strategySelector;
     protected array $visitedUrls = [];
     protected array $foundResults = [];
+    protected string $searchMode = 'strict'; // 'strict' or 'related'
+    protected ?string $baseDomain = null;
 
     public function __construct(
         WebScraperService $scraper,
         HtmlParserService $parser,
         AiAnalyzerService $aiAnalyzer,
         SitemapService $sitemapService,
-        SearchFormService $searchFormService
+        SearchFormService $searchFormService,
+        SearchStrategySelector $strategySelector
     ) {
         $this->scraper = $scraper;
         $this->parser = $parser;
         $this->aiAnalyzer = $aiAnalyzer;
         $this->sitemapService = $sitemapService;
         $this->searchFormService = $searchFormService;
+        $this->strategySelector = $strategySelector;
     }
 
     /**
      * Intelligent search guided by website menu structure
      * Now includes sitemap and search form strategies!
+     * Uses Strategy Pattern to optimize based on query type
+     *
+     * @param string $startUrl Starting URL to search from
+     * @param string $query Search query
+     * @param int $maxDepth Maximum depth for recursive crawling
+     * @param string $mode Search mode: 'strict' (same domain only) or 'related' (follow external links)
      */
-    public function intelligentSearch(string $startUrl, string $query, int $maxDepth = 3): array
+    public function intelligentSearch(string $startUrl, string $query, int $maxDepth = 3, string $mode = 'strict'): array
     {
-        $maxPages = config('webscraper.scraping.max_pages', 10);
+        // Select appropriate strategy based on query
+        $strategy = $this->strategySelector->selectStrategy($query);
+
+        // Get strategy-specific configuration
+        $maxPages = $strategy->getMaxPages();
+        $maxDepth = $strategy->getMaxDepth();
+
+        // Store mode for use in URL filtering
+        $this->searchMode = $mode;
+        $this->baseDomain = parse_url($startUrl, PHP_URL_HOST);
 
         Log::channel('webscraper')->info('IntelligentCrawler: Starting intelligent search', [
             'start_url' => $startUrl,
             'query' => $query,
+            'strategy' => $strategy->getName(),
             'max_depth' => $maxDepth,
             'max_pages' => $maxPages,
+            'mode' => $mode,
+            'base_domain' => $this->baseDomain,
         ]);
 
         $this->visitedUrls = [];
         $this->foundResults = [];
+
+        // Try priority URLs first (if strategy defines them)
+        $priorityUrls = $strategy->getPriorityUrls($startUrl);
+
+        // For WeatherSearchStrategy, add city-specific URLs
+        if ($strategy instanceof \Modules\WebScraper\Services\SearchStrategies\WeatherSearchStrategy) {
+            $city = $strategy->extractCityFromQuery($query);
+            if ($city) {
+                Log::channel('webscraper')->info('IntelligentCrawler: WeatherStrategy detected city', [
+                    'city' => $city,
+                    'query' => $query,
+                ]);
+                $cityUrls = $strategy->getCityUrls($startUrl, $city);
+                // Prepend city URLs to priority list (highest priority)
+                $priorityUrls = array_merge($cityUrls, $priorityUrls);
+                Log::channel('webscraper')->info('IntelligentCrawler: Added city-specific URLs', [
+                    'city_urls_count' => count($cityUrls),
+                ]);
+            }
+        }
+
+        if (!empty($priorityUrls)) {
+            Log::channel('webscraper')->info('IntelligentCrawler: STRATEGY 0 - Checking priority URLs', [
+                'strategy' => $strategy->getName(),
+                'urls_count' => count($priorityUrls),
+            ]);
+
+            foreach ($priorityUrls as $priorityUrl) {
+                if (!in_array($priorityUrl, $this->visitedUrls)) {
+                    $this->scrapeSinglePage($priorityUrl, $query, 0, 'priority_' . strtolower($strategy->getName()));
+                }
+
+                // Early stop if strategy allows it and we have enough results
+                if ($strategy->shouldStopEarly() && count($this->foundResults) >= $strategy->getMinResultsForEarlyStop()) {
+                    Log::channel('webscraper')->info('IntelligentCrawler: Early stop triggered', [
+                        'strategy' => $strategy->getName(),
+                        'results_found' => count($this->foundResults),
+                    ]);
+
+                    // Skip to AI ranking
+                    if (!empty($this->foundResults)) {
+                        $this->foundResults = $this->rankResultsWithAI($this->foundResults, $query);
+                    }
+
+                    return [
+                        'query' => $query,
+                        'pages_visited' => count($this->visitedUrls),
+                        'results' => $this->foundResults,
+                    ];
+                }
+            }
+        }
 
         // STRATEGY 1: Try search form submission (fastest and most accurate!)
         Log::channel('webscraper')->info('IntelligentCrawler: STRATEGY 1 - Trying search form submission');
@@ -56,8 +133,7 @@ class IntelligentCrawlerService
                 'urls_found' => count($searchFormUrls),
             ]);
 
-            // Scrape the search result pages
-            $maxPages = config('webscraper.scraping.max_pages', 10);
+            // Scrape the search result pages (use strategy max_pages)
             foreach (array_slice($searchFormUrls, 0, $maxPages) as $resultUrl) {
                 if (!in_array($resultUrl, $this->visitedUrls)) {
                     $this->scrapeSinglePage($resultUrl, $query, 0, 'search_form');
@@ -74,8 +150,7 @@ class IntelligentCrawlerService
                 'urls_found' => count($sitemapUrls),
             ]);
 
-            // Scrape the sitemap URLs
-            $maxPages = config('webscraper.scraping.max_pages', 10);
+            // Scrape the sitemap URLs (use strategy max_pages)
             foreach (array_slice($sitemapUrls, 0, $maxPages) as $sitemapUrl) {
                 if (!in_array($sitemapUrl, $this->visitedUrls)) {
                     $this->scrapeSinglePage($sitemapUrl, $query, 0, 'sitemap_keyword');
@@ -88,8 +163,8 @@ class IntelligentCrawlerService
         Log::channel('webscraper')->info('IntelligentCrawler: STRATEGY 3 - Menu-guided crawling');
         $this->searchRecursive($startUrl, $query, 0, $maxDepth);
 
-        // STRATEGY 4 (FALLBACK): If we have less than 30 results, scrape more pages from sitemap
-        $minResults = 30; // Minimum number of results before we're satisfied
+        // STRATEGY 4 (FALLBACK): If we have less than 1 results, scrape more pages from sitemap
+        $minResults = 1; // Minimum number of results before we're satisfied
         if (count($this->foundResults) < $minResults) {
             Log::channel('webscraper')->info('IntelligentCrawler: STRATEGY 4 - Found few results, trying all sitemap URLs', [
                 'current_results' => count($this->foundResults),
@@ -117,6 +192,14 @@ class IntelligentCrawlerService
             }
         }
 
+        // AI Ranking: Analyze top candidates with AI for better relevance
+        if (!empty($this->foundResults)) {
+            Log::channel('webscraper')->info('IntelligentCrawler: Ranking results with AI', [
+                'candidates' => count($this->foundResults),
+            ]);
+            $this->foundResults = $this->rankResultsWithAI($this->foundResults, $query);
+        }
+
         Log::channel('webscraper')->info('IntelligentCrawler: Search completed', [
             'pages_visited' => count($this->visitedUrls),
             'results_found' => count($this->foundResults),
@@ -130,10 +213,39 @@ class IntelligentCrawlerService
     }
 
     /**
+     * Check if URL should be allowed based on search mode
+     */
+    protected function isUrlAllowed(string $url): bool
+    {
+        if ($this->searchMode === 'related') {
+            return true; // Allow all URLs in related mode
+        }
+
+        // Strict mode: only allow same domain
+        $urlDomain = parse_url($url, PHP_URL_HOST);
+        $allowed = $urlDomain === $this->baseDomain;
+
+        if (!$allowed) {
+            Log::channel('webscraper')->debug('IntelligentCrawler: URL blocked by strict mode', [
+                'url' => $url,
+                'url_domain' => $urlDomain,
+                'base_domain' => $this->baseDomain,
+            ]);
+        }
+
+        return $allowed;
+    }
+
+    /**
      * Scrape a single page and check for query match
      */
     protected function scrapeSinglePage(string $url, string $query, int $depth, string $source): void
     {
+        // Check if URL is allowed by search mode
+        if (!$this->isUrlAllowed($url)) {
+            return;
+        }
+
         // Skip if already visited
         if (in_array($url, $this->visitedUrls)) {
             return;
@@ -146,7 +258,7 @@ class IntelligentCrawlerService
             'source' => $source,
         ]);
 
-        $scrapedData = $this->scraper->scrape($url);
+        $scrapedData = $this->scraper->scrape($url, ['query' => $query]);
 
         if (isset($scrapedData['error'])) {
             Log::channel('webscraper')->warning('IntelligentCrawler: Error scraping page', [
@@ -168,7 +280,7 @@ class IntelligentCrawlerService
                 'url' => $url,
                 'title' => $scrapedData['metadata']['title'] ?? 'Untitled',
                 'match_type' => $source,
-                'content_excerpt' => substr($scrapedData['content']['main'], 0, 500),
+                'content_excerpt' => $this->extractHeaderAndFooter($scrapedData['content']['main']),
                 'depth' => $depth,
             ];
         }
@@ -199,7 +311,7 @@ class IntelligentCrawlerService
         ]);
 
         // Scrape the page
-        $scrapedData = $this->scraper->scrape($url);
+        $scrapedData = $this->scraper->scrape($url, ['query' => $query]);
 
         if (isset($scrapedData['error'])) {
             Log::channel('webscraper')->warning('IntelligentCrawler: Error scraping page', [
@@ -217,7 +329,7 @@ class IntelligentCrawlerService
                 'url' => $url,
                 'title' => $scrapedData['metadata']['title'] ?? 'Untitled',
                 'match_type' => 'content',
-                'content_excerpt' => substr($scrapedData['content']['main'], 0, 500),
+                'content_excerpt' => $this->extractHeaderAndFooter($scrapedData['content']['main']),
                 'depth' => $depth,
             ];
         }
@@ -290,15 +402,18 @@ class IntelligentCrawlerService
     /**
      * Check if page content matches the search query
      * Searches in FULL content (includes header, footer, nav, everything)
+     * Uses synonym expansion to improve match accuracy
      */
     protected function checkContentMatch(array $scrapedData, string $query): bool
     {
         // Use full content for keyword search (includes everything)
         $fullContent = strtolower($scrapedData['content']['full'] ?? '');
 
+        // Extract keywords and expand with synonyms
         $queryKeywords = $this->extractKeywords($query);
+        $expandedKeywords = $this->expandKeywordsWithSynonyms($queryKeywords);
 
-        foreach ($queryKeywords as $keyword) {
+        foreach ($expandedKeywords as $keyword) {
             if (stripos($fullContent, $keyword) !== false) {
                 return true;
             }
@@ -322,8 +437,10 @@ class IntelligentCrawlerService
             'catalogo' => ['prodotti', 'prodotto', 'products', 'articoli', 'gamma', 'listino'],
 
             // Contacts
-            'contatti' => ['contatto', 'contact', 'contacts', 'indirizzo', 'telefono', 'email', 'dove siamo', 'dove', 'scrivici', 'chiamaci', 'ubicazione', 'location', 'sede', 'recapiti'],
-            'indirizzo' => ['contatti', 'dove siamo', 'dove', 'ubicazione', 'location', 'sede', 'dove trovarci'],
+            'contatti' => ['contatto', 'contact', 'contacts', 'indirizzo', 'telefono', 'tel', 'email', 'mail', 'dove siamo', 'dove', 'scrivici', 'chiamaci', 'ubicazione', 'location', 'sede', 'recapiti', 'p.iva', 'piva', 'partita iva'],
+            'indirizzo' => ['contatti', 'dove siamo', 'dove', 'ubicazione', 'location', 'sede', 'dove trovarci', 'via'],
+            'telefono' => ['tel', 'phone', 'contatti', 'chiamaci', 'call', 'numero'],
+            'partita iva' => ['p.iva', 'piva', 'partita-iva', 'iva', 'vat', 'contatti'],
 
             // About
             'chi siamo' => ['chi', 'about', 'azienda', 'storia', 'mission', 'valori', 'team', 'noi', 'profilo'],
@@ -539,5 +656,165 @@ PROMPT;
             ]);
             return '';
         }
+    }
+
+    /**
+     * Rank results with AI for better relevance
+     * Uses a single AI call to score all candidates efficiently
+     *
+     * @param array $candidates Array of candidate results from keyword matching
+     * @param string $query User's search query
+     * @return array Filtered and sorted results (only relevant ones)
+     */
+    protected function rankResultsWithAI(array $candidates, string $query): array
+    {
+        try {
+            // Limit to top 10 candidates to avoid huge prompts
+            $candidatesToAnalyze = array_slice($candidates, 0, 10);
+
+            // Build candidates text for AI
+            $candidatesText = '';
+            foreach ($candidatesToAnalyze as $index => $candidate) {
+                $title = $candidate['title'] ?? 'Untitled';
+                $excerpt = $candidate['content_excerpt'] ?? '';
+                $url = $candidate['url'] ?? '';
+
+                $candidatesText .= ($index + 1) . ". **{$title}**\n";
+                $candidatesText .= "   URL: {$url}\n";
+                $candidatesText .= "   Contenuto: {$excerpt}\n\n";
+            }
+
+            $systemPrompt = "Valuta rilevanza pagine web. Score 0-10. Rispondi: 1: X\n2: Y\n3: Z";
+
+            $userPrompt = "Query: {$query}\n\n{$candidatesText}\nScore (0-10):";
+
+            $apiKey = config('openapi.key');
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $apiKey,
+                'Content-Type' => 'application/json',
+            ])->timeout(15)->post('https://api.openai.com/v1/chat/completions', [
+                'model' => 'gpt-3.5-turbo', // 3x faster, 10x cheaper than gpt-4o-mini
+                'messages' => [
+                    ['role' => 'system', 'content' => $systemPrompt],
+                    ['role' => 'user', 'content' => $userPrompt],
+                ],
+                'max_tokens' => 50, // Ridotto da 200 a 50 (formato semplice)
+                'temperature' => 0.1, // Molto basso per risposte consistenti
+            ]);
+
+            if (!$response->successful()) {
+                Log::channel('webscraper')->error('IntelligentCrawler: AI ranking failed', [
+                    'error' => $response->body(),
+                ]);
+                // Return original results if AI fails
+                return $candidates;
+            }
+
+            $result = $response->json();
+            $aiAnswer = trim($result['choices'][0]['message']['content'] ?? '');
+
+            Log::channel('webscraper')->info('IntelligentCrawler: AI ranking response', [
+                'answer' => $aiAnswer,
+                'tokens_used' => $result['usage']['total_tokens'] ?? 0,
+            ]);
+
+            if (empty($aiAnswer)) {
+                return $candidates;
+            }
+
+            // Parse AI response
+            // Format can be: "1: 9\n2: 3\n3: 7" OR just "8" (for single candidate)
+            $scores = [];
+            $lines = explode("\n", $aiAnswer);
+
+            foreach ($lines as $line) {
+                $line = trim($line);
+
+                // Try format "1: 8"
+                if (preg_match('/(\d+):\s*(\d+)/', $line, $matches)) {
+                    $index = (int)$matches[1] - 1; // Convert to 0-based
+                    $score = (int)$matches[2];
+
+                    if (isset($candidatesToAnalyze[$index])) {
+                        $scores[$index] = $score;
+                    }
+                }
+                // Fallback: just a number (for single candidate)
+                elseif (preg_match('/^(\d+)$/', $line, $matches)) {
+                    $score = (int)$matches[1];
+                    // Assign to first candidate
+                    if (count($candidatesToAnalyze) === 1 && !isset($scores[0])) {
+                        $scores[0] = $score;
+                    }
+                }
+            }
+
+            Log::channel('webscraper')->info('IntelligentCrawler: Parsed AI scores', [
+                'scores' => $scores,
+                'candidates_count' => count($candidatesToAnalyze),
+            ]);
+
+            // Filter: Keep only results with score >= 4 (at least partially relevant)
+            $filteredResults = [];
+            foreach ($candidatesToAnalyze as $index => $candidate) {
+                $score = $scores[$index] ?? 0;
+
+                if ($score >= 4) {
+                    $candidate['relevance_score'] = $score;
+                    $filteredResults[] = $candidate;
+                }
+            }
+
+            // Sort by relevance score (descending)
+            usort($filteredResults, function($a, $b) {
+                return ($b['relevance_score'] ?? 0) <=> ($a['relevance_score'] ?? 0);
+            });
+
+            Log::channel('webscraper')->info('IntelligentCrawler: AI ranking completed', [
+                'original_count' => count($candidates),
+                'analyzed_count' => count($candidatesToAnalyze),
+                'filtered_count' => count($filteredResults),
+            ]);
+
+            // If we filtered out everything, return original results (AI might be too strict)
+            if (empty($filteredResults) && !empty($candidates)) {
+                Log::channel('webscraper')->warning('IntelligentCrawler: AI filtered out all results, returning originals');
+                return $candidates;
+            }
+
+            return $filteredResults;
+
+        } catch (\Exception $e) {
+            Log::channel('webscraper')->error('IntelligentCrawler: AI ranking error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            // Return original results if anything fails
+            return $candidates;
+        }
+    }
+
+    /**
+     * Extract header (first 500 chars) + footer (last 500 chars) for AI analysis
+     * This ensures we capture both navigation content and footer contact info
+     *
+     * @param string $content Full page content
+     * @return string Header + footer excerpt (max ~1000 chars)
+     */
+    protected function extractHeaderAndFooter(string $content): string
+    {
+        $contentLength = strlen($content);
+
+        // If content is short (< 1000 chars), return as-is
+        if ($contentLength <= 1000) {
+            return $content;
+        }
+
+        // Extract first 500 and last 500 characters
+        $header = substr($content, 0, 500);
+        $footer = substr($content, -500);
+
+        // Add separator to distinguish header from footer
+        return $header . "\n\n[...]\n\n" . $footer;
     }
 }

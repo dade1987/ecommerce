@@ -418,17 +418,29 @@ class SearchResultCache extends Model
     }
 
     /**
-     * Store search results in cache with AI analysis
+     * Store search results in cache with AI analysis and embedding
      */
     public static function storeCache(string $siteUrl, string $query, array $results, int $pagesVisited, ?string $aiAnalysis = null, int $ttl = null): void
     {
         $ttl = $ttl ?? config('webscraper.search_cache.ttl', 604800); // 7 days default
         $queryHash = self::hashQuery($query);
 
+        // Generate embedding for semantic similarity search
+        $embeddingService = app(\Modules\WebScraper\Services\EmbeddingService::class);
+        $embedding = $embeddingService->generateEmbedding($query);
+        $embeddingJson = $embedding ? $embeddingService->encodeEmbedding($embedding) : null;
+
+        if ($embeddingJson === null) {
+            Log::channel('webscraper')->warning('SearchResultCache: Failed to generate embedding for query', [
+                'query' => $query,
+            ]);
+        }
+
         $data = [
             'site_url' => $siteUrl,
             'query_hash' => $queryHash,
             'original_query' => $query,
+            'query_embedding' => $embeddingJson,
             'results_json' => json_encode($results),
             'ai_analysis' => $aiAnalysis,
             'pages_visited' => $pagesVisited,
@@ -438,12 +450,13 @@ class SearchResultCache extends Model
 
         // Use REPLACE to handle duplicates (SQLite upsert)
         DB::connection('webscraper')->statement(
-            "REPLACE INTO search_result_cache (site_url, query_hash, original_query, results_json, ai_analysis, pages_visited, created_at, expires_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            "REPLACE INTO search_result_cache (site_url, query_hash, original_query, query_embedding, results_json, ai_analysis, pages_visited, created_at, expires_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
             [
                 $data['site_url'],
                 $data['query_hash'],
                 $data['original_query'],
+                $data['query_embedding'],
                 $data['results_json'],
                 $data['ai_analysis'],
                 $data['pages_visited'],
