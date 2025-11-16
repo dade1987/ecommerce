@@ -11,11 +11,13 @@ use Modules\WebScraper\Services\AiAnalyzerService;
 use Modules\WebScraper\Services\IntelligentCrawlerService;
 use Modules\WebScraper\Services\SitemapService;
 use Modules\WebScraper\Services\SearchFormService;
+use Modules\WebScraper\Services\HybridSearchService;
 use Modules\WebScraper\Console\Commands\ClearExpiredCache;
 use Modules\WebScraper\Console\Commands\IndexSiteCommand;
 use Modules\WebScraper\Console\Commands\RagSearchCommand;
 use Modules\WebScraper\Console\Commands\RagStatsCommand;
 use Modules\WebScraper\Console\Commands\UpdateChunksDomain;
+use Modules\WebScraper\Console\Commands\HybridSearchCommand;
 
 class WebScraperServiceProvider extends ServiceProvider
 {
@@ -45,6 +47,7 @@ class WebScraperServiceProvider extends ServiceProvider
         $this->app->singleton(SitemapService::class);
         $this->app->singleton(SearchFormService::class);
         $this->app->singleton(IntelligentCrawlerService::class);
+        $this->app->singleton(HybridSearchService::class);
 
         // Register facade accessor
         $this->app->singleton('webscraper', function ($app) {
@@ -77,6 +80,7 @@ class WebScraperServiceProvider extends ServiceProvider
                 RagSearchCommand::class,
                 RagStatsCommand::class,
                 UpdateChunksDomain::class,
+                HybridSearchCommand::class,
             ]);
 
             // Publish configuration

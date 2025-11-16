@@ -3,6 +3,7 @@
 namespace Modules\WebScraper\Services;
 
 use Modules\WebScraper\Models\WebscraperChunk;
+use Modules\WebScraper\Traits\EnhancesSearchQueries;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Exception;
@@ -18,15 +19,34 @@ use Exception;
  */
 class ClientSiteQaService
 {
+    use EnhancesSearchQueries;
+
     protected EmbeddingService $embeddingService;
 
     // Vector search configuration
-    protected int $topK = 10; // Number of similar chunks to retrieve (reduced to fit GPT-3.5-turbo 16K context)
-    protected float $minSimilarity = 0.7; // Minimum similarity score (0-1)
+    protected int $topK;
+    protected float $minSimilarity;
+    protected int $numCandidates;
+    protected string $indexName;
+
+    // LLM configuration
+    protected string $llmModel;
+    protected float $llmTemperature;
+    protected int $llmMaxTokens;
 
     public function __construct(EmbeddingService $embeddingService)
     {
         $this->embeddingService = $embeddingService;
+
+        // Load configuration
+        $this->topK = config('webscraper.rag.vector_search.top_k', 10);
+        $this->minSimilarity = config('webscraper.rag.vector_search.min_similarity', 0.7);
+        $this->numCandidates = config('webscraper.rag.vector_search.num_candidates', 100);
+        $this->indexName = config('webscraper.rag.vector_search.index_name', 'vector_index_1');
+
+        $this->llmModel = config('webscraper.rag.llm.model', 'gpt-3.5-turbo');
+        $this->llmTemperature = config('webscraper.rag.llm.temperature', 0.7);
+        $this->llmMaxTokens = config('webscraper.rag.llm.max_tokens', 1000);
     }
 
     /**
@@ -96,36 +116,49 @@ class ClientSiteQaService
      */
     protected function vectorSearch(array $queryEmbedding, ?string $domain = null): array
     {
+        // Build vector search stage
+        $vectorSearchStage = [
+            'index' => $this->indexName,
+            'path' => 'embedding',
+            'queryVector' => $queryEmbedding,
+            'numCandidates' => $this->numCandidates,
+            'limit' => $this->topK,
+        ];
+
+        // Domain filter (native pre-filtering with 'filter' parameter)
+        // NOTE: Requires domain field to be indexed as filter in Atlas Vector Search index
+        if ($domain) {
+            // Normalize domain variants (both with and without www)
+            $domainVariants = [$domain];
+
+            if (str_starts_with($domain, 'www.')) {
+                // If starts with www, also try without
+                $domainVariants[] = substr($domain, 4);
+            } else {
+                // If no www, also try with www
+                $domainVariants[] = 'www.' . $domain;
+            }
+
+            // Add native Atlas pre-filtering
+            $vectorSearchStage['filter'] = [
+                'domain' => ['$in' => $domainVariants]
+            ];
+
+            Log::channel('webscraper')->debug('ClientSiteQa: Domain pre-filter applied (Atlas native)', [
+                'domain' => $domain,
+                'variants' => $domainVariants,
+            ]);
+        }
+
         // MongoDB Atlas Vector Search aggregation pipeline
         $pipeline = [
-            [
-                '$vectorSearch' => [
-                    'index' => 'vector_index_1', // Name of the Atlas Vector Search index
-                    'path' => 'embedding',
-                    'queryVector' => $queryEmbedding,
-                    'numCandidates' => 100, // Number of candidates to consider
-                    'limit' => $this->topK,
-                ]
-            ],
+            ['$vectorSearch' => $vectorSearchStage],
             [
                 '$addFields' => [
                     'score' => ['$meta' => 'vectorSearchScore']
                 ]
             ],
         ];
-
-        // Domain filter (direct field, no $lookup needed - much faster!)
-        if ($domain) {
-            $pipeline[] = [
-                '$match' => [
-                    'domain' => $domain
-                ]
-            ];
-
-            Log::channel('webscraper')->debug('ClientSiteQa: Domain filter applied', [
-                'domain' => $domain,
-            ]);
-        }
 
         // Execute aggregation
         try {
@@ -268,13 +301,13 @@ EOT;
             $client = \OpenAI::client($apiKey);
 
             $response = $client->chat()->create([
-                'model' => 'gpt-3.5-turbo',
+                'model' => $this->llmModel,
                 'messages' => [
                     ['role' => 'system', 'content' => $systemPrompt],
                     ['role' => 'user', 'content' => $query],
                 ],
-                'temperature' => 0.7,
-                'max_tokens' => 1000,
+                'temperature' => $this->llmTemperature,
+                'max_tokens' => $this->llmMaxTokens,
             ]);
 
             $answer = $response->choices[0]->message->content ?? '';
@@ -330,6 +363,66 @@ EOT;
         }
 
         return $sources;
+    }
+
+    /**
+     * Public method to perform vector search and return formatted chunks
+     * Used by HybridSearchService for combining with text search
+     *
+     * @param string $query Search query
+     * @param string|null $domain Optional domain filter
+     * @param int|null $topK Number of results (overrides default)
+     * @return array Array of formatted chunks with scores
+     */
+    public function searchChunks(string $query, ?string $domain = null, ?int $topK = null): array
+    {
+        // Override topK if provided
+        $originalTopK = $this->topK;
+        if ($topK !== null) {
+            $this->topK = $topK;
+        }
+
+        try {
+            // Enhance query using strategy pattern (if set)
+            $enhancedQuery = $this->enhanceQuery($query, ['domain' => $domain]);
+
+            // Generate query embedding with enhanced query
+            $queryEmbedding = $this->embeddingService->generateEmbedding($enhancedQuery);
+
+            // Perform vector search
+            $similarChunks = $this->vectorSearch($queryEmbedding, $domain);
+
+            // Format results for hybrid search
+            $formattedChunks = [];
+            foreach ($similarChunks as $item) {
+                $chunk = $item['chunk'];
+                $score = $item['score'];
+
+                if (!$chunk) {
+                    continue;
+                }
+
+                // Load page relationship
+                $page = $chunk->page;
+
+                $formattedChunks[] = [
+                    'content' => $chunk->content,
+                    'score' => $score,
+                    'url' => $page->url ?? null,
+                    'title' => $page->title ?? 'No title',
+                    'description' => $page->description ?? '',
+                    'domain' => $chunk->domain ?? $page->domain ?? null,
+                    'chunk_index' => $chunk->chunk_index,
+                    'word_count' => $chunk->word_count,
+                ];
+            }
+
+            return $formattedChunks;
+
+        } finally {
+            // Restore original topK
+            $this->topK = $originalTopK;
+        }
     }
 
     /**

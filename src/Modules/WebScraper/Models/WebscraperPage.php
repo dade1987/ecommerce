@@ -59,11 +59,22 @@ class WebscraperPage extends Model
 
     /**
      * Extract domain from URL
+     *
+     * @param string $url The URL to extract domain from
+     * @param bool $normalize If true, removes 'www.' prefix for consistency (default: true)
+     * @return string The extracted domain
      */
-    public static function extractDomain(string $url): string
+    public static function extractDomain(string $url, bool $normalize = true): string
     {
         $parsed = parse_url($url);
-        return $parsed['host'] ?? '';
+        $host = $parsed['host'] ?? '';
+
+        // Normalize domain by removing www prefix (for consistency)
+        if ($normalize && str_starts_with($host, 'www.')) {
+            $host = substr($host, 4);
+        }
+
+        return $host;
     }
 
     /**

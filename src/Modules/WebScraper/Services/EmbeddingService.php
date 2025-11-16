@@ -12,7 +12,21 @@ class EmbeddingService
     /**
      * OpenAI model for embeddings
      */
-    protected string $model = 'text-embedding-3-small';
+    protected string $model;
+
+    /**
+     * Expected embedding dimensions
+     */
+    protected int $dimensions;
+
+    /**
+     * Constructor
+     */
+    public function __construct()
+    {
+        $this->model = config('webscraper.rag.embedding.model', 'text-embedding-3-small');
+        $this->dimensions = config('webscraper.rag.embedding.dimensions', 1536);
+    }
 
     /**
      * Generate embedding vector for a text query

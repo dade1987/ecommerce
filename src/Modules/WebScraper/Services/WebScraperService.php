@@ -536,41 +536,112 @@ class WebScraperService implements ScraperInterface
             }
         }
 
-        // Step 1: Try RAG search first (fast, uses indexed content)
+        // Step 1: Try HYBRID search first (combines vector + text search with RRF)
         try {
-            $qaService = app(ClientSiteQaService::class);
+            $hybridSearch = app(\Modules\WebScraper\Services\HybridSearchService::class);
 
-            // Apply custom parameters if provided
-            if (isset($options['top_k'])) {
-                $qaService->setTopK($options['top_k']);
-            }
-            if (isset($options['min_similarity'])) {
-                $qaService->setMinSimilarity($options['min_similarity']);
-            }
+            // Perform hybrid search (vector + text with RRF)
+            $topK = $options['top_k'] ?? 10;
+            $hybridResult = $hybridSearch->search(
+                query: $query,
+                domain: $domain,
+                options: ['topK' => $topK]
+            );
 
-            $ragResult = $qaService->answerQuestion($query, $domain);
-
-            // If RAG found relevant chunks, return the answer
-            if ($ragResult['chunks_found'] > 0) {
-                Log::channel('webscraper')->info('WebScraper: RAG search successful', [
-                    'chunks_found' => $ragResult['chunks_found'],
-                    'sources_count' => count($ragResult['sources']),
+            // If hybrid search found relevant chunks, generate answer using ClientSiteQaService
+            if ($hybridResult['count'] > 0) {
+                Log::channel('webscraper')->info('WebScraper: Hybrid search successful', [
+                    'results_count' => $hybridResult['count'],
+                    'method' => $hybridResult['method'],
+                    'vector_results' => $hybridResult['stats']['vector_results'],
+                    'text_results' => $hybridResult['stats']['text_results'],
                 ]);
 
-                return [
-                    'success' => true,
-                    'method' => 'rag',
-                    'answer' => $ragResult['answer'],
-                    'sources' => $ragResult['sources'],
-                    'chunks_found' => $ragResult['chunks_found'],
-                    'from_cache' => false,
-                ];
+                // Build context from hybrid search results
+                $contextParts = [];
+                foreach ($hybridResult['results'] as $index => $result) {
+                    $contextParts[] = sprintf(
+                        "[Source %d - %s (RRF Score: %.4f)]\nTitle: %s\nURL: %s\n\n%s\n",
+                        $index + 1,
+                        $result['domain'] ?? 'Unknown',
+                        $result['rrf_score'],
+                        $result['title'] ?? 'No title',
+                        $result['url'] ?? 'No URL',
+                        $result['content']
+                    );
+                }
+                $context = implode("\n---\n\n", $contextParts);
+
+                // Use same prompt as ClientSiteQaService
+                $systemPrompt = <<<EOT
+Sei un assistente AI che risponde a domande basandoti ESCLUSIVAMENTE sulle informazioni fornite nel contesto.
+
+REGOLE:
+1. Rispondi SOLO usando le informazioni presenti nel contesto
+2. Se il contesto non contiene informazioni sufficienti, dillo chiaramente
+3. Cita le fonti quando possibile (es. "Secondo [Source 1]...")
+4. Sii conciso ma completo
+5. Usa un tono professionale e amichevole
+6. Rispondi in italiano
+
+CONTESTO:
+{$context}
+EOT;
+
+                try {
+                    $apiKey = config('services.openai.key');
+                    $client = \OpenAI::client($apiKey);
+
+                    $response = $client->chat()->create([
+                        'model' => 'gpt-3.5-turbo',
+                        'messages' => [
+                            ['role' => 'system', 'content' => $systemPrompt],
+                            ['role' => 'user', 'content' => $query],
+                        ],
+                        'temperature' => 0.7,
+                        'max_tokens' => 1000,
+                    ]);
+
+                    $answer = $response->choices[0]->message->content ?? '';
+
+                    // Extract unique sources
+                    $sources = [];
+                    $seenUrls = [];
+                    foreach ($hybridResult['results'] as $result) {
+                        $url = $result['url'] ?? '';
+                        if (!in_array($url, $seenUrls)) {
+                            $sources[] = [
+                                'url' => $url,
+                                'title' => $result['title'] ?? 'No title',
+                                'domain' => $result['domain'] ?? 'Unknown',
+                                'rrf_score' => $result['rrf_score'],
+                            ];
+                            $seenUrls[] = $url;
+                        }
+                    }
+
+                    return [
+                        'success' => true,
+                        'method' => 'hybrid_rag', // New method identifier
+                        'answer' => trim($answer),
+                        'sources' => $sources,
+                        'chunks_found' => $hybridResult['count'],
+                        'search_stats' => $hybridResult['stats'],
+                        'from_cache' => false,
+                    ];
+
+                } catch (\Exception $e) {
+                    Log::channel('webscraper')->error('WebScraper: LLM answer generation failed', [
+                        'error' => $e->getMessage(),
+                    ]);
+                    throw $e;
+                }
             }
 
-            Log::channel('webscraper')->info('WebScraper: No RAG results, falling back to scraping');
+            Log::channel('webscraper')->info('WebScraper: No hybrid search results, falling back to scraping');
 
         } catch (\Exception $e) {
-            Log::channel('webscraper')->warning('WebScraper: RAG search failed, falling back to scraping', [
+            Log::channel('webscraper')->warning('WebScraper: Hybrid search failed, falling back to scraping', [
                 'error' => $e->getMessage(),
             ]);
         }
