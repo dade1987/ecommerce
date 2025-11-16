@@ -114,28 +114,18 @@ class ClientSiteQaService
             ],
         ];
 
-        // TEMPORARILY DISABLED: Domain filter for debugging
-        // TODO: Re-enable after fixing
-        /*
+        // Domain filter (direct field, no $lookup needed - much faster!)
         if ($domain) {
             $pipeline[] = [
-                '$lookup' => [
-                    'from' => 'webscraper_pages',
-                    'localField' => 'page_id',
-                    'foreignField' => '_id',
-                    'as' => 'page'
-                ]
-            ];
-            $pipeline[] = [
-                '$unwind' => '$page'
-            ];
-            $pipeline[] = [
                 '$match' => [
-                    'page.domain' => $domain
+                    'domain' => $domain
                 ]
             ];
+
+            Log::channel('webscraper')->debug('ClientSiteQa: Domain filter applied', [
+                'domain' => $domain,
+            ]);
         }
-        */
 
         // Execute aggregation
         try {

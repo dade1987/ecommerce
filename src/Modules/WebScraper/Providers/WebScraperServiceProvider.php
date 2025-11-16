@@ -12,6 +12,10 @@ use Modules\WebScraper\Services\IntelligentCrawlerService;
 use Modules\WebScraper\Services\SitemapService;
 use Modules\WebScraper\Services\SearchFormService;
 use Modules\WebScraper\Console\Commands\ClearExpiredCache;
+use Modules\WebScraper\Console\Commands\IndexSiteCommand;
+use Modules\WebScraper\Console\Commands\RagSearchCommand;
+use Modules\WebScraper\Console\Commands\RagStatsCommand;
+use Modules\WebScraper\Console\Commands\UpdateChunksDomain;
 
 class WebScraperServiceProvider extends ServiceProvider
 {
@@ -69,6 +73,10 @@ class WebScraperServiceProvider extends ServiceProvider
         if ($this->app->runningInConsole()) {
             $this->commands([
                 ClearExpiredCache::class,
+                IndexSiteCommand::class,
+                RagSearchCommand::class,
+                RagStatsCommand::class,
+                UpdateChunksDomain::class,
             ]);
 
             // Publish configuration

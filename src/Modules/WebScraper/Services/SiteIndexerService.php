@@ -113,6 +113,7 @@ class SiteIndexerService
                 // Save chunk with embedding
                 $chunk = new WebscraperChunk();
                 $chunk->page_id = $page->_id;
+                $chunk->domain = $page->domain; // Add domain for fast filtering
                 $chunk->content = $chunkText;
                 $chunk->chunk_index = $index;
                 $chunk->word_count = str_word_count($chunkText);

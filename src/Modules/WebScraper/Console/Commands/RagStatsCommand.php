@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Console\Commands;
+namespace Modules\WebScraper\Console\Commands;
 
 use Illuminate\Console\Command;
 use Modules\WebScraper\Services\SiteIndexerService;

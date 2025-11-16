@@ -575,14 +575,28 @@ class WebScraperService implements ScraperInterface
             ]);
         }
 
-        // Step 2: Fallback to traditional scraping + AI analysis
-        Log::channel('webscraper')->info('WebScraper: Starting traditional search + indexing');
+        // Step 2: Fallback to cached search (checks MySQL cache first, then scrapes if needed)
+        Log::channel('webscraper')->info('WebScraper: RAG failed, checking search_result_cache before scraping');
 
         try {
-            // Use IntelligentCrawlerService for smart searching
-            $crawler = app(IntelligentCrawlerService::class);
+            // Use SearchResultCacheService (checks cache → semantic similarity → scraping)
+            $cacheService = app(SearchResultCacheService::class);
             $maxPages = $options['max_pages'] ?? 10;
-            $searchResults = $crawler->intelligentSearch($url, $query, $maxPages);
+            $cachedResult = $cacheService->getCachedOrSearch($url, $query, $maxPages);
+
+            // Extract search results from cache service response
+            $searchResults = [
+                'query' => $cachedResult['query'],
+                'pages_visited' => $cachedResult['pages_visited'],
+                'results' => $cachedResult['results'],
+            ];
+            $fromCache = $cachedResult['from_cache'] ?? false;
+
+            Log::channel('webscraper')->info('WebScraper: Search completed', [
+                'from_cache' => $fromCache,
+                'match_type' => $cachedResult['match_type'] ?? 'unknown',
+                'results_count' => count($searchResults['results']),
+            ]);
 
             if (empty($searchResults['results'])) {
                 return [
