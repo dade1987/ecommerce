@@ -17,8 +17,8 @@ services:
 
   php:
     build:
-      context: .
-      dockerfile: Dockerfile-php
+      context: ..  # ecommerce/ directory (contiene package.json)
+      dockerfile: docker-dev-playwright/Dockerfile-php
     container_name: php_fpm_avatar-3d-v1-dev
     ports:
       - "5173:5173"
@@ -26,6 +26,9 @@ services:
       - ../:/var/www/html
     networks:
       - avatar-3d-v1
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
     environment:
       - CHOKIDAR_USEPOLLING=true
     command: sh -c "php-fpm -D && cd /var/www/html && npm install && npm run dev -- --host 0.0.0.0"
