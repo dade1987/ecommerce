@@ -1,4 +1,4 @@
-<x-layouts.app>
+<x-app-layout>
     <div class="flex items-center justify-center" style="height: calc(100vh - 200px);">
         <div class="text-center">
             <h1 class="text-6xl font-bold text-gray-800">404</h1>
@@ -9,4 +9,4 @@
             </a>
         </div>
     </div>
-</x-layouts.app> 
+</x-app-layout> 

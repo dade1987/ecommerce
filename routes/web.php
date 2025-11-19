@@ -36,8 +36,6 @@ Route::prefix(config('curator.glide.route_path', 'curator'))
             ->where('path', '.*')
             ->name('curator.media.debug');
     });
-    
-Route::redirect('/', '/home')->name('home');
 
 Route::get('/dashboard', function () {
     return view('dashboard');

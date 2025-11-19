@@ -1,6 +1,10 @@
 # Docker files and folders
-# Escludiamo le config di sviluppo (prod usa docker-prod/)
-docker-dev-playwright/
+# Note: docker-dev-playwright/ contiene file necessari per il build (php.ini)
+# Escludiamo solo file Docker specifici non necessari
+docker-dev-playwright/Dockerfile
+docker-dev-playwright/nginx.conf
+docker-dev-playwright/docker-compose.yml
+docker-dev-playwright/certs/
 
 # Node modules
 node_modules/
@@ -32,7 +36,8 @@ yarn-error.log
 /public/hot
 /public/storage
 /public/build
-# NON escludere /public/css e /public/js - contengono asset Filament
+/public/css
+/public/js
 
 # Git
 .git/
@@ -52,8 +57,3 @@ docs/
 tests/
 phpunit.xml
 .phpunit.cache
-
-# Database files (SQLite dev)
-*.sqlite
-*.sqlite-journal
-storage/webscraper/
