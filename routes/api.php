@@ -2,17 +2,19 @@
 
 use App\Http\Controllers\Api\CalzaturieroController;
 use App\Http\Controllers\Api\ChatbotController;
-use App\Http\Controllers\Api\SommelierApiController;
+use App\Http\Controllers\Api\ChatTranscriptController;
+use App\Http\Controllers\Api\InterviewSuggestionController;
+use App\Http\Controllers\Api\NeuronTranslatorStreamController;
+use App\Http\Controllers\Api\NeuronWebsiteStreamController;
+use App\Http\Controllers\Api\OperatorFeedbackController;
 use App\Http\Controllers\Api\RealtimeChatController;
 use App\Http\Controllers\Api\RealtimeChatWebsiteController;
-use App\Http\Controllers\Api\NeuronWebsiteStreamController;
-use App\Http\Controllers\Api\TtsController;
+use App\Http\Controllers\Api\SommelierApiController;
 use App\Http\Controllers\Api\SommelierChatbotController;
-use App\Http\Controllers\Api\ChatTranscriptController;
-use App\Http\Controllers\QuoterController;
-use App\Http\Controllers\Api\TestController;
 use App\Http\Controllers\Api\StaticController;
-use App\Http\Controllers\Api\OperatorFeedbackController;
+use App\Http\Controllers\Api\TestController;
+use App\Http\Controllers\Api\TtsController;
+use App\Http\Controllers\QuoterController;
 use App\Models\ProductionPhase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -118,7 +120,6 @@ Route::get('/visit/{uuid}', function ($uuid) {
     }
 
     $customer->status = 'in_negotiation';
-    $customer->visited_at = now();
     $customer->save();
 
     return response()->json([
@@ -140,6 +141,8 @@ Route::post('/chatbot', [ChatbotController::class, 'handleChat']);
 Route::get('/chatbot/stream', [RealtimeChatController::class, 'stream']);
 Route::get('/chatbot/website-stream', [RealtimeChatWebsiteController::class, 'websiteStream']);
 Route::get('/chatbot/neuron-website-stream', [NeuronWebsiteStreamController::class, 'stream']);
+Route::get('/chatbot/neuron-translator-stream', [NeuronTranslatorStreamController::class, 'stream']);
+Route::post('/chatbot/interview-suggestion', [InterviewSuggestionController::class, 'suggest']);
 Route::post('/tts', [TtsController::class, 'synthesize']);
 Route::post('/chatbot/email-transcript', [ChatTranscriptController::class, 'emailTranscript']);
 Route::get('/chatbot/history', [ChatTranscriptController::class, 'history']);
@@ -150,19 +153,19 @@ Route::get('/static/{filename}', function (Request $request, $filename) {
     $allowedExtensions = ['glb', 'gltf', 'png', 'jpg', 'jpeg', 'webp', 'gif', 'svg'];
     $pathinfo = pathinfo($filename);
     $extension = strtolower($pathinfo['extension'] ?? '');
-    
-    if (!in_array($extension, $allowedExtensions)) {
+
+    if (! in_array($extension, $allowedExtensions)) {
         return response()->json(['error' => 'File type not allowed'], 403);
     }
-    
+
     // Costruisci il path dalla cartella public
     $filePath = public_path($filename);
-    
+
     // Verifica che il file esista e sia dentro public_html
-    if (!file_exists($filePath) || !str_starts_with(realpath($filePath), realpath(public_path()))) {
+    if (! file_exists($filePath) || ! str_starts_with(realpath($filePath), realpath(public_path()))) {
         return response()->json(['error' => 'File not found'], 404);
     }
-    
+
     // Serve il file (CORS headers aggiunti automaticamente dal middleware)
     return response()->file($filePath);
 })->where('filename', '.*');
@@ -190,8 +193,8 @@ Route::get('/avatar/{teamslug}', function ($teamslug) {
     ]);
 });
 
-Route::get('/test', TestController::class);
-Route::get('/static', StaticController::class);
+// Route::get('/test', TestController::class); // Controller removed
+// Route::get('/static', StaticController::class); // Controller removed
 
 /*
 |--------------------------------------------------------------------------
@@ -248,12 +251,12 @@ Route::get('/gantt-data', function () {
 
     $tasks = $phases->map(function ($phase) {
         return [
-            'id' => 'phase_' . $phase->id,
+            'id' => 'phase_'.$phase->id,
             'name' => $phase->name,
             'start' => $phase->scheduled_start_time->format('Y-m-d'),
             'end' => $phase->scheduled_end_time->format('Y-m-d'),
             'progress' => $phase->is_completed ? 100 : 0,
-            'custom_class' => 'bar-' . strtolower($phase->workstation->name ?? 'default'),
+            'custom_class' => 'bar-'.strtolower($phase->workstation->name ?? 'default'),
         ];
     });
 

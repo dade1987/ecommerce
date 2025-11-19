@@ -1,0 +1,911 @@
+<template>
+    <div
+        class="w-full min-h-screen bg-slate-900 text-slate-100 flex items-stretch justify-center px-2 md:px-6 py-4 md:py-8">
+        <div
+            class="w-full max-w-6xl bg-slate-800/80 border border-slate-700 rounded-2xl shadow-2xl p-4 md:p-8 flex flex-col">
+            <div class="flex items-center justify-between gap-4 mb-6">
+                <div>
+                    <h1 class="text-2xl md:text-3xl font-semibold tracking-tight">
+                        Traduttore vocale in tempo reale
+                    </h1>
+                    <p class="text-sm text-slate-300 mt-1">
+                        Parla in qualsiasi lingua: vedrai il testo originale e la traduzione live.
+                    </p>
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-3 mb-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div class="flex flex-col gap-2">
+                        <label class="text-xs font-semibold text-emerald-400">
+                            Lingua A <span class="text-red-400">*</span>
+                        </label>
+                        <select v-model="langA" @change="onLanguagePairChange"
+                            class="bg-slate-800 border text-sm rounded-md px-3 py-2 focus:outline-none focus:ring-2"
+                            :class="langA ? 'border-slate-600 focus:ring-emerald-500' : 'border-red-500 focus:ring-red-500'">
+                            <option value="">-- Seleziona lingua A --</option>
+                            <option v-for="opt in availableLanguages" :key="opt.code" :value="opt.code">
+                                {{ opt.label }}
+                            </option>
+                        </select>
+
+                        <!-- Pulsante microfono Lingua A -->
+                        <button type="button" @click="toggleListeningForLang('A')" :disabled="!langA || !langB" class="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition
+                            focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 border"
+                            :class="activeSpeaker === 'A' && isListening
+                                ? 'bg-emerald-600 text-white border-emerald-400 shadow-lg shadow-emerald-500/30'
+                                : 'bg-slate-700 text-slate-100 border-slate-500 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed'">
+                            <span
+                                class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-black/30 border border-slate-500">
+                                <span class="inline-block w-1.5 h-3 rounded-full"
+                                    :class="activeSpeaker === 'A' && isListening ? 'bg-red-400 animate-pulse' : 'bg-slate-300'"></span>
+                            </span>
+                            <span>{{ activeSpeaker === 'A' && isListening ? 'Parlante A attivo' : 'Parla Lingua A'
+                            }}</span>
+                        </button>
+                    </div>
+
+                    <div class="flex flex-col gap-2">
+                        <label class="text-xs font-semibold text-emerald-400">
+                            Lingua B <span class="text-red-400">*</span>
+                        </label>
+                        <select v-model="langB" @change="onLanguagePairChange"
+                            class="bg-slate-800 border text-sm rounded-md px-3 py-2 focus:outline-none focus:ring-2"
+                            :class="langB ? 'border-slate-600 focus:ring-emerald-500' : 'border-red-500 focus:ring-red-500'">
+                            <option value="">-- Seleziona lingua B --</option>
+                            <option v-for="opt in availableLanguages" :key="opt.code" :value="opt.code">
+                                {{ opt.label }}
+                            </option>
+                        </select>
+
+                        <!-- Pulsante microfono Lingua B -->
+                        <button type="button" @click="toggleListeningForLang('B')" :disabled="!langA || !langB" class="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition
+                            focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 border"
+                            :class="activeSpeaker === 'B' && isListening
+                                ? 'bg-blue-600 text-white border-blue-400 shadow-lg shadow-blue-500/30'
+                                : 'bg-slate-700 text-slate-100 border-slate-500 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed'">
+                            <span
+                                class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-black/30 border border-slate-500">
+                                <span class="inline-block w-1.5 h-3 rounded-full"
+                                    :class="activeSpeaker === 'B' && isListening ? 'bg-red-400 animate-pulse' : 'bg-slate-300'"></span>
+                            </span>
+                            <span>{{ activeSpeaker === 'B' && isListening ? 'Parlante B attivo' : 'Parla Lingua B'
+                            }}</span>
+                        </button>
+                    </div>
+                </div>
+
+                <p v-if="statusMessage" class="text-xs text-slate-300 text-center">
+                    {{ statusMessage }}
+                </p>
+            </div>
+
+            <div class="mt-4 space-y-6">
+                <!-- Righe principali: originale, traduzione, suggerimenti affiancati -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+                    <div class="flex flex-col gap-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-base md:text-lg font-semibold text-slate-100">
+                                Testo originale
+                            </span>
+                            <span class="text-xs text-slate-400">
+                                Riconosciuto dal microfono
+                            </span>
+                        </div>
+                        <div ref="originalBox"
+                            class="min-h-[260px] max-h-[420px] rounded-xl border border-slate-700 bg-slate-900/60 p-4 text-base md:text-lg overflow-y-auto leading-relaxed">
+                            <p v-if="!displayOriginalText" class="text-slate-500 text-xs md:text-sm">
+                                Inizia a parlare per vedere qui la trascrizione in tempo reale.
+                            </p>
+                            <p v-else class="whitespace-pre-wrap">
+                                {{ displayOriginalText }}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col gap-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-base md:text-lg font-semibold text-slate-100">
+                                Traduzione
+                            </span>
+                            <span class="text-xs text-slate-400">
+                                GPT / Neuron AI
+                            </span>
+                        </div>
+                        <div ref="translationBox"
+                            class="min-h-[260px] max-h-[420px] rounded-xl border border-slate-700 bg-slate-900/60 p-4 text-base md:text-lg overflow-y-auto leading-relaxed">
+                            <div v-if="!hasAnyTranslation" class="text-slate-500 text-xs md:text-sm">
+                                La traduzione apparirà qui man mano che parli.
+                            </div>
+                            <div v-else class="space-y-2">
+                                <!-- Frasi già tradotte (segmenti fissi) -->
+                                <div v-for="(seg, idx) in translationSegments" :key="'seg-' + idx"
+                                    class="whitespace-pre-wrap">
+                                    {{ seg }}
+                                </div>
+                                <!-- Frase corrente in streaming, aggiornata token per token con manipolazione diretta DOM -->
+                                <div ref="translationLiveContainer" class="whitespace-pre-wrap"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        <div class="flex items-center justify-between gap-4">
+                            <div>
+                                <h2 class="text-base md:text-lg font-semibold text-slate-100">
+                                    Suggerimenti per il colloquio
+                                    <span v-if="langA && langB" class="text-sm text-emerald-400">
+                                        ({{ langA.toUpperCase() }} + {{ langB.toUpperCase() }})
+                                    </span>
+                                </h2>
+                            </div>
+                        </div>
+
+                        <div ref="suggestionsBox"
+                            class="min-h-[260px] max-h-[420px] rounded-xl border border-slate-700 bg-slate-900/70 p-4 text-sm md:text-base overflow-y-auto space-y-3 leading-relaxed">
+                            <div v-if="!cvText" class="text-xs md:text-sm text-slate-500">
+                                Carica il tuo CV qui sotto per abilitare i suggerimenti basati sul curriculum.
+                            </div>
+
+                            <div v-else-if="!langA || !langB" class="text-xs md:text-sm text-slate-500">
+                                Seleziona entrambe le lingue per visualizzare i suggerimenti bilingue.
+                            </div>
+
+                            <div v-else>
+                                <p v-if="isLoadingSuggestion" class="text-xs md:text-sm text-emerald-300 mb-2">
+                                    Sto preparando un suggerimento basato sul tuo CV...
+                                </p>
+
+                                <div v-if="suggestions.length === 0 && !isLoadingSuggestion"
+                                    class="text-xs md:text-sm text-slate-500">
+                                    Quando il sistema riconosce una frase (domanda o tua risposta), qui comparirà un
+                                    suggerimento nelle due lingue selezionate coerente con il tuo CV.
+                                </div>
+
+                                <div v-for="(item, idx) in suggestions" :key="idx"
+                                    class="rounded-lg border border-slate-700 bg-slate-900/80 p-3 md:p-4 space-y-2 mb-2">
+                                    <div class="text-[11px] md:text-xs text-slate-400">
+                                        Riferito alla frase:
+                                        <span class="italic text-slate-300">
+                                            "{{ item.utterancePreview }}"
+                                        </span>
+                                    </div>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        <div class="space-y-1">
+                                            <div class="text-[11px] md:text-xs font-semibold text-slate-200">
+                                                {{ getLangLabel(item.langA) }}
+                                            </div>
+                                            <div
+                                                class="text-xs md:text-sm text-slate-100 whitespace-pre-wrap leading-relaxed">
+                                                {{ item.suggestionLangA }}
+                                            </div>
+                                        </div>
+                                        <div class="space-y-1">
+                                            <div class="text-[11px] md:text-xs font-semibold text-slate-200">
+                                                {{ getLangLabel(item.langB) }}
+                                            </div>
+                                            <div
+                                                class="text-xs md:text-sm text-slate-100 whitespace-pre-wrap leading-relaxed">
+                                                {{ item.suggestionLangB }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CV spostato sotto -->
+                <div class="border-t border-slate-700 pt-4 space-y-3">
+                    <div>
+                        <h2 class="text-sm font-semibold text-slate-100">
+                            CV per i suggerimenti
+                        </h2>
+                        <p class="text-[11px] text-slate-300 mt-1">
+                            Carica un file di testo con il tuo CV. Verrà usato solo per generare suggerimenti, non per
+                            le traduzioni.
+                        </p>
+                    </div>
+                    <div
+                        class="rounded-xl border border-slate-700 bg-slate-900/80 p-3 text-xs space-y-2 max-h-[260px] overflow-y-auto">
+                        <label class="block text-[11px] font-medium text-slate-200 mb-1">
+                            Carica CV da file (.txt)
+                        </label>
+                        <input type="file" accept=".txt,.md,.rtf"
+                            class="block w-full text-[11px] text-slate-200 file:text-[11px] file:px-2 file:py-1 file:mr-2 file:rounded-md file:border-0 file:bg-emerald-600 file:text-white file:cursor-pointer cursor-pointer"
+                            @change="onCvFileChange" />
+                        <p class="text-[10px] text-slate-500 mt-2">
+                            Suggerimento: salva il tuo CV in formato testo (.txt) e caricalo da qui.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
+
+<script>
+export default {
+    name: 'LiveTranslator',
+    props: {
+        locale: {
+            type: String,
+            default: 'it-IT',
+        },
+    },
+    data() {
+        return {
+            isListening: false,
+            recognition: null,
+            originalConfirmed: '',
+            originalInterim: '',
+            translationConfirmed: '',
+            translationStreaming: '',
+            translationSegments: [],
+            translationTokens: [],
+            statusMessage: '',
+            autoRestart: true,
+            currentStream: null,
+            cvText: '',
+            isLoadingSuggestion: false,
+            suggestions: [],
+            lastPreviewText: '',
+            lastPreviewAt: 0,
+            langA: '',
+            langB: '',
+            currentMicLang: '',
+            currentTargetLang: '',
+            activeSpeaker: null, // 'A' o 'B' - indica chi sta parlando
+            availableLanguages: [
+                { code: 'it', label: '🇮🇹 Italiano', micCode: 'it-IT' },
+                { code: 'en', label: '🇬🇧 English', micCode: 'en-US' },
+                { code: 'es', label: '🇪🇸 Español', micCode: 'es-ES' },
+                { code: 'fr', label: '🇫🇷 Français', micCode: 'fr-FR' },
+                { code: 'de', label: '🇩🇪 Deutsch', micCode: 'de-DE' },
+                { code: 'pt', label: '🇵🇹 Português', micCode: 'pt-PT' },
+            ],
+        };
+    },
+    computed: {
+        displayOriginalText() {
+            const base = this.originalConfirmed || '';
+            const interim = this.originalInterim || '';
+            return [base, interim].filter(Boolean).join('\n');
+        },
+        displayTranslationText() {
+            // Usato solo per debug o fallback: unisce segmenti + tokens correnti
+            const segmentsText = (this.translationSegments || []).join('\n');
+            const streaming = (this.translationTokens || []).join(' ');
+            return [segmentsText, streaming].filter(Boolean).join('\n');
+        },
+        hasAnyTranslation() {
+            return (
+                (this.translationSegments && this.translationSegments.length > 0) ||
+                (this.translationTokens && this.translationTokens.length > 0)
+            );
+        },
+    },
+    mounted() {
+        // Inizializza con default IT-EN
+        this.langA = 'it';
+        this.langB = 'en';
+        this.onLanguagePairChange();
+        this.initSpeechRecognition();
+    },
+    beforeUnmount() {
+        this.stopListeningInternal();
+        if (this.currentStream) {
+            try {
+                this.currentStream.close();
+            } catch { }
+            this.currentStream = null;
+        }
+    },
+    methods: {
+        getLangLabel(langCode) {
+            const lang = this.availableLanguages.find(l => l.code === langCode);
+            return lang ? lang.label : langCode.toUpperCase();
+        },
+
+        scrollToBottom(refName) {
+            try {
+                const el = this.$refs[refName];
+                if (el && el.scrollHeight !== undefined) {
+                    el.scrollTop = el.scrollHeight;
+                }
+            } catch {
+                // ignore
+            }
+        },
+
+        detectRecognitionLang() {
+            try {
+                const urlParams = new URLSearchParams(window.location.search || '');
+                const urlLang = (urlParams.get('lang') || '').trim();
+                const navLang = (
+                    navigator.language ||
+                    (navigator.languages && navigator.languages[0]) ||
+                    ''
+                ).trim();
+
+                const base = urlLang || this.locale || navLang || 'it-IT';
+                const normalized = base.replace('_', '-').trim();
+                if (!normalized) return 'it-IT';
+
+                return normalized;
+            } catch {
+                return 'it-IT';
+            }
+        },
+
+        initSpeechRecognition() {
+            try {
+                const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
+                if (!Rec) {
+                    this.statusMessage = 'Riconoscimento vocale non disponibile in questo browser.';
+                    return;
+                }
+
+                this.recognition = new Rec();
+                this.recognition.lang = this.currentMicLang || this.detectRecognitionLang();
+                this.recognition.continuous = true;
+                this.recognition.interimResults = true;
+                this.recognition.maxAlternatives = 1;
+
+                this.recognition.onstart = () => {
+                    const langPair = this.langA && this.langB ? `${this.langA.toUpperCase()} ⇄ ${this.langB.toUpperCase()}` : '';
+                    this.statusMessage = `Microfono attivo ${langPair}. Parla pure, rileverò automaticamente la lingua.`;
+                };
+
+                this.recognition.onerror = (e) => {
+                    const err = e && (e.error || e.message) ? String(e.error || e.message) : 'errore sconosciuto';
+                    this.statusMessage = `Errore microfono: ${err}`;
+                    this.isListening = false;
+                };
+
+                this.recognition.onend = () => {
+                    if (this.isListening && this.autoRestart) {
+                        try {
+                            this.recognition.start();
+                        } catch { }
+                    } else {
+                        this.statusMessage = 'Microfono fermo.';
+                    }
+                };
+
+                this.recognition.onresult = (event) => {
+                    try {
+                        let interim = '';
+                        const results = event.results;
+
+                        for (let i = event.resultIndex; i < results.length; i++) {
+                            const res = results[i];
+                            const text = (res[0] && res[0].transcript) || '';
+                            if (!text) continue;
+
+                            if (res.isFinal) {
+                                const clean = text.trim();
+                                if (clean) {
+                                    // Aggiungi trattino all'inizio della frase
+                                    const phraseWithDash = `- ${clean}`;
+                                    this.originalConfirmed = this.originalConfirmed
+                                        ? `${this.originalConfirmed}\n${phraseWithDash}`
+                                        : phraseWithDash;
+                                    this.originalInterim = '';
+                                    // Traduci la singola frase appena conclusa
+                                    this.startTranslationStream(clean, { commit: true });
+                                    this.maybeRequestInterviewSuggestion(clean);
+                                }
+                            } else {
+                                interim = [interim, text.trim()].filter(Boolean).join(' ');
+                            }
+                        }
+
+                        this.originalInterim = interim;
+
+                        this.$nextTick(() => {
+                            this.scrollToBottom('originalBox');
+                        });
+                        // Mentre parli, usa l'interim per una traduzione incrementale
+                        // della frase corrente (senza toccare le frasi già concluse).
+                        if (interim) {
+                            this.maybeStartPreviewTranslation(interim);
+                        }
+                    } catch (err) {
+                        console.warn('Errore gestione risultato speech', err);
+                    }
+                };
+            } catch (e) {
+                this.statusMessage = 'Errore inizializzazione microfono.';
+            }
+        },
+
+        async ensureMicPermission() {
+            try {
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    return true;
+                }
+
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true,
+                        sampleRate: { ideal: 48000 },
+                        channelCount: 1,
+                        latency: 0,
+                        volume: 1.0,
+                    },
+                });
+
+                try {
+                    stream.getTracks().forEach((t) => t.stop());
+                } catch { }
+
+                return true;
+            } catch {
+                return false;
+            }
+        },
+
+        async toggleListeningForLang(speaker) {
+            // Se sta già ascoltando con lo stesso speaker, ferma
+            if (this.isListening && this.activeSpeaker === speaker) {
+                this.stopListeningInternal();
+                this.statusMessage = `Microfono fermato per Parlante ${speaker}.`;
+                return;
+            }
+
+            // Se sta ascoltando con un altro speaker, ferma quello prima
+            if (this.isListening && this.activeSpeaker !== speaker) {
+                this.stopListeningInternal();
+                // Attendi un attimo per assicurarsi che il recognition sia fermato
+                await new Promise(resolve => setTimeout(resolve, 200));
+            }
+
+            // Validazione: entrambe le lingue devono essere selezionate
+            if (!this.langA || !this.langB) {
+                this.statusMessage = '⚠️ Seleziona entrambe le lingue (A e B) prima di iniziare!';
+                return;
+            }
+
+            const ok = await this.ensureMicPermission();
+            if (!ok) {
+                this.statusMessage = 'Permesso microfono negato. Abilitalo nelle impostazioni del browser.';
+                return;
+            }
+
+            // Imposta lingua e target in base al parlante
+            this.activeSpeaker = speaker;
+            if (speaker === 'A') {
+                const langAObj = this.availableLanguages.find(l => l.code === this.langA);
+                if (langAObj) {
+                    this.currentMicLang = langAObj.micCode;
+                    this.currentTargetLang = this.langB;
+                }
+            } else {
+                const langBObj = this.availableLanguages.find(l => l.code === this.langB);
+                if (langBObj) {
+                    this.currentMicLang = langBObj.micCode;
+                    this.currentTargetLang = this.langA;
+                }
+            }
+
+            if (!this.recognition) {
+                this.initSpeechRecognition();
+                if (!this.recognition) {
+                    return;
+                }
+            }
+
+            // Aggiorna lingua del recognition
+            if (this.recognition) {
+                this.recognition.lang = this.currentMicLang;
+            }
+
+            try {
+                this.isListening = true;
+                const langLabel = speaker === 'A' ? this.langA.toUpperCase() : this.langB.toUpperCase();
+                const targetLabel = speaker === 'A' ? this.langB.toUpperCase() : this.langA.toUpperCase();
+                this.statusMessage = `🎤 Parlante ${speaker} attivo (${langLabel} → ${targetLabel})`;
+                this.recognition.start();
+            } catch (e) {
+                this.statusMessage = 'Impossibile avviare il microfono.';
+                this.isListening = false;
+                this.activeSpeaker = null;
+            }
+        },
+
+        stopListeningInternal() {
+            this.isListening = false;
+            this.activeSpeaker = null;
+            if (this.recognition) {
+                try {
+                    this.recognition.stop();
+                    this.recognition.abort && this.recognition.abort();
+                } catch { }
+            }
+        },
+
+        startTranslationStream(textSegment, options = { commit: true }) {
+            const safeText = (textSegment || '').trim();
+            if (!safeText) return;
+
+            // Se è già attivo uno stream e questa è una richiesta finale (commit: true),
+            // chiudiamo lo stream precedente per dare priorità alla frase completa
+            if (this.currentStream) {
+                if (options.commit) {
+                    try {
+                        this.currentStream.close();
+                    } catch { }
+                    this.currentStream = null;
+                } else {
+                    // Se è solo una preview (commit: false), ignora
+                    return;
+                }
+            }
+
+            // Assicurati che currentTargetLang sia sempre impostato correttamente
+            if (!this.currentTargetLang && this.langA && this.langB) {
+                // Default: se parli langA, traduci verso langB
+                this.currentTargetLang = this.currentMicLang && this.currentMicLang.startsWith(this.langA.split('-')[0])
+                    ? this.langB
+                    : this.langA;
+            }
+
+            const targetLang = this.currentTargetLang || this.langB || 'en';
+
+            const params = new URLSearchParams({
+                text: safeText,
+                source_lang: this.currentMicLang || '',
+                locale: this.locale || 'it',
+                target_lang: targetLang,
+                ts: String(Date.now()),
+            });
+
+            console.log(`📤 Traduzione richiesta: "${safeText.substring(0, 50)}..." → target_lang: ${targetLang}, source_lang: ${this.currentMicLang}`);
+
+            const origin = window.__NEURON_TRANSLATOR_ORIGIN__ || window.location.origin;
+            const endpoint = `/api/chatbot/neuron-translator-stream?${params.toString()}`;
+
+            try {
+                const es = new EventSource(`${origin}${endpoint}`);
+                this.currentStream = es;
+                let buffer = '';
+
+                es.addEventListener('message', (e) => {
+                    try {
+                        const data = JSON.parse(e.data);
+                        if (data.token) {
+                            buffer += data.token;
+                            // Aggiorna solo la traduzione della frase corrente (streaming),
+                            // lasciando intatte le frasi già concluse.
+                            this.updateTranslationTokens(buffer);
+                        }
+                        this.$nextTick(() => {
+                            this.scrollToBottom('translationBox');
+                        });
+                    } catch { }
+                });
+
+                es.addEventListener('done', () => {
+                    try {
+                        es.close();
+                    } catch { }
+                    const segment = buffer.trim();
+                    if (options.commit && segment) {
+                        // Quando una frase è conclusa, la aggiungiamo all'array di frasi tradotte con trattino
+                        this.translationSegments.push(`- ${segment}`);
+
+                        // Svuotiamo il container DOM della frase corrente per evitare duplicati
+                        this.$nextTick(() => {
+                            const container = this.$refs.translationLiveContainer;
+                            if (container) {
+                                container.innerHTML = '';
+                            }
+                        });
+                    }
+                    this.translationStreaming = '';
+                    this.translationTokens = [];
+                    this.currentStream = null;
+                    this.$nextTick(() => {
+                        this.scrollToBottom('translationBox');
+                    });
+                });
+
+                es.addEventListener('error', () => {
+                    try {
+                        es.close();
+                    } catch { }
+                    this.currentStream = null;
+                });
+            } catch {
+                // In caso di errore, non blocchiamo l'interfaccia
+            }
+        },
+
+        maybeStartPreviewTranslation(interimText) {
+            const text = (interimText || '').trim();
+            if (!text || text.length < 4) {
+                return;
+            }
+
+            const now = Date.now();
+            if (text === this.lastPreviewText && now - this.lastPreviewAt < 800) {
+                return;
+            }
+
+            this.lastPreviewText = text;
+            this.lastPreviewAt = now;
+
+            this.startTranslationStream(text, { commit: false });
+        },
+
+        updateTranslationTokens(fullText) {
+            const clean = (fullText || '').trim();
+            const container = this.$refs.translationLiveContainer;
+
+            if (!container) {
+                return;
+            }
+
+            if (!clean) {
+                container.innerHTML = '';
+                this.translationTokens = [];
+                return;
+            }
+
+            const newTokens = clean.split(/\s+/).filter(Boolean);
+
+            // Se l'array non esiste ancora, creiamo i nodi DOM da zero
+            if (!this.translationTokens || this.translationTokens.length === 0) {
+                container.innerHTML = '';
+                this.translationTokens = [];
+
+                // Aggiungi trattino all'inizio della prima frase
+                const dash = document.createTextNode('- ');
+                container.appendChild(dash);
+
+                for (let i = 0; i < newTokens.length; i++) {
+                    const span = document.createElement('span');
+                    span.textContent = newTokens[i];
+                    span.dataset.tokenIndex = i;
+                    container.appendChild(span);
+
+                    if (i < newTokens.length - 1) {
+                        container.appendChild(document.createTextNode(' '));
+                    }
+
+                    this.translationTokens.push({
+                        text: newTokens[i],
+                        node: span
+                    });
+                }
+                return;
+            }
+
+            const minLen = Math.min(this.translationTokens.length, newTokens.length);
+
+            // Aggiorna SOLO il textContent dei nodi che cambiano
+            for (let i = 0; i < minLen; i++) {
+                if (this.translationTokens[i].text !== newTokens[i]) {
+                    // Aggiorno SOLO questo nodo DOM specifico
+                    this.translationTokens[i].node.textContent = newTokens[i];
+                    this.translationTokens[i].text = newTokens[i];
+                }
+            }
+
+            // Se ci sono token NUOVI in più, aggiungili al DOM
+            if (newTokens.length > this.translationTokens.length) {
+                for (let i = this.translationTokens.length; i < newTokens.length; i++) {
+                    // Aggiungi uno spazio prima della nuova parola
+                    container.appendChild(document.createTextNode(' '));
+
+                    const span = document.createElement('span');
+                    span.textContent = newTokens[i];
+                    span.dataset.tokenIndex = i;
+                    container.appendChild(span);
+
+                    this.translationTokens.push({
+                        text: newTokens[i],
+                        node: span
+                    });
+                }
+            } else if (newTokens.length < this.translationTokens.length) {
+                // Se i token diminuiscono, rimuovi i nodi in eccesso dal DOM
+                for (let i = this.translationTokens.length - 1; i >= newTokens.length; i--) {
+                    const token = this.translationTokens[i];
+                    if (token.node && token.node.parentNode) {
+                        // Rimuovi anche lo spazio prima
+                        if (token.node.previousSibling && token.node.previousSibling.nodeType === 3) {
+                            token.node.previousSibling.remove();
+                        }
+                        token.node.remove();
+                    }
+                }
+                this.translationTokens.splice(newTokens.length);
+            }
+        },
+
+        onCvFileChange(event) {
+            try {
+                const file = event.target.files && event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const content = (e.target && e.target.result) || '';
+                        if (typeof content === 'string') {
+                            this.cvText = content;
+                        }
+                    } catch {
+                        // ignore parse errors
+                    }
+                };
+                reader.readAsText(file);
+            } catch {
+                // nessun alert per non disturbare l'utente
+            }
+        },
+
+        onLanguagePairChange() {
+            // Validazione: entrambe le lingue devono essere selezionate e diverse
+            if (!this.langA || !this.langB) {
+                this.statusMessage = 'Seleziona entrambe le lingue (A e B) per iniziare.';
+                return;
+            }
+
+            if (this.langA === this.langB) {
+                this.statusMessage = 'Le due lingue devono essere diverse!';
+                this.langB = '';
+                return;
+            }
+
+            // Imposta la lingua A come predefinita per il microfono
+            const langAObj = this.availableLanguages.find(l => l.code === this.langA);
+            if (langAObj) {
+                this.currentMicLang = langAObj.micCode;
+                this.currentTargetLang = this.langB;
+
+                if (this.recognition) {
+                    this.recognition.lang = this.currentMicLang;
+                }
+            }
+
+            this.statusMessage = `Coppia lingue impostata: ${this.langA.toUpperCase()} ⇄ ${this.langB.toUpperCase()}. Il sistema rileverà automaticamente quale stai parlando.`;
+        },
+
+        detectSpokenLanguage(text) {
+            // Rileva la lingua del testo parlato confrontandola con langA e langB
+            // Usa euristiche semplici basate su parole comuni
+            if (!text || !this.langA || !this.langB) return null;
+
+            const textLower = text.toLowerCase();
+
+            // Pattern per rilevare la lingua (parole molto comuni)
+            const patterns = {
+                it: /\b(il|la|di|da|in|con|per|un|una|che|sono|è|hai|ho|cosa|come|quando|dove|perché|questo|questa|mi|ti|ci|vi|lo|gli|le|del|della|dei|delle)\b/gi,
+                en: /\b(the|a|an|is|are|was|were|have|has|had|do|does|did|will|would|can|could|should|what|when|where|why|how|this|that|you|your|me|my|we|our|they|their)\b/gi,
+                es: /\b(el|la|los|las|de|del|en|con|por|para|un|una|que|es|son|hay|tiene|como|cuando|donde|por qué|este|esta|mi|tu|su|nuestro|vuestro)\b/gi,
+                fr: /\b(le|la|les|de|du|des|un|une|et|est|sont|a|ont|dans|pour|avec|que|qui|quoi|quand|où|pourquoi|comment|ce|cette|mon|ton|son|notre|votre)\b/gi,
+                de: /\b(der|die|das|den|dem|ein|eine|ist|sind|hat|haben|und|oder|in|mit|von|zu|auf|für|was|wann|wo|warum|wie|dieser|diese|mein|dein|sein|unser|ihr)\b/gi,
+                pt: /\b(o|a|os|as|de|da|do|em|com|por|para|um|uma|que|é|são|tem|como|quando|onde|por que|este|esta|meu|teu|seu|nosso|vosso)\b/gi,
+            };
+
+            const matchCounts = {};
+
+            // Conta i match per langA e langB
+            if (patterns[this.langA]) {
+                const matches = textLower.match(patterns[this.langA]);
+                matchCounts[this.langA] = matches ? matches.length : 0;
+            }
+
+            if (patterns[this.langB]) {
+                const matches = textLower.match(patterns[this.langB]);
+                matchCounts[this.langB] = matches ? matches.length : 0;
+            }
+
+            console.log(`🔍 Rilevamento lingua: "${text.substring(0, 50)}..." → ${this.langA}: ${matchCounts[this.langA] || 0}, ${this.langB}: ${matchCounts[this.langB] || 0}`);
+
+            // Determina quale lingua ha più match (soglia minima: 1 match)
+            if (matchCounts[this.langA] > matchCounts[this.langB] && matchCounts[this.langA] >= 1) {
+                return this.langA;
+            } else if (matchCounts[this.langB] > matchCounts[this.langA] && matchCounts[this.langB] >= 1) {
+                return this.langB;
+            }
+
+            // Fallback: usa la lingua attualmente impostata per il microfono
+            return null;
+        },
+
+        switchLanguagePair(detectedLang) {
+            // Cambia la lingua del microfono e quella target in base alla lingua rilevata
+            if (!detectedLang || !this.langA || !this.langB) return;
+
+            const langObj = this.availableLanguages.find(l => l.code === detectedLang);
+            if (!langObj) return;
+
+            // Imposta microfono sulla lingua rilevata
+            this.currentMicLang = langObj.micCode;
+
+            // Imposta target sull'altra lingua della coppia
+            // Se rilevato langA, traduci verso langB; se rilevato langB, traduci verso langA
+            this.currentTargetLang = detectedLang === this.langA ? this.langB : this.langA;
+
+            if (this.recognition) {
+                this.recognition.lang = this.currentMicLang;
+            }
+
+            console.log(`🔄 Lingua rilevata: ${detectedLang.toUpperCase()} → Microfono: ${this.currentMicLang} → Traduzione verso: ${this.currentTargetLang.toUpperCase()}`);
+        },
+
+        async maybeRequestInterviewSuggestion(textSegment) {
+            const safeText = (textSegment || '').trim();
+            if (!safeText) {
+                return;
+            }
+
+            // Validazioni
+            if (!this.cvText || this.cvText.trim() === '') {
+                return;
+            }
+
+            if (!this.langA || !this.langB) {
+                return;
+            }
+
+            this.isLoadingSuggestion = true;
+
+            try {
+                const res = await fetch('/api/chatbot/interview-suggestion', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: JSON.stringify({
+                        cv_text: this.cvText,
+                        utterance: safeText,
+                        locale: this.locale || 'it',
+                        lang_a: this.langA,
+                        lang_b: this.langB,
+                    }),
+                });
+
+                const json = await res.json().catch(() => ({}));
+
+                if (!res.ok || json.error) {
+                    // Non mostriamo alert per non disturbare durante il colloquio
+                    return;
+                }
+
+                const langAText = (json.suggestion_lang_a || '').trim();
+                const langBText = (json.suggestion_lang_b || '').trim();
+
+                if (!langAText && !langBText) {
+                    return;
+                }
+
+                const preview = safeText.length > 120 ? `${safeText.slice(0, 117)}...` : safeText;
+
+                this.suggestions = [
+                    {
+                        utterancePreview: preview,
+                        langA: this.langA,
+                        langB: this.langB,
+                        suggestionLangA: langAText || langBText,
+                        suggestionLangB: langBText || langAText,
+                    },
+                    // manteniamo anche suggerimenti precedenti, ma più in basso
+                    ...this.suggestions,
+                ].slice(0, 8);
+            } catch {
+                // Silenzioso: non blocca l'esperienza
+            } finally {
+                this.isLoadingSuggestion = false;
+            }
+        },
+    },
+};
+</script>
