@@ -71,35 +71,40 @@ class InterviewSuggestionController extends Controller
             $langAText = null;
             $langBText = null;
 
-            // Prova con codici lingua esatti (IT, EN, ES, etc.)
-            $pattern = "/{$langAUpper}:\s*(.*?)\s*{$langBUpper}:\s*(.*)/is";
-            if (preg_match($pattern, $full, $m)) {
+            // Mappa i codici lingua ai nomi completi
+            $langNames = [
+                'it' => 'ITALIANO',
+                'en' => 'INGLESE|ENGLISH',
+                'es' => 'ESPAÑOL|SPANISH|SPAGNOLO',
+                'fr' => 'FRANÇAIS|FRENCH|FRANCESE',
+                'de' => 'DEUTSCH|GERMAN|TEDESCO',
+                'pt' => 'PORTUGUÊS|PORTUGUESE|PORTOGHESE',
+            ];
+
+            $nameA = $langNames[$langA] ?? $langAUpper;
+            $nameB = $langNames[$langB] ?? $langBUpper;
+
+            // Prova con nomi completi (supporta varianti)
+            $patternFull = "/(?:{$nameA}|{$langAUpper}):\s*\n?(.*?)\s*\n?\s*(?:{$nameB}|{$langBUpper}):\s*\n?(.*?)$/is";
+            if (preg_match($patternFull, $full, $m)) {
                 $langAText = trim($m[1] ?? '');
                 $langBText = trim($m[2] ?? '');
             }
 
-            // Fallback: cerca con nomi completi comuni
-            if ($langAText === null || $langBText === null) {
-                $langNames = [
-                    'it' => 'ITALIANO',
-                    'en' => 'INGLESE|ENGLISH',
-                    'es' => 'ESPAÑOL|SPANISH',
-                    'fr' => 'FRANÇAIS|FRENCH',
-                    'de' => 'DEUTSCH|GERMAN',
-                    'pt' => 'PORTUGUÊS|PORTUGUESE',
-                ];
+            // Se non funziona, prova a cercare le sezioni separate
+            if (empty($langAText) || empty($langBText)) {
+                // Cerca solo la sezione LINGUA A
+                if (preg_match("/(?:{$nameA}|{$langAUpper}):\s*\n?(.*?)(?=\n\s*(?:{$nameB}|{$langBUpper}|$))/is", $full, $mA)) {
+                    $langAText = trim($mA[1] ?? '');
+                }
 
-                $nameA = $langNames[$langA] ?? $langAUpper;
-                $nameB = $langNames[$langB] ?? $langBUpper;
-
-                $patternAlt = "/({$nameA}):\s*(.*?)\s*({$nameB}):\s*(.*)/is";
-                if (preg_match($patternAlt, $full, $m)) {
-                    $langAText = trim($m[2] ?? '');
-                    $langBText = trim($m[4] ?? '');
+                // Cerca solo la sezione LINGUA B
+                if (preg_match("/(?:{$nameB}|{$langBUpper}):\s*\n?(.*?)$/is", $full, $mB)) {
+                    $langBText = trim($mB[1] ?? '');
                 }
             }
 
-            if ($langAText === null || $langBText === null) {
+            if (empty($langAText) || empty($langBText)) {
                 // Fallback finale: restituiamo il testo completo in entrambi i campi
                 $langAText = $full;
                 $langBText = $full;
