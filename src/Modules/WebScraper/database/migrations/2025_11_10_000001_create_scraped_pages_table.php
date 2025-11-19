@@ -16,17 +16,19 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::connection($this->connection)->create('scraped_pages', function (Blueprint $table) {
-            $table->id();
-            $table->string('url', 2048);
-            $table->string('url_hash', 32)->unique();
-            $table->json('scraped_data');
-            $table->timestamp('expires_at')->index();
-            $table->timestamps();
+        if (!Schema::connection($this->connection)->hasTable('scraped_pages')) {
+            Schema::connection($this->connection)->create('scraped_pages', function (Blueprint $table) {
+                $table->id();
+                $table->string('url', 2048);
+                $table->string('url_hash', 32)->unique();
+                $table->json('scraped_data');
+                $table->timestamp('expires_at')->index();
+                $table->timestamps();
 
-            // Indexes for performance
-            $table->index('created_at');
-        });
+                // Indexes for performance
+                $table->index('created_at');
+            });
+        }
     }
 
     /**
