@@ -75,6 +75,11 @@ $user->password = Hash::make('nuova-password');
 $user->save();
 ```
 
+## Documentazione Aggiuntiva
+
+- **[Guida alla Gestione delle Pagine](FILAMENT_PAGES_GUIDE.md)**: Guida completa su come creare e gestire le pagine con Filament Fabricator
+- **[Guida alla Gestione dei Team](FILAMENT_TEAMS_GUIDE.md)**: Guida completa su come creare e gestire i team, inclusa la configurazione degli URL per lo scraper
+
 ## Note
 
 - Assicurarsi di avere eseguito le migrations del database prima di creare l'utente
