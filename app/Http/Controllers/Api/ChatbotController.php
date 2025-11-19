@@ -4,12 +4,12 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
+use App\Models\Event;
+use App\Models\Faq;
+use App\Models\Order;
+use App\Models\Product;
 use App\Models\Quoter;
 use App\Models\Team;
-use App\Models\Product;
-use App\Models\Event;
-use App\Models\Order;
-use App\Models\Faq;
 use GuzzleHttp\Client;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -20,7 +20,9 @@ use OpenAI;
 use OpenAI\Client as OpenAIClient;
 use function Safe\json_decode;
 use function Safe\json_encode;
+use function Safe\preg_match;
 use function Safe\preg_replace;
+use function Safe\preg_split;
 
 class ChatbotController extends Controller
 {
@@ -52,6 +54,7 @@ class ChatbotController extends Controller
         $activityUuid = $request->input('uuid');  // UUID identificativo dell'attività
         $locale = $request->input('locale', 'it'); // Default to Italian
         $promptType = $request->input('prompt_type', 'business'); // 'business' o 'chat_libera'
+        $productIds = []; // Inizializza productIds
 
         // Se non viene passato un thread_id, ne crea uno nuovo
         if (! $threadId) {
@@ -274,7 +277,7 @@ class ChatbotController extends Controller
                                     'user_uuid' => [
                                         'type' => 'string',
                                         'description' => 'UUID che identifica univocamente l\'attività del cliente.',
-                                    ]
+                                    ],
                                 ],
                                 'required' => ['user_uuid'],
                             ],
@@ -300,7 +303,7 @@ Questa funzione analizza in profondità UNA SOLA pagina e estrae tutto il suo co
                                     'query' => [
                                         'type' => 'string',
                                         'description' => 'Cosa estrarre dalla pagina (es: "tutte le caratteristiche del prodotto", "prezzo e descrizione", "specifiche tecniche")',
-                                    ]
+                                    ],
                                 ],
                                 'required' => ['url', 'query'],
                             ],
@@ -338,7 +341,7 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
                                     'max_pages' => [
                                         'type' => 'integer',
                                         'description' => 'Numero massimo di pagine da analizzare (default: 10)',
-                                    ]
+                                    ],
                                 ],
                                 'required' => ['url', 'query'],
                             ],
@@ -370,7 +373,8 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
                             $output = $this->fetchAvailableTimes($teamSlug);
                             break;
                         case 'createOrder':
-                            $output = $this->createOrder($arguments['user_phone'], $arguments['delivery_date'], $arguments['product_ids'] ?? [], $teamSlug, $locale);
+                            $productIds = $arguments['product_ids'] ?? [];
+                            $output = $this->createOrder($arguments['user_phone'], $arguments['delivery_date'], $productIds, $teamSlug, $locale);
                             break;
                         case 'submitUserData':
                             $output = $this->submitUserData($arguments['user_phone'], $arguments['user_email'], $arguments['user_name'], $teamSlug, $locale, $activityUuid);
@@ -431,7 +435,7 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
 
                     $toolOutputs[] = [
                         'tool_call_id' => $toolCall->id,
-                        'output'       => \json_encode($output, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_IGNORE),
+                        'output'       => json_encode($output, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_IGNORE),
                     ];
                 }
 
@@ -450,7 +454,6 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
             Log::info('handleChat: Polling run status', ['status' => $run->status, 'runId' => $run->id]);
         }
 
-
         if ($run->status === 'completed') {
             $messages = $this->client->threads()->messages()->list($threadId)->data;
             $content = $messages[0]->content[0]->text->value ?? 'Nessuna risposta trovata.';
@@ -468,10 +471,11 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
             return response()->json([
                 'message'     => $formattedContent,
                 'thread_id'   => $threadId,
-                'product_ids' => $productIds ?? [],
+                'product_ids' => $productIds,
             ]);
         } else {
-             Log::error('handleChat: Run did not complete successfully.', ['status' => $run->status, 'run_data' => $run->toArray()]);
+            Log::error('handleChat: Run did not complete successfully.', ['status' => $run->status, 'run_data' => $run->toArray()]);
+
             return response()->json(['error' => "The AI assistant could not process the request. Status: {$run->status}"], 500);
         }
     }
@@ -506,16 +510,17 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
         $team = Team::where('slug', $teamSlug)->firstOrFail();
         $query = Product::where('team_id', $team->id);
 
-        if (!empty($productNames)) {
+        if (! empty($productNames)) {
             $query->where(function ($q) use ($productNames) {
                 foreach ($productNames as $name) {
-                    $q->orWhere('name', 'like', '%' . $name . '%');
+                    $q->orWhere('name', 'like', '%'.$name.'%');
                 }
             });
         }
 
         $products = $query->get()->toArray();
         Log::info('fetchProductData: Dati prodotti e servizi finali', ['products' => $products]);
+
         return $products;
     }
 
@@ -524,6 +529,7 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
         Log::info('fetchAddressData: Inizio recupero dati indirizzo', ['teamSlug' => $teamSlug]);
         $team = Team::where('slug', $teamSlug)->firstOrFail();
         Log::info('fetchAddressData: Dati indirizzo ricevuti', ['addressData' => $team->toArray()]);
+
         return $team->toArray();
     }
 
@@ -538,6 +544,7 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
             ->get(['starts_at', 'ends_at', 'name', 'featured_image_id', 'description'])
             ->toArray();
         Log::info('fetchAvailableTimes: Orari disponibili ricevuti', ['availableTimes' => $events]);
+
         return $events;
     }
 
@@ -557,7 +564,7 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
         $order->phone = $userPhone;
         $order->save();
 
-        if (!empty($productIds)) {
+        if (! empty($productIds)) {
             $order->products()->attach($productIds);
         }
 
@@ -566,6 +573,7 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
             'message'  => trans('chatbot_prompts.order_created_successfully', [], $locale),
         ];
         Log::info('createOrder: Ordine creato', ['orderData' => $orderData]);
+
         return $orderData;
     }
 
@@ -576,7 +584,7 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
             'userEmail' => $userEmail,
             'userName'  => $userName,
             'teamSlug'  => $teamSlug,
-            'uuid'      => $activityUuid
+            'uuid'      => $activityUuid,
         ]);
 
         // Aggiorna il modello Customer con l'UUID dell'attività
@@ -589,7 +597,7 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
                 $customer->save();
             } else {
                 // Se non esiste un cliente con questo UUID, potresti volerlo creare
-                 Customer::create([
+                Customer::create([
                     'uuid' => $activityUuid,
                     'phone' => $userPhone,
                     'email' => $userEmail,
@@ -598,15 +606,14 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
                 ]);
             }
         } else {
-             // Gestisci il caso in cui non c'è UUID
-             Customer::create([
+            // Gestisci il caso in cui non c'è UUID
+            Customer::create([
                 'phone' => $userPhone,
                 'email' => $userEmail,
                 'name' => $userName,
                 'team_id' => Team::where('slug', $teamSlug)->first()->id,
             ]);
         }
-
 
         // Messaggio di conferma in base alla lingua
         return trans('chatbot_prompts.user_data_submitted', [], $locale);
@@ -621,6 +628,7 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
             ->get(['question', 'answer'])
             ->toArray();
         Log::info('fetchFAQs: FAQ ricevute', ['faqData' => $faqs]);
+
         return $faqs;
     }
 
@@ -633,12 +641,12 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
         try {
             Log::info('findFaqAnswer: Avvio ricerca FAQ', ['teamSlug' => $teamSlug, 'query' => $query]);
 
-            if (!$teamSlug || !$query || trim($query) === '') {
+            if (! $teamSlug || ! $query || trim($query) === '') {
                 return null;
             }
 
             $team = Team::where('slug', $teamSlug)->first();
-            if (!$team) {
+            if (! $team) {
                 return null;
             }
 
@@ -699,13 +707,16 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
             $threshold = $useEmbeddings ? $semanticThreshold : $lexicalThreshold;
             if ($best && $bestScore >= $threshold) {
                 Log::info('findFaqAnswer: FAQ selezionata con score', ['score' => $bestScore, 'threshold' => $threshold, 'question' => $best->question]);
+
                 return $best->only(['question', 'answer']);
             }
 
             Log::info('findFaqAnswer: Nessuna FAQ supera la soglia', ['bestScore' => $bestScore, 'threshold' => $threshold]);
+
             return null;
         } catch (\Throwable $e) {
             Log::error('findFaqAnswer: Errore inatteso durante la ricerca FAQ', ['error' => $e->getMessage()]);
+
             return null;
         }
     }
@@ -734,6 +745,7 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
 
         // Ponderazione semplice: penalizza match deboli, premia copertura
         $score = 0.5 * $jaccard + 0.5 * $containment;
+
         return max(0.0, min(1.0, $score));
     }
 
@@ -753,17 +765,18 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
                 $filtered[] = $tok;
             }
         }
+
         return $filtered;
     }
 
     private function getItalianStopwords(): array
     {
         return [
-            'a','ad','al','allo','alla','ai','agli','alle','anche','avere','da','dal','dallo','dalla','dai','dagli','dalle','dei','degli','delle','del','dell','dello','della',
-            'di','e','ed','che','chi','con','col','coi','come','dove','dunque','era','erano','essere','faccio','fai','fa','fanno','fate','fatto','fui','fu','furono','gli','il','lo','la','i','le',
-            'in','nel','nello','nella','nei','negli','nelle','ma','mi','mia','mie','miei','mio','ne','non','o','od','per','perché','più','poi','quale','quali','qual','quanta','quanto','quanti','quante',
-            'quasi','questo','questa','questi','queste','quello','quella','quelli','quelle','se','sei','si','sì','sia','siamo','siete','sono','su','sul','sullo','sulla','sui','sugli','sulle','tra','fra',
-            'tu','tua','tue','tuo','tutti','tutte','tutto','un','uno','una','uno','va','vai','vado','vanno','voi','vostro','vostra','vostri','vostre','io','loro','noi','voi','dite','sono','buongiorno'
+            'a', 'ad', 'al', 'allo', 'alla', 'ai', 'agli', 'alle', 'anche', 'avere', 'da', 'dal', 'dallo', 'dalla', 'dai', 'dagli', 'dalle', 'dei', 'degli', 'delle', 'del', 'dell', 'dello', 'della',
+            'di', 'e', 'ed', 'che', 'chi', 'con', 'col', 'coi', 'come', 'dove', 'dunque', 'era', 'erano', 'essere', 'faccio', 'fai', 'fa', 'fanno', 'fate', 'fatto', 'fui', 'fu', 'furono', 'gli', 'il', 'lo', 'la', 'i', 'le',
+            'in', 'nel', 'nello', 'nella', 'nei', 'negli', 'nelle', 'ma', 'mi', 'mia', 'mie', 'miei', 'mio', 'ne', 'non', 'o', 'od', 'per', 'perché', 'più', 'poi', 'quale', 'quali', 'qual', 'quanta', 'quanto', 'quanti', 'quante',
+            'quasi', 'questo', 'questa', 'questi', 'queste', 'quello', 'quella', 'quelli', 'quelle', 'se', 'sei', 'si', 'sì', 'sia', 'siamo', 'siete', 'sono', 'su', 'sul', 'sullo', 'sulla', 'sui', 'sugli', 'sulle', 'tra', 'fra',
+            'tu', 'tua', 'tue', 'tuo', 'tutti', 'tutte', 'tutto', 'un', 'uno', 'una', 'uno', 'va', 'vai', 'vado', 'vanno', 'voi', 'vostro', 'vostra', 'vostri', 'vostre', 'io', 'loro', 'noi', 'voi', 'dite', 'sono', 'buongiorno',
         ];
     }
 
@@ -773,7 +786,7 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
     private function tryEmbeddingSimilarity(string $textA, string $textB): ?float
     {
         try {
-            if (!$this->client) {
+            if (! $this->client) {
                 return null;
             }
             // Model embedding moderno
@@ -783,19 +796,23 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
             ]);
             $vecA = $resp->data[0]->embedding ?? null;
             $vecB = $resp->data[1]->embedding ?? null;
-            if (!$vecA || !$vecB) {
+            if (! $vecA || ! $vecB) {
                 return null;
             }
+
             return $this->cosineSimilarity($vecA, $vecB);
         } catch (\Throwable $e) {
             Log::warning('tryEmbeddingSimilarity: fallback per errore embeddings', ['error' => $e->getMessage()]);
+
             return null;
         }
     }
 
     private function cosineSimilarity(array $a, array $b): float
     {
-        $dot = 0.0; $normA = 0.0; $normB = 0.0;
+        $dot = 0.0;
+        $normA = 0.0;
+        $normB = 0.0;
         $len = min(count($a), count($b));
         for ($i = 0; $i < $len; $i++) {
             $dot += $a[$i] * $b[$i];
@@ -805,6 +822,7 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
         if ($normA <= 0.0 || $normB <= 0.0) {
             return 0.0;
         }
+
         return $dot / (sqrt($normA) * sqrt($normB));
     }
 
@@ -816,18 +834,20 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
     {
         Log::info('scrapeSite: Inizio recupero Customer da uuid', ['userUuid' => $userUuid]);
 
-        if (!$userUuid) {
+        if (! $userUuid) {
             return ['error' => "Nessun UUID fornito per l'utente/attività."];
         }
 
         $customer = Customer::where('uuid', $userUuid)->first();
-        if (!$customer) {
+        if (! $customer) {
             Log::warning('scrapeSite: Nessun customer trovato', ['userUuid' => $userUuid]);
+
             return ['error' => 'Nessun cliente trovato per l\'UUID fornito.'];
         }
 
-        if (!$customer->website) {
+        if (! $customer->website) {
             Log::warning('scrapeSite: Nessun sito web associato a questo customer', ['userUuid' => $userUuid]);
+
             return ['error' => 'Nessun sito web specificato per questo utente.'];
         }
 
@@ -837,6 +857,7 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
 
             if (isset($scrapedData['error'])) {
                 Log::error('scrapeSite: Errore nello scraping', ['error' => $scrapedData['error']]);
+
                 return ['error' => 'Impossibile recuperare il contenuto del sito.'];
             }
 
@@ -846,6 +867,7 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
 
             if (isset($analysis['error'])) {
                 Log::error('scrapeSite: Errore durante l\'analisi AI', ['error' => $analysis['error']]);
+
                 return ['error' => 'Impossibile generare un riepilogo. Errore AI.'];
             }
 
@@ -867,6 +889,7 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
+
             return ['error' => 'Si è verificato un errore durante l\'elaborazione.'];
         }
     }
@@ -906,7 +929,7 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
                 }
 
                 // Perform AI analysis on the FULL page content
-                $analyzer = app(\Modules\WebScraper\Services\AiAnalyzerService::class);
+                $analyzer = app(AiAnalyzerService::class);
                 $analysis = $analyzer->extractCustomInfo($scrapedData, $query);
 
                 if (isset($analysis['error'])) {
@@ -915,7 +938,8 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
                         'query' => $query,
                         'error' => $analysis['error'],
                     ]);
-                    return ['error' => 'Impossibile analizzare il contenuto: ' . $analysis['error']];
+
+                    return ['error' => 'Impossibile analizzare il contenuto: '.$analysis['error']];
                 }
 
                 Log::info('scrapeUrl: Analisi AI completata (product page)', [
@@ -935,7 +959,7 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
                             'url' => $url,
                             'title' => $scrapedData['metadata']['title'] ?? 'Product Page',
                             'relevance' => 1.0,
-                        ]
+                        ],
                     ],
                 ];
             }
@@ -984,6 +1008,7 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
                     'query' => $query,
                     'pages_visited' => $searchResults['pages_visited'] ?? 0,
                 ]);
+
                 return ['error' => 'Non ho trovato informazioni rilevanti per la query richiesta.'];
             }
 
@@ -1002,7 +1027,7 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
             }
 
             // Perform AI analysis on aggregated results
-            $analyzer = app(\Modules\WebScraper\Services\AiAnalyzerService::class);
+            $analyzer = app(AiAnalyzerService::class);
             $mockScrapedData = [
                 'url' => $url,
                 'content' => ['main' => $aggregatedContent],
@@ -1017,7 +1042,8 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
                     'query' => $query,
                     'error' => $analysis['error'],
                 ]);
-                return ['error' => 'Impossibile analizzare il contenuto: ' . $analysis['error']];
+
+                return ['error' => 'Impossibile analizzare il contenuto: '.$analysis['error']];
             }
 
             Log::info('scrapeUrl: Analisi AI completata', [
@@ -1043,7 +1069,8 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
-            return ['error' => 'Si è verificato un errore durante l\'elaborazione: ' . $e->getMessage()];
+
+            return ['error' => 'Si è verificato un errore durante l\'elaborazione: '.$e->getMessage()];
         }
     }
 
@@ -1111,7 +1138,7 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
                     'query' => $query,
                     'pages_visited' => $cachedResults['pages_visited'],
                     'results_found' => $results_count,
-                    'analysis' => 'Risultati trovati: ' . implode(', ', array_column($foundPages, 'title')),
+                    'analysis' => 'Risultati trovati: '.implode(', ', array_column($foundPages, 'title')),
                     'found_pages' => $foundPages,
                     'from_cache' => true,
                 ];
@@ -1122,11 +1149,12 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
 
             if (empty($searchResults['results'])) {
                 Log::warning('searchSite: Nessun risultato trovato', ['url' => $url, 'query' => $query]);
+
                 return [
                     'url' => $url,
                     'query' => $query,
                     'pages_visited' => $searchResults['pages_visited'],
-                    'analysis' => 'Non sono state trovate informazioni specifiche su "' . $query . '" nelle pagine visitate.',
+                    'analysis' => 'Non sono state trovate informazioni specifiche su "'.$query.'" nelle pagine visitate.',
                 ];
             }
 
@@ -1148,7 +1176,7 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
                 // Pass query to determine if footer content is needed
                 $scrapedData = $scraper->scrape($result['url'], ['query' => $query]);
 
-                if (!isset($scrapedData['error'])) {
+                if (! isset($scrapedData['error'])) {
                     // Add full scraped data for AI analysis
                     $aggregatedData[] = $scrapedData;
                 }
@@ -1190,7 +1218,8 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
-            return ['error' => 'Si è verificato un errore durante la ricerca: ' . $e->getMessage()];
+
+            return ['error' => 'Si è verificato un errore durante la ricerca: '.$e->getMessage()];
         }
     }
 

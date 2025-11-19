@@ -13,7 +13,6 @@
         "barryvdh/laravel-dompdf": "^3.1",
         "bezhansalleh/filament-shield": "^3.3",
         "cheesegrits/filament-google-maps": "^3.0",
-        "digikraaft/laravel-review-rating": "^3.0",
         "diglactic/laravel-breadcrumbs": "^8.1",
         "drewm/mailchimp-api": "^2.5",
         "filament/filament": "^3.2",

@@ -9,6 +9,7 @@ use NeuronAI\Chat\History\ChatHistoryInterface;
 use NeuronAI\Chat\Messages\AssistantMessage;
 use NeuronAI\Chat\Messages\Message;
 use NeuronAI\Chat\Messages\UserMessage;
+use function Safe\json_encode;
 
 /**
  * QuoterChatHistory
@@ -61,7 +62,7 @@ class QuoterChatHistory implements ChatHistoryInterface
         }
 
         // Salva nel database solo se il contenuto non è vuoto
-        if (!empty(trim($content))) {
+        if (! empty(trim($content))) {
             $role = $message instanceof UserMessage ? 'user' : 'chatbot';
             Quoter::create([
                 'thread_id' => $this->threadId,
@@ -95,6 +96,7 @@ class QuoterChatHistory implements ChatHistoryInterface
     public function setMessages(array $messages): ChatHistoryInterface
     {
         $this->messages = $messages;
+
         return $this;
     }
 
@@ -105,6 +107,7 @@ class QuoterChatHistory implements ChatHistoryInterface
     {
         Quoter::where('thread_id', $this->threadId)->delete();
         $this->messages = [];
+
         return $this;
     }
 

@@ -6,11 +6,14 @@ use GuzzleHttp\Client;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use OpenAI\Client as OpenAIClient;
+use function Safe\preg_replace;
 
 class WebsiteScraperService
 {
     private const CACHE_TTL = 604800; // 7 giorni in secondi
+
     private const CACHE_PREFIX = 'website_content:';
+
     private const MAX_CONTENT_LENGTH = 10000; // Limita il contenuto scrapato
 
     public function __construct(private OpenAIClient $client)
@@ -22,16 +25,17 @@ class WebsiteScraperService
      */
     public function scrapeTeamWebsite(string $website, string $teamId): ?string
     {
-        if (!$website || trim($website) === '') {
+        if (! $website || trim($website) === '') {
             return null;
         }
 
-        $cacheKey = self::CACHE_PREFIX . md5($teamId . ':' . $website);
+        $cacheKey = self::CACHE_PREFIX.md5($teamId.':'.$website);
 
         // Prova cache
         $cached = Cache::get($cacheKey);
         if ($cached !== null) {
             Log::info('WebsiteScraperService: Contenuto da cache', ['teamId' => $teamId]);
+
             return $cached;
         }
 
@@ -67,18 +71,19 @@ class WebsiteScraperService
             return null;
         }
 
-        $cacheKey = self::CACHE_PREFIX . md5($teamId . ':' . implode('|', $websites));
+        $cacheKey = self::CACHE_PREFIX.md5($teamId.':'.implode('|', $websites));
 
         // Prova cache
         $cached = Cache::get($cacheKey);
         if ($cached !== null) {
             Log::info('WebsiteScraperService: Contenuto lista da cache', ['teamId' => $teamId, 'count' => count($websites)]);
+
             return $cached;
         }
 
         $allContent = [];
         foreach ($websites as $website) {
-            if (!$website || trim($website) === '') {
+            if (! $website || trim($website) === '') {
                 continue;
             }
 
@@ -148,7 +153,7 @@ class WebsiteScraperService
 
             // Limita la lunghezza
             if (strlen($plainText) > self::MAX_CONTENT_LENGTH) {
-                $plainText = mb_substr($plainText, 0, self::MAX_CONTENT_LENGTH) . '...';
+                $plainText = mb_substr($plainText, 0, self::MAX_CONTENT_LENGTH).'...';
             }
 
             return $plainText;
@@ -168,7 +173,7 @@ class WebsiteScraperService
     public function analyzeWebsiteContent(string $content, string $question, string $locale = 'it'): ?string
     {
         try {
-            if (!$content || trim($content) === '') {
+            if (! $content || trim($content) === '') {
                 return null;
             }
 
@@ -201,10 +206,10 @@ class WebsiteScraperService
     /**
      * Pulisce cache del sito web
      */
-    public static function clearCache(string $teamId = null): void
+    public static function clearCache(?string $teamId = null): void
     {
         if ($teamId) {
-            Cache::forget(self::CACHE_PREFIX . $teamId);
+            Cache::forget(self::CACHE_PREFIX.$teamId);
         } else {
             Cache::flush(); // Pulisce tutto
         }

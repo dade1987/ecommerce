@@ -8,14 +8,14 @@ use App\Models\Team;
 use Awcodes\Curator\CuratorPlugin;
 use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
 use Filament\Facades\Filament;
-use Filament\Support\Assets\Css;
-use Filament\Support\Assets\Js;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Pages;
 use Filament\Panel;
 use Filament\PanelProvider;
+use Filament\Support\Assets\Css;
+use Filament\Support\Assets\Js;
 use Filament\Support\Colors\Color;
 use Filament\Widgets;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
@@ -27,7 +27,6 @@ use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Saade\FilamentFullCalendar\FilamentFullCalendarPlugin;
 use Z3d0X\FilamentFabricator\FilamentFabricatorPlugin;
-use App\Filament\Plugins\RichEditor\ColorPlugin;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -69,7 +68,6 @@ class AdminPanelProvider extends PanelProvider
             ])->plugins(
 
                 [
-                    ColorPlugin::make(),
                     FilamentFabricatorPlugin::make(),
                     FilamentShieldPlugin::make(),
                     CuratorPlugin::make(),
@@ -143,7 +141,7 @@ class AdminPanelProvider extends PanelProvider
                             $items = $resource::getNavigationItems();
 
                             if ($group) {
-                                if (!isset($groupedItemArrays[$group])) {
+                                if (! isset($groupedItemArrays[$group])) {
                                     $groupedItemArrays[$group] = [];
                                 }
                                 $groupedItemArrays[$group] = array_merge($groupedItemArrays[$group], $items);
@@ -162,7 +160,7 @@ class AdminPanelProvider extends PanelProvider
                             $items = $page::getNavigationItems();
 
                             if ($group) {
-                                if (!isset($groupedItemArrays[$group])) {
+                                if (! isset($groupedItemArrays[$group])) {
                                     $groupedItemArrays[$group] = [];
                                 }
                                 $groupedItemArrays[$group] = array_merge($groupedItemArrays[$group], $items);
@@ -171,33 +169,33 @@ class AdminPanelProvider extends PanelProvider
                                 $navigationItems = array_merge($navigationItems, $items);
                             }
                         }
-                        
+
                         // Define the desired order of navigation groups
                         $groupOrder = [
                             'Produzione',
-                            'Logistica', 
+                            'Logistica',
                             'Tracciabilità',
-                            'Email Intelligenti'
+                            'Email Intelligenti',
                         ];
-                        
+
                         // Create NavigationGroup objects in the desired order
-                        foreach($groupOrder as $groupLabel) {
+                        foreach ($groupOrder as $groupLabel) {
                             if (isset($groupedItemArrays[$groupLabel])) {
                                 $navigationGroups[] = \Filament\Navigation\NavigationGroup::make($groupLabel)
                                     ->label($groupLabel)
                                     ->items($groupedItemArrays[$groupLabel]);
                             }
                         }
-                        
+
                         // Add any remaining groups not in the predefined order
-                        foreach($groupedItemArrays as $groupLabel => $items) {
-                            if (!in_array($groupLabel, $groupOrder)) {
+                        foreach ($groupedItemArrays as $groupLabel => $items) {
+                            if (! in_array($groupLabel, $groupOrder)) {
                                 $navigationGroups[] = \Filament\Navigation\NavigationGroup::make($groupLabel)
                                     ->label($groupLabel)
                                     ->items($items);
                             }
                         }
-                        
+
                         // Finally, build the navigation
                         return $builder
                             ->items($navigationItems) // Ungrouped items first

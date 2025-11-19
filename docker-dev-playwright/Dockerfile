@@ -6,7 +6,7 @@ RUN apk add --no-cache ca-certificates
 
 # Copia i certificati SSL
 COPY certs/avatar-3d-v1.local.pem /etc/ssl/certs/
-COPY certs/avatar-3d-v1.local-key.pem /etc/ssl/private/
+COPY certs/avatar-3d-v1.local-key.pem /etc/ssl/certs/
 
 # Copia il file di configurazione di Nginx
 COPY nginx.conf /etc/nginx/nginx.conf

@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use function Safe\gzencode;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -51,7 +52,7 @@ class CompressResponse
             return $response;
         }
 
-        if (!function_exists('gzencode')) {
+        if (! function_exists('gzencode')) {
             return $response; // zlib missing
         }
 
@@ -101,7 +102,7 @@ class CompressResponse
         }
 
         $mimeType = strtolower(trim(strtok($contentTypeHeader, ';')));
-        if (!in_array($mimeType, self::COMPRESSIBLE_MIME_TYPES, true)) {
+        if (! in_array($mimeType, self::COMPRESSIBLE_MIME_TYPES, true)) {
             return true;
         }
 
@@ -119,15 +120,14 @@ class CompressResponse
         $existing = $response->headers->get('Vary');
         if ($existing === null || $existing === '') {
             $response->headers->set('Vary', $headerName);
+
             return;
         }
 
         $parts = array_filter(array_map('trim', explode(',', $existing)));
-        if (!in_array($headerName, $parts, true)) {
+        if (! in_array($headerName, $parts, true)) {
             $parts[] = $headerName;
             $response->headers->set('Vary', implode(', ', $parts));
         }
     }
 }
-
-

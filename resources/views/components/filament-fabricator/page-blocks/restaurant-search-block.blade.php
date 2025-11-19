@@ -1,1 +1,0 @@
-<livewire:restaurant-search-block /> 

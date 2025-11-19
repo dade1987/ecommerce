@@ -1,0 +1,3 @@
+User-agent: *
+Disallow: /preventivi
+Sitemap: https://cavalliniservice.com/sitemap.xml

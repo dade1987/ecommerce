@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 120" class="text-white">
+  <!-- Modern geometric logo centered -->
+  <g transform="translate(80, 30)">
+    <circle cx="0" cy="0" r="20" fill="#3b82f6" stroke="#06b6d4" stroke-width="2"/>
+    <rect x="-15" y="-8" width="30" height="16" rx="3" fill="#06b6d4" opacity="0.8"/>
+    <circle cx="-8" cy="-3" r="2" fill="#f97316"/>
+    <circle cx="8" cy="3" r="1.5" fill="#fbbf24"/>
+  </g>
+  
+  <!-- Text centered -->
+  <text x="80" y="70" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="currentColor" text-anchor="middle">CavalliniService</text>
+  <text x="80" y="90" font-family="Arial, sans-serif" font-size="10" fill="currentColor" opacity="0.8" text-anchor="middle">Soluzioni informatiche avanzate</text>
+</svg>

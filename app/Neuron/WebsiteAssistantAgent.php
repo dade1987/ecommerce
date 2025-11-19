@@ -20,10 +20,11 @@ use Modules\WebScraper\Services\SearchResultCacheService;
 use NeuronAI\Agent;
 use NeuronAI\Providers\AIProviderInterface;
 use NeuronAI\Providers\OpenAI\OpenAI;
+use NeuronAI\Tools\ArrayProperty;
 use NeuronAI\Tools\PropertyType;
 use NeuronAI\Tools\Tool;
 use NeuronAI\Tools\ToolProperty;
-use NeuronAI\Tools\ArrayProperty;
+use function Safe\preg_match;
 
 /**
  * WebsiteAssistantAgent
@@ -34,12 +35,19 @@ use NeuronAI\Tools\ArrayProperty;
 class WebsiteAssistantAgent extends Agent
 {
     private ?Team $cachedTeam = null;
+
     private ?string $cachedTeamSlug = null;
+
     private ?EmbeddingCacheService $embeddingService = null;
+
     private ?WebsiteScraperService $scraperService = null;
+
     private ?string $teamSlug = null;
+
     private ?string $locale = null;
+
     private ?string $activityUuid = null;
+
     private ?string $websiteContent = '';
 
     /**
@@ -55,6 +63,7 @@ class WebsiteAssistantAgent extends Agent
         $this->locale = $locale;
         $this->activityUuid = $activityUuid;
         $this->websiteContent = $websiteContent ?? '';
+
         return $this;
     }
 
@@ -68,6 +77,7 @@ class WebsiteAssistantAgent extends Agent
             $client = \OpenAI::client($apiKey);
             $this->embeddingService = new EmbeddingCacheService($client);
         }
+
         return $this->embeddingService;
     }
 
@@ -90,8 +100,8 @@ class WebsiteAssistantAgent extends Agent
         $locale = $this->locale ?? 'it';
         $baseInstructions = (string) trans('enjoywork3d_prompts.instructions', ['locale' => $locale], $locale);
 
-        if (!empty($this->websiteContent)) {
-            $baseInstructions .= "\n\nPRIORITA': Contenuto dai siti web aziendali:\n\n" . $this->websiteContent;
+        if (! empty($this->websiteContent)) {
+            $baseInstructions .= "\n\nPRIORITA': Contenuto dai siti web aziendali:\n\n".$this->websiteContent;
         }
 
         // Aggiungi la lista dei prodotti disponibili se il team è noto
@@ -102,18 +112,18 @@ class WebsiteAssistantAgent extends Agent
                     ->select(['id', 'name', 'price', 'description'])
                     ->limit(20)
                     ->get();
-                
+
                 if ($products->isNotEmpty()) {
-                    $productsList = $products->map(fn($p) => "ID: {$p->id} | Nome: {$p->name} | Prezzo: {$p->price}")
+                    $productsList = $products->map(fn ($p) => "ID: {$p->id} | Nome: {$p->name} | Prezzo: {$p->price}")
                         ->join("\n");
-                    $baseInstructions .= "\n\nProdotti/Servizi disponibili:\n" . $productsList;
+                    $baseInstructions .= "\n\nProdotti/Servizi disponibili:\n".$productsList;
                 }
             }
         }
 
         Log::debug('WebsiteAssistantAgent.instructions', [
             'prompt_length' => strlen($baseInstructions),
-            'has_website_content' => !empty($this->websiteContent),
+            'has_website_content' => ! empty($this->websiteContent),
         ]);
 
         return $baseInstructions;
@@ -139,7 +149,7 @@ class WebsiteAssistantAgent extends Agent
 
         Log::debug('WebsiteAssistantAgent.tools', [
             'tools_count' => count($toolsList),
-            'tool_names' => array_map(fn($t) => $t->getName(), $toolsList),
+            'tool_names' => array_map(fn ($t) => $t->getName(), $toolsList),
         ]);
 
         return $toolsList;
@@ -220,8 +230,7 @@ class WebsiteAssistantAgent extends Agent
                     )
                 )
             )
-            ->setCallable(fn (string $user_phone, string $delivery_date, array $product_ids) => 
-                $this->createOrder($user_phone, $delivery_date, $product_ids)
+            ->setCallable(fn (string $user_phone, string $delivery_date, array $product_ids) => $this->createOrder($user_phone, $delivery_date, $product_ids)
             );
     }
 
@@ -255,8 +264,7 @@ class WebsiteAssistantAgent extends Agent
                     required: true
                 )
             )
-            ->setCallable(fn (string $user_phone, string $user_email, string $user_name) => 
-                $this->submitUserData($user_phone, $user_email, $user_name)
+            ->setCallable(fn (string $user_phone, string $user_email, string $user_name) => $this->submitUserData($user_phone, $user_email, $user_name)
             );
     }
 
@@ -284,7 +292,7 @@ class WebsiteAssistantAgent extends Agent
             description: 'Risponde a domande non inerenti al contesto con il messaggio predefinito.'
         )
             ->setCallable(fn () => [
-                'message' => trans('enjoywork3d_prompts.fallback_message', [], $this->locale ?? 'it')
+                'message' => trans('enjoywork3d_prompts.fallback_message', [], $this->locale ?? 'it'),
             ]);
     }
 
@@ -310,11 +318,11 @@ class WebsiteAssistantAgent extends Agent
         return Tool::make(
             name: 'scrapeUrl',
             description: "Estrae TUTTE le informazioni da una SINGOLA pagina web specifica.\n"
-                . "Usa SEMPRE questa funzione quando:\n"
-                . "- L'utente fornisce un URL specifico di una pagina prodotto (es: Amazon, eBay, e-commerce con /dp/, /product/, /item/)\n"
-                . "- L'URL NON è una homepage ma una pagina interna specifica\n"
-                . "- L'utente chiede \"caratteristiche\", \"dettagli\", \"specifiche\", \"descrizione\" di UN prodotto/articolo specifico\n"
-                . "Questa funzione analizza in profondità UNA SOLA pagina ed estrae tutto il suo contenuto."
+                ."Usa SEMPRE questa funzione quando:\n"
+                ."- L'utente fornisce un URL specifico di una pagina prodotto (es: Amazon, eBay, e-commerce con /dp/, /product/, /item/)\n"
+                ."- L'URL NON è una homepage ma una pagina interna specifica\n"
+                ."- L'utente chiede \"caratteristiche\", \"dettagli\", \"specifiche\", \"descrizione\" di UN prodotto/articolo specifico\n"
+                .'Questa funzione analizza in profondità UNA SOLA pagina ed estrae tutto il suo contenuto.'
         )
             ->addProperty(
                 ToolProperty::make(
@@ -328,7 +336,7 @@ class WebsiteAssistantAgent extends Agent
                 ToolProperty::make(
                     name: 'query',
                     type: PropertyType::STRING,
-                    description: "Cosa estrarre dalla pagina (es: \"tutte le caratteristiche del prodotto\", \"prezzo e descrizione\", \"specifiche tecniche\")",
+                    description: 'Cosa estrarre dalla pagina (es: "tutte le caratteristiche del prodotto", "prezzo e descrizione", "specifiche tecniche")',
                     required: true
                 )
             )
@@ -340,22 +348,22 @@ class WebsiteAssistantAgent extends Agent
         return Tool::make(
             name: 'searchSite',
             description: "Cerca informazioni attraverso MULTIPLE pagine di un sito web.\n"
-                . "Usa SEMPRE questa funzione quando:\n"
-                . "- L'utente chiede di CERCARE informazioni, prodotti, servizi, contenuti (es: \"cerca tagliatelle\", \"trova prodotti\", \"cerca articoli su XYZ\")\n"
-                . "- L'utente fornisce ESPLICITAMENTE un URL specifico (es: \"cerca nel sito https://example.com\", \"trova servizi su https://isofin.it\")\n"
-                . "- L'utente dice \"cerca nel sito web [URL]\" - usa SEMPRE quell'URL esatto, NON il sito del consumer corrente\n"
-                . "- L'utente chiede di cercare qualcosa in \"tutto il sito\", \"nelle pagine del sito\"\n"
-                . "- Serve esplorare più pagine per trovare informazioni distribuite\n\n"
-                . "IMPORTANTE:\n"
-                . "- Se l'utente specifica un URL esplicito nel prompt, usa SEMPRE quell'URL nel parametro \"url\"\n"
-                . "- Se l'utente NON specifica un URL ma chiede di CERCARE qualcosa, usa il sito del consumer corrente come url\n"
-                . "- Se hai già il consumer.website disponibile nel contesto e l'utente fa una query di ricerca generica, usa consumer.website come url\n\n"
-                . "ESEMPI:\n"
-                . "- \"cerca tagliatelle al ragù\" → searchSite(url=consumer.website, query=\"tagliatelle al ragù\")\n"
-                . "- \"trova prodotti con infissi\" → searchSite(url=consumer.website, query=\"prodotti con infissi\")\n"
-                . "- \"cerca nel sito https://isofin.it i servizi\" → searchSite(url=\"https://isofin.it\", query=\"servizi\")\n"
-                . "- \"trova prodotti su https://example.com\" → searchSite(url=\"https://example.com\", query=\"prodotti\")\n\n"
-                . "NON usare per singole pagine prodotto con URL specifico di una pagina - usa scrapeUrl invece."
+                ."Usa SEMPRE questa funzione quando:\n"
+                ."- L'utente chiede di CERCARE informazioni, prodotti, servizi, contenuti (es: \"cerca tagliatelle\", \"trova prodotti\", \"cerca articoli su XYZ\")\n"
+                ."- L'utente fornisce ESPLICITAMENTE un URL specifico (es: \"cerca nel sito https://example.com\", \"trova servizi su https://isofin.it\")\n"
+                ."- L'utente dice \"cerca nel sito web [URL]\" - usa SEMPRE quell'URL esatto, NON il sito del consumer corrente\n"
+                ."- L'utente chiede di cercare qualcosa in \"tutto il sito\", \"nelle pagine del sito\"\n"
+                ."- Serve esplorare più pagine per trovare informazioni distribuite\n\n"
+                ."IMPORTANTE:\n"
+                ."- Se l'utente specifica un URL esplicito nel prompt, usa SEMPRE quell'URL nel parametro \"url\"\n"
+                ."- Se l'utente NON specifica un URL ma chiede di CERCARE qualcosa, usa il sito del consumer corrente come url\n"
+                ."- Se hai già il consumer.website disponibile nel contesto e l'utente fa una query di ricerca generica, usa consumer.website come url\n\n"
+                ."ESEMPI:\n"
+                ."- \"cerca tagliatelle al ragù\" → searchSite(url=consumer.website, query=\"tagliatelle al ragù\")\n"
+                ."- \"trova prodotti con infissi\" → searchSite(url=consumer.website, query=\"prodotti con infissi\")\n"
+                ."- \"cerca nel sito https://isofin.it i servizi\" → searchSite(url=\"https://isofin.it\", query=\"servizi\")\n"
+                ."- \"trova prodotti su https://example.com\" → searchSite(url=\"https://example.com\", query=\"prodotti\")\n\n"
+                .'NON usare per singole pagine prodotto con URL specifico di una pagina - usa scrapeUrl invece.'
         )
             ->addProperty(
                 ToolProperty::make(
@@ -369,7 +377,7 @@ class WebsiteAssistantAgent extends Agent
                 ToolProperty::make(
                     name: 'query',
                     type: PropertyType::STRING,
-                    description: "Cosa cercare attraverso le pagine del sito (es: \"trova tutti i prezzi dei prodotti\", \"cerca informazioni sui servizi\", \"trova tutte le pagine di contatto\")",
+                    description: 'Cosa cercare attraverso le pagine del sito (es: "trova tutti i prezzi dei prodotti", "cerca informazioni sui servizi", "trova tutte le pagine di contatto")',
                     required: true
                 )
             )
@@ -377,7 +385,7 @@ class WebsiteAssistantAgent extends Agent
                 ToolProperty::make(
                     name: 'max_pages',
                     type: PropertyType::INTEGER,
-                    description: "Numero massimo di pagine da analizzare (opzionale, gestito automaticamente in base al tipo di ricerca)",
+                    description: 'Numero massimo di pagine da analizzare (opzionale, gestito automaticamente in base al tipo di ricerca)',
                     required: false
                 )
             )
@@ -396,6 +404,7 @@ class WebsiteAssistantAgent extends Agent
             $this->cachedTeam = $team;
             $this->cachedTeamSlug = $teamSlug;
         }
+
         return $team;
     }
 
@@ -406,20 +415,20 @@ class WebsiteAssistantAgent extends Agent
             'teamSlug' => $this->teamSlug,
         ]);
 
-        if (!$this->teamSlug) {
+        if (! $this->teamSlug) {
             return [];
         }
 
         $team = $this->getTeamCached($this->teamSlug);
-        if (!$team) {
+        if (! $team) {
             return [];
         }
 
         $query = Product::where('team_id', $team->id);
-        if (!empty($productNames)) {
+        if (! empty($productNames)) {
             $query->where(function ($q) use ($productNames) {
                 foreach ($productNames as $name) {
-                    $q->orWhere('name', 'like', '%' . $name . '%');
+                    $q->orWhere('name', 'like', '%'.$name.'%');
                 }
             });
         }
@@ -429,22 +438,23 @@ class WebsiteAssistantAgent extends Agent
 
     private function fetchAddressData(): array
     {
-        if (!$this->teamSlug) {
+        if (! $this->teamSlug) {
             return [];
         }
 
         $team = $this->getTeamCached($this->teamSlug);
+
         return $team ? $team->toArray() : [];
     }
 
     private function fetchAvailableTimes(): array
     {
-        if (!$this->teamSlug) {
+        if (! $this->teamSlug) {
             return [];
         }
 
         $team = $this->getTeamCached($this->teamSlug);
-        if (!$team) {
+        if (! $team) {
             return [];
         }
 
@@ -467,27 +477,29 @@ class WebsiteAssistantAgent extends Agent
             'team_slug' => $this->teamSlug,
         ]);
 
-        if (!$this->teamSlug) {
+        if (! $this->teamSlug) {
             return ['error' => 'Team non trovato'];
         }
 
         $team = $this->getTeamCached($this->teamSlug);
-        if (!$team) {
+        if (! $team) {
             Log::error('WebsiteAssistantAgent.createOrder: Team not found', ['team_slug' => $this->teamSlug]);
+
             return ['error' => 'Team non trovato'];
         }
 
-        if (!$userPhone || !$deliveryDate) {
+        if (! $userPhone || ! $deliveryDate) {
             Log::warning('WebsiteAssistantAgent.createOrder: Missing required fields', [
                 'phone' => $userPhone,
                 'delivery_date' => $deliveryDate,
             ]);
+
             return [
                 'error' => "Mancano informazioni necessarie per l'ordine: numero di telefono e data di consegna obbligatori.",
                 'received' => [
                     'phone' => $userPhone,
                     'delivery_date' => $deliveryDate,
-                    'product_ids_count' => count((array)$productIds),
+                    'product_ids_count' => count((array) $productIds),
                 ],
             ];
         }
@@ -504,15 +516,15 @@ class WebsiteAssistantAgent extends Agent
                 'team_id' => $team->id,
             ]);
 
-            if (!empty($productIds)) {
+            if (! empty($productIds)) {
                 Log::info('WebsiteAssistantAgent.createOrder: Attaching products', [
                     'order_id' => $order->id,
                     'product_ids' => $productIds,
                     'count' => count($productIds),
                 ]);
-                
+
                 $order->products()->attach($productIds);
-                
+
                 Log::info('WebsiteAssistantAgent.createOrder: Products attached', [
                     'order_id' => $order->id,
                     'product_count' => count($productIds),
@@ -530,7 +542,7 @@ class WebsiteAssistantAgent extends Agent
                 'details' => [
                     'phone' => $userPhone,
                     'delivery_date' => $deliveryDate,
-                    'products' => count((array)$productIds),
+                    'products' => count((array) $productIds),
                 ],
             ];
         } catch (\Throwable $e) {
@@ -538,8 +550,9 @@ class WebsiteAssistantAgent extends Agent
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
+
             return [
-                'error' => 'Errore durante la creazione dell\'ordine: ' . $e->getMessage(),
+                'error' => 'Errore durante la creazione dell\'ordine: '.$e->getMessage(),
             ];
         }
     }
@@ -554,12 +567,13 @@ class WebsiteAssistantAgent extends Agent
             'activity_uuid' => $this->activityUuid,
         ]);
 
-        if (!$userPhone || !$userEmail || !$userName) {
+        if (! $userPhone || ! $userEmail || ! $userName) {
             Log::warning('WebsiteAssistantAgent.submitUserData: Missing required fields', [
                 'phone' => $userPhone,
                 'email' => $userEmail,
                 'name' => $userName,
             ]);
+
             return [
                 'error' => 'Mancano informazioni anagrafiche: nome, email e telefono obbligatori.',
                 'received' => [
@@ -582,12 +596,13 @@ class WebsiteAssistantAgent extends Agent
                         'customer_id' => $customer->id,
                     ]);
                 } else {
-                    if (!$this->teamSlug) {
+                    if (! $this->teamSlug) {
                         return ['error' => 'Team non trovato'];
                     }
                     $team = $this->getTeamCached($this->teamSlug);
-                    if (!$team) {
+                    if (! $team) {
                         Log::error('WebsiteAssistantAgent.submitUserData: Team not found', ['team_slug' => $this->teamSlug]);
+
                         return ['error' => 'Team non trovato'];
                     }
                     $customer = Customer::create([
@@ -602,12 +617,13 @@ class WebsiteAssistantAgent extends Agent
                     ]);
                 }
             } else {
-                if (!$this->teamSlug) {
+                if (! $this->teamSlug) {
                     return ['error' => 'Team non trovato'];
                 }
                 $team = $this->getTeamCached($this->teamSlug);
-                if (!$team) {
+                if (! $team) {
                     Log::error('WebsiteAssistantAgent.submitUserData: Team not found', ['team_slug' => $this->teamSlug]);
+
                     return ['error' => 'Team non trovato'];
                 }
                 $customer = Customer::create([
@@ -631,20 +647,21 @@ class WebsiteAssistantAgent extends Agent
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
+
             return [
-                'error' => 'Errore durante il salvataggio dei dati: ' . $e->getMessage(),
+                'error' => 'Errore durante il salvataggio dei dati: '.$e->getMessage(),
             ];
         }
     }
 
     private function fetchFAQs(string $query): array
     {
-        if (!$this->teamSlug) {
+        if (! $this->teamSlug) {
             return [];
         }
 
         $team = $this->getTeamCached($this->teamSlug);
-        if (!$team) {
+        if (! $team) {
             return [];
         }
 
@@ -656,8 +673,8 @@ class WebsiteAssistantAgent extends Agent
         } catch (\Throwable $e) {
             return Faq::where('team_id', $team->id)
                 ->where(function ($q) use ($query) {
-                    $q->where('question', 'like', '%' . $query . '%')
-                        ->orWhere('answer', 'like', '%' . $query . '%');
+                    $q->where('question', 'like', '%'.$query.'%')
+                        ->orWhere('answer', 'like', '%'.$query.'%');
                 })
                 ->get(['question', 'answer'])
                 ->toArray();
@@ -672,18 +689,20 @@ class WebsiteAssistantAgent extends Agent
     {
         Log::info('WebsiteAssistantAgent.scrapeSite: Inizio recupero Customer da uuid', ['userUuid' => $userUuid]);
 
-        if (!$userUuid) {
+        if (! $userUuid) {
             return ['error' => "Nessun UUID fornito per l'utente/attività."];
         }
 
         $customer = Customer::where('uuid', $userUuid)->first();
-        if (!$customer) {
+        if (! $customer) {
             Log::warning('WebsiteAssistantAgent.scrapeSite: Nessun customer trovato', ['userUuid' => $userUuid]);
+
             return ['error' => 'Nessun cliente trovato per l\'UUID fornito.'];
         }
 
-        if (!$customer->website) {
+        if (! $customer->website) {
             Log::warning('WebsiteAssistantAgent.scrapeSite: Nessun sito web associato a questo customer', ['userUuid' => $userUuid]);
+
             return ['error' => 'Nessun sito web specificato per questo utente.'];
         }
 
@@ -692,6 +711,7 @@ class WebsiteAssistantAgent extends Agent
 
             if (isset($scrapedData['error'])) {
                 Log::error('WebsiteAssistantAgent.scrapeSite: Errore nello scraping', ['error' => $scrapedData['error']]);
+
                 return ['error' => 'Impossibile recuperare il contenuto del sito.'];
             }
 
@@ -700,6 +720,7 @@ class WebsiteAssistantAgent extends Agent
 
             if (isset($analysis['error'])) {
                 Log::error('WebsiteAssistantAgent.scrapeSite: Errore durante l\'analisi AI', ['error' => $analysis['error']]);
+
                 return ['error' => 'Impossibile generare un riepilogo. Errore AI.'];
             }
 
@@ -719,6 +740,7 @@ class WebsiteAssistantAgent extends Agent
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
+
             return ['error' => 'Si è verificato un errore durante l\'elaborazione.'];
         }
     }
@@ -762,7 +784,8 @@ class WebsiteAssistantAgent extends Agent
                         'query' => $query,
                         'error' => $analysis['error'],
                     ]);
-                    return ['error' => 'Impossibile analizzare il contenuto: ' . $analysis['error']];
+
+                    return ['error' => 'Impossibile analizzare il contenuto: '.$analysis['error']];
                 }
 
                 Log::info('WebsiteAssistantAgent.scrapeUrl: Analisi AI completata (product page)', [
@@ -827,6 +850,7 @@ class WebsiteAssistantAgent extends Agent
                     'query' => $query,
                     'pages_visited' => $searchResults['pages_visited'] ?? 0,
                 ]);
+
                 return ['error' => 'Non ho trovato informazioni rilevanti per la query richiesta.'];
             }
 
@@ -858,7 +882,8 @@ class WebsiteAssistantAgent extends Agent
                     'query' => $query,
                     'error' => $analysis['error'],
                 ]);
-                return ['error' => 'Impossibile analizzare il contenuto: ' . $analysis['error']];
+
+                return ['error' => 'Impossibile analizzare il contenuto: '.$analysis['error']];
             }
 
             Log::info('WebsiteAssistantAgent.scrapeUrl: Analisi AI completata', [
@@ -882,7 +907,8 @@ class WebsiteAssistantAgent extends Agent
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
-            return ['error' => 'Si è verificato un errore durante l\'elaborazione: ' . $e->getMessage()];
+
+            return ['error' => 'Si è verificato un errore durante l\'elaborazione: '.$e->getMessage()];
         }
     }
 
@@ -978,7 +1004,8 @@ class WebsiteAssistantAgent extends Agent
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
-            return ['error' => 'Si è verificato un errore durante la ricerca: ' . $e->getMessage()];
+
+            return ['error' => 'Si è verificato un errore durante la ricerca: '.$e->getMessage()];
         }
     }
 
@@ -1021,12 +1048,14 @@ class WebsiteAssistantAgent extends Agent
     {
         try {
             $embeddingService = $this->getEmbeddingService();
-            if (!$embeddingService) {
+            if (! $embeddingService) {
                 return null;
             }
+
             return $embeddingService->textSimilarity($textA, $textB);
         } catch (\Throwable $e) {
             Log::warning('WebsiteAssistantAgent.tryEmbeddingSimilarity fallback', ['error' => $e->getMessage()]);
+
             return null;
         }
     }

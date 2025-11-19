@@ -1,3 +1,0 @@
-@aware(['page'])
-
-        <livewire:newsletter />
