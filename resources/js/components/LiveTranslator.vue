@@ -41,7 +41,7 @@
                                     :class="activeSpeaker === 'A' && isListening ? 'bg-red-400 animate-pulse' : 'bg-slate-300'"></span>
                             </span>
                             <span>{{ activeSpeaker === 'A' && isListening ? 'Parlante A attivo' : 'Parla Lingua A'
-                            }}</span>
+                                }}</span>
                         </button>
                     </div>
 
@@ -70,7 +70,7 @@
                                     :class="activeSpeaker === 'B' && isListening ? 'bg-red-400 animate-pulse' : 'bg-slate-300'"></span>
                             </span>
                             <span>{{ activeSpeaker === 'B' && isListening ? 'Parlante B attivo' : 'Parla Lingua B'
-                            }}</span>
+                                }}</span>
                         </button>
                     </div>
                 </div>
