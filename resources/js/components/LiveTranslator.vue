@@ -6,10 +6,10 @@
             <div class="flex items-center justify-between gap-4 mb-6">
                 <div>
                     <h1 class="text-2xl md:text-3xl font-semibold tracking-tight">
-                        Traduttore vocale in tempo reale
+                        {{ ui.title }}
                     </h1>
                     <p class="text-sm text-slate-300 mt-1">
-                        Parla in qualsiasi lingua: vedrai il testo originale e la traduzione live.
+                        {{ ui.subtitle }}
                     </p>
                 </div>
             </div>
@@ -18,7 +18,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div class="flex flex-col gap-2">
                         <label class="text-xs font-semibold text-emerald-400">
-                            Lingua A <span class="text-red-400">*</span>
+                            {{ ui.langALabel }} <span class="text-red-400">*</span>
                         </label>
                         <select v-model="langA" @change="onLanguagePairChange"
                             class="bg-slate-800 border text-sm rounded-md px-3 py-2 focus:outline-none focus:ring-2"
@@ -41,13 +41,13 @@
                                     :class="activeSpeaker === 'A' && isListening ? 'bg-red-400 animate-pulse' : 'bg-slate-300'"></span>
                             </span>
                             <span>{{ activeSpeaker === 'A' && isListening ? 'Parlante A attivo' : 'Parla Lingua A'
-                                }}</span>
+                            }}</span>
                         </button>
                     </div>
 
                     <div class="flex flex-col gap-2">
                         <label class="text-xs font-semibold text-emerald-400">
-                            Lingua B <span class="text-red-400">*</span>
+                            {{ ui.langBLabel }} <span class="text-red-400">*</span>
                         </label>
                         <select v-model="langB" @change="onLanguagePairChange"
                             class="bg-slate-800 border text-sm rounded-md px-3 py-2 focus:outline-none focus:ring-2"
@@ -70,7 +70,7 @@
                                     :class="activeSpeaker === 'B' && isListening ? 'bg-red-400 animate-pulse' : 'bg-slate-300'"></span>
                             </span>
                             <span>{{ activeSpeaker === 'B' && isListening ? 'Parlante B attivo' : 'Parla Lingua B'
-                                }}</span>
+                            }}</span>
                         </button>
                     </div>
                 </div>
@@ -78,6 +78,26 @@
                 <p v-if="statusMessage" class="text-xs text-slate-300 text-center">
                     {{ statusMessage }}
                 </p>
+
+                <div class="flex flex-col items-center gap-1 text-slate-300 mt-1">
+                    <div class="flex items-center justify-center gap-2 text-[13px]">
+                        <input id="useWhisper" type="checkbox" v-model="useWhisper" @change="onRecognitionModeChange"
+                            :disabled="!isChromeWithWebSpeech"
+                            class="h-3.5 w-3.5 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500 disabled:opacity-60 disabled:cursor-not-allowed" />
+                        <label for="useWhisper" class="cursor-pointer select-none">
+                            {{ ui.whisperLabel }}
+                            <span v-if="!isChromeWithWebSpeech" class="ml-1 text-[11px] text-emerald-300">
+                                ({{ ui.whisperForcedNote }})
+                            </span>
+                        </label>
+                    </div>
+
+                    <label class="flex items-center gap-2 text-[13px] cursor-pointer select-none">
+                        <input type="checkbox" v-model="readTranslationEnabled"
+                            class="h-3.5 w-3.5 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
+                        <span>{{ ui.dubbingLabel }}</span>
+                    </label>
+                </div>
             </div>
 
             <div class="mt-4 space-y-6">
@@ -86,16 +106,16 @@
                     <div class="flex flex-col gap-2">
                         <div class="flex items-center justify-between">
                             <span class="text-base md:text-lg font-semibold text-slate-100">
-                                Testo originale
+                                {{ ui.originalTitle }}
                             </span>
                             <span class="text-xs text-slate-400">
-                                Riconosciuto dal microfono
+                                {{ ui.originalSubtitle }}
                             </span>
                         </div>
                         <div ref="originalBox"
                             class="min-h-[260px] max-h-[420px] rounded-xl border border-slate-700 bg-slate-900/60 p-4 text-base md:text-lg overflow-y-auto leading-relaxed">
                             <p v-if="!displayOriginalText" class="text-slate-500 text-xs md:text-sm">
-                                Inizia a parlare per vedere qui la trascrizione in tempo reale.
+                                {{ ui.originalPlaceholder }}
                             </p>
                             <p v-else class="whitespace-pre-wrap">
                                 {{ displayOriginalText }}
@@ -106,7 +126,7 @@
                     <div class="flex flex-col gap-2">
                         <div class="flex items-center justify-between">
                             <span class="text-base md:text-lg font-semibold text-slate-100">
-                                Traduzione
+                                {{ ui.translationTitle }}
                             </span>
                             <span class="text-xs text-slate-400">
                                 GPT / Neuron AI
@@ -132,7 +152,7 @@
                         <div class="flex items-center justify-between gap-4">
                             <div>
                                 <h2 class="text-base md:text-lg font-semibold text-slate-100">
-                                    Suggerimenti per il colloquio
+                                    {{ ui.suggestionsTitle }}
                                     <span v-if="langA && langB" class="text-sm text-emerald-400">
                                         ({{ langA.toUpperCase() }} + {{ langB.toUpperCase() }})
                                     </span>
@@ -225,6 +245,8 @@
 </template>
 
 <script>
+import WhisperSpeechRecognition from '../utils/WhisperSpeechRecognition';
+
 export default {
     name: 'LiveTranslator',
     props: {
@@ -256,17 +278,90 @@ export default {
             currentMicLang: '',
             currentTargetLang: '',
             activeSpeaker: null, // 'A' o 'B' - indica chi sta parlando
+            useWhisper: false,
+            isChromeWithWebSpeech: true,
+            readTranslationEnabled: false,
+            ttsQueue: [],
+            isTtsPlaying: false,
+            wasListeningBeforeTts: false,
+            lastSpeakerBeforeTts: null,
             availableLanguages: [
+                // Lingue principali europee
                 { code: 'it', label: '🇮🇹 Italiano', micCode: 'it-IT' },
                 { code: 'en', label: '🇬🇧 English', micCode: 'en-US' },
                 { code: 'es', label: '🇪🇸 Español', micCode: 'es-ES' },
                 { code: 'fr', label: '🇫🇷 Français', micCode: 'fr-FR' },
                 { code: 'de', label: '🇩🇪 Deutsch', micCode: 'de-DE' },
                 { code: 'pt', label: '🇵🇹 Português', micCode: 'pt-PT' },
+                { code: 'nl', label: '🇳🇱 Nederlands', micCode: 'nl-NL' },
+                { code: 'sv', label: '🇸🇪 Svenska', micCode: 'sv-SE' },
+                { code: 'no', label: '🇳🇴 Norsk', micCode: 'nb-NO' },
+                { code: 'da', label: '🇩🇰 Dansk', micCode: 'da-DK' },
+                { code: 'fi', label: '🇫🇮 Suomi', micCode: 'fi-FI' },
+                { code: 'pl', label: '🇵🇱 Polski', micCode: 'pl-PL' },
+                { code: 'cs', label: '🇨🇿 Čeština', micCode: 'cs-CZ' },
+                { code: 'sk', label: '🇸🇰 Slovenčina', micCode: 'sk-SK' },
+                { code: 'hu', label: '🇭🇺 Magyar', micCode: 'hu-HU' },
+                { code: 'ro', label: '🇷🇴 Română', micCode: 'ro-RO' },
+                { code: 'bg', label: '🇧🇬 Български', micCode: 'bg-BG' },
+                { code: 'el', label: '🇬🇷 Ελληνικά', micCode: 'el-GR' },
+                { code: 'uk', label: '🇺🇦 Українська', micCode: 'uk-UA' },
+
+                // Lingue globali extra-europee
+                { code: 'ru', label: '🇷🇺 Русский', micCode: 'ru-RU' },
+                { code: 'tr', label: '🇹🇷 Türkçe', micCode: 'tr-TR' },
+                { code: 'ar', label: '🇸🇦 العربية', micCode: 'ar-SA' },
+                { code: 'he', label: '🇮🇱 עברית', micCode: 'he-IL' },
+                { code: 'hi', label: '🇮🇳 हिन्दी', micCode: 'hi-IN' },
+                { code: 'zh', label: '🇨🇳 中文 (Mandarin)', micCode: 'zh-CN' },
+                { code: 'ja', label: '🇯🇵 日本語', micCode: 'ja-JP' },
+                { code: 'ko', label: '🇰🇷 한국어', micCode: 'ko-KR' },
+                { code: 'id', label: '🇮🇩 Bahasa Indonesia', micCode: 'id-ID' },
+                { code: 'ms', label: '🇲🇾 Bahasa Melayu', micCode: 'ms-MY' },
+                { code: 'th', label: '🇹🇭 ไทย', micCode: 'th-TH' },
+                { code: 'vi', label: '🇻🇳 Tiếng Việt', micCode: 'vi-VN' },
             ],
+            uiLocale: 'it',
         };
     },
     computed: {
+        ui() {
+            const lang = (this.uiLocale || 'it').toLowerCase();
+            const dict = {
+                it: {
+                    title: 'PolyGlide - Traduttore Istantaneo',
+                    subtitle: 'Parla in qualsiasi lingua: vedrai il testo originale e la traduzione live.',
+                    langALabel: 'Lingua A',
+                    langBLabel: 'Lingua B',
+                    whisperLabel: 'Usa Whisper (OpenAI) invece del riconoscimento vocale del browser',
+                    whisperForcedNote: 'forzato: non sei su Chrome',
+                    dubbingLabel: 'Leggi la traduzione (doppiaggio)',
+                    originalTitle: 'Testo originale',
+                    originalSubtitle: 'Riconosciuto dal microfono',
+                    originalPlaceholder: 'Inizia a parlare per vedere qui la trascrizione in tempo reale.',
+                    translationTitle: 'Traduzione',
+                    suggestionsTitle: 'Suggerimenti per il colloquio',
+                    ttsBusyMessage: 'Sto leggendo la traduzione, attendi che finisca prima di parlare.',
+                },
+                en: {
+                    title: 'PolyGlide - Instant Translator',
+                    subtitle: 'Speak in any language: you will see the original text and the live translation.',
+                    langALabel: 'Language A',
+                    langBLabel: 'Language B',
+                    whisperLabel: 'Use Whisper (OpenAI) instead of the browser speech recognition',
+                    whisperForcedNote: 'forced: you are not on Chrome',
+                    dubbingLabel: 'Read the translation aloud (dubbing)',
+                    originalTitle: 'Original text',
+                    originalSubtitle: 'Recognised from microphone',
+                    originalPlaceholder: 'Start speaking to see the real-time transcription here.',
+                    translationTitle: 'Translation',
+                    suggestionsTitle: 'Interview suggestions',
+                    ttsBusyMessage: 'I am reading the translation, please wait until it finishes before speaking.',
+                },
+            };
+
+            return dict[lang] || dict.en;
+        },
         displayOriginalText() {
             const base = this.originalConfirmed || '';
             const interim = this.originalInterim || '';
@@ -286,11 +381,9 @@ export default {
         },
     },
     mounted() {
-        // Inizializza con default IT-EN
-        this.langA = 'it';
-        this.langB = 'en';
-        this.onLanguagePairChange();
-        this.initSpeechRecognition();
+        this.detectUiLocale();
+        this.initDefaultLanguages();
+        this.detectEnvAndDefaultMode();
     },
     beforeUnmount() {
         this.stopListeningInternal();
@@ -338,18 +431,85 @@ export default {
             }
         },
 
+        initDefaultLanguages() {
+            try {
+                const nav = (navigator.language || (navigator.languages && navigator.languages[0]) || this.locale || 'it-IT').toString();
+                const base = nav.split(/[-_]/)[0].toLowerCase();
+
+                let defaultA = 'it';
+                let defaultB = 'en';
+
+                const match = this.availableLanguages.find(l => l.code === base);
+                if (match) {
+                    defaultA = match.code;
+                }
+
+                // Se la lingua A è già inglese, metti italiano come B; altrimenti metti inglese come B
+                defaultB = defaultA === 'en' ? 'it' : 'en';
+
+                this.langA = defaultA;
+                this.langB = defaultB;
+            } catch {
+                this.langA = 'it';
+                this.langB = 'en';
+            }
+
+            this.onLanguagePairChange();
+        },
+
+        detectUiLocale() {
+            try {
+                const nav = (navigator.language || (navigator.languages && navigator.languages[0]) || this.locale || 'it-IT').toString();
+                const code = nav.split(/[-_]/)[0].toLowerCase();
+                this.uiLocale = ['it', 'en'].includes(code) ? code : 'en';
+            } catch {
+                this.uiLocale = 'it';
+            }
+        },
+
+        detectEnvAndDefaultMode() {
+            try {
+                const hasWebSpeech = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+                const ua = (navigator.userAgent || '').toLowerCase();
+                const isChrome = hasWebSpeech && ua.includes('chrome') && !ua.includes('edg') && !ua.includes('opr');
+
+                this.isChromeWithWebSpeech = !!isChrome;
+
+                if (!this.isChromeWithWebSpeech) {
+                    // Browser non-Chrome: forza modalità Whisper e non permettere cambio
+                    this.useWhisper = true;
+                    this.autoRestart = false;
+                    this.statusMessage = 'Modalità Whisper attiva automaticamente: il riconoscimento vocale del browser non è pienamente supportato qui.';
+                }
+            } catch {
+                this.isChromeWithWebSpeech = false;
+                this.useWhisper = true;
+                this.autoRestart = false;
+            }
+        },
+
         initSpeechRecognition() {
             try {
-                const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
-                if (!Rec) {
-                    this.statusMessage = 'Riconoscimento vocale non disponibile in questo browser.';
+                let RecClass = null;
+
+                if (this.useWhisper) {
+                    RecClass = WhisperSpeechRecognition;
+                } else {
+                    RecClass = window.SpeechRecognition || window.webkitSpeechRecognition;
+                }
+
+                if (!RecClass) {
+                    this.statusMessage = this.useWhisper
+                        ? 'Modalità Whisper attiva ma il wrapper non è disponibile in questo browser.'
+                        : 'Riconoscimento vocale non disponibile in questo browser. Puoi attivare la modalità Whisper.';
                     return;
                 }
 
-                this.recognition = new Rec();
+                this.recognition = new RecClass();
                 this.recognition.lang = this.currentMicLang || this.detectRecognitionLang();
                 this.recognition.continuous = true;
-                this.recognition.interimResults = true;
+                // In modalità Whisper non gestiamo davvero gli interim, arrivano solo final
+                this.recognition.interimResults = !this.useWhisper;
                 this.recognition.maxAlternatives = 1;
 
                 this.recognition.onstart = () => {
@@ -364,7 +524,8 @@ export default {
                 };
 
                 this.recognition.onend = () => {
-                    if (this.isListening && this.autoRestart) {
+                    // Niente auto-restart in modalità Whisper per evitare loop strani
+                    if (this.isListening && this.autoRestart && !this.useWhisper) {
                         try {
                             this.recognition.start();
                         } catch { }
@@ -449,6 +610,11 @@ export default {
         },
 
         async toggleListeningForLang(speaker) {
+            // Non registrare mentre il TTS sta leggendo
+            if (this.isTtsPlaying) {
+                this.statusMessage = this.ui.ttsBusyMessage || 'Sto leggendo la traduzione, attendi che finisca prima di parlare.';
+                return;
+            }
             // Se sta già ascoltando con lo stesso speaker, ferma
             if (this.isListening && this.activeSpeaker === speaker) {
                 this.stopListeningInternal();
@@ -597,6 +763,11 @@ export default {
                         // Quando una frase è conclusa, la aggiungiamo all'array di frasi tradotte con trattino
                         this.translationSegments.push(`- ${segment}`);
 
+                        // Se il doppiaggio è attivo, metti in coda la traduzione per il TTS
+                        if (this.readTranslationEnabled) {
+                            this.enqueueTranslationForTts(segment, targetLang);
+                        }
+
                         // Svuotiamo il container DOM della frase corrente per evitare duplicati
                         this.$nextTick(() => {
                             const container = this.$refs.translationLiveContainer;
@@ -621,6 +792,127 @@ export default {
                 });
             } catch {
                 // In caso di errore, non blocchiamo l'interfaccia
+            }
+        },
+
+        getLocaleForLangCode(langCode) {
+            const code = (langCode || '').toLowerCase();
+            if (!code) {
+                return this.locale || 'it-IT';
+            }
+
+            const langObj = this.availableLanguages.find(l => l.code === code);
+            if (langObj && langObj.micCode) {
+                return langObj.micCode;
+            }
+
+            // Se è già in formato BCP-47, usalo così com'è
+            if (code.includes('-')) {
+                return code;
+            }
+
+            return this.locale || 'it-IT';
+        },
+
+        enqueueTranslationForTts(text, langCode) {
+            const safe = (text || '').trim();
+            if (!safe) return;
+
+            const locale = this.getLocaleForLangCode(langCode || this.currentTargetLang || this.langB || 'en');
+
+            this.ttsQueue.push({
+                text: safe,
+                locale,
+            });
+
+            this.processTtsQueue();
+        },
+
+        async processTtsQueue() {
+            if (this.isTtsPlaying) {
+                return;
+            }
+
+            const next = this.ttsQueue.shift();
+            if (!next) {
+                return;
+            }
+
+            this.isTtsPlaying = true;
+
+            // Se il microfono è attivo, mettilo in pausa mentre il TTS parla
+            this.wasListeningBeforeTts = this.isListening;
+            this.lastSpeakerBeforeTts = this.activeSpeaker;
+            if (this.wasListeningBeforeTts) {
+                this.stopListeningInternal();
+                this.statusMessage = this.ui.ttsBusyMessage || this.statusMessage;
+            }
+
+            try {
+                const res = await fetch('/api/tts', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: JSON.stringify({
+                        text: next.text,
+                        locale: next.locale,
+                        format: 'mp3',
+                    }),
+                });
+
+                if (!res.ok) {
+                    // Se fallisce, passa oltre senza bloccare la coda
+                    this.isTtsPlaying = false;
+                    this.processTtsQueue();
+                    return;
+                }
+
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const audio = new Audio(url);
+
+                audio.onended = () => {
+                    URL.revokeObjectURL(url);
+                    const shouldResume = this.wasListeningBeforeTts;
+                    const speaker = this.lastSpeakerBeforeTts;
+                    this.wasListeningBeforeTts = false;
+                    this.lastSpeakerBeforeTts = null;
+                    this.isTtsPlaying = false;
+
+                    if (shouldResume && speaker) {
+                        this.toggleListeningForLang(speaker);
+                    }
+
+                    this.processTtsQueue();
+                };
+
+                audio.onerror = () => {
+                    URL.revokeObjectURL(url);
+                    const shouldResume = this.wasListeningBeforeTts;
+                    const speaker = this.lastSpeakerBeforeTts;
+                    this.wasListeningBeforeTts = false;
+                    this.lastSpeakerBeforeTts = null;
+                    this.isTtsPlaying = false;
+
+                    if (shouldResume && speaker) {
+                        this.toggleListeningForLang(speaker);
+                    }
+
+                    this.processTtsQueue();
+                };
+
+                try {
+                    await audio.play();
+                } catch {
+                    URL.revokeObjectURL(url);
+                    this.isTtsPlaying = false;
+                    this.processTtsQueue();
+                }
+            } catch {
+                this.isTtsPlaying = false;
+                this.processTtsQueue();
             }
         },
 
@@ -774,6 +1066,30 @@ export default {
             }
 
             this.statusMessage = `Coppia lingue impostata: ${this.langA.toUpperCase()} ⇄ ${this.langB.toUpperCase()}. Il sistema rileverà automaticamente quale stai parlando.`;
+        },
+
+        onRecognitionModeChange() {
+            if (!this.isChromeWithWebSpeech) {
+                // In browser non supportati non permettiamo il cambio: resta Whisper
+                this.useWhisper = true;
+                this.autoRestart = false;
+                return;
+            }
+
+            // Quando si cambia modalità, fermiamo eventuale ascolto in corso
+            if (this.isListening) {
+                this.stopListeningInternal();
+            }
+            this.recognition = null;
+
+            if (this.useWhisper) {
+                // In modalità Whisper evitiamo auto-restart lato componente
+                this.autoRestart = false;
+                this.statusMessage = 'Modalità Whisper attivata: userò OpenAI per il riconoscimento vocale.';
+            } else {
+                this.autoRestart = true;
+                this.statusMessage = 'Modalità browser attivata: userò il riconoscimento vocale del browser.';
+            }
         },
 
         detectSpokenLanguage(text) {
