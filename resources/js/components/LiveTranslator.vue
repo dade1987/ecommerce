@@ -8,13 +8,34 @@
                     <h1 class="text-2xl md:text-3xl font-semibold tracking-tight">
                         {{ ui.title }}
                     </h1>
-                    <p class="text-sm text-slate-300 mt-1">
-                        {{ ui.subtitle }}
-                    </p>
                 </div>
             </div>
 
             <div class="flex flex-col gap-3 mb-6">
+                <p v-if="statusMessage" class="text-xs text-slate-300 text-center">
+                    {{ statusMessage }}
+                </p>
+
+                <div class="flex flex-col items-center gap-1 text-slate-300">
+                    <div class="flex items-center justify-center gap-2 text-[13px]">
+                        <input id="useWhisper" type="checkbox" v-model="useWhisper" @change="onRecognitionModeChange"
+                            :disabled="!isChromeWithWebSpeech"
+                            class="h-3.5 w-3.5 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500 disabled:opacity-60 disabled:cursor-not-allowed" />
+                        <label for="useWhisper" class="cursor-pointer select-none">
+                            {{ ui.whisperLabel }}
+                            <span v-if="!isChromeWithWebSpeech" class="ml-1 text-[11px] text-emerald-300">
+                                ({{ ui.whisperForcedNote }})
+                            </span>
+                        </label>
+                    </div>
+
+                    <label class="flex items-center gap-2 text-[13px] cursor-pointer select-none">
+                        <input type="checkbox" v-model="readTranslationEnabled"
+                            class="h-3.5 w-3.5 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
+                        <span>{{ ui.dubbingLabel }}</span>
+                    </label>
+                </div>
+
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div class="flex flex-col gap-2">
                         <label class="text-xs font-semibold text-emerald-400">
@@ -41,7 +62,7 @@
                                     :class="activeSpeaker === 'A' && isListening ? 'bg-red-400 animate-pulse' : 'bg-slate-300'"></span>
                             </span>
                             <span>{{ activeSpeaker === 'A' && isListening ? 'Parlante A attivo' : 'Parla Lingua A'
-                            }}</span>
+                                }}</span>
                         </button>
                     </div>
 
@@ -70,33 +91,9 @@
                                     :class="activeSpeaker === 'B' && isListening ? 'bg-red-400 animate-pulse' : 'bg-slate-300'"></span>
                             </span>
                             <span>{{ activeSpeaker === 'B' && isListening ? 'Parlante B attivo' : 'Parla Lingua B'
-                            }}</span>
+                                }}</span>
                         </button>
                     </div>
-                </div>
-
-                <p v-if="statusMessage" class="text-xs text-slate-300 text-center">
-                    {{ statusMessage }}
-                </p>
-
-                <div class="flex flex-col items-center gap-1 text-slate-300 mt-1">
-                    <div class="flex items-center justify-center gap-2 text-[13px]">
-                        <input id="useWhisper" type="checkbox" v-model="useWhisper" @change="onRecognitionModeChange"
-                            :disabled="!isChromeWithWebSpeech"
-                            class="h-3.5 w-3.5 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500 disabled:opacity-60 disabled:cursor-not-allowed" />
-                        <label for="useWhisper" class="cursor-pointer select-none">
-                            {{ ui.whisperLabel }}
-                            <span v-if="!isChromeWithWebSpeech" class="ml-1 text-[11px] text-emerald-300">
-                                ({{ ui.whisperForcedNote }})
-                            </span>
-                        </label>
-                    </div>
-
-                    <label class="flex items-center gap-2 text-[13px] cursor-pointer select-none">
-                        <input type="checkbox" v-model="readTranslationEnabled"
-                            class="h-3.5 w-3.5 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
-                        <span>{{ ui.dubbingLabel }}</span>
-                    </label>
                 </div>
             </div>
 
@@ -113,7 +110,7 @@
                             </span>
                         </div>
                         <div ref="originalBox"
-                            class="min-h-[260px] max-h-[420px] rounded-xl border border-slate-700 bg-slate-900/60 p-4 text-base md:text-lg overflow-y-auto leading-relaxed">
+                            class="h-[100px] md:min-h-[260px] md:max-h-[420px] rounded-xl border border-slate-700 bg-slate-900/60 p-4 text-sm md:text-base lg:text-lg overflow-y-auto leading-relaxed">
                             <p v-if="!displayOriginalText" class="text-slate-500 text-xs md:text-sm">
                                 {{ ui.originalPlaceholder }}
                             </p>
@@ -133,7 +130,7 @@
                             </span>
                         </div>
                         <div ref="translationBox"
-                            class="min-h-[260px] max-h-[420px] rounded-xl border border-slate-700 bg-slate-900/60 p-4 text-base md:text-lg overflow-y-auto leading-relaxed">
+                            class="h-[100px] md:min-h-[260px] md:max-h-[420px] rounded-xl border border-slate-700 bg-slate-900/60 p-4 text-sm md:text-base lg:text-lg overflow-y-auto leading-relaxed">
                             <div v-if="!hasAnyTranslation" class="text-slate-500 text-xs md:text-sm">
                                 La traduzione apparirà qui man mano che parli.
                             </div>
@@ -161,7 +158,7 @@
                         </div>
 
                         <div ref="suggestionsBox"
-                            class="min-h-[260px] max-h-[420px] rounded-xl border border-slate-700 bg-slate-900/70 p-4 text-sm md:text-base overflow-y-auto space-y-3 leading-relaxed">
+                            class="h-[100px] md:min-h-[260px] md:max-h-[420px] rounded-xl border border-slate-700 bg-slate-900/70 p-4 text-xs md:text-sm lg:text-base overflow-y-auto space-y-3 leading-relaxed">
                             <div v-if="!cvText" class="text-xs md:text-sm text-slate-500">
                                 Carica il tuo CV qui sotto per abilitare i suggerimenti basati sul curriculum.
                             </div>
@@ -285,6 +282,7 @@ export default {
             isTtsPlaying: false,
             wasListeningBeforeTts: false,
             lastSpeakerBeforeTts: null,
+            translationThreadId: null,
             availableLanguages: [
                 // Lingue principali europee
                 { code: 'it', label: '🇮🇹 Italiano', micCode: 'it-IT' },
@@ -513,8 +511,7 @@ export default {
                 this.recognition.maxAlternatives = 1;
 
                 this.recognition.onstart = () => {
-                    const langPair = this.langA && this.langB ? `${this.langA.toUpperCase()} ⇄ ${this.langB.toUpperCase()}` : '';
-                    this.statusMessage = `Microfono attivo ${langPair}. Parla pure, rileverò automaticamente la lingua.`;
+                    // Nessun messaggio di stato
                 };
 
                 this.recognition.onerror = (e) => {
@@ -530,7 +527,7 @@ export default {
                             this.recognition.start();
                         } catch { }
                     } else {
-                        this.statusMessage = 'Microfono fermo.';
+                        // Nessun messaggio di stato
                     }
                 };
 
@@ -618,7 +615,6 @@ export default {
             // Se sta già ascoltando con lo stesso speaker, ferma
             if (this.isListening && this.activeSpeaker === speaker) {
                 this.stopListeningInternal();
-                this.statusMessage = `Microfono fermato per Parlante ${speaker}.`;
                 return;
             }
 
@@ -671,9 +667,6 @@ export default {
 
             try {
                 this.isListening = true;
-                const langLabel = speaker === 'A' ? this.langA.toUpperCase() : this.langB.toUpperCase();
-                const targetLabel = speaker === 'A' ? this.langB.toUpperCase() : this.langA.toUpperCase();
-                this.statusMessage = `🎤 Parlante ${speaker} attivo (${langLabel} → ${targetLabel})`;
                 this.recognition.start();
             } catch (e) {
                 this.statusMessage = 'Impossibile avviare il microfono.';
@@ -721,11 +714,17 @@ export default {
 
             const targetLang = this.currentTargetLang || this.langB || 'en';
 
+            // Genera thread_id se non esiste ancora
+            if (!this.translationThreadId) {
+                this.translationThreadId = 'translation_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            }
+
             const params = new URLSearchParams({
                 text: safeText,
                 source_lang: this.currentMicLang || '',
                 locale: this.locale || 'it',
                 target_lang: targetLang,
+                thread_id: this.translationThreadId,
                 ts: String(Date.now()),
             });
 
@@ -1065,7 +1064,7 @@ export default {
                 }
             }
 
-            this.statusMessage = `Coppia lingue impostata: ${this.langA.toUpperCase()} ⇄ ${this.langB.toUpperCase()}. Il sistema rileverà automaticamente quale stai parlando.`;
+            this.statusMessage = '';
         },
 
         onRecognitionModeChange() {
