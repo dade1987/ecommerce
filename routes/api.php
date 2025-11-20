@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\SommelierChatbotController;
 use App\Http\Controllers\Api\StaticController;
 use App\Http\Controllers\Api\TestController;
 use App\Http\Controllers\Api\TtsController;
+use App\Http\Controllers\Api\WhisperTranscriptionController;
 use App\Http\Controllers\QuoterController;
 use App\Models\ProductionPhase;
 use Illuminate\Http\Request;
@@ -144,6 +145,7 @@ Route::get('/chatbot/neuron-website-stream', [NeuronWebsiteStreamController::cla
 Route::get('/chatbot/neuron-translator-stream', [NeuronTranslatorStreamController::class, 'stream']);
 Route::post('/chatbot/interview-suggestion', [InterviewSuggestionController::class, 'suggest']);
 Route::post('/tts', [TtsController::class, 'synthesize']);
+Route::post('/whisper/transcribe', [WhisperTranscriptionController::class, 'transcribe']);
 Route::post('/chatbot/email-transcript', [ChatTranscriptController::class, 'emailTranscript']);
 Route::get('/chatbot/history', [ChatTranscriptController::class, 'history']);
 

@@ -71,7 +71,7 @@ class InterviewSuggestionController extends Controller
             $langAText = null;
             $langBText = null;
 
-            // Mappa i codici lingua ai nomi completi
+            // Mappa i codici lingua ai nomi completi (in MAIUSCOLO, con varianti separate da "|")
             $langNames = [
                 'it' => 'ITALIANO',
                 'en' => 'INGLESE|ENGLISH',
@@ -79,6 +79,31 @@ class InterviewSuggestionController extends Controller
                 'fr' => 'FRANÇAIS|FRENCH|FRANCESE',
                 'de' => 'DEUTSCH|GERMAN|TEDESCO',
                 'pt' => 'PORTUGUÊS|PORTUGUESE|PORTOGHESE',
+                'nl' => 'NEDERLANDS|DUTCH|OLANDESE',
+                'sv' => 'SVENSKA|SWEDISH|SVEDESE',
+                'no' => 'NORSK|NORWEGIAN|NORVEGESE',
+                'da' => 'DANSK|DANISH|DANESE',
+                'fi' => 'SUOMI|FINNISH|FINLANDESE',
+                'pl' => 'POLSKI|POLISH|POLACCO',
+                'cs' => 'ČEŠTINA|CZECH|CECO',
+                'sk' => 'SLOVENČINA|SLOVAK|SLOVACCO',
+                'hu' => 'MAGYAR|HUNGARIAN|UNGARESE',
+                'ro' => 'ROMÂNĂ|ROMANIAN|RUMENO',
+                'bg' => 'БЪЛГАРСКИ|BULGARIAN|BULGARO',
+                'el' => 'ΕΛΛΗΝΙΚΑ|GREEK|GRECO',
+                'uk' => 'УКРАЇНСЬКА|UKRAINIAN|UCRAINO',
+                'ru' => 'РУССКИЙ|RUSSIAN|RUSSO',
+                'tr' => 'TÜRKÇE|TURKISH|TURCO',
+                'ar' => 'العَرَبِيَّة|ARABIC|ARABO',
+                'he' => 'עברית|HEBREW|EBRAICO',
+                'hi' => 'हिन्दी|HINDI',
+                'zh' => '中文|CHINESE|CINESE',
+                'ja' => '日本語|JAPANESE|GIAPPONESE',
+                'ko' => '한국어|KOREAN|COREANO',
+                'id' => 'BAHASA INDONESIA|INDONESIAN',
+                'ms' => 'BAHASA MELAYU|MALAY',
+                'th' => 'ไทย|THAI',
+                'vi' => 'TIẾNG VIỆT|VIETNAMESE|VIETNAMITA',
             ];
 
             $nameA = $langNames[$langA] ?? $langAUpper;
