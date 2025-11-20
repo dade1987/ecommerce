@@ -2,23 +2,30 @@
 
 namespace App\Services;
 
+use Illuminate\Support\Facades\Log;
+use OpenAI;
 use React\EventLoop\Loop;
+use React\Promise\Deferred;
+use React\Promise\Promise;
 use React\Socket\Connector;
 use React\Socket\TimeoutConnector;
-use React\Stream\WritableResourceStream;
 use React\Stream\ReadableResourceStream;
-use Illuminate\Support\Facades\Log;
-use React\Promise\Promise;
-use React\Promise\Deferred;
-use OpenAI;
+use React\Stream\WritableResourceStream;
+use function Safe\json_decode;
+use function Safe\preg_match;
 
 class NetworkScanningService
 {
     protected $loop;
+
     protected $connector;
+
     protected $timeout;
+
     protected $results = [];
+
     protected ?string $openaiApiKey;
+
     protected string $locale = 'en';
 
     public function __construct()
@@ -45,7 +52,7 @@ class NetworkScanningService
             'open_ports' => [],
             'closed_ports' => [],
             'services' => [],
-            'scan_duration' => 0
+            'scan_duration' => 0,
         ];
 
         if ($ports === null) {
@@ -57,8 +64,9 @@ class NetworkScanningService
 
         // Risolvi IP dell'host
         $ip = gethostbyname($host);
-        if ($ip === $host && !filter_var($host, FILTER_VALIDATE_IP)) {
+        if ($ip === $host && ! filter_var($host, FILTER_VALIDATE_IP)) {
             Log::warning("Impossibile risolvere l'host: {$host}");
+
             return $this->results;
         }
 
@@ -68,17 +76,17 @@ class NetworkScanningService
         }
 
         // Attendi tutti i risultati
-        \React\Promise\all($promises)->then(function($results) {
+        \React\Promise\all($promises)->then(function ($results) {
             // I risultati vengono già processati nei callback individuali
-        })->otherwise(function($error) {
-            Log::error("Errore durante il port scan: " . $error->getMessage());
+        })->otherwise(function ($error) {
+            Log::error('Errore durante il port scan: '.$error->getMessage());
         });
 
         // Esegui l'event loop fino a quando tutte le promesse sono completate
         $this->loop->run();
 
         $this->results['scan_duration'] = round(microtime(true) - $startTime, 2);
-        
+
         return $this->results;
     }
 
@@ -90,30 +98,30 @@ class NetworkScanningService
         $deferred = new Deferred();
 
         $this->connector->connect("tcp://{$ip}:{$port}")
-            ->then(function($connection) use ($ip, $port, $deferred) {
+            ->then(function ($connection) use ($port, $deferred) {
                 $this->results['open_ports'][] = $port;
-                
+
                 // Prova a fare banner grabbing
                 $this->grabBanner($connection, $port)
-                    ->then(function($banner) use ($port, $deferred) {
+                    ->then(function ($banner) use ($port, $deferred) {
                         if ($banner) {
                             $service = $this->identifyService($port, $banner);
                             $this->results['services'][$port] = [
                                 'service' => $service,
                                 'banner' => $banner,
-                                'software' => $this->extractSoftwareInfo($banner)
+                                'software' => $this->extractSoftwareInfo($banner),
                             ];
                         }
                         $deferred->resolve($port);
                     })
-                    ->otherwise(function($error) use ($port, $deferred) {
+                    ->otherwise(function ($error) use ($port, $deferred) {
                         // Anche se il banner grabbing fallisce, la porta è aperta
                         $deferred->resolve($port);
                     });
-                
+
                 $connection->close();
             })
-            ->otherwise(function($error) use ($port, $deferred) {
+            ->otherwise(function ($error) use ($port, $deferred) {
                 $this->results['closed_ports'][] = $port;
                 $deferred->resolve($port);
             });
@@ -131,7 +139,7 @@ class NetworkScanningService
         $timeout = 2;
 
         // Imposta timeout per la lettura del banner
-        $timer = $this->loop->addTimer($timeout, function() use ($deferred, $banner) {
+        $timer = $this->loop->addTimer($timeout, function () use ($deferred, $banner) {
             $deferred->resolve($banner);
         });
 
@@ -142,9 +150,9 @@ class NetworkScanningService
         }
 
         // Leggi la risposta
-        $connection->on('data', function($data) use (&$banner, $deferred, $timer) {
+        $connection->on('data', function ($data) use (&$banner, $deferred, $timer) {
             $banner .= $data;
-            
+
             // Limita la dimensione del banner
             if (strlen($banner) > 1024) {
                 $banner = substr($banner, 0, 1024);
@@ -153,12 +161,12 @@ class NetworkScanningService
             }
         });
 
-        $connection->on('close', function() use ($deferred, $banner, $timer) {
+        $connection->on('close', function () use ($deferred, $banner, $timer) {
             $this->loop->cancelTimer($timer);
             $deferred->resolve($banner);
         });
 
-        $connection->on('error', function($error) use ($deferred, $banner, $timer) {
+        $connection->on('error', function ($error) use ($deferred, $banner, $timer) {
             $this->loop->cancelTimer($timer);
             $deferred->resolve($banner);
         });
@@ -218,7 +226,7 @@ class NetworkScanningService
         // Mappa base dei servizi per fallback
         $services = [
             21 => 'FTP',
-            22 => 'SSH', 
+            22 => 'SSH',
             23 => 'Telnet',
             25 => 'SMTP',
             53 => 'DNS',
@@ -236,11 +244,11 @@ class NetworkScanningService
             8080 => 'HTTP-Alt',
             8081 => 'HTTP-Alt',
             8443 => 'HTTPS-Alt',
-            9000 => 'HTTP-Alt'
+            9000 => 'HTTP-Alt',
         ];
 
         $baseService = $services[$port] ?? 'Unknown';
-        
+
         // Se non abbiamo un banner valido, restituisci solo il servizio base
         if (empty($banner) || strlen(trim($banner)) < 3) {
             return $baseService;
@@ -248,7 +256,7 @@ class NetworkScanningService
 
         // Usa GPT per identificare il software dal banner
         $gptResult = $this->analyzeServiceWithGpt($port, $banner);
-        
+
         return $gptResult ?: $baseService;
     }
 
@@ -257,8 +265,9 @@ class NetworkScanningService
      */
     protected function analyzeServiceWithGpt(int $port, string $banner): ?string
     {
-        if (!$this->openaiApiKey) {
+        if (! $this->openaiApiKey) {
             Log::warning("OpenAI API key non configurata per l'analisi dei banner");
+
             return $this->fallbackBannerAnalysis($port, $banner);
         }
 
@@ -271,7 +280,7 @@ class NetworkScanningService
                 'model' => 'gpt-4o',
                 'messages' => [
                     ['role' => 'system', 'content' => trans('prompts.banner_analysis_system', [], $this->locale)],
-                    ['role' => 'user', 'content' => $prompt]
+                    ['role' => 'user', 'content' => $prompt],
                 ],
                 'temperature' => 0.1,
                 'response_format' => ['type' => 'json_object'],
@@ -282,13 +291,15 @@ class NetworkScanningService
 
             if (json_last_error() !== JSON_ERROR_NONE) {
                 Log::error("Risposta GPT non valida per l'analisi del banner sulla porta {$port}");
+
                 return $this->fallbackBannerAnalysis($port, $banner);
             }
 
             return $content['service_identification'] ?? $this->fallbackBannerAnalysis($port, $banner);
 
         } catch (\Exception $e) {
-            Log::error("Errore durante l'analisi GPT del banner sulla porta {$port}: " . $e->getMessage());
+            Log::error("Errore durante l'analisi GPT del banner sulla porta {$port}: ".$e->getMessage());
+
             return $this->fallbackBannerAnalysis($port, $banner);
         }
     }
@@ -302,11 +313,11 @@ class NetworkScanningService
             80 => 'HTTP',
             443 => 'HTTPS',
             3306 => 'MySQL',
-            5432 => 'PostgreSQL'
+            5432 => 'PostgreSQL',
         ];
 
         $baseService = $services[$port] ?? 'Unknown';
-        
+
         // Prova pattern matching di base per versioni critiche
         $criticalPatterns = [
             '/vsftpd\s*2\.3\.4/i' => 'vsftpd 2.3.4 (backdoor vulnerability)',
@@ -340,7 +351,7 @@ class NetworkScanningService
     {
         // Manteniamo questo metodo per compatibilità ma ora usa GPT
         $gptResult = $this->analyzeServiceWithGpt(0, $banner);
-        
+
         if ($gptResult) {
             return $gptResult;
         }
@@ -353,29 +364,29 @@ class NetworkScanningService
             '/Server:\s*Microsoft-IIS\/([0-9\.]+)/i' => 'IIS',
             '/Server:\s*lighttpd\/([0-9\.]+)/i' => 'Lighttpd',
             '/Server:\s*([^\r\n]+)/i' => 'Server',
-            
+
             // SSH
             '/SSH-[0-9\.]+-OpenSSH[_\s]([0-9\.]+)/i' => 'OpenSSH',
             '/SSH-[0-9\.]+-([^\r\n\s]+)/i' => 'SSH',
-            
+
             // FTP
             '/220.*vsftpd\s*([0-9\.]+)/i' => 'vsftpd',
             '/220.*ProFTPD\s*([0-9\.]+)/i' => 'ProFTPD',
             '/220.*FileZilla\s*([0-9\.]+)/i' => 'FileZilla',
             '/220.*Pure-FTPd\s*([0-9\.]+)/i' => 'Pure-FTPd',
             '/220.*Microsoft FTP Service/i' => 'Microsoft FTP',
-            
+
             // Mail servers
             '/220.*Postfix/i' => 'Postfix',
             '/220.*Exim\s*([0-9\.]+)/i' => 'Exim',
             '/220.*Microsoft ESMTP MAIL Service/i' => 'Microsoft SMTP',
             '/220.*Sendmail\s*([0-9\.]+)/i' => 'Sendmail',
-            
+
             // Database
             '/MySQL/i' => 'MySQL',
             '/PostgreSQL/i' => 'PostgreSQL',
             '/Microsoft SQL Server/i' => 'SQL Server',
-            
+
             // Others
             '/Telnet/i' => 'Telnet',
             '/HTTP\/1\.[01]\s+\d+\s+([^\r\n]+)/i' => 'HTTP',
@@ -386,6 +397,7 @@ class NetworkScanningService
                 if (isset($matches[1]) && $matches[1] !== $service) {
                     return "{$service} {$matches[1]}";
                 }
+
                 return $service;
             }
         }
@@ -393,7 +405,7 @@ class NetworkScanningService
         // Se non troviamo pattern specifici, prova a estrarre info generiche
         $lines = explode("\n", $banner);
         $firstLine = trim($lines[0]);
-        
+
         if (strlen($firstLine) > 3 && strlen($firstLine) < 100) {
             return substr($firstLine, 0, 50);
         }
@@ -436,6 +448,7 @@ class NetworkScanningService
     public function scanWordPressSpecific(string $host): array
     {
         $wpPorts = [80, 443, 8080, 8443];
+
         return $this->portScan($host, $wpPorts);
     }
 
@@ -445,6 +458,7 @@ class NetworkScanningService
     public function scanDatabasePorts(string $host): array
     {
         $dbPorts = [3306, 5432, 1433, 1521, 27017];
+
         return $this->portScan($host, $dbPorts);
     }
 
@@ -454,6 +468,7 @@ class NetworkScanningService
     public function scanMailPorts(string $host): array
     {
         $mailPorts = [25, 587, 465, 110, 995, 143, 993];
+
         return $this->portScan($host, $mailPorts);
     }
 
@@ -463,12 +478,12 @@ class NetworkScanningService
     public function extractCVEInfo(array $scanResults): array
     {
         $cveInfo = [];
-        
+
         if (isset($scanResults['services'])) {
             foreach ($scanResults['services'] as $port => $service) {
                 $software = $service['software'] ?? null;
                 $banner = $service['banner'] ?? '';
-                
+
                 if ($software) {
                     $cveInfo[] = [
                         'port' => $port,
@@ -476,12 +491,12 @@ class NetworkScanningService
                         'software' => $software,
                         'banner_snippet' => substr($banner, 0, 200),
                         'version' => $this->extractVersion($software),
-                        'risk_indicators' => $this->findRiskIndicators($banner)
+                        'risk_indicators' => $this->findRiskIndicators($banner),
                     ];
                 }
             }
         }
-        
+
         return $cveInfo;
     }
 
@@ -493,6 +508,7 @@ class NetworkScanningService
         if (preg_match('/([0-9]+\.[0-9]+(\.[0-9]+)?)/', $software, $matches)) {
             return $matches[1];
         }
+
         return null;
     }
 
@@ -502,7 +518,7 @@ class NetworkScanningService
     protected function findRiskIndicators(string $banner): array
     {
         $indicators = [];
-        
+
         // Versioni obsolete comuni
         $obsoleteVersions = [
             'Apache/2.2' => 'Apache 2.2 obsoleto',
@@ -515,13 +531,13 @@ class NetworkScanningService
             'PHP/7.0' => 'PHP 7.0 obsoleto',
             'PHP/7.1' => 'PHP 7.1 obsoleto',
         ];
-        
+
         foreach ($obsoleteVersions as $pattern => $message) {
             if (stripos($banner, $pattern) !== false) {
                 $indicators[] = $message;
             }
         }
-        
+
         // Configurazioni insicure
         $insecureConfigs = [
             'Server: Apache' => 'Server header esposto',
@@ -530,13 +546,13 @@ class NetworkScanningService
             'allow_url_include' => 'allow_url_include abilitato',
             'expose_php' => 'expose_php abilitato',
         ];
-        
+
         foreach ($insecureConfigs as $pattern => $message) {
             if (stripos($banner, $pattern) !== false) {
                 $indicators[] = $message;
             }
         }
-        
+
         return $indicators;
     }
-} 
+}

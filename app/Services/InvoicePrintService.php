@@ -4,8 +4,10 @@ namespace App\Services;
 
 use App\Models\Invoice;
 use Barryvdh\DomPDF\Facade\Pdf;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use function Safe\date;
+use function Safe\mkdir;
 
 class InvoicePrintService
 {
@@ -31,12 +33,12 @@ class InvoicePrintService
             $pdf->setOption('logOutputFile', storage_path('logs/dompdf.log'));
 
             // Genera il nome del file
-            $filename = 'fattura_' . $invoice->invoice_number . '_' . date('Y-m-d') . '.pdf';
-            $filepath = 'invoices/' . $filename;
+            $filename = 'fattura_'.$invoice->invoice_number.'_'.date('Y-m-d').'.pdf';
+            $filepath = 'invoices/'.$filename;
 
             // Assicurati che la directory esista
             $directory = storage_path('app/public/invoices');
-            if (!file_exists($directory)) {
+            if (! file_exists($directory)) {
                 mkdir($directory, 0755, true);
             }
 
@@ -48,23 +50,25 @@ class InvoicePrintService
 
             return $filepath;
         } catch (\Exception $e) {
-            Log::error('Errore nella generazione del PDF per la fattura ' . $invoice->id . ': ' . $e->getMessage());
-            throw new \Exception('Errore nella generazione del PDF: ' . $e->getMessage());
+            Log::error('Errore nella generazione del PDF per la fattura '.$invoice->id.': '.$e->getMessage());
+            throw new \Exception('Errore nella generazione del PDF: '.$e->getMessage());
         }
     }
 
     public function download(Invoice $invoice): string
     {
         $filepath = $this->print($invoice);
-        return asset('storage/' . $filepath);
+
+        return asset('storage/'.$filepath);
     }
 
     public function getFilePath(Invoice $invoice): string
     {
-        if (!$invoice->pdf_file_path) {
+        if (! $invoice->pdf_file_path) {
             $this->print($invoice);
         }
-        return storage_path('app/public/' . $invoice->pdf_file_path);
+
+        return storage_path('app/public/'.$invoice->pdf_file_path);
     }
 
     public function testPdfGeneration(): bool
@@ -73,7 +77,7 @@ class InvoicePrintService
             // Crea un PDF di test semplice
             $pdf = Pdf::loadView('pdfs.test', [
                 'message' => 'Test PDF generato con successo!',
-                'timestamp' => now()->format('Y-m-d H:i:s')
+                'timestamp' => now()->format('Y-m-d H:i:s'),
             ]);
 
             $pdf->setPaper('a4');
@@ -83,19 +87,21 @@ class InvoicePrintService
             $pdf->setOption('tempDir', storage_path('app/temp'));
 
             // Genera il PDF di test
-            $testFilepath = 'test_pdf_' . date('Y-m-d_H-i-s') . '.pdf';
+            $testFilepath = 'test_pdf_'.date('Y-m-d_H-i-s').'.pdf';
             Storage::disk('public')->put($testFilepath, $pdf->output());
 
             // Verifica che il file sia stato creato
             if (Storage::disk('public')->exists($testFilepath)) {
                 // Rimuovi il file di test
                 Storage::disk('public')->delete($testFilepath);
+
                 return true;
             }
 
             return false;
         } catch (\Exception $e) {
-            Log::error('Errore nel test di generazione PDF: ' . $e->getMessage());
+            Log::error('Errore nel test di generazione PDF: '.$e->getMessage());
+
             return false;
         }
     }
@@ -112,4 +118,4 @@ class InvoicePrintService
             'website' => 'www.tuoazienda.it',
         ];
     }
-} 
+}

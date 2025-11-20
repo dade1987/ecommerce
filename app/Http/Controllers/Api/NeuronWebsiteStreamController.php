@@ -9,6 +9,9 @@ use App\Neuron\WebsiteAssistantAgent;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use NeuronAI\Chat\Messages\UserMessage;
+use function Safe\json_encode;
+use function Safe\ob_flush;
+use function Safe\preg_split;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -39,7 +42,7 @@ class NeuronWebsiteStreamController extends Controller
         $response = new StreamedResponse(function () use ($userInput, $teamSlug, $locale, $activityUuid, $scraperService) {
             $flush = function (array $payload, string $event = 'message') {
                 echo "event: {$event}\n";
-                echo 'data: ' . json_encode($payload, JSON_UNESCAPED_UNICODE) . "\n\n";
+                echo 'data: '.json_encode($payload, JSON_UNESCAPED_UNICODE)."\n\n";
                 @ob_flush();
                 @flush();
             };
@@ -49,7 +52,7 @@ class NeuronWebsiteStreamController extends Controller
             Log::info('NeuronWebsiteStreamController.stream START', [
                 'thread_id' => $streamThreadId,
                 'received_thread_id' => request()->query('thread_id'),
-                'is_new' => !request()->query('thread_id'),
+                'is_new' => ! request()->query('thread_id'),
                 'team_slug' => $teamSlug,
             ]);
 
@@ -58,15 +61,17 @@ class NeuronWebsiteStreamController extends Controller
 
             if (trim($userInput) === '') {
                 $flush(['token' => ''], 'done');
+
                 return;
             }
 
             try {
                 // Verifica che il team esista
                 $team = Team::where('slug', $teamSlug)->first();
-                if (!$team) {
+                if (! $team) {
                     $flush(['error' => 'Team non trovato'], 'error');
                     $flush(['token' => ''], 'done');
+
                     return;
                 }
 
@@ -82,21 +87,22 @@ class NeuronWebsiteStreamController extends Controller
                     ]);
 
                     $flush(['token' => ''], 'done');
+
                     return;
                 }
 
                 // Scrapa i siti web del team
                 $websites = $team->websites ?? [];
-                $normalizedWebsites = empty($websites) || !is_array($websites) ? [] : $this->normalizeWebsites($websites);
+                $normalizedWebsites = empty($websites) || ! is_array($websites) ? [] : $this->normalizeWebsites($websites);
                 $websiteContent = '';
-                
-                if (!empty($normalizedWebsites)) {
+
+                if (! empty($normalizedWebsites)) {
                     $websiteContent = $scraperService->scrapeTeamWebsites($normalizedWebsites, (string) $team->id) ?? '';
                 }
 
                 // Taglia il contenuto se troppo lungo
                 if (strlen($websiteContent) > 12000) {
-                    $websiteContent = mb_substr($websiteContent, 0, 12000) . "\n...[contenuto troncato]";
+                    $websiteContent = mb_substr($websiteContent, 0, 12000)."\n...[contenuto troncato]";
                 }
 
                 // Crea e configura l'agent Neuron
@@ -112,7 +118,7 @@ class NeuronWebsiteStreamController extends Controller
 
                 // Streaming nativo da Neuron
                 $fullContent = '';
-                
+
                 // Streaming nativo con history già caricata dal memory provider
                 $stream = $agent->stream(new UserMessage($userInput));
 
@@ -143,7 +149,7 @@ class NeuronWebsiteStreamController extends Controller
                     'error_class' => get_class($e),
                     'code' => $e->getCode(),
                 ]);
-                
+
                 // Se è un errore OpenAI, tenta di estrarre più dettagli
                 if (strpos($e->getMessage(), 'openai.com') !== false || strpos($e->getMessage(), 'Bad Request') !== false) {
                     Log::error('OpenAI API Error Detail', [
@@ -151,8 +157,8 @@ class NeuronWebsiteStreamController extends Controller
                         'previous' => $e->getPrevious() ? $e->getPrevious()->getMessage() : null,
                     ]);
                 }
-                
-                $flush(['error' => 'Errore durante l\'analisi: ' . $e->getMessage()], 'error');
+
+                $flush(['error' => 'Errore durante l\'analisi: '.$e->getMessage()], 'error');
                 $flush(['token' => ''], 'done');
             }
         });
@@ -183,6 +189,7 @@ class NeuronWebsiteStreamController extends Controller
                 }
             }
         }
+
         return $normalized;
     }
 

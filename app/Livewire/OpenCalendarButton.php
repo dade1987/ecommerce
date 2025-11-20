@@ -7,9 +7,10 @@ use Livewire\Component;
 class OpenCalendarButton extends Component
 {
     public string $style;
+
     public string $text;
 
-    public function mount(string $style = 'primary', string $text = null)
+    public function mount(string $style = 'primary', ?string $text = null)
     {
         $this->style = rtrim(trim($style), ';');
         $this->text = $text ?? __('frontend.book_call');
@@ -24,4 +25,4 @@ class OpenCalendarButton extends Component
     {
         return view('livewire.open-calendar-button');
     }
-} 
+}

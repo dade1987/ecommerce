@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use GuzzleHttp\Client;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use function Safe\preg_match;
 
 class TtsController extends Controller
 {
@@ -18,7 +19,7 @@ class TtsController extends Controller
         $text = (string) ($request->input('text') ?? '');
         // Normalizza locale su it-IT di default
         $locale = (string) ($request->input('locale') ?? 'it-IT');
-        if ($locale === '' || !preg_match('/^[a-zA-Z]{2}([-_][a-zA-Z]{2})?$/', $locale)) {
+        if ($locale === '' || ! preg_match('/^[a-zA-Z]{2}([-_][a-zA-Z]{2})?$/', $locale)) {
             $locale = 'it-IT';
         }
         $voice = (string) ($request->input('voice') ?? $this->defaultVoiceForLocale($locale));
@@ -35,7 +36,7 @@ class TtsController extends Controller
 
         try {
             $apiKey = config('openapi.key');
-            if (!$apiKey) {
+            if (! $apiKey) {
                 return response()->json(['error' => 'OpenAI API key mancante in configurazione.'], 500);
             }
 
@@ -57,11 +58,12 @@ class TtsController extends Controller
                 'format' => $format,
             ];
 
-            $resp = $client->post('audio/speech', [ 'json' => $payload ]);
+            $resp = $client->post('audio/speech', ['json' => $payload]);
             $status = $resp->getStatusCode();
             if ($status < 200 || $status >= 300) {
                 $body = (string) $resp->getBody();
                 Log::error('OpenAI TTS error', ['status' => $status, 'body' => $body]);
+
                 return response()->json(['error' => 'Errore TTS OpenAI'], 502);
             }
 
@@ -75,6 +77,7 @@ class TtsController extends Controller
             ]);
         } catch (\Throwable $e) {
             Log::error('TtsController.synthesize error', ['error' => $e->getMessage()]);
+
             return response()->json(['error' => 'Errore generazione audio'], 500);
         }
     }
@@ -82,6 +85,7 @@ class TtsController extends Controller
     private function defaultVoiceForLocale(string $locale): string
     {
         $l = strtolower($locale);
+
         // Mappatura semplice verso voci generiche OpenAI
         return match (true) {
             str_starts_with($l, 'it') => 'alloy',
@@ -105,5 +109,3 @@ class TtsController extends Controller
         };
     }
 }
-
-

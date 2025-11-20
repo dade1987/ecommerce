@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class InvoiceItem extends Model
 {
@@ -55,8 +56,9 @@ class InvoiceItem extends Model
 
     /**
      * Relazione many-to-many con ProductTwin
+     * @return BelongsToMany<ProductTwin>
      */
-    public function productTwins()
+    public function productTwins(): BelongsToMany
     {
         return $this->belongsToMany(ProductTwin::class, 'invoice_item_product_twin');
     }

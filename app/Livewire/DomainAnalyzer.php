@@ -2,19 +2,27 @@
 
 namespace App\Livewire;
 
-use Livewire\Component;
-use App\Services\DomainAnalysisService;
 use App\Models\ScannedWebsite;
+use App\Services\DomainAnalysisService;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Log;
+use Livewire\Component;
+use function Safe\ini_set;
+use function Safe\json_encode;
+use function Safe\set_time_limit;
 
 class DomainAnalyzer extends Component
 {
     public ?string $domain = null;
+
     public ?string $email = null;
+
     public ?string $phone = null;
+
     public ?array $result = null;
+
     public bool $analysing = false;
+
     public ?string $error = null;
 
     public function analyze(DomainAnalysisService $analysisService)
@@ -40,17 +48,17 @@ class DomainAnalyzer extends Component
 
             if (isset($this->result['error'])) {
                 $errorMessage = is_array($this->result['error']) ? json_encode($this->result['error']) : $this->result['error'];
-                Log::error("Errore ricevuto dal servizio di analisi per {$this->domain}: " . $errorMessage);
+                Log::error("Errore ricevuto dal servizio di analisi per {$this->domain}: ".$errorMessage);
                 $this->error = true;
             } else {
                 if ($existingScan && isset($this->result['risk_percentage'])) {
                     $this->result['risk_percentage'] = $existingScan->risk_percentage;
                 }
-                
+
                 $this->saveAnalysisResult();
             }
         } catch (\Exception $e) {
-            Log::error("Eccezione imprevista durante l'analisi per {$this->domain}: " . $e->getMessage(), [
+            Log::error("Eccezione imprevista durante l'analisi per {$this->domain}: ".$e->getMessage(), [
                 'trace' => $e->getTraceAsString(),
             ]);
             $this->error = true;
@@ -63,7 +71,7 @@ class DomainAnalyzer extends Component
     {
         try {
             $ipAddress = gethostbyname($this->domain);
-            
+
             // Prepara i dati estesi per il salvataggio
             $extendedData = [
                 'analysis_data' => $this->result['raw_data'] ?? [],
@@ -73,7 +81,7 @@ class DomainAnalyzer extends Component
                 'vulnerabilities' => $this->getVulnerabilities(),
                 'security_summary' => $this->getSecuritySummary(),
             ];
-            
+
             ScannedWebsite::updateOrCreate(
                 ['domain' => $this->domain],
                 [
@@ -87,13 +95,13 @@ class DomainAnalyzer extends Component
                 ]
             );
         } catch (\Exception $e) {
-            Log::error("Errore nel salvataggio dei dati di scansione per {$this->domain}: " . $e->getMessage());
+            Log::error("Errore nel salvataggio dei dati di scansione per {$this->domain}: ".$e->getMessage());
         }
     }
 
     private function isCloudflareProtected(): bool
     {
-        if (!isset($this->result['raw_data'])) {
+        if (! isset($this->result['raw_data'])) {
             return false;
         }
 
@@ -108,7 +116,7 @@ class DomainAnalyzer extends Component
 
     private function isWordPressDetected(): bool
     {
-        if (!isset($this->result['raw_data'])) {
+        if (! isset($this->result['raw_data'])) {
             return false;
         }
 
@@ -124,8 +132,8 @@ class DomainAnalyzer extends Component
     private function getOpenPorts(): array
     {
         $allPorts = [];
-        
-        if (!isset($this->result['raw_data'])) {
+
+        if (! isset($this->result['raw_data'])) {
             return $allPorts;
         }
 
@@ -141,8 +149,8 @@ class DomainAnalyzer extends Component
     private function getVulnerabilities(): array
     {
         $allVulnerabilities = [];
-        
-        if (!isset($this->result['raw_data'])) {
+
+        if (! isset($this->result['raw_data'])) {
             return $allVulnerabilities;
         }
 
@@ -161,7 +169,7 @@ class DomainAnalyzer extends Component
             'cloudflare_protected' => $this->isCloudflareProtected(),
             'wordpress_detected' => $this->isWordPressDetected(),
             'total_open_ports' => count($this->getOpenPorts()),
-            'has_vulnerabilities' => !empty($this->getVulnerabilities()),
+            'has_vulnerabilities' => ! empty($this->getVulnerabilities()),
             'analysis_timestamp' => now()->toISOString(),
         ];
     }

@@ -10,6 +10,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 use OpenAI;
+use function Safe\json_decode;
 
 class ProcessEmailJob implements ShouldQueue
 {
@@ -31,8 +32,9 @@ class ProcessEmailJob implements ShouldQueue
     public function handle(): void
     {
         $email = IncomingEmail::find($this->emailId);
-        if (!$email) {
+        if (! $email) {
             Log::error("ProcessEmailJob: Could not find email with ID {$this->emailId}");
+
             return;
         }
 
@@ -58,13 +60,13 @@ class ProcessEmailJob implements ShouldQueue
                     'priority' => (int) $data['priority'],
                 ]);
             } else {
-                Log::error('Failed to decode or validate JSON response from OpenAI for email ID: ' . $email->id, [
+                Log::error('Failed to decode or validate JSON response from OpenAI for email ID: '.$email->id, [
                     'response' => $content,
                     'error' => json_last_error_msg(),
                 ]);
             }
         } catch (\Exception $e) {
-            Log::error('Error processing email with OpenAI for email ID: ' . $email->id . ' - ' . $e->getMessage());
+            Log::error('Error processing email with OpenAI for email ID: '.$email->id.' - '.$e->getMessage());
         }
     }
 
@@ -74,6 +76,7 @@ class ProcessEmailJob implements ShouldQueue
     private function buildPrompt(IncomingEmail $email): string
     {
         $body = strip_tags($email->body_html ?? $email->body_text ?? '');
-        return "Subject: {$email->subject}\nFrom: {$email->from_address}\n\nBody:\n" . substr($body, 0, 8000);
+
+        return "Subject: {$email->subject}\nFrom: {$email->from_address}\n\nBody:\n".substr($body, 0, 8000);
     }
 }

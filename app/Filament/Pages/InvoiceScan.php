@@ -6,35 +6,51 @@ use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
 use App\Models\ProductTwin;
-use Filament\Forms;
-use Filament\Forms\Form;
-use Filament\Notifications\Notification;
-use Filament\Pages\Page;
 use Filament\Actions\Action;
-use Filament\Forms\Components\Section;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Select;
+use Filament\Forms;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Section;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Concerns\InteractsWithForms;
+use Filament\Forms\Contracts\HasForms;
+use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
+use Filament\Notifications\Notification;
+use Filament\Pages\Page;
 use Illuminate\Support\Facades\DB;
 
-class InvoiceScan extends Page
+class InvoiceScan extends Page implements HasForms
 {
+    use InteractsWithForms;
+
+    /**
+     * @var Form
+     */
+    public $form;
+
     protected static ?string $navigationIcon = 'heroicon-o-qr-code';
+
     protected static ?string $navigationLabel = 'Scansione Fattura';
+
     protected static ?string $title = 'Scansione Fattura';
+
     protected static ?string $navigationGroup = 'Fatturazione';
+
     protected static ?int $navigationSort = 1;
 
     protected static string $view = 'filament.pages.invoice-scan';
 
     public ?array $data = [];
+
     public ?Invoice $currentInvoice = null;
+
     public ?string $scannedUuid = null;
+
     public ?ProductTwin $scannedProductTwin = null;
 
     public function mount(): void
@@ -50,24 +66,24 @@ class InvoiceScan extends Page
                     ->schema([
                         Select::make('customer_id')
                             ->label('Cliente')
-                            ->options(Customer::all()->pluck('name', 'id'))
+                            ->options(Customer::pluck('name', 'id'))
                             ->searchable()
                             ->required()
                             ->live()
                             ->afterStateUpdated(function () {
                                 $this->currentInvoice = null;
                             }),
-                        
+
                         DatePicker::make('invoice_date')
                             ->label('Data Fattura')
                             ->default(now())
                             ->required(),
-                        
+
                         DatePicker::make('due_date')
                             ->label('Data Scadenza')
                             ->default(now()->addDays(30))
                             ->required(),
-                        
+
                         Textarea::make('notes')
                             ->label('Note')
                             ->rows(3),
@@ -84,7 +100,7 @@ class InvoiceScan extends Page
                                 $this->scannedUuid = $state;
                                 $this->scanProductTwin($state);
                             }),
-                        
+
                         // Mostra informazioni del ProductTwin scansionato
                         Section::make('Prodotto Scansionato')
                             ->schema([
@@ -93,19 +109,19 @@ class InvoiceScan extends Page
                                     ->disabled()
                                     ->default(fn () => $this->scannedProductTwin?->uuid)
                                     ->visible(fn () => $this->scannedProductTwin !== null),
-                                
+
                                 TextInput::make('product_name')
                                     ->label('Prodotto')
                                     ->disabled()
                                     ->default(fn () => $this->scannedProductTwin?->internalProduct?->name)
                                     ->visible(fn () => $this->scannedProductTwin !== null),
-                                
+
                                 TextInput::make('warehouse_name')
                                     ->label('Magazzino')
                                     ->disabled()
                                     ->default(fn () => $this->scannedProductTwin?->currentWarehouse?->name ?? 'N/A')
                                     ->visible(fn () => $this->scannedProductTwin !== null),
-                                
+
                                 TextInput::make('lifecycle_status')
                                     ->label('Stato')
                                     ->disabled()
@@ -124,22 +140,22 @@ class InvoiceScan extends Page
                                 TextInput::make('uuid')
                                     ->label('UUID ProductTwin')
                                     ->disabled(),
-                                
+
                                 TextInput::make('product_name')
                                     ->label('Prodotto')
                                     ->disabled(),
-                                
+
                                 TextInput::make('unit_price')
                                     ->label('Prezzo Unitario')
                                     ->numeric()
                                     ->required(),
-                                
+
                                 TextInput::make('quantity')
                                     ->label('Quantità')
                                     ->numeric()
                                     ->default(1)
                                     ->required(),
-                                
+
                                 TextInput::make('total_price')
                                     ->label('Totale')
                                     ->disabled(),
@@ -161,7 +177,7 @@ class InvoiceScan extends Page
             Action::make('create_invoice')
                 ->label('Crea Fattura')
                 ->action('createInvoice')
-                ->visible(fn () => $this->currentInvoice === null && !empty($this->data['customer_id']))
+                ->visible(fn () => $this->currentInvoice === null && ! empty($this->data['customer_id']))
                 ->color('success'),
 
             Action::make('add_product')
@@ -190,7 +206,7 @@ class InvoiceScan extends Page
             Action::make('create_invoice_header')
                 ->label('Crea Fattura')
                 ->action('createInvoice')
-                ->visible(fn () => $this->currentInvoice === null && !empty($this->data['customer_id']))
+                ->visible(fn () => $this->currentInvoice === null && ! empty($this->data['customer_id']))
                 ->color('success'),
 
             Action::make('add_product_header')
@@ -218,6 +234,7 @@ class InvoiceScan extends Page
         if (empty($uuid)) {
             $this->scannedProductTwin = null;
             $this->form->fill();
+
             return;
         }
 
@@ -225,12 +242,13 @@ class InvoiceScan extends Page
             ->where('uuid', $uuid)
             ->first();
 
-        if (!$this->scannedProductTwin) {
+        if (! $this->scannedProductTwin) {
             Notification::make()
                 ->title('UUID non trovato')
-                ->body('Il ProductTwin con UUID ' . $uuid . ' non esiste.')
+                ->body('Il ProductTwin con UUID '.$uuid.' non esiste.')
                 ->danger()
                 ->send();
+
             return;
         }
 
@@ -241,6 +259,7 @@ class InvoiceScan extends Page
                 ->body('Questo ProductTwin è già stato fatturato.')
                 ->warning()
                 ->send();
+
             return;
         }
 
@@ -251,6 +270,7 @@ class InvoiceScan extends Page
                 ->body('Il ProductTwin non è disponibile per la fatturazione.')
                 ->warning()
                 ->send();
+
             return;
         }
 
@@ -290,14 +310,14 @@ class InvoiceScan extends Page
 
         Notification::make()
             ->title('Fattura creata')
-            ->body('Fattura ' . $this->currentInvoice->invoice_number . ' creata con successo.')
+            ->body('Fattura '.$this->currentInvoice->invoice_number.' creata con successo.')
             ->success()
             ->send();
     }
 
     public function addProductToInvoice(): void
     {
-        if (!$this->currentInvoice || !$this->scannedProductTwin) {
+        if (! $this->currentInvoice || ! $this->scannedProductTwin) {
             return;
         }
 
@@ -310,6 +330,7 @@ class InvoiceScan extends Page
                 ->body('Questo ProductTwin è già presente nella fattura.')
                 ->warning()
                 ->send();
+
             return;
         }
 
@@ -343,14 +364,14 @@ class InvoiceScan extends Page
         $this->scannedUuid = null;
         $this->scannedProductTwin = null;
         $this->data['scanned_uuid'] = null;
-        
+
         // Ricarica il form
         $this->form->fill();
     }
 
     public function printInvoice(): void
     {
-        if (!$this->currentInvoice) {
+        if (! $this->currentInvoice) {
             return;
         }
 
@@ -361,14 +382,14 @@ class InvoiceScan extends Page
 
             Notification::make()
                 ->title('Fattura stampata')
-                ->body('PDF generato e salvato: ' . $filepath)
+                ->body('PDF generato e salvato: '.$filepath)
                 ->success()
                 ->send();
 
         } catch (\Exception $e) {
             Notification::make()
                 ->title('Errore stampa')
-                ->body('Errore nella generazione del PDF: ' . $e->getMessage())
+                ->body('Errore nella generazione del PDF: '.$e->getMessage())
                 ->danger()
                 ->send();
         }
@@ -376,26 +397,28 @@ class InvoiceScan extends Page
 
     public function sendElectronicInvoice(): void
     {
-        if (!$this->currentInvoice) {
+        if (! $this->currentInvoice) {
             Notification::make()
                 ->title('Errore')
                 ->body('Nessuna fattura selezionata.')
                 ->danger()
                 ->send();
+
             return;
         }
 
         try {
             // Ricarica la fattura con tutte le relazioni necessarie
             $this->currentInvoice->load(['customer', 'items.productTwins', 'items.internalProduct']);
-            
+
             // Verifica che la fattura abbia tutti i dati necessari
-            if (!$this->currentInvoice->customer) {
+            if (! $this->currentInvoice->customer) {
                 Notification::make()
                     ->title('Errore')
                     ->body('Fattura senza cliente associato.')
                     ->danger()
                     ->send();
+
                 return;
             }
 
@@ -405,6 +428,7 @@ class InvoiceScan extends Page
                     ->body('Fattura senza articoli.')
                     ->danger()
                     ->send();
+
                 return;
             }
 
@@ -414,10 +438,10 @@ class InvoiceScan extends Page
 
             if ($success) {
                 $this->currentInvoice->update(['status' => 'issued']);
-                
+
                 // Ricarica la fattura per mostrare i dati aggiornati
                 $this->currentInvoice = $this->currentInvoice->fresh(['customer', 'items.productTwins']);
-                
+
                 Notification::make()
                     ->title('Fattura elettronica inviata')
                     ->body('XML generato e inviato al Sistema di Interscambio.')
@@ -431,14 +455,14 @@ class InvoiceScan extends Page
                     ->send();
             }
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Errore fatturazione elettronica in Filament: ' . $e->getMessage());
-            \Illuminate\Support\Facades\Log::error('Stack trace: ' . $e->getTraceAsString());
-            
+            \Illuminate\Support\Facades\Log::error('Errore fatturazione elettronica in Filament: '.$e->getMessage());
+            \Illuminate\Support\Facades\Log::error('Stack trace: '.$e->getTraceAsString());
+
             Notification::make()
                 ->title('Errore fatturazione elettronica')
-                ->body('Errore: ' . $e->getMessage())
+                ->body('Errore: '.$e->getMessage())
                 ->danger()
                 ->send();
         }
     }
-} 
+}

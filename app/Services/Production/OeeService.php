@@ -2,10 +2,11 @@
 
 namespace App\Services\Production;
 
+use App\Models\OperatorFeedback;
+use App\Models\ProductionPhase;
 use App\Models\Workstation;
 use Carbon\Carbon;
-use App\Models\ProductionPhase;
-use App\Models\OperatorFeedback;
+use function Safe\json_decode;
 
 class OeeService
 {
@@ -36,11 +37,12 @@ class OeeService
 
         // 1. Availability
         $totalPlannedMinutes = $workstation->getPlannedProductiveMinutes($startDate, $endDate);
-        
+
         $actualRunTimeMinutes = $phases->sum(function ($phase) {
             if ($phase->start_time && $phase->end_time) {
                 return Carbon::parse($phase->start_time)->diffInMinutes(Carbon::parse($phase->end_time));
             }
+
             return 0;
         });
 
@@ -49,7 +51,7 @@ class OeeService
         // 2. Performance & 3. Quality
         $totalUnitsProduced = 0;
         $totalScrap = 0;
-        
+
         $phaseIds = $phases->pluck('id')->toArray();
         $feedbacks = OperatorFeedback::whereBetween('created_at', [$startDate, $endDate])->get();
         foreach ($feedbacks as $feedback) {
@@ -60,9 +62,9 @@ class OeeService
             }
         }
         $totalProcessed = $totalUnitsProduced + $totalScrap;
-        
-        $idealCycleTimeMinutes = $workstation->time_per_unit; 
-        
+
+        $idealCycleTimeMinutes = $workstation->time_per_unit;
+
         if ($idealCycleTimeMinutes > 0 && $actualRunTimeMinutes > 0) {
             $theoreticalProduction = $actualRunTimeMinutes / $idealCycleTimeMinutes;
             $performance = ($theoreticalProduction > 0) ? ($totalProcessed / $theoreticalProduction) : 0;
@@ -81,4 +83,4 @@ class OeeService
             'oee' => min(1, round($oee, 4)),
         ];
     }
-} 
+}

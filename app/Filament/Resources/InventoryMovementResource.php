@@ -17,21 +17,24 @@ use Illuminate\Support\Collection;
 class InventoryMovementResource extends Resource
 {
     protected static ?string $model = InventoryMovement::class;
+
     protected static ?string $navigationIcon = 'heroicon-o-arrows-right-left';
-public static function getNavigationGroup(): string
+
+    public static function getNavigationGroup(): string
     {
         return __('filament-logistics.Logistica');
     }
 
-public static function getModelLabel(): string
+    public static function getModelLabel(): string
     {
         return __('filament-logistics.Movimento di Inventario');
     }
 
-public static function getPluralModelLabel(): string
+    public static function getPluralModelLabel(): string
     {
         return __('filament-logistics.Movimenti di Inventario');
     }
+
     protected static ?int $navigationSort = 3;
 
     public static function form(Form $form): Form
@@ -65,9 +68,10 @@ public static function getPluralModelLabel(): string
                     ->options(function (Get $get): Collection {
                         $warehouseId = $get('from_warehouse_id');
                         $internalProductId = $get('internal_product_id');
-                        if (!$warehouseId || !$internalProductId) {
+                        if (! $warehouseId || ! $internalProductId) {
                             return collect();
                         }
+
                         return ProductTwin::query()
                             ->where('current_warehouse_id', $warehouseId)
                             ->where('internal_product_id', $internalProductId)
@@ -80,10 +84,10 @@ public static function getPluralModelLabel(): string
                 // Fields for LOAD
                 Forms\Components\Select::make('internal_product_id')
                     ->label(__('filament-logistics.Prodotto'))
-                    ->options(\App\Models\InternalProduct::all()->pluck('name', 'id'))
+                    ->options(InternalProduct::pluck('name', 'id'))
                     ->live()
                     ->required(),
-                
+
                 Forms\Components\TextInput::make('quantity')
                     ->label(__('filament-logistics.Quantità'))
                     ->numeric()

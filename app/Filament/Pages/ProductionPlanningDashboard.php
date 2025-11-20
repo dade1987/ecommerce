@@ -2,14 +2,14 @@
 
 namespace App\Filament\Pages;
 
+use App\Models\Bom;
+use App\Models\Workstation;
 use App\Services\Forecasting\DemandForecastingService;
 use App\Services\Production\AdvancedSchedulingService;
+use App\Services\Production\GanttChartService;
 use App\Services\Production\OeeService;
 use App\Services\Production\ProductionSchedulingService;
 use App\Services\Production\SimulationService;
-use App\Services\Production\GanttChartService;
-use App\Models\Bom;
-use App\Models\Workstation;
 use Carbon\Carbon;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
@@ -27,23 +27,31 @@ class ProductionPlanningDashboard extends Page implements HasForms
     use InteractsWithForms;
 
     protected static ?string $navigationIcon = 'heroicon-o-chart-bar-square';
-public static function getNavigationLabel(): string
-{
-    return __("filament-production.Dashboard di Pianificazione");
-}
 
-public static function getNavigationGroup(): ?string
-{
-    return __("filament-production.Produzione");
-}
+    public static function getNavigationLabel(): string
+    {
+        return __('filament-production.Dashboard di Pianificazione');
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('filament-production.Produzione');
+    }
+
     protected static string $view = 'filament.pages.production-planning-dashboard';
 
     public ?string $startDate = null;
+
     public ?string $endDate = null;
+
     public array $bottleneckData = [];
+
     public ?string $ganttChart = null;
+
     public ?string $simulationGantt = null;
+
     public ?array $demandForecast = null;
+
     public array $oeeData = [];
 
     public function mount(): void
@@ -80,6 +88,7 @@ public static function getNavigationGroup(): ?string
 
         if ($workstations->isEmpty()) {
             $this->oeeData = ['avg_oee' => 0];
+
             return;
         }
 
@@ -127,7 +136,7 @@ public static function getNavigationGroup(): ?string
                 ->action(function (array $data): void {
                     $simulationService = new SimulationService();
                     $result = $simulationService->runWhatIfSimulation($data);
-                    
+
                     $ganttService = new GanttChartService();
                     $this->simulationGantt = $ganttService->generateForData($result['scheduled_phases']);
 
@@ -141,7 +150,7 @@ public static function getNavigationGroup(): ?string
                     TextInput::make('customer')->label(__('filament-production.Cliente Ipotetico'))->required(),
                     Select::make('bom_id')
                         ->label(__('filament-production.Distinta Base'))
-                        ->options(Bom::all()->pluck('internal_code', 'id'))
+                        ->options(Bom::pluck('internal_code', 'id'))
                         ->searchable()
                         ->required(),
                     TextInput::make('priority')->label(__('filament-production.Priorità'))->numeric()->required()->default(3),
@@ -178,7 +187,7 @@ public static function getNavigationGroup(): ?string
     {
         $scheduler = new AdvancedSchedulingService();
         $result = $scheduler->generateSchedule();
-        
+
         $scheduledPhasesCount = count($result['scheduled_phases_data']);
 
         Notification::make()
@@ -186,7 +195,7 @@ public static function getNavigationGroup(): ?string
             ->success()
             ->body(__('filament-production.Schedulate con successo :count fasi di produzione e manutenzione.', ['count' => $scheduledPhasesCount]))
             ->send();
-        
+
         $ganttService = new GanttChartService();
         $this->ganttChart = $ganttService->generateForData($result['scheduled_phases_data']);
         $this->simulationGantt = null; // Resetta il gantt di simulazione
@@ -202,4 +211,4 @@ public static function getNavigationGroup(): ?string
             ->success()
             ->send();
     }
-} 
+}

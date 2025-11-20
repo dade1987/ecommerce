@@ -15,11 +15,7 @@ parameters:
     paths:
         - ./app
 
-    ignoreErrors:
-        - '#Unsafe usage of new static#'
-        - '#PHPDoc tag @mixin contains unknown class #'
-        - '#Static call to instance method Nwidart#'
-        - '#Unable to resolve the template type TSubject in call to method static method#'
+    ignoreErrors: []
 
     excludePaths:
         - ./app/Services/Cart/*
@@ -41,8 +37,6 @@ parameters:
 
     checkUnusedViews: false
     checkModelProperties: false
-    checkMissingIterableValueType: false
-    checkGenericClassInNonGenericObjectType: false
     treatPhpDocTypesAsCertain: false
-    reportUnmatchedIgnoredErrors: false
+    reportUnmatchedIgnoredErrors: true
     checkOctaneCompatibility: false

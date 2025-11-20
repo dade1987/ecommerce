@@ -8,6 +8,8 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
 use function Safe\file;
+use function Safe\json_decode;
+use function Safe\json_encode;
 use function Safe\shuffle;
 
 class GenerateArticleCommand extends Command
@@ -33,8 +35,9 @@ class GenerateArticleCommand extends Command
     {
         $keywordsPath = base_path('keywords.txt');
 
-        if (!File::exists($keywordsPath)) {
+        if (! File::exists($keywordsPath)) {
             $this->error('keywords.txt file not found!');
+
             return 1;
         }
 
@@ -42,6 +45,7 @@ class GenerateArticleCommand extends Command
 
         if (empty($keywords)) {
             $this->info('No more keywords to process.');
+
             return 0;
         }
 
@@ -53,7 +57,7 @@ class GenerateArticleCommand extends Command
             //$keywords = array_slice($keywords, 0, 3);
         }
 
-        $this->info('Dispatching jobs for ' . count($keywords) . ' keywords.');
+        $this->info('Dispatching jobs for '.count($keywords).' keywords.');
 
         // Costruisci la lista location: tutti i comuni di Veneto e Lombardia
         $cachePath = storage_path('app/comuni.json');
@@ -89,7 +93,7 @@ class GenerateArticleCommand extends Command
                                 'popolazione' => $comune['popolazione'] ?? null,
                             ];
                         })
-                        ->filter(fn ($c) => !empty($c['nome']))
+                        ->filter(fn ($c) => ! empty($c['nome']))
                         ->unique('nome')
                         ->values()
                         ->all();
@@ -98,8 +102,9 @@ class GenerateArticleCommand extends Command
                         $pa = $a['popolazione'] ?? null;
                         $pb = $b['popolazione'] ?? null;
                         if (is_numeric($pa) && is_numeric($pb)) {
-                            return (int)$pb <=> (int)$pa;
+                            return (int) $pb <=> (int) $pa;
                         }
+
                         return strcmp($a['nome'], $b['nome']);
                     });
                     $locations = array_map(fn ($c) => $c['nome'], $comuni);
@@ -107,10 +112,12 @@ class GenerateArticleCommand extends Command
             }
             if (empty($locations)) {
                 $this->error('Nessun elenco comuni disponibile (download e cache falliti).');
+
                 return 1;
             }
         } catch (\Throwable $e) {
-            $this->error('Errore nel caricamento dei comuni: ' . $e->getMessage());
+            $this->error('Errore nel caricamento dei comuni: '.$e->getMessage());
+
             return 1;
         }
 
@@ -128,6 +135,7 @@ class GenerateArticleCommand extends Command
 
         if (empty($selectedLocations)) {
             $this->info('Nessuna nuova location da pubblicare oggi.');
+
             return 0;
         }
 
@@ -154,6 +162,7 @@ class GenerateArticleCommand extends Command
         File::put($publishedPath, json_encode($newPublished, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
 
         $this->info('All jobs have been dispatched.');
+
         return 0;
     }
 }

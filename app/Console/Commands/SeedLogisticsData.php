@@ -3,9 +3,8 @@
 namespace App\Console\Commands;
 
 use Database\Seeders\LogisticProductSeeder;
-use Database\Seeders\WarehouseSeeder;
-use Database\Seeders\InventoryMovementSeeder;
 use Database\Seeders\OperatorFeedbackSeeder;
+use Database\Seeders\WarehouseSeeder;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
@@ -18,7 +17,7 @@ class SeedLogisticsData extends Command
      */
     protected $signature = 'logistics:seed 
                            {--fresh : Pulisce le tabelle prima di inserire i dati}
-                           {--only= : Esegue solo un seeder specifico (products|warehouses|movements|feedback)}';
+                           {--only= : Esegue solo un seeder specifico (products|warehouses|feedback)}';
 
     /**
      * The console command description.
@@ -38,12 +37,13 @@ class SeedLogisticsData extends Command
         // Opzione fresh: pulisce le tabelle prima di inserire
         if ($this->option('fresh')) {
             $this->warn('⚠️  Modalità FRESH attivata - verranno eliminate tutti i dati esistenti!');
-            
-            if (!$this->confirm('Sei sicuro di voler procedere?')) {
+
+            if (! $this->confirm('Sei sicuro di voler procedere?')) {
                 $this->info('❌ Operazione annullata.');
+
                 return;
             }
-            
+
             $this->info('🧹 Pulizia tabelle in corso...');
             $this->truncateTables();
             $this->newLine();
@@ -52,6 +52,7 @@ class SeedLogisticsData extends Command
         // Opzione only: esegue solo un seeder specifico
         if ($only = $this->option('only')) {
             $this->runSpecificSeeder($only);
+
             return;
         }
 
@@ -70,18 +71,14 @@ class SeedLogisticsData extends Command
         // 1. Prodotti logistici (base)
         $this->info('1️⃣  Seeding prodotti logistici...');
         $this->callSilentSeeder(LogisticProductSeeder::class);
-        
+
         // 2. Magazzini/Fornitori/Negozi (base)
         $this->info('2️⃣  Seeding magazzini, fornitori e negozi...');
         $this->callSilentSeeder(WarehouseSeeder::class);
-        
+
         // 3. Feedback operatori (indipendente)
         $this->info('3️⃣  Seeding feedback operatori...');
         $this->callSilentSeeder(OperatorFeedbackSeeder::class);
-        
-        // 4. Movimenti inventario (dipende da prodotti e magazzini)
-        $this->info('4️⃣  Seeding movimenti inventario...');
-        $this->callSilentSeeder(InventoryMovementSeeder::class);
 
         $this->newLine();
         $this->info('🎉 Seeding logistica completato con successo!');
@@ -96,14 +93,14 @@ class SeedLogisticsData extends Command
         $seederClass = match ($seederType) {
             'products' => LogisticProductSeeder::class,
             'warehouses' => WarehouseSeeder::class,
-            'movements' => InventoryMovementSeeder::class,
             'feedback' => OperatorFeedbackSeeder::class,
             default => null
         };
 
-        if (!$seederClass) {
+        if (! $seederClass) {
             $this->error("❌ Seeder '{$seederType}' non riconosciuto.");
-            $this->info('Seeder disponibili: products, warehouses, movements, feedback');
+            $this->info('Seeder disponibili: products, warehouses, feedback');
+
             return;
         }
 
@@ -122,13 +119,13 @@ class SeedLogisticsData extends Command
             'logistic_inventory_movements',
             'operator_feedback',
             'logistic_products',
-            'logistic_warehouses'
+            'logistic_warehouses',
         ];
 
         foreach ($tables as $table) {
-            DB::statement("SET FOREIGN_KEY_CHECKS = 0");
+            DB::statement('SET FOREIGN_KEY_CHECKS = 0');
             DB::table($table)->truncate();
-            DB::statement("SET FOREIGN_KEY_CHECKS = 1");
+            DB::statement('SET FOREIGN_KEY_CHECKS = 1');
             $this->line("  - Tabella {$table} pulita");
         }
     }
@@ -155,18 +152,14 @@ class SeedLogisticsData extends Command
     {
         $this->newLine();
         $this->info('📊 Riepilogo dati inseriti:');
-        
-        $productCount = \App\Models\LogisticProduct::count();
+
         $warehouseCount = \App\Models\Warehouse::count();
-        $movementCount = \App\Models\InventoryMovement::count();
         $feedbackCount = \App\Models\OperatorFeedback::count();
 
         $this->table(
             ['Tabella', 'Record'],
             [
-                ['Prodotti Logistici', $productCount],
                 ['Magazzini/Fornitori/Negozi', $warehouseCount],
-                ['Movimenti Inventario', $movementCount],
                 ['Feedback Operatori', $feedbackCount],
             ]
         );
@@ -177,11 +170,12 @@ class SeedLogisticsData extends Command
         $this->line('  • Giacenze: /admin/inventory-overview');
         $this->line('  • API Feedback: /api/operator-feedback');
         $this->line('  • API Test: /api/operator-feedback/ping');
-        
+
         $this->newLine();
         $this->info('💡 Comandi utili:');
         $this->line('  • php artisan logistics:seed --fresh      # Pulisce e ricarica tutto');
         $this->line('  • php artisan logistics:seed --only=products  # Solo prodotti');
-        $this->line('  • php artisan logistics:seed --only=movements # Solo movimenti');
+        $this->line('  • php artisan logistics:seed --only=warehouses # Solo magazzini');
+        $this->line('  • php artisan logistics:seed --only=feedback   # Solo feedback');
     }
 }

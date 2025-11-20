@@ -2,24 +2,29 @@
 
 namespace App\Providers\Filament;
 
-use Filament\Http\Assets\Asset;
-use Filament\Http\Assets\Css;
-use Filament\Http\Assets\Js;
-use Filament\PluginServiceProvider;
-use Filament\Support\Assets\Theme;
+use Filament\Support\Assets\Css;
+use Filament\Support\Assets\Js;
+use Filament\Support\Facades\FilamentAsset;
+use Spatie\LaravelPackageTools\Package;
+use Spatie\LaravelPackageTools\PackageServiceProvider;
 
-class GanttChartAssetProvider extends PluginServiceProvider
+class GanttChartAssetProvider extends PackageServiceProvider
 {
-    public function register(Container $container): void
+    public static string $name = 'gantt-chart-assets';
+
+    public function configurePackage(Package $package): void
     {
-        // Not used
+        $package->name(static::$name);
     }
 
-    public function boot(Container $container): void
+    public function packageBooted(): void
     {
-        FilamentAsset::register([
-            Css::make('frappe-gantt-css', public_path('node_modules/frappe-gantt/dist/frappe-gantt.css')),
-            Js::make('gantt-script', resource_path('js/gantt.js')),
-        ], 'cavallini/axelle');
+        FilamentAsset::register(
+            assets: [
+                Css::make('frappe-gantt-css', public_path('node_modules/frappe-gantt/dist/frappe-gantt.css')),
+                Js::make('gantt-script', resource_path('js/gantt.js')),
+            ],
+            package: 'cavallini/axelle'
+        );
     }
-} 
+}

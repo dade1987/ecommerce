@@ -2,11 +2,12 @@
 
 namespace App\Console\Commands;
 
+use App\Jobs\ProcessEmailJob;
 use App\Models\IncomingEmail;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
+use function Safe\json_encode;
 use Webklex\IMAP\Facades\Client;
-use App\Jobs\ProcessEmailJob;
 
 class FetchEmailsCommand extends Command
 {
@@ -79,7 +80,7 @@ class FetchEmailsCommand extends Command
                     } catch (\Exception $me) {
                         // ignore if we can't even get the message ID
                     }
-                    Log::error('IMAP Fetch Error processing message ID ' . $messageId . ': ' . $e->getMessage());
+                    Log::error('IMAP Fetch Error processing message ID '.$messageId.': '.$e->getMessage());
                     $this->error("Failed to process email with Message-ID: {$messageId}. Skipping.");
                     continue; // Skip to the next message
                 }
@@ -88,7 +89,7 @@ class FetchEmailsCommand extends Command
             $this->info('Email fetching complete. Jobs dispatched for processing.');
 
         } catch (\Exception $e) {
-            Log::error('IMAP Connection Error: ' . $e->getMessage() . ' in ' . $e->getFile() . ' on line ' . $e->getLine());
+            Log::error('IMAP Connection Error: '.$e->getMessage().' in '.$e->getFile().' on line '.$e->getLine());
             $this->error('Failed to connect to IMAP server. Check credentials and logs.');
         }
     }

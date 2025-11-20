@@ -46,10 +46,12 @@ class Workstation extends Model
         if ($availabilities->isEmpty()) {
             return 0;
         }
+        $startDateTime = \Carbon\Carbon::parse($startDate->toDateString());
+        $endDateTime = \Carbon\Carbon::parse($endDate->toDateString())->addDay();
         $period = new \DatePeriod(
-            new \DateTime($startDate->toDateString()),
+            $startDateTime->toDateTime(),
             new \DateInterval('P1D'),
-            (new \DateTime($endDate->toDateString()))->modify('+1 day')
+            $endDateTime->toDateTime()
         );
         foreach ($period as $date) {
             $dayOfWeek = strtolower($date->format('l')); // monday, tuesday, ...
@@ -62,6 +64,7 @@ class Workstation extends Model
                 }
             }
         }
+
         return $totalMinutes;
     }
 }

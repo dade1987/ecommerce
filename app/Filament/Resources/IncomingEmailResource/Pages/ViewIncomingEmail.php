@@ -6,12 +6,12 @@ use App\Filament\Resources\IncomingEmailResource;
 use App\Mail\EmailReplyMail;
 use App\Models\IncomingEmail;
 use Filament\Actions;
-use Filament\Notifications\Notification;
-use Filament\Resources\Pages\ViewRecord;
 use Filament\Forms;
-use Filament\Infolists\Infolist;
 use Filament\Infolists\Components;
 use Filament\Infolists\Components\ViewEntry;
+use Filament\Infolists\Infolist;
+use Filament\Notifications\Notification;
+use Filament\Resources\Pages\ViewRecord;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
@@ -22,9 +22,9 @@ class ViewIncomingEmail extends ViewRecord
     public function mount($record): void
     {
         parent::mount($record);
-        
+
         $email = $this->getRecord();
-        if (!$email->is_read) {
+        if (! $email->is_read) {
             $email->update(['is_read' => true]);
         }
     }
@@ -39,7 +39,7 @@ class ViewIncomingEmail extends ViewRecord
                         Components\TextEntry::make('subject')->label('Oggetto'),
                         Components\TextEntry::make('received_at')->label('Ricevuto il')->dateTime('d/m/Y H:i'),
                     ])->columns(2),
-                
+
                 Components\Section::make('Analisi AI')
                     ->schema([
                         Components\TextEntry::make('analysis')
@@ -66,7 +66,7 @@ class ViewIncomingEmail extends ViewRecord
                 ->icon('heroicon-o-envelope')
                 ->action(function (IncomingEmail $record) {
                     $record->update(['is_read' => false]);
-                    $this->refresh();
+                    $this->getRecord()->refresh();
                 }),
             Actions\Action::make('reply')
                 ->label('Rispondi')
@@ -87,7 +87,7 @@ class ViewIncomingEmail extends ViewRecord
                             'parent_id' => $record->id,
                             'from_address' => config('mail.from.address'),
                             'to_address' => [$record->from_address],
-                            'subject' => 'Re: ' . $record->subject,
+                            'subject' => 'Re: '.$record->subject,
                             'body_html' => $data['reply_body'],
                             'type' => 'sent',
                             'is_read' => true,
@@ -101,7 +101,7 @@ class ViewIncomingEmail extends ViewRecord
                             ->send();
 
                     } catch (\Exception $e) {
-                        Log::error('Failed to send email reply: ' . $e->getMessage());
+                        Log::error('Failed to send email reply: '.$e->getMessage());
                         Notification::make()
                             ->title('Errore durante l\'invio della risposta')
                             ->body($e->getMessage())

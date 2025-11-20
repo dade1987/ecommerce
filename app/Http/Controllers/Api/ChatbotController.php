@@ -4,12 +4,12 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
+use App\Models\Event;
+use App\Models\Faq;
+use App\Models\Order;
+use App\Models\Product;
 use App\Models\Quoter;
 use App\Models\Team;
-use App\Models\Product;
-use App\Models\Event;
-use App\Models\Order;
-use App\Models\Faq;
 use GuzzleHttp\Client;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -18,6 +18,7 @@ use OpenAI\Client as OpenAIClient;
 use function Safe\json_decode;
 use function Safe\json_encode;
 use function Safe\preg_replace;
+use function Safe\preg_split;
 
 class ChatbotController extends Controller
 {
@@ -267,7 +268,7 @@ class ChatbotController extends Controller
                                     'user_uuid' => [
                                         'type' => 'string',
                                         'description' => 'UUID che identifica univocamente l\'attività del cliente.',
-                                    ]
+                                    ],
                                 ],
                                 'required' => ['user_uuid'],
                             ],
@@ -336,28 +337,27 @@ class ChatbotController extends Controller
             Log::info('handleChat: Polling run status', ['status' => $run->status, 'runId' => $run->id]);
         }
 
-
         if ($run->status === 'completed') {
             $messages = $this->client->threads()->messages()->list($threadId)->data;
             $content = $messages[0]->content[0]->text->value ?? 'Nessuna risposta trovata.';
-    
+
             // Salva il messaggio del chatbot nel modello Quoter
             Quoter::create([
                 'thread_id' => $threadId,
                 'role'      => 'chatbot',
                 'content'   => $content,
             ]);
-    
+
             // Formatta il contenuto della risposta
             $formattedContent = $this->formatResponseContent($content);
-    
+
             return response()->json([
                 'message'     => $formattedContent,
                 'thread_id'   => $threadId,
-                'product_ids' => $productIds ?? [],
             ]);
         } else {
-             Log::error('handleChat: Run did not complete successfully.', ['status' => $run->status, 'run_data' => $run->toArray()]);
+            Log::error('handleChat: Run did not complete successfully.', ['status' => $run->status, 'run_data' => $run->toArray()]);
+
             return response()->json(['error' => "The AI assistant could not process the request. Status: {$run->status}"], 500);
         }
     }
@@ -392,16 +392,17 @@ class ChatbotController extends Controller
         $team = Team::where('slug', $teamSlug)->firstOrFail();
         $query = Product::where('team_id', $team->id);
 
-        if (!empty($productNames)) {
+        if (! empty($productNames)) {
             $query->where(function ($q) use ($productNames) {
                 foreach ($productNames as $name) {
-                    $q->orWhere('name', 'like', '%' . $name . '%');
+                    $q->orWhere('name', 'like', '%'.$name.'%');
                 }
             });
         }
 
         $products = $query->get()->toArray();
         Log::info('fetchProductData: Dati prodotti e servizi finali', ['products' => $products]);
+
         return $products;
     }
 
@@ -410,6 +411,7 @@ class ChatbotController extends Controller
         Log::info('fetchAddressData: Inizio recupero dati indirizzo', ['teamSlug' => $teamSlug]);
         $team = Team::where('slug', $teamSlug)->firstOrFail();
         Log::info('fetchAddressData: Dati indirizzo ricevuti', ['addressData' => $team->toArray()]);
+
         return $team->toArray();
     }
 
@@ -424,6 +426,7 @@ class ChatbotController extends Controller
             ->get(['starts_at', 'ends_at', 'name', 'featured_image_id', 'description'])
             ->toArray();
         Log::info('fetchAvailableTimes: Orari disponibili ricevuti', ['availableTimes' => $events]);
+
         return $events;
     }
 
@@ -443,7 +446,7 @@ class ChatbotController extends Controller
         $order->phone = $userPhone;
         $order->save();
 
-        if (!empty($productIds)) {
+        if (! empty($productIds)) {
             $order->products()->attach($productIds);
         }
 
@@ -452,6 +455,7 @@ class ChatbotController extends Controller
             'message'  => trans('chatbot_prompts.order_created_successfully', [], $locale),
         ];
         Log::info('createOrder: Ordine creato', ['orderData' => $orderData]);
+
         return $orderData;
     }
 
@@ -462,7 +466,7 @@ class ChatbotController extends Controller
             'userEmail' => $userEmail,
             'userName'  => $userName,
             'teamSlug'  => $teamSlug,
-            'uuid'      => $activityUuid
+            'uuid'      => $activityUuid,
         ]);
 
         // Aggiorna il modello Customer con l'UUID dell'attività
@@ -475,7 +479,7 @@ class ChatbotController extends Controller
                 $customer->save();
             } else {
                 // Se non esiste un cliente con questo UUID, potresti volerlo creare
-                 Customer::create([
+                Customer::create([
                     'uuid' => $activityUuid,
                     'phone' => $userPhone,
                     'email' => $userEmail,
@@ -484,15 +488,14 @@ class ChatbotController extends Controller
                 ]);
             }
         } else {
-             // Gestisci il caso in cui non c'è UUID
-             Customer::create([
+            // Gestisci il caso in cui non c'è UUID
+            Customer::create([
                 'phone' => $userPhone,
                 'email' => $userEmail,
                 'name' => $userName,
                 'team_id' => Team::where('slug', $teamSlug)->first()->id,
             ]);
         }
-
 
         // Messaggio di conferma in base alla lingua
         return trans('chatbot_prompts.user_data_submitted', [], $locale);
@@ -507,6 +510,7 @@ class ChatbotController extends Controller
             ->get(['question', 'answer'])
             ->toArray();
         Log::info('fetchFAQs: FAQ ricevute', ['faqData' => $faqs]);
+
         return $faqs;
     }
 
@@ -519,12 +523,12 @@ class ChatbotController extends Controller
         try {
             Log::info('findFaqAnswer: Avvio ricerca FAQ', ['teamSlug' => $teamSlug, 'query' => $query]);
 
-            if (!$teamSlug || !$query || trim($query) === '') {
+            if (! $teamSlug || ! $query || trim($query) === '') {
                 return null;
             }
 
             $team = Team::where('slug', $teamSlug)->first();
-            if (!$team) {
+            if (! $team) {
                 return null;
             }
 
@@ -585,13 +589,16 @@ class ChatbotController extends Controller
             $threshold = $useEmbeddings ? $semanticThreshold : $lexicalThreshold;
             if ($best && $bestScore >= $threshold) {
                 Log::info('findFaqAnswer: FAQ selezionata con score', ['score' => $bestScore, 'threshold' => $threshold, 'question' => $best->question]);
+
                 return $best->only(['question', 'answer']);
             }
 
             Log::info('findFaqAnswer: Nessuna FAQ supera la soglia', ['bestScore' => $bestScore, 'threshold' => $threshold]);
+
             return null;
         } catch (\Throwable $e) {
             Log::error('findFaqAnswer: Errore inatteso durante la ricerca FAQ', ['error' => $e->getMessage()]);
+
             return null;
         }
     }
@@ -620,6 +627,7 @@ class ChatbotController extends Controller
 
         // Ponderazione semplice: penalizza match deboli, premia copertura
         $score = 0.5 * $jaccard + 0.5 * $containment;
+
         return max(0.0, min(1.0, $score));
     }
 
@@ -639,17 +647,18 @@ class ChatbotController extends Controller
                 $filtered[] = $tok;
             }
         }
+
         return $filtered;
     }
 
     private function getItalianStopwords(): array
     {
         return [
-            'a','ad','al','allo','alla','ai','agli','alle','anche','avere','da','dal','dallo','dalla','dai','dagli','dalle','dei','degli','delle','del','dell','dello','della',
-            'di','e','ed','che','chi','con','col','coi','come','dove','dunque','era','erano','essere','faccio','fai','fa','fanno','fate','fatto','fui','fu','furono','gli','il','lo','la','i','le',
-            'in','nel','nello','nella','nei','negli','nelle','ma','mi','mia','mie','miei','mio','ne','non','o','od','per','perché','più','poi','quale','quali','qual','quanta','quanto','quanti','quante',
-            'quasi','questo','questa','questi','queste','quello','quella','quelli','quelle','se','sei','si','sì','sia','siamo','siete','sono','su','sul','sullo','sulla','sui','sugli','sulle','tra','fra',
-            'tu','tua','tue','tuo','tutti','tutte','tutto','un','uno','una','uno','va','vai','vado','vanno','voi','vostro','vostra','vostri','vostre','io','loro','noi','voi','dite','sono','buongiorno'
+            'a', 'ad', 'al', 'allo', 'alla', 'ai', 'agli', 'alle', 'anche', 'avere', 'da', 'dal', 'dallo', 'dalla', 'dai', 'dagli', 'dalle', 'dei', 'degli', 'delle', 'del', 'dell', 'dello', 'della',
+            'di', 'e', 'ed', 'che', 'chi', 'con', 'col', 'coi', 'come', 'dove', 'dunque', 'era', 'erano', 'essere', 'faccio', 'fai', 'fa', 'fanno', 'fate', 'fatto', 'fui', 'fu', 'furono', 'gli', 'il', 'lo', 'la', 'i', 'le',
+            'in', 'nel', 'nello', 'nella', 'nei', 'negli', 'nelle', 'ma', 'mi', 'mia', 'mie', 'miei', 'mio', 'ne', 'non', 'o', 'od', 'per', 'perché', 'più', 'poi', 'quale', 'quali', 'qual', 'quanta', 'quanto', 'quanti', 'quante',
+            'quasi', 'questo', 'questa', 'questi', 'queste', 'quello', 'quella', 'quelli', 'quelle', 'se', 'sei', 'si', 'sì', 'sia', 'siamo', 'siete', 'sono', 'su', 'sul', 'sullo', 'sulla', 'sui', 'sugli', 'sulle', 'tra', 'fra',
+            'tu', 'tua', 'tue', 'tuo', 'tutti', 'tutte', 'tutto', 'un', 'uno', 'una', 'uno', 'va', 'vai', 'vado', 'vanno', 'voi', 'vostro', 'vostra', 'vostri', 'vostre', 'io', 'loro', 'noi', 'voi', 'dite', 'sono', 'buongiorno',
         ];
     }
 
@@ -659,7 +668,7 @@ class ChatbotController extends Controller
     private function tryEmbeddingSimilarity(string $textA, string $textB): ?float
     {
         try {
-            if (!$this->client) {
+            if (! $this->client) {
                 return null;
             }
             // Model embedding moderno
@@ -669,19 +678,23 @@ class ChatbotController extends Controller
             ]);
             $vecA = $resp->data[0]->embedding ?? null;
             $vecB = $resp->data[1]->embedding ?? null;
-            if (!$vecA || !$vecB) {
+            if (! $vecA || ! $vecB) {
                 return null;
             }
+
             return $this->cosineSimilarity($vecA, $vecB);
         } catch (\Throwable $e) {
             Log::warning('tryEmbeddingSimilarity: fallback per errore embeddings', ['error' => $e->getMessage()]);
+
             return null;
         }
     }
 
     private function cosineSimilarity(array $a, array $b): float
     {
-        $dot = 0.0; $normA = 0.0; $normB = 0.0;
+        $dot = 0.0;
+        $normA = 0.0;
+        $normB = 0.0;
         $len = min(count($a), count($b));
         for ($i = 0; $i < $len; $i++) {
             $dot += $a[$i] * $b[$i];
@@ -691,6 +704,7 @@ class ChatbotController extends Controller
         if ($normA <= 0.0 || $normB <= 0.0) {
             return 0.0;
         }
+
         return $dot / (sqrt($normA) * sqrt($normB));
     }
 
@@ -720,7 +734,7 @@ class ChatbotController extends Controller
 
         // 1) Scarica il contenuto dal sito
         try {
-            $client = new \GuzzleHttp\Client();
+            $client = new Client();
             $response = $client->get($customer->website);
             $html = $response->getBody()->getContents();
         } catch (\Exception $e) {

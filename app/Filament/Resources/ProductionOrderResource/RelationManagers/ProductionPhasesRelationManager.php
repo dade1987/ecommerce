@@ -2,13 +2,13 @@
 
 namespace App\Filament\Resources\ProductionOrderResource\RelationManagers;
 
+use App\Models\Workstation;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\Workstation;
 
 class ProductionPhasesRelationManager extends RelationManager
 {
@@ -22,7 +22,6 @@ class ProductionPhasesRelationManager extends RelationManager
 
     protected static ?string $pluralModelLabel = 'Fasi';
 
-
     public function form(Form $form): Form
     {
         return $form
@@ -33,7 +32,7 @@ class ProductionPhasesRelationManager extends RelationManager
                     ->maxLength(255),
                 Forms\Components\Select::make('workstation_id')
                     ->label('Postazione di Lavoro')
-                    ->options(Workstation::all()->pluck('name', 'id'))
+                    ->options(Workstation::pluck('name', 'id'))
                     ->searchable()
                     ->required(),
                 Forms\Components\TextInput::make('estimated_duration')
@@ -128,7 +127,7 @@ class ProductionPhasesRelationManager extends RelationManager
             ->filters([
                 Tables\Filters\SelectFilter::make('workstation_id')
                     ->label('Postazione')
-                    ->options(Workstation::all()->pluck('name', 'id')),
+                    ->options(Workstation::pluck('name', 'id')),
                 Tables\Filters\TernaryFilter::make('is_maintenance')
                     ->label('Solo Manutenzione'),
                 Tables\Filters\TernaryFilter::make('is_completed')
@@ -150,4 +149,4 @@ class ProductionPhasesRelationManager extends RelationManager
             ])
             ->defaultSort('scheduled_start_time', 'asc');
     }
-} 
+}

@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Support\Str;
+use function Safe\date;
 
 class Invoice extends Model
 {
@@ -51,6 +52,9 @@ class Invoice extends Model
         return $this->belongsTo(Customer::class);
     }
 
+    /**
+     * @return HasMany<InvoiceItem>
+     */
     public function items(): HasMany
     {
         return $this->hasMany(InvoiceItem::class);
@@ -78,7 +82,7 @@ class Invoice extends Model
             $newNumber = 1;
         }
 
-        return sprintf("FATT-%s-%06d", $year, $newNumber);
+        return sprintf('FATT-%s-%06d', $year, $newNumber);
     }
 
     /**

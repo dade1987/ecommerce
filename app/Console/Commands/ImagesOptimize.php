@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
 use Intervention\Image\ImageManagerStatic as Image;
+use function Safe\filesize;
 use Symfony\Component\Finder\SplFileInfo;
 
 class ImagesOptimize extends Command
@@ -72,48 +73,50 @@ class ImagesOptimize extends Command
 
         $this->info('--- INIZIO OTTIMIZZAZIONE IN-PLACE ---');
         $this->info("Cercando immagini in: {$this->publicStoragePath}");
-        
+
         $searchPath = $this->publicStoragePath;
-        
+
         if ($mediaOnly) {
-            $searchPath = $this->publicStoragePath . '/media';
+            $searchPath = $this->publicStoragePath.'/media';
             $this->info("Modalità MEDIA-ONLY attiva - cercando in: {$searchPath}");
             $this->info("Obiettivo dimensione: {$targetSizeKB} KB");
-            
+
             // Debug: verifica se la cartella esiste
-            if (!File::isDirectory($searchPath)) {
+            if (! File::isDirectory($searchPath)) {
                 $this->error("ERRORE: La cartella {$searchPath} non esiste!");
                 $this->info("Cartelle disponibili in {$this->publicStoragePath}:");
                 if (File::isDirectory($this->publicStoragePath)) {
                     foreach (File::directories($this->publicStoragePath) as $dir) {
-                        $this->line("  - " . basename($dir));
+                        $this->line('  - '.basename($dir));
                     }
                 } else {
                     $this->error("Anche {$this->publicStoragePath} non esiste!");
                 }
+
                 return 1;
             }
         }
-        
+
         File::ensureDirectoryExists($this->backupPath);
 
         $images = $this->getImages($mediaOnly);
-        
+
         // Debug: mostra cosa ha trovato
         $this->info("Trovate {$images->count()} immagini totali");
         if ($images->count() > 0 && $images->count() <= 5) {
-            $this->info("File trovati:");
+            $this->info('File trovati:');
             foreach ($images as $image) {
-                $this->line("  - " . $image->getRelativePathname() . " (" . round(filesize($image->getRealPath()) / 1024) . " KB)");
+                $this->line('  - '.$image->getRelativePathname().' ('.round(filesize($image->getRealPath()) / 1024).' KB)');
             }
         }
-        
+
         if ($images->isEmpty()) {
             $this->info('Nessuna immagine trovata da ottimizzare.');
+
             return 0;
         }
 
-        $this->info("Iniziando processamento...");
+        $this->info('Iniziando processamento...');
         $totalReduction = 0;
         $processedCount = 0;
         $skippedCount = 0;
@@ -121,19 +124,19 @@ class ImagesOptimize extends Command
         foreach ($images as $image) {
             $path = $image->getRealPath();
             $relativePath = $image->getRelativePathname();
-            
+
             try {
                 // 1. Controlla se esiste già un backup
-                $backupFilePath = $this->backupPath . '/' . $relativePath;
-                
-                if (File::exists($backupFilePath) && !$force) {
+                $backupFilePath = $this->backupPath.'/'.$relativePath;
+
+                if (File::exists($backupFilePath) && ! $force) {
                     $skippedCount++;
                     $this->line("<comment>Saltato (backup esistente):</comment> {$relativePath}");
                     continue;
                 }
 
                 // 2. Crea backup se non esiste
-                if (!File::exists($backupFilePath)) {
+                if (! File::exists($backupFilePath)) {
                     File::ensureDirectoryExists(dirname($backupFilePath));
                     File::copy($path, $backupFilePath);
                     $this->line("<comment>Backup creato:</comment> {$relativePath}");
@@ -158,7 +161,7 @@ class ImagesOptimize extends Command
                 $reduction = $originalSize - $newSize;
 
                 if ($reduction > 1024) {
-                    $this->line("<info>Completato:</info> {$relativePath} | <comment>Prima:</comment> {$originalSizeKB} KB | <comment>Dopo:</comment> {$newSizeKB} KB | <comment>Risparmio:</comment> " . round($reduction / 1024) . " KB");
+                    $this->line("<info>Completato:</info> {$relativePath} | <comment>Prima:</comment> {$originalSizeKB} KB | <comment>Dopo:</comment> {$newSizeKB} KB | <comment>Risparmio:</comment> ".round($reduction / 1024).' KB');
                     $totalReduction += $reduction;
                 } else {
                     $this->line("<comment>Nessun risparmio significativo per:</comment> {$relativePath}");
@@ -166,15 +169,15 @@ class ImagesOptimize extends Command
                 $processedCount++;
 
             } catch (\Exception $e) {
-                $this->error("\nErrore processando {$relativePath}: " . $e->getMessage());
+                $this->error("\nErrore processando {$relativePath}: ".$e->getMessage());
             }
         }
 
         $this->newLine();
-        $this->info("Ottimizzazione completata.");
+        $this->info('Ottimizzazione completata.');
         $this->info("Immagini processate: {$processedCount}");
         $this->info("Immagini saltate (backup esistente): {$skippedCount}");
-        $this->info("Riduzione totale dello spazio: " . round($totalReduction / 1024 / 1024, 2) . " MB.");
+        $this->info('Riduzione totale dello spazio: '.round($totalReduction / 1024 / 1024, 2).' MB.');
         $this->comment('I backup sono in: storage/app/image-backups. Per ripristinare, usa --restore o --restore-folder=nomecartella.');
         if ($skippedCount > 0) {
             $this->comment('Per ri-ottimizzare i file saltati, usa --force.');
@@ -192,7 +195,7 @@ class ImagesOptimize extends Command
 
         // Se è un PNG, convertilo in JPG prima, perché è l'unico modo per ridurlo drasticamente.
         if ($extension === 'png') {
-            $newPath = substr($path, 0, strrpos($path, '.')) . '.jpg';
+            $newPath = substr($path, 0, strrpos($path, '.')).'.jpg';
             $img->fill('#ffffff')->save($newPath, 80); // Inizia con qualità alta
             File::delete($path);
             $currentPath = $newPath;
@@ -200,19 +203,20 @@ class ImagesOptimize extends Command
 
         // Ora, ottimizza il file JPG (originale o appena convertito) in modo iterativo.
         $qualities = [75, 60, 50, 40, 30];
-        
+
         foreach ($qualities as $quality) {
             Image::make($currentPath)->save($currentPath, $quality);
-            
+
             clearstatcache(true, $currentPath);
             $currentSizeKB = round(filesize($currentPath) / 1024);
-            
+
             if ($currentSizeKB <= $targetSizeKB) {
-                $this->line("<comment>Raggiunto target:</comment> {$relativePath} -> " . basename($currentPath) . " - {$currentSizeKB} KB (qualità: {$quality})");
+                $this->line("<comment>Raggiunto target:</comment> {$relativePath} -> ".basename($currentPath)." - {$currentSizeKB} KB (qualità: {$quality})");
+
                 return $currentPath; // Esce e restituisce il nuovo percorso
             }
         }
-        
+
         // Se non raggiunge il target, viene lasciato alla qualità più bassa
         return $currentPath;
     }
@@ -234,14 +238,16 @@ class ImagesOptimize extends Command
     protected function restoreImages()
     {
         $this->info('--- INIZIO RIPRISTINO TUTTE LE IMMAGINI DAI BACKUP ---');
-        if (!File::isDirectory($this->backupPath)) {
+        if (! File::isDirectory($this->backupPath)) {
             $this->error('Cartella di backup non trovata.');
+
             return 1;
         }
-        
+
         $backupFiles = collect(File::allFiles($this->backupPath));
         if ($backupFiles->isEmpty()) {
             $this->info('Nessun backup trovato.');
+
             return 0;
         }
 
@@ -250,38 +256,42 @@ class ImagesOptimize extends Command
 
         foreach ($backupFiles as $backupFile) {
             $relativePath = $backupFile->getRelativePathname();
-            $originalPath = $this->publicStoragePath . '/' . $relativePath;
-            
+            $originalPath = $this->publicStoragePath.'/'.$relativePath;
+
             File::ensureDirectoryExists(dirname($originalPath));
             File::copy($backupFile->getRealPath(), $originalPath);
-            
+
             $progressBar->advance();
         }
 
         $progressBar->finish();
         $this->newLine(2);
         $this->info("Ripristino completato per {$backupFiles->count()} immagini.");
+
         return 0;
     }
 
     protected function restoreFolder($folderName)
     {
         $this->info("--- INIZIO RIPRISTINO CARTELLA: {$folderName} ---");
-        
-        if (!File::isDirectory($this->backupPath)) {
+
+        if (! File::isDirectory($this->backupPath)) {
             $this->error('Cartella di backup non trovata.');
+
             return 1;
         }
-        
-        $folderBackupPath = $this->backupPath . '/' . $folderName;
-        if (!File::isDirectory($folderBackupPath)) {
+
+        $folderBackupPath = $this->backupPath.'/'.$folderName;
+        if (! File::isDirectory($folderBackupPath)) {
             $this->error("Cartella di backup '{$folderName}' non trovata.");
+
             return 1;
         }
-        
+
         $backupFiles = collect(File::allFiles($folderBackupPath));
         if ($backupFiles->isEmpty()) {
             $this->info("Nessun backup trovato nella cartella '{$folderName}'.");
+
             return 0;
         }
 
@@ -289,29 +299,30 @@ class ImagesOptimize extends Command
         $progressBar->start();
 
         foreach ($backupFiles as $backupFile) {
-            $relativePath = $folderName . '/' . $backupFile->getRelativePathname();
-            $originalPath = $this->publicStoragePath . '/' . $relativePath;
-            
+            $relativePath = $folderName.'/'.$backupFile->getRelativePathname();
+            $originalPath = $this->publicStoragePath.'/'.$relativePath;
+
             File::ensureDirectoryExists(dirname($originalPath));
             File::copy($backupFile->getRealPath(), $originalPath);
-            
+
             $progressBar->advance();
         }
 
         $progressBar->finish();
         $this->newLine(2);
         $this->info("Ripristino completato per {$backupFiles->count()} immagini nella cartella '{$folderName}'.");
+
         return 0;
     }
 
     protected function getImages($mediaOnly = false)
     {
-        $searchPath = $mediaOnly ? $this->publicStoragePath . '/media' : $this->publicStoragePath;
-        
-        if ($mediaOnly && !File::isDirectory($searchPath)) {
+        $searchPath = $mediaOnly ? $this->publicStoragePath.'/media' : $this->publicStoragePath;
+
+        if ($mediaOnly && ! File::isDirectory($searchPath)) {
             return collect([]);
         }
-        
+
         return collect(File::allFiles($searchPath))->filter(function (SplFileInfo $file) {
             return in_array(strtolower($file->getExtension()), ['jpg', 'jpeg', 'png', 'gif', 'webp']);
         });
