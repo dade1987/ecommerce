@@ -258,6 +258,7 @@ export default {
             recognition: null,
             originalConfirmed: '',
             originalInterim: '',
+            lastFinalOriginalAt: 0,
             translationConfirmed: '',
             translationStreaming: '',
             translationSegments: [],
@@ -544,14 +545,50 @@ export default {
                             if (res.isFinal) {
                                 const clean = text.trim();
                                 if (clean) {
-                                    // Aggiungi trattino all'inizio della frase
+                                    // Gestione speciale per mobile: molti browser inviano piu' final progressivi
+                                    // (es. \"perche'\", \"perche' nel\", \"perche' nel telefono\"...).
+                                    // In questi casi aggiorniamo l'ULTIMA riga invece di crearne una nuova.
                                     const phraseWithDash = `- ${clean}`;
-                                    this.originalConfirmed = this.originalConfirmed
-                                        ? `${this.originalConfirmed}\n${phraseWithDash}`
-                                        : phraseWithDash;
+                                    const now = Date.now();
+                                    const lines = (this.originalConfirmed || '')
+                                        .split('\n')
+                                        .filter(Boolean);
+
+                                    let mergedWithPrevious = false;
+
+                                    if (lines.length > 0 && now - this.lastFinalOriginalAt < 2000) {
+                                        const lastLine = lines[lines.length - 1];
+                                        const prevText = lastLine.startsWith('- ')
+                                            ? lastLine.slice(2).trim()
+                                            : lastLine.trim();
+
+                                        if (prevText) {
+                                            // Se il nuovo testo estende il precedente (o viceversa),
+                                            // consideriamolo come la stessa frase aggiornata.
+                                            if (
+                                                clean.startsWith(prevText) ||
+                                                prevText.startsWith(clean)
+                                            ) {
+                                                lines[lines.length - 1] = phraseWithDash;
+                                                this.originalConfirmed = lines.join('\n');
+                                                mergedWithPrevious = true;
+                                            }
+                                        }
+                                    }
+
+                                    if (!mergedWithPrevious) {
+                                        this.originalConfirmed = this.originalConfirmed
+                                            ? `${this.originalConfirmed}\n${phraseWithDash}`
+                                            : phraseWithDash;
+                                    }
+
+                                    this.lastFinalOriginalAt = now;
                                     this.originalInterim = '';
                                     // Traduci la singola frase appena conclusa
-                                    this.startTranslationStream(clean, { commit: true });
+                                    this.startTranslationStream(clean, {
+                                        commit: true,
+                                        mergeLast: mergedWithPrevious,
+                                    });
                                     this.maybeRequestInterviewSuggestion(clean);
                                 }
                             } else {
@@ -686,14 +723,17 @@ export default {
             }
         },
 
-        startTranslationStream(textSegment, options = { commit: true }) {
+        startTranslationStream(textSegment, options = { commit: true, mergeLast: false }) {
             const safeText = (textSegment || '').trim();
             if (!safeText) return;
+
+            const commit = options && typeof options.commit === 'boolean' ? options.commit : true;
+            const mergeLast = options && typeof options.mergeLast === 'boolean' ? options.mergeLast : false;
 
             // Se è già attivo uno stream e questa è una richiesta finale (commit: true),
             // chiudiamo lo stream precedente per dare priorità alla frase completa
             if (this.currentStream) {
-                if (options.commit) {
+                if (commit) {
                     try {
                         this.currentStream.close();
                     } catch { }
@@ -758,9 +798,19 @@ export default {
                         es.close();
                     } catch { }
                     const segment = buffer.trim();
-                    if (options.commit && segment) {
-                        // Quando una frase è conclusa, la aggiungiamo all'array di frasi tradotte con trattino
-                        this.translationSegments.push(`- ${segment}`);
+                    if (commit && segment) {
+                        // Quando una frase è conclusa:
+                        // - se mergeLast è true, aggiorniamo l'ultima riga (caso mobile con final progressivi)
+                        // - altrimenti aggiungiamo una nuova riga
+                        if (mergeLast && this.translationSegments && this.translationSegments.length > 0) {
+                            this.translationSegments.splice(
+                                this.translationSegments.length - 1,
+                                1,
+                                `- ${segment}`
+                            );
+                        } else {
+                            this.translationSegments.push(`- ${segment}`);
+                        }
 
                         // Se il doppiaggio è attivo, metti in coda la traduzione per il TTS
                         if (this.readTranslationEnabled) {
