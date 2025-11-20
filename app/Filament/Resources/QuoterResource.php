@@ -29,9 +29,10 @@ class QuoterResource extends Resource
                 Forms\Components\TextInput::make('role')
                     ->required()
                     ->maxLength(255),
-                Forms\Components\TextInput::make('content')
+                Forms\Components\Textarea::make('content')
                     ->required()
-                    ->maxLength(255),
+                    ->rows(5)
+                    ->columnSpanFull(),
             ]);
     }
 
@@ -48,14 +49,31 @@ class QuoterResource extends Resource
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('thread_id')
-                    ->searchable(),
+                    ->searchable()
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('role')
-                    ->searchable(),
+                    ->searchable()
+                    ->sortable()
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'translation' => 'success',
+                        'user' => 'info',
+                        'chatbot' => 'warning',
+                        default => 'gray',
+                    }),
                 Tables\Columns\TextColumn::make('content')
-                    ->searchable(),
+                    ->searchable()
+                    ->limit(150)
+                    ->wrap(),
             ])
             ->filters([
-                //
+                Tables\Filters\SelectFilter::make('role')
+                    ->options([
+                        'translation' => 'Traduzioni',
+                        'user' => 'Utente',
+                        'chatbot' => 'Chatbot',
+                    ])
+                    ->label('Tipo'),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),

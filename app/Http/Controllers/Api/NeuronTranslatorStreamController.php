@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Quoter;
 use App\Neuron\LiveTranslatorAgent;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -28,8 +29,14 @@ class NeuronTranslatorStreamController extends Controller
         $sourceLang = (string) $request->query('source_lang', '');
         $locale = (string) $request->query('locale', 'it');
         $targetLang = (string) $request->query('target_lang', '');
+        $threadId = (string) $request->query('thread_id', '');
 
-        $response = new StreamedResponse(function () use ($text, $sourceLang, $locale, $targetLang) {
+        // Genera thread_id se non fornito
+        if (empty($threadId)) {
+            $threadId = 'translation_'.uniqid('', true);
+        }
+
+        $response = new StreamedResponse(function () use ($text, $sourceLang, $locale, $targetLang, $threadId) {
             $flush = function (array $payload, string $event = 'message') {
                 echo "event: {$event}\n";
                 echo 'data: '.json_encode($payload, JSON_UNESCAPED_UNICODE)."\n\n";
@@ -73,9 +80,23 @@ class NeuronTranslatorStreamController extends Controller
                     $fullContent = 'Traduzione non disponibile.';
                 }
 
+                // Salva la traduzione nella tabella quoters
+                try {
+                    Quoter::create([
+                        'thread_id' => $threadId,
+                        'role' => 'translation',
+                        'content' => $cleanText,
+                    ]);
+                } catch (\Throwable $saveError) {
+                    Log::warning('NeuronTranslatorStreamController: errore salvataggio traduzione', [
+                        'error' => $saveError->getMessage(),
+                    ]);
+                }
+
                 Log::info('NeuronTranslatorStreamController.stream DONE', [
                     'content_length' => strlen($fullContent),
                     'content_preview' => mb_substr($fullContent, 0, 160),
+                    'thread_id' => $threadId,
                 ]);
 
                 $flush(['token' => ''], 'done');
