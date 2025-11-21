@@ -98,9 +98,12 @@ docker-compose up -d
 
 # Verifica che i container siano attivi
 docker-compose ps
+
+# ⚠️ IMPORTANTE: Installa le dipendenze Composer nel container
+docker exec php_fpm_avatar-3d-v1-dev composer install
 ```
 
-**Tempo stimato**: 5-10 minuti per il build (scarica Chromium)
+**Tempo stimato**: 5-10 minuti per il build (scarica Chromium) + ~2 minuti per composer install
 
 **Output atteso**:
 ```
@@ -152,15 +155,28 @@ docker-compose ps
 
 ### 2.5 Crea Database
 
+**Metodo 1 - Da Browse Collections:**
 1. Nel menu laterale, vai su **"Database"**
 2. Click **"Browse Collections"**
-3. Click **"Create Database"**
-4. Inserisci:
+3. Se vedi un pulsante **"Create Database"** o **"Add My Own Data"**, cliccalo
+4. Se non vedi il pulsante, cerca un pulsante **"+"** o **"Create"** nella parte superiore della pagina
+5. Inserisci:
    - **Database Name**: `avatar3d_rag`
    - **Collection Name**: `webscraper_pages` (verrà creata automaticamente dal codice)
-5. Click **"Create"**
+6. Click **"Create"**
 
-**Nota**: Il codice creerà automaticamente le collection `webscraper_pages` e `webscraper_chunks` quando farai la prima indicizzazione.
+**Metodo 2 - Alternativo (se Metodo 1 non funziona):**
+1. Nel menu laterale, vai su **"Database"**
+2. Cerca un pulsante **"Create"** o **"Create Database"** nella parte superiore della pagina (non dentro Browse Collections)
+3. Inserisci:
+   - **Database Name**: `avatar3d_rag`
+   - **Collection Name**: `webscraper_pages`
+4. Click **"Create"**
+
+**Metodo 3 - Il database verrà creato automaticamente:**
+Se non riesci a trovare il pulsante, **non è un problema!** Il database `avatar3d_rag` e le collection `webscraper_pages` e `webscraper_chunks` verranno create automaticamente dal codice quando eseguirai il comando di indicizzazione (Step 7.1).
+
+**Nota**: Il codice creerà automaticamente le collection `webscraper_pages` e `webscraper_chunks` quando farai la prima indicizzazione, quindi puoi anche saltare questo step se preferisci.
 
 ---
 
@@ -180,6 +196,11 @@ Aggiungi queste righe nel file `.env`:
 # MongoDB Atlas Configuration
 MONGODB_URI=mongodb+srv://avatar3d_user:TUA_PASSWORD_QUI@cluster0.xxxxx.mongodb.net/?retryWrites=true&w=majority
 MONGODB_DATABASE=avatar3d_rag
+
+# Vector Search Index Name (deve corrispondere al nome dell'index su MongoDB Atlas)
+# Se hai creato l'index con nome "vector_index", usa: WEBSCRAPER_VECTOR_INDEX_NAME=vector_index
+# Se hai creato l'index con nome "vector_index_1", usa: WEBSCRAPER_VECTOR_INDEX_NAME=vector_index_1
+WEBSCRAPER_VECTOR_INDEX_NAME=vector_index_1
 ```
 
 **⚠️ IMPORTANTE**: Sostituisci:
@@ -226,8 +247,10 @@ docker exec php_fpm_avatar-3d-v1-dev chmod -R 775 /var/www/html/storage/webscrap
 ### 4.2 Esegui Migrazioni WebScraper
 
 ```bash
-docker exec php_fpm_avatar-3d-v1-dev php artisan migrate --path=src/Modules/WebScraper/database/migrations --database=webscraper
+docker exec php_fpm_avatar-3d-v1-dev php artisan migrate --path=src/Modules/WebScraper/database/migrations --database=webscraper --force
 ```
+
+**⚠️ Nota**: Il flag `--force` è necessario se `APP_ENV=production` nel `.env`. In ambiente di sviluppo, puoi anche impostare `APP_ENV=local` nel `.env` per evitare questo flag.
 
 **Output atteso**:
 ```
@@ -239,19 +262,32 @@ docker exec php_fpm_avatar-3d-v1-dev php artisan migrate --path=src/Modules/WebS
 
 ### 4.3 Verifica Connessione MongoDB
 
-Testa la connessione a MongoDB Atlas:
+**⚠️ IMPORTANTE**: Prima di testare, assicurati che le dipendenze Composer siano installate nel container:
 
 ```bash
-docker exec php_fpm_avatar-3d-v1-dev php artisan tinker
+docker exec php_fpm_avatar-3d-v1-dev composer install
 ```
 
-Nel tinker, esegui:
+Testa la connessione a MongoDB Atlas usando il client MongoDB direttamente:
 
-```php
-DB::connection('mongodb')->getMongoClient()->listDatabases();
+```bash
+docker exec php_fpm_avatar-3d-v1-dev php -r "require '/var/www/html/vendor/autoload.php'; \$app = require_once '/var/www/html/bootstrap/app.php'; \$app->make('Illuminate\Contracts\Console\Kernel')->bootstrap(); \$uri = env('MONGODB_URI'); if (!\$uri) { echo '❌ MONGODB_URI not found in .env' . PHP_EOL; exit(1); } \$client = new MongoDB\Client(\$uri); \$databases = iterator_to_array(\$client->listDatabases()); echo '✅ MongoDB connection successful!' . PHP_EOL; echo 'Databases found: ' . count(\$databases) . PHP_EOL; foreach (\$databases as \$db) { echo '  - ' . \$db->getName() . PHP_EOL; }"
 ```
 
-Dovresti vedere il database `avatar3d_rag` nella lista.
+**Output atteso**: 
+```
+✅ MongoDB connection successful!
+Databases found: X
+  - admin
+  - local
+  - avatar3d_rag (se già creato)
+```
+
+**Se vedi errori di connessione**, verifica:
+1. Il file `.env` contiene `MONGODB_URI` corretto (con virgolette se la password ha caratteri speciali)
+2. MongoDB Atlas → Network Access → Il tuo IP è whitelisted (o hai "Allow Access from Anywhere")
+3. La password nella connection string è corretta
+4. Le dipendenze Composer sono installate: `docker exec php_fpm_avatar-3d-v1-dev composer install`
 
 ---
 
@@ -260,12 +296,32 @@ Dovresti vedere il database `avatar3d_rag` nella lista.
 ### 5.1 Verifica Chromium Installato
 
 ```bash
-docker exec php_fpm_avatar-3d-v1-dev ls -la /var/www/.cache/ms-playwright/chromium-*/chrome-linux/chrome
+# Metodo 1: Verifica directory (più affidabile con docker exec)
+docker exec php_fpm_avatar-3d-v1-dev ls -la /var/www/.cache/ms-playwright/
+
+# Metodo 2: Verifica file Chromium specifico (se conosci la versione)
+docker exec php_fpm_avatar-3d-v1-dev ls -la /var/www/.cache/ms-playwright/chromium-*/chrome-linux/chrome 2>/dev/null || \
+docker exec php_fpm_avatar-3d-v1-dev find /var/www/.cache/ms-playwright -name "chrome" -type f
 ```
 
 **Output atteso**:
 ```
--rwxr-xr-x 1 www-data www-data 123456789 Nov 15 23:22 chrome
+total 24
+drwxr-xr-x 6 www-data www-data 4096 Nov 21 08:39 .
+drwxr-xr-x 1 www-data www-data 4096 Nov 21 08:38 ..
+drwxr-xr-x 3 www-data www-data 4096 Nov 21 08:39 chromium-1194
+...
+```
+
+E il file chrome dovrebbe essere presente in:
+```
+/var/www/.cache/ms-playwright/chromium-1194/chrome-linux/chrome
+```
+
+**Se Chromium non è installato**, installalo manualmente:
+
+```bash
+docker exec -u www-data php_fpm_avatar-3d-v1-dev bash -c "cd /var/www/html && PLAYWRIGHT_BROWSERS_PATH=/var/www/.cache/ms-playwright npx playwright install chromium"
 ```
 
 ### 5.2 Test Wrapper Script
@@ -277,21 +333,28 @@ docker exec -u www-data php_fpm_avatar-3d-v1-dev \
 
 **Output atteso**:
 ```
-Chrome found
-{"success":true,"url":"https://www.example.com","title":"Example Domain","html":"<!DOCTYPE html>..."}
+Using PLAYWRIGHT_BROWSERS_PATH: /var/www/.cache/ms-playwright
+Chrome executable found at: /var/www/.cache/ms-playwright/chromium-1194/chrome-linux/chrome
+{"success":true,"url":"https://www.example.com","final_url":"https://www.example.com/","title":"Example Domain","html":"<!DOCTYPE html>...","html_length":528,"timestamp":"2025-11-21T09:13:12.644Z"}
 ```
+
+**✅ Se vedi `"success":true`**, Playwright funziona correttamente!
 
 ### 5.3 Test da PHP
 
 ```bash
 docker exec php_fpm_avatar-3d-v1-dev php -r "
 require '/var/www/html/vendor/autoload.php';
+\$app = require_once '/var/www/html/bootstrap/app.php';
+\$app->make('Illuminate\Contracts\Console\Kernel')->bootstrap();
 \$scraper = new \Modules\WebScraper\Services\BrowserScraperService();
 echo \$scraper->isAvailable() ? 'AVAILABLE' : 'NOT AVAILABLE';
 "
 ```
 
 **Output atteso**: `AVAILABLE`
+
+**✅ Se vedi `AVAILABLE`**, il sistema Playwright è completamente funzionante e pronto per lo scraping!
 
 ---
 
@@ -301,26 +364,60 @@ echo \$scraper->isAvailable() ? 'AVAILABLE' : 'NOT AVAILABLE';
 
 1. Vai su [https://cloud.mongodb.com/](https://cloud.mongodb.com/)
 2. Seleziona il tuo cluster
-3. Vai su **"Atlas Search"** (o **"Search Indexes"**)
+3. Click su **"Browse Collections"** (nel menu laterale o nella pagina principale del cluster)
+4. Seleziona il database `avatar3d_rag` (se non lo vedi, verrà creato automaticamente alla prima indicizzazione)
+5. Seleziona la collection `webscraper_chunks` (se non esiste ancora, creala manualmente o aspetta la prima indicizzazione)
+6. Nella parte superiore della pagina, vedrai diverse tab: **"Documents"**, **"Indexes"**, **"Search Indexes"** - click su **"Search Indexes"**
 
 ### 6.2 Crea Vector Search Index
 
-1. Click **"Create Search Index"**
-2. Scegli **"JSON Editor"** (o **"Atlas Vector Search"** se disponibile)
-3. Inserisci questi valori:
-
-| Campo | Valore |
-|-------|--------|
+1. Nella tab **"Search Indexes"**, click sul pulsante **"Create Search Index"**
+2. Scegli **"Atlas Vector Search"** (se disponibile) oppure **"JSON Editor"**
+3. Se hai scelto "Atlas Vector Search":
+   - Il database e collection sono già selezionati (`avatar3d_rag` / `webscraper_chunks`)
+   - Vai direttamente al passo 6.3
+4. Se hai scelto "JSON Editor":
+   - Inserisci questi valori:
+   
+   | Campo | Valore |
+   |-------|--------|
 | **Database** | `avatar3d_rag` |
 | **Collection** | `webscraper_chunks` |
-| **Index Name** | `vector_index` |
+| **Index Name** | `vector_index_1` |
 
-**⚠️ IMPORTANTE**: Il nome dell'index DEVE essere esattamente `vector_index` (case-sensitive)
+**⚠️ IMPORTANTE**: Il nome dell'index DEVE essere esattamente `vector_index_1` (case-sensitive). Questo è il nome di default usato dal codice.
+
+**Se la collection `webscraper_chunks` non esiste ancora:**
+
+**Opzione A - Creala manualmente (consigliato se vuoi creare l'index prima dell'indicizzazione):**
+1. Nella pagina "Browse Collections", clicca su **"Create Collection"**
+2. Database: `avatar3d_rag`
+3. Collection Name: `webscraper_chunks`
+4. Clicca **"Create"**
+5. Poi procedi con la creazione dell'index (passo 6.3)
+
+**Opzione B - Procedi con l'indicizzazione (la collection verrà creata automaticamente):**
+Se preferisci, puoi saltare questo step e procedere direttamente con lo Step 7.1 (Test del Sistema Completo). La collection `webscraper_chunks` verrà creata automaticamente quando eseguirai il comando di indicizzazione. Dopo l'indicizzazione, torna qui per creare l'index.
 
 ### 6.3 Configurazione JSON Index
 
 Incolla questa configurazione nell'editor JSON:
 
+**Se usi "Atlas Vector Search" (formato nuovo):**
+```json
+{
+  "fields": [
+    {
+      "type": "vector",
+      "path": "embedding",
+      "numDimensions": 1536,
+      "similarity": "cosine"
+    }
+  ]
+}
+```
+
+**Se usi "JSON Editor" con formato legacy:**
 ```json
 {
   "mappings": {
@@ -338,6 +435,8 @@ Incolla questa configurazione nell'editor JSON:
   }
 }
 ```
+
+**⚠️ IMPORTANTE**: Se MongoDB Atlas ti chiede di definire la proprietà `fields`, usa il primo formato (con `fields` come array).
 
 **Spiegazione configurazione**:
 - `embedding.type`: `knnVector` = Vector search field
@@ -360,7 +459,10 @@ Lo stato passerà da **"Building"** a **"Active"** (ci vogliono alcuni minuti).
 - 100 chunks → ~2-3 minuti
 - 1000+ chunks → ~5-10 minuti
 
-**⚠️ IMPORTANTE**: L'index deve essere **"Active"** prima di poter fare ricerche!
+**⚠️ IMPORTANTE**: 
+- L'index deve essere **"Active"** prima di poter fare ricerche!
+- Il nome dell'index deve essere esattamente `vector_index_1` (non `vector_index`)
+- Verifica lo stato su MongoDB Atlas → Browse Collections → webscraper_chunks → Search Indexes tab
 
 ---
 
@@ -528,21 +630,24 @@ docker exec -u www-data php_fpm_avatar-3d-v1-dev bash -c \
 docker exec php_fpm_avatar-3d-v1-dev php artisan rag:search "url" "query" --min-similarity=0.5
 ```
 
-### Problema: Playwright script non funziona
+### Problema: Playwright script non funziona - "chrome_crashpad_handler" o errori di socket
 
-**Causa**: Permessi o path errato
+**Causa**: Specificare `executablePath` esplicitamente può causare problemi con crashpad handler in Docker
 
-**Soluzione**:
+**Soluzione**: Lo script `scraper-headless.js` è già configurato correttamente per lasciare che Playwright trovi automaticamente il browser usando `PLAYWRIGHT_BROWSERS_PATH`. **Non modificare** lo script per specificare `executablePath` manualmente.
+
+**Verifica che funzioni**:
 ```bash
-# Verifica permessi
-docker exec php_fpm_avatar-3d-v1-dev ls -la /var/www/html/scraper-headless-wrapper.sh
-
-# Verifica .env.playwright
-docker exec php_fpm_avatar-3d-v1-dev cat /var/www/html/.env.playwright
-
-# Dovrebbe contenere:
-# PLAYWRIGHT_BROWSERS_PATH=/var/www/.cache/ms-playwright
+docker exec -u www-data php_fpm_avatar-3d-v1-dev \
+    bash /var/www/html/scraper-headless-wrapper.sh "https://www.example.com"
 ```
+
+Dovresti vedere `{"success":true,...}` se tutto funziona correttamente.
+
+**Se il problema persiste**, verifica:
+1. Chromium è installato: `docker exec php_fpm_avatar-3d-v1-dev ls -la /var/www/.cache/ms-playwright/chromium-*/chrome-linux/chrome`
+2. Variabile d'ambiente: `PLAYWRIGHT_BROWSERS_PATH=/var/www/.cache/ms-playwright` è impostata
+3. Permessi: Il file chrome è eseguibile da www-data
 
 ### Problema: Indexing molto lento
 

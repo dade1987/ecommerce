@@ -23,20 +23,16 @@ if (!url) {
     let browser;
 
     try {
-        // Explicitly set the browser path to use the full chromium browser
-        const browserPath = process.env.PLAYWRIGHT_BROWSERS_PATH || '/var/www/.cache/ms-playwright';
-        const executablePath = `${browserPath}/chromium-1194/chrome-linux/chrome`;
-
-        // Launch Chromium browser with anti-detection settings
+        // Let Playwright handle browser discovery automatically
+        // This avoids path and crashpad handler issues in Docker
         browser = await chromium.launch({
             headless: true,
-            executablePath: executablePath,
+            // Don't specify executablePath - let Playwright find it automatically
             args: [
                 '--no-sandbox',
                 '--disable-setuid-sandbox',
                 '--disable-dev-shm-usage',
-                '--disable-blink-features=AutomationControlled',
-                '--disable-features=IsolateOrigins,site-per-process'
+                '--disable-blink-features=AutomationControlled'
             ]
         });
 

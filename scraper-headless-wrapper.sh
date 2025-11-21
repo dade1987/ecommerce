@@ -16,6 +16,10 @@ fi
 # Fallback if .env.playwright doesn't exist
 export PLAYWRIGHT_BROWSERS_PATH=${PLAYWRIGHT_BROWSERS_PATH:-/var/www/.cache/ms-playwright}
 
+# Disable crashpad handler completely to avoid Docker issues
+export CHROME_DEVEL_SANDBOX=/usr/lib/chromium-browser/chrome-sandbox
+export CHROME_CRASHPAD_HANDLER_PATH=""
+
 # Debug: print the path being used (will appear in error logs)
 echo "Using PLAYWRIGHT_BROWSERS_PATH: $PLAYWRIGHT_BROWSERS_PATH" >&2
 
@@ -27,4 +31,6 @@ else
     ls -la "$PLAYWRIGHT_BROWSERS_PATH/" >&2
 fi
 
+# Run the scraper
+# Playwright will automatically find the browser using PLAYWRIGHT_BROWSERS_PATH
 node /var/www/html/scraper-headless.js "$1"
