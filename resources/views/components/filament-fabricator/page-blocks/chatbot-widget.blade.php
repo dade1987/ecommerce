@@ -1,16 +1,7 @@
 @aware(['page'])
 @props([
-    'teamSlug' => null,
-    'team_slug' => null,
-    'promptType' => 'business',
-    'prompt_type' => 'business',
+    'teamSlug',
 ])
-
-@php
-    // Supporta entrambi snake_case e camelCase
-    $teamSlug = $teamSlug ?? $team_slug;
-    $promptType = $promptType ?? $prompt_type;
-@endphp
 
 <div x-data="{ open: false }" class="fixed bottom-4 right-4 z-50">
     <!-- Chat Icon -->
@@ -31,26 +22,15 @@
          x-transition:leave-end="opacity-0 transform translate-y-4">
 
         <!-- Header -->
-        <div class="p-3 bg-gray-100 rounded-t-lg border-b border-gray-200">
-            <div class="flex items-center justify-between gap-3 mb-2">
-                <div class="flex items-center gap-3">
-                    <img id="teamLogo" src="/images/logoai.jpeg" alt="{{ __('enjoy-work.company_logo_alt') }}"
-                         class="w-8 h-8 rounded-full object-cover border border-gray-300">
-                    <h1 id="teamName" class="font-sans text-lg font-semibold text-gray-800">EnjoyWork</h1>
-                </div>
-                <button @click="open = false" class="text-gray-500 hover:text-gray-800">
-                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                </button>
+        <div class="p-3 flex items-center justify-between gap-3 bg-gray-100 rounded-t-lg border-b border-gray-200">
+            <div class="flex items-center gap-3">
+                <img id="teamLogo" src="/images/logoai.jpeg" alt="{{ __('enjoy-work.company_logo_alt') }}" 
+                     class="w-8 h-8 rounded-full object-cover border border-gray-300">
+                <h1 id="teamName" class="font-sans text-lg font-semibold text-gray-800">EnjoyWork</h1>
             </div>
-            <!-- Toggle Chat Mode -->
-            <div class="flex items-center gap-2 text-xs">
-                <button id="toggleChatMode" class="flex items-center gap-1 px-2 py-1 rounded bg-white border border-gray-300 hover:bg-gray-50 transition">
-                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
-                    </svg>
-                    <span id="chatModeLabel" class="font-medium">Modalità Business</span>
-                </button>
-            </div>
+            <button @click="open = false" class="text-gray-500 hover:text-gray-800">
+                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
         </div>
 
         <!-- Messages -->
@@ -79,35 +59,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let threadId = null;
     let productIds = [];
     const teamSlug = '{{ $teamSlug }}';
-    let currentPromptType = '{{ $promptType }}'; // 'business' o 'chat_libera'
     let firstMessageSent = false;
-
-    // Toggle button
-    const toggleButton = document.getElementById('toggleChatMode');
-    const chatModeLabel = document.getElementById('chatModeLabel');
-
-    function updateChatModeLabel() {
-        chatModeLabel.textContent = currentPromptType === 'business' ? 'Modalità Business' : 'Chat Libera';
-    }
-
-    toggleButton.addEventListener('click', function() {
-        currentPromptType = currentPromptType === 'business' ? 'chat_libera' : 'business';
-        updateChatModeLabel();
-        // Reset thread per cambiare modalità
-        threadId = null;
-        messagesElement.innerHTML = '';
-        // Invia nuovo greeting
-        postMessage(translations.greeting).then(response => {
-            const botMessage = {
-                id: Date.now(),
-                role: 'bot',
-                content: formatMessageContent(response.message),
-            };
-            addMessageToChat(botMessage);
-        });
-    });
-
-    updateChatModeLabel();
     const urlParams = new URLSearchParams(window.location.search);
     const uuid = urlParams.get('uuid');
     const locale = '{{ app()->getLocale() }}';
@@ -244,8 +196,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     team: teamSlug,
                     product_ids: productIds,
                     uuid: uuid,
-                    locale: locale,
-                    prompt_type: currentPromptType
+                    locale: locale
                 }),
             });
             const data = await response.json();

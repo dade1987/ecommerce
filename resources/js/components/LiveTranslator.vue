@@ -3,7 +3,7 @@
         class="w-full min-h-screen bg-slate-900 text-slate-100 flex items-stretch justify-center px-2 md:px-6 py-4 md:py-8">
         <div
             class="w-full max-w-6xl bg-slate-800/80 border border-slate-700 rounded-2xl shadow-2xl p-4 md:p-8 flex flex-col">
-            <div class="flex items-center justify-between gap-4 mb-6">
+            <div class="flex items-center justify-between gap-4 mb-4 md:mb-6">
                 <div>
                     <h1 class="text-2xl md:text-3xl font-semibold tracking-tight">
                         {{ ui.title }}
@@ -11,7 +11,60 @@
                 </div>
             </div>
 
-            <div class="flex flex-col gap-3 mb-6">
+            <!-- Tabs -->
+            <div class="mb-6 border-b border-slate-700 pb-2">
+                <div class="text-[11px] uppercase tracking-[0.2em] text-slate-400 mb-2">
+                    Modalità
+                </div>
+                <div class="inline-flex rounded-xl bg-slate-900/70 p-1 shadow-inner shadow-black/40 text-sm">
+                    <button type="button"
+                        class="relative px-4 py-2 rounded-lg font-semibold transition-all duration-150 flex items-center gap-2"
+                        :class="activeTab === 'call'
+                            ? 'bg-emerald-500/10 text-emerald-200 shadow-[0_0_0_1px_rgba(16,185,129,0.6)]'
+                            : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/80'"
+                        @click="setActiveTab('call')">
+                        <span class="inline-flex h-5 w-5 items-center justify-center rounded-full border text-[11px]"
+                            :class="activeTab === 'call'
+                                ? 'border-emerald-400 bg-emerald-500/20 text-emerald-200'
+                                : 'border-slate-500 bg-slate-800 text-slate-300'">
+                            A
+                        </span>
+                        <span class="flex flex-col items-start leading-tight">
+                            <span class="text-[11px] uppercase tracking-wide">
+                                Interprete &amp; CV
+                            </span>
+                            <span class="hidden md:inline text-[11px] text-slate-400">
+                                Call di lavoro in tempo reale
+                            </span>
+                        </span>
+                    </button>
+
+                    <button type="button"
+                        class="relative px-4 py-2 rounded-lg font-semibold transition-all duration-150 flex items-center gap-2"
+                        :class="activeTab === 'youtube'
+                            ? 'bg-emerald-500/10 text-emerald-200 shadow-[0_0_0_1px_rgba(16,185,129,0.6)]'
+                            : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/80'"
+                        @click="setActiveTab('youtube')">
+                        <span class="inline-flex h-5 w-5 items-center justify-center rounded-full border text-[11px]"
+                            :class="activeTab === 'youtube'
+                                ? 'border-emerald-400 bg-emerald-500/20 text-emerald-200'
+                                : 'border-slate-500 bg-slate-800 text-slate-300'">
+                            ▶
+                        </span>
+                        <span class="flex flex-col items-start leading-tight">
+                            <span class="text-[11px] uppercase tracking-wide">
+                                YouTube Interprete
+                            </span>
+                            <span class="hidden md:inline text-[11px] text-slate-400">
+                                Video + traduzione frase per frase
+                            </span>
+                        </span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- TAB 1: Interprete e Suggeritore Call Lavoro -->
+            <div v-if="activeTab === 'call'" class="flex flex-col gap-3 mb-6">
                 <p v-if="statusMessage" class="text-xs text-slate-300 text-center">
                     {{ statusMessage }}
                 </p>
@@ -62,7 +115,7 @@
                                     :class="activeSpeaker === 'A' && isListening ? 'bg-red-400 animate-pulse' : 'bg-slate-300'"></span>
                             </span>
                             <span>{{ activeSpeaker === 'A' && isListening ? 'Parlante A attivo' : 'Parla Lingua A'
-                                }}</span>
+                            }}</span>
                         </button>
                     </div>
 
@@ -91,149 +144,296 @@
                                     :class="activeSpeaker === 'B' && isListening ? 'bg-red-400 animate-pulse' : 'bg-slate-300'"></span>
                             </span>
                             <span>{{ activeSpeaker === 'B' && isListening ? 'Parlante B attivo' : 'Parla Lingua B'
-                                }}</span>
+                            }}</span>
                         </button>
+                    </div>
+                </div>
+                <div class="mt-4 space-y-6">
+                    <!-- Righe principali: originale, traduzione, suggerimenti affiancati -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+                        <div class="flex flex-col gap-2">
+                            <div class="flex items-center justify-between">
+                                <span class="text-base md:text-lg font-semibold text-slate-100">
+                                    {{ ui.originalTitle }}
+                                </span>
+                                <span class="text-xs text-slate-400">
+                                    {{ ui.originalSubtitle }}
+                                </span>
+                            </div>
+                            <div ref="originalBox"
+                                class="h-[100px] md:min-h-[260px] md:max-h-[420px] rounded-xl border border-slate-700 bg-slate-900/60 p-4 text-sm md:text-base lg:text-lg overflow-y-auto leading-relaxed">
+                                <p v-if="!displayOriginalText" class="text-slate-500 text-xs md:text-sm">
+                                    {{ ui.originalPlaceholder }}
+                                </p>
+                                <p v-else class="whitespace-pre-wrap">
+                                    {{ displayOriginalText }}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-col gap-2">
+                            <div class="flex items-center justify-between">
+                                <span class="text-base md:text-lg font-semibold text-slate-100">
+                                    {{ ui.translationTitle }}
+                                </span>
+                                <span class="text-xs text-slate-400">
+                                    GPT / Neuron AI
+                                </span>
+                            </div>
+                            <div ref="translationBox"
+                                class="h-[100px] md:min-h-[260px] md:max-h-[420px] rounded-xl border border-slate-700 bg-slate-900/60 p-4 text-sm md:text-base lg:text-lg overflow-y-auto leading-relaxed">
+                                <div v-if="!hasAnyTranslation" class="text-slate-500 text-xs md:text-sm">
+                                    La traduzione apparirà qui man mano che parli.
+                                </div>
+                                <div v-else class="space-y-2">
+                                    <!-- Frasi già tradotte (segmenti fissi) -->
+                                    <div v-for="(seg, idx) in translationSegments" :key="'seg-' + idx"
+                                        class="whitespace-pre-wrap">
+                                        {{ seg }}
+                                    </div>
+                                    <!-- Frase corrente in streaming, aggiornata token per token con manipolazione diretta DOM -->
+                                    <div ref="translationLiveContainer" class="whitespace-pre-wrap"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex flex-col gap-2">
+                            <div class="flex items-center justify-between gap-4">
+                                <div>
+                                    <h2 class="text-base md:text-lg font-semibold text-slate-100">
+                                        {{ ui.suggestionsTitle }}
+                                        <span v-if="langA && langB" class="text-sm text-emerald-400">
+                                            ({{ langA.toUpperCase() }} + {{ langB.toUpperCase() }})
+                                        </span>
+                                    </h2>
+                                </div>
+                            </div>
+
+                            <div ref="suggestionsBox"
+                                class="h-[100px] md:min-h-[260px] md:max-h-[420px] rounded-xl border border-slate-700 bg-slate-900/70 p-4 text-xs md:text-sm lg:text-base overflow-y-auto space-y-3 leading-relaxed">
+                                <div v-if="!cvText" class="text-xs md:text-sm text-slate-500">
+                                    Carica il tuo CV qui sotto per abilitare i suggerimenti basati sul curriculum.
+                                </div>
+
+                                <div v-else-if="!langA || !langB" class="text-xs md:text-sm text-slate-500">
+                                    Seleziona entrambe le lingue per visualizzare i suggerimenti bilingue.
+                                </div>
+
+                                <div v-else>
+                                    <p v-if="isLoadingSuggestion" class="text-xs md:text-sm text-emerald-300 mb-2">
+                                        Sto preparando un suggerimento basato sul tuo CV...
+                                    </p>
+
+                                    <div v-if="suggestions.length === 0 && !isLoadingSuggestion"
+                                        class="text-xs md:text-sm text-slate-500">
+                                        Quando il sistema riconosce una frase (domanda o tua risposta), qui comparirà un
+                                        suggerimento nelle due lingue selezionate coerente con il tuo CV.
+                                    </div>
+
+                                    <div v-for="(item, idx) in suggestions" :key="idx"
+                                        class="rounded-lg border border-slate-700 bg-slate-900/80 p-3 md:p-4 space-y-2 mb-2">
+                                        <div class="text-[11px] md:text-xs text-slate-400">
+                                            Riferito alla frase:
+                                            <span class="italic text-slate-300">
+                                                "{{ item.utterancePreview }}"
+                                            </span>
+                                        </div>
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                            <div class="space-y-1">
+                                                <div class="text-[11px] md:text-xs font-semibold text-slate-200">
+                                                    {{ getLangLabel(item.langA) }}
+                                                </div>
+                                                <div
+                                                    class="text-xs md:text-sm text-slate-100 whitespace-pre-wrap leading-relaxed">
+                                                    {{ item.suggestionLangA }}
+                                                </div>
+                                            </div>
+                                            <div class="space-y-1">
+                                                <div class="text-[11px] md:text-xs font-semibold text-slate-200">
+                                                    {{ getLangLabel(item.langB) }}
+                                                </div>
+                                                <div
+                                                    class="text-xs md:text-sm text-slate-100 whitespace-pre-wrap leading-relaxed">
+                                                    {{ item.suggestionLangB }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CV spostato sotto -->
+                    <div class="border-t border-slate-700 pt-4 space-y-3">
+                        <div>
+                            <h2 class="text-sm font-semibold text-slate-100">
+                                CV per i suggerimenti
+                            </h2>
+                            <p class="text-[11px] text-slate-300 mt-1">
+                                Carica un file di testo con il tuo CV. Verrà usato solo per generare suggerimenti, non
+                                per
+                                le traduzioni.
+                            </p>
+                        </div>
+                        <div
+                            class="rounded-xl border border-slate-700 bg-slate-900/80 p-3 text-xs space-y-2 max-h-[260px] overflow-y-auto">
+                            <label class="block text-[11px] font-medium text-slate-200 mb-1">
+                                Carica CV da file (.txt)
+                            </label>
+                            <input type="file" accept=".txt,.md,.rtf"
+                                class="block w-full text-[11px] text-slate-200 file:text-[11px] file:px-2 file:py-1 file:mr-2 file:rounded-md file:border-0 file:bg-emerald-600 file:text-white file:cursor-pointer cursor-pointer"
+                                @change="onCvFileChange" />
+                            <p class="text-[10px] text-slate-500 mt-2">
+                                Suggerimento: salva il tuo CV in formato testo (.txt) e caricalo da qui.
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="mt-4 space-y-6">
-                <!-- Righe principali: originale, traduzione, suggerimenti affiancati -->
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
-                    <div class="flex flex-col gap-2">
-                        <div class="flex items-center justify-between">
-                            <span class="text-base md:text-lg font-semibold text-slate-100">
-                                {{ ui.originalTitle }}
-                            </span>
-                            <span class="text-xs text-slate-400">
-                                {{ ui.originalSubtitle }}
-                            </span>
-                        </div>
-                        <div ref="originalBox"
-                            class="h-[100px] md:min-h-[260px] md:max-h-[420px] rounded-xl border border-slate-700 bg-slate-900/60 p-4 text-sm md:text-base lg:text-lg overflow-y-auto leading-relaxed">
-                            <p v-if="!displayOriginalText" class="text-slate-500 text-xs md:text-sm">
-                                {{ ui.originalPlaceholder }}
-                            </p>
-                            <p v-else class="whitespace-pre-wrap">
-                                {{ displayOriginalText }}
-                            </p>
-                        </div>
-                    </div>
+            <!-- TAB 2: Traduttore Video Youtube -->
+            <div v-else class="flex flex-col gap-4">
+                <p v-if="statusMessage" class="text-xs text-slate-300 text-center">
+                    {{ statusMessage }}
+                </p>
 
-                    <div class="flex flex-col gap-2">
-                        <div class="flex items-center justify-between">
-                            <span class="text-base md:text-lg font-semibold text-slate-100">
-                                {{ ui.translationTitle }}
-                            </span>
-                            <span class="text-xs text-slate-400">
-                                GPT / Neuron AI
-                            </span>
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    <!-- Colonna impostazioni video -->
+                    <div class="lg:col-span-1 space-y-3">
+                        <div class="space-y-2">
+                            <label class="text-xs font-semibold text-emerald-400">
+                                URL video YouTube
+                            </label>
+                            <input v-model="youtubeUrl" type="text" placeholder="https://www.youtube.com/watch?v=..."
+                                class="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                            <p class="text-[11px] text-slate-400">
+                                Incolla qui il link del video che vuoi usare durante la call di lavoro.
+                            </p>
                         </div>
-                        <div ref="translationBox"
-                            class="h-[100px] md:min-h-[260px] md:max-h-[420px] rounded-xl border border-slate-700 bg-slate-900/60 p-4 text-sm md:text-base lg:text-lg overflow-y-auto leading-relaxed">
-                            <div v-if="!hasAnyTranslation" class="text-slate-500 text-xs md:text-sm">
-                                La traduzione apparirà qui man mano che parli.
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div class="flex flex-col gap-1">
+                                <label class="text-xs font-semibold text-emerald-400">
+                                    Lingua del video
+                                </label>
+                                <select v-model="youtubeLangSource"
+                                    class="bg-slate-900 border text-sm rounded-md px-3 py-2 focus:outline-none focus:ring-2"
+                                    :class="youtubeLangSource ? 'border-slate-600 focus:ring-emerald-500' : 'border-red-500 focus:ring-red-500'">
+                                    <option value="">-- Seleziona --</option>
+                                    <option v-for="opt in availableLanguages" :key="'yt-src-' + opt.code"
+                                        :value="opt.code">
+                                        {{ opt.label }}
+                                    </option>
+                                </select>
                             </div>
-                            <div v-else class="space-y-2">
-                                <!-- Frasi già tradotte (segmenti fissi) -->
-                                <div v-for="(seg, idx) in translationSegments" :key="'seg-' + idx"
-                                    class="whitespace-pre-wrap">
-                                    {{ seg }}
-                                </div>
-                                <!-- Frase corrente in streaming, aggiornata token per token con manipolazione diretta DOM -->
-                                <div ref="translationLiveContainer" class="whitespace-pre-wrap"></div>
+                            <div class="flex flex-col gap-1">
+                                <label class="text-xs font-semibold text-emerald-400">
+                                    Lingua di traduzione
+                                </label>
+                                <select v-model="youtubeLangTarget"
+                                    class="bg-slate-900 border text-sm rounded-md px-3 py-2 focus:outline-none focus:ring-2"
+                                    :class="youtubeLangTarget ? 'border-slate-600 focus:ring-emerald-500' : 'border-red-500 focus:ring-red-500'">
+                                    <option value="">-- Seleziona --</option>
+                                    <option v-for="opt in availableLanguages" :key="'yt-tgt-' + opt.code"
+                                        :value="opt.code">
+                                        {{ opt.label }}
+                                    </option>
+                                </select>
                             </div>
                         </div>
-                    </div>
-                    <div class="flex flex-col gap-2">
-                        <div class="flex items-center justify-between gap-4">
-                            <div>
-                                <h2 class="text-base md:text-lg font-semibold text-slate-100">
-                                    {{ ui.suggestionsTitle }}
-                                    <span v-if="langA && langB" class="text-sm text-emerald-400">
-                                        ({{ langA.toUpperCase() }} + {{ langB.toUpperCase() }})
+
+                        <button type="button" @click="onYoutubeTranslateClick"
+                            class="mt-2 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold border border-emerald-500 text-emerald-100 bg-emerald-700 hover:bg-emerald-600 transition">
+                            Avvia modalità interprete sul video
+                        </button>
+
+                        <p class="text-[11px] text-slate-400 mt-2">
+                            Il video verrà riprodotto qui a fianco. Tu parli ad alta voce quello che senti e il sistema
+                            farà da interprete come nella modalità microfono: ad ogni frase tradotta il video si mette
+                            in
+                            pausa mentre legge la traduzione, poi riprende automaticamente.
+                        </p>
+
+                        <!-- Controllo microfono per modalità YouTube (interprete umano) -->
+                        <div class="mt-4 space-y-1">
+                            <button type="button" @click="toggleListeningForLang('A')" :disabled="!langA || !langB"
+                                class="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition
+                                    focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 border"
+                                :class="activeSpeaker === 'A' && isListening
+                                    ? 'bg-emerald-600 text-white border-emerald-400 shadow-lg shadow-emerald-500/30'
+                                    : 'bg-slate-700 text-slate-100 border-slate-500 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed'">
+                                <span
+                                    class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-black/30 border border-slate-500">
+                                    <span class="inline-block w-1.5 h-3 rounded-full"
+                                        :class="activeSpeaker === 'A' && isListening ? 'bg-red-400 animate-pulse' : 'bg-slate-300'">
                                     </span>
-                                </h2>
-                            </div>
-                        </div>
-
-                        <div ref="suggestionsBox"
-                            class="h-[100px] md:min-h-[260px] md:max-h-[420px] rounded-xl border border-slate-700 bg-slate-900/70 p-4 text-xs md:text-sm lg:text-base overflow-y-auto space-y-3 leading-relaxed">
-                            <div v-if="!cvText" class="text-xs md:text-sm text-slate-500">
-                                Carica il tuo CV qui sotto per abilitare i suggerimenti basati sul curriculum.
-                            </div>
-
-                            <div v-else-if="!langA || !langB" class="text-xs md:text-sm text-slate-500">
-                                Seleziona entrambe le lingue per visualizzare i suggerimenti bilingue.
-                            </div>
-
-                            <div v-else>
-                                <p v-if="isLoadingSuggestion" class="text-xs md:text-sm text-emerald-300 mb-2">
-                                    Sto preparando un suggerimento basato sul tuo CV...
-                                </p>
-
-                                <div v-if="suggestions.length === 0 && !isLoadingSuggestion"
-                                    class="text-xs md:text-sm text-slate-500">
-                                    Quando il sistema riconosce una frase (domanda o tua risposta), qui comparirà un
-                                    suggerimento nelle due lingue selezionate coerente con il tuo CV.
-                                </div>
-
-                                <div v-for="(item, idx) in suggestions" :key="idx"
-                                    class="rounded-lg border border-slate-700 bg-slate-900/80 p-3 md:p-4 space-y-2 mb-2">
-                                    <div class="text-[11px] md:text-xs text-slate-400">
-                                        Riferito alla frase:
-                                        <span class="italic text-slate-300">
-                                            "{{ item.utterancePreview }}"
-                                        </span>
-                                    </div>
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                        <div class="space-y-1">
-                                            <div class="text-[11px] md:text-xs font-semibold text-slate-200">
-                                                {{ getLangLabel(item.langA) }}
-                                            </div>
-                                            <div
-                                                class="text-xs md:text-sm text-slate-100 whitespace-pre-wrap leading-relaxed">
-                                                {{ item.suggestionLangA }}
-                                            </div>
-                                        </div>
-                                        <div class="space-y-1">
-                                            <div class="text-[11px] md:text-xs font-semibold text-slate-200">
-                                                {{ getLangLabel(item.langB) }}
-                                            </div>
-                                            <div
-                                                class="text-xs md:text-sm text-slate-100 whitespace-pre-wrap leading-relaxed">
-                                                {{ item.suggestionLangB }}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                                </span>
+                                <span>
+                                    {{ activeSpeaker === 'A' && isListening
+                                        ? 'Interprete attivo: parla sopra il video'
+                                        : 'Parla sopra il video (interprete)' }}
+                                </span>
+                            </button>
+                            <p class="text-[11px] text-slate-400">
+                                Riconosco la tua voce in <span class="font-semibold">{{ getLangLabel(langA) }}</span> e
+                                traduco in <span class="font-semibold">{{ getLangLabel(langB) }}</span>.
+                            </p>
                         </div>
                     </div>
-                </div>
 
-                <!-- CV spostato sotto -->
-                <div class="border-t border-slate-700 pt-4 space-y-3">
-                    <div>
-                        <h2 class="text-sm font-semibold text-slate-100">
-                            CV per i suggerimenti
-                        </h2>
-                        <p class="text-[11px] text-slate-300 mt-1">
-                            Carica un file di testo con il tuo CV. Verrà usato solo per generare suggerimenti, non per
-                            le traduzioni.
-                        </p>
-                    </div>
-                    <div
-                        class="rounded-xl border border-slate-700 bg-slate-900/80 p-3 text-xs space-y-2 max-h-[260px] overflow-y-auto">
-                        <label class="block text-[11px] font-medium text-slate-200 mb-1">
-                            Carica CV da file (.txt)
-                        </label>
-                        <input type="file" accept=".txt,.md,.rtf"
-                            class="block w-full text-[11px] text-slate-200 file:text-[11px] file:px-2 file:py-1 file:mr-2 file:rounded-md file:border-0 file:bg-emerald-600 file:text-white file:cursor-pointer cursor-pointer"
-                            @change="onCvFileChange" />
-                        <p class="text-[10px] text-slate-500 mt-2">
-                            Suggerimento: salva il tuo CV in formato testo (.txt) e caricalo da qui.
-                        </p>
+                    <!-- Colonna video + pannelli di traduzione riutilizzati -->
+                    <div class="lg:col-span-2 space-y-4">
+                        <div
+                            class="aspect-video w-full rounded-xl border border-slate-700 bg-black overflow-hidden flex items-center justify-center">
+                            <div v-if="!youtubeVideoId" class="text-xs text-slate-400 px-4 text-center">
+                                Incolla un URL di YouTube e clicca
+                                <span class="font-semibold text-emerald-300">"Avvia modalità interprete sul
+                                    video"</span>
+                                per caricare il player.
+                            </div>
+                            <div v-else ref="youtubePlayer" class="w-full h-full"></div>
+                        </div>
+
+                        <!-- Riutilizzo pannelli originale/traduzione (solo layout) -->
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                            <div class="flex flex-col gap-2">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm md:text-base font-semibold text-slate-100">
+                                        Testo riconosciuto dal microfono
+                                    </span>
+                                </div>
+                                <div ref="originalBox"
+                                    class="h-[120px] md:h-[200px] rounded-xl border border-slate-700 bg-slate-900/60 p-3 text-xs md:text-sm overflow-y-auto leading-relaxed">
+                                    <p v-if="!displayOriginalText" class="text-slate-500 text-xs md:text-sm">
+                                        Inizia a parlare sopra il video per vedere qui le frasi riconosciute.
+                                    </p>
+                                    <p v-else class="whitespace-pre-wrap">
+                                        {{ displayOriginalText }}
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="flex flex-col gap-2">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm md:text-base font-semibold text-slate-100">
+                                        Traduzione in tempo reale
+                                    </span>
+                                </div>
+                                <div ref="translationBox"
+                                    class="h-[120px] md:h-[200px] rounded-xl border border-slate-700 bg-slate-900/60 p-3 text-xs md:text-sm overflow-y-auto leading-relaxed">
+                                    <div v-if="!hasAnyTranslation" class="text-slate-500 text-xs md:text-sm">
+                                        Le traduzioni delle frasi parlate appariranno qui, mentre il video si mette in
+                                        pausa durante il doppiaggio.
+                                    </div>
+                                    <div v-else class="space-y-2">
+                                        <div v-for="(seg, idx) in translationSegments" :key="'yt-seg-' + idx"
+                                            class="whitespace-pre-wrap">
+                                            {{ seg }}
+                                        </div>
+                                        <div ref="translationLiveContainer" class="whitespace-pre-wrap"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -254,6 +454,9 @@ export default {
     },
     data() {
         return {
+            // Tab attiva: 'call' (interprete) o 'youtube' (video)
+            activeTab: 'call',
+
             isListening: false,
             recognition: null,
             originalConfirmed: '',
@@ -284,6 +487,15 @@ export default {
             wasListeningBeforeTts: false,
             lastSpeakerBeforeTts: null,
             translationThreadId: null,
+
+            // Stato per modalità "Traduttore Video Youtube"
+            youtubeUrl: '',
+            youtubeVideoId: '',
+            youtubePlayer: null,
+            youtubeLangSource: '',
+            youtubeLangTarget: '',
+            isYoutubePlayerReady: false,
+
             availableLanguages: [
                 // Lingue principali europee
                 { code: 'it', label: '🇮🇹 Italiano', micCode: 'it-IT' },
@@ -394,6 +606,15 @@ export default {
         }
     },
     methods: {
+        setActiveTab(tab) {
+            this.activeTab = tab;
+            // In modalità YouTube abilitiamo sempre il doppiaggio,
+            // perché serve a fare da interprete sopra al video.
+            if (tab === 'youtube') {
+                this.readTranslationEnabled = true;
+            }
+        },
+
         getLangLabel(langCode) {
             const lang = this.availableLanguages.find(l => l.code === langCode);
             return lang ? lang.label : langCode.toUpperCase();
@@ -705,6 +926,14 @@ export default {
             try {
                 this.isListening = true;
                 this.recognition.start();
+
+                // In modalità YouTube, aspetta 1 secondo dopo l'attivazione del microfono
+                // e poi prova a far partire il video (quando il player è pronto).
+                if (this.activeTab === 'youtube') {
+                    setTimeout(() => {
+                        this.playYoutubeAfterMic();
+                    }, 1000);
+                }
             } catch (e) {
                 this.statusMessage = 'Impossibile avviare il microfono.';
                 this.isListening = false;
@@ -889,6 +1118,11 @@ export default {
 
             this.isTtsPlaying = true;
 
+            // In modalità YouTube, mettiamo in pausa il video mentre parte il TTS
+            if (this.activeTab === 'youtube') {
+                this.pauseYoutubeIfNeeded();
+            }
+
             // Se il microfono è attivo, mettilo in pausa mentre il TTS parla
             this.wasListeningBeforeTts = this.isListening;
             this.lastSpeakerBeforeTts = this.activeSpeaker;
@@ -963,6 +1197,56 @@ export default {
                 this.isTtsPlaying = false;
                 this.processTtsQueue();
             }
+        },
+
+        pauseYoutubeIfNeeded() {
+            try {
+                if (this.youtubePlayer && typeof this.youtubePlayer.pauseVideo === 'function') {
+                    this.youtubePlayer.pauseVideo();
+                }
+            } catch {
+                // ignora errori del player
+            }
+        },
+
+        resumeYoutubeIfNeeded() {
+            try {
+                if (this.youtubePlayer && typeof this.youtubePlayer.playVideo === 'function') {
+                    this.youtubePlayer.playVideo();
+                }
+            } catch {
+                // ignora errori del player
+            }
+        },
+
+        playYoutubeAfterMic() {
+            // Prova a far partire il video non appena il player è pronto.
+            const tryPlay = () => {
+                try {
+                    if (this.youtubePlayer && typeof this.youtubePlayer.playVideo === 'function') {
+                        this.youtubePlayer.playVideo();
+                    }
+                } catch {
+                    // se il browser blocca l'autoplay, l'utente può premere play manualmente
+                }
+            };
+
+            if (this.isYoutubePlayerReady) {
+                tryPlay();
+                return;
+            }
+
+            // Polling leggero per qualche secondo finché il player non diventa pronto
+            const start = Date.now();
+            const maxMs = 5000;
+            const interval = setInterval(() => {
+                if (this.isYoutubePlayerReady || Date.now() - start > maxMs) {
+                    clearInterval(interval);
+                    if (this.isYoutubePlayerReady) {
+                        tryPlay();
+                    }
+                }
+            }, 200);
         },
 
         maybeStartPreviewTranslation(interimText) {
@@ -1139,6 +1423,137 @@ export default {
                 this.autoRestart = true;
                 this.statusMessage = 'Modalità browser attivata: userò il riconoscimento vocale del browser.';
             }
+        },
+
+        // --- Modalità Traduttore Video Youtube ---
+        extractYoutubeVideoId(url) {
+            try {
+                const trimmed = (url || '').trim();
+                if (!trimmed) return '';
+
+                // Formati supportati: https://www.youtube.com/watch?v=ID, youtu.be/ID, short URLs con parametri
+                const patterns = [
+                    /(?:youtube\.com\/.*v=)([^&#?/]+)/i,
+                    /youtu\.be\/([^&#?/]+)/i,
+                ];
+
+                for (const re of patterns) {
+                    const match = trimmed.match(re);
+                    if (match && match[1]) {
+                        return match[1];
+                    }
+                }
+                return '';
+            } catch {
+                return '';
+            }
+        },
+
+        async onYoutubeTranslateClick() {
+            const id = this.extractYoutubeVideoId(this.youtubeUrl);
+            if (!id) {
+                this.statusMessage = 'URL YouTube non valido. Usa un link completo al video.';
+                return;
+            }
+
+            if (!this.youtubeLangSource || !this.youtubeLangTarget) {
+                this.statusMessage = 'Seleziona sia la lingua del video che la lingua di traduzione.';
+                return;
+            }
+
+            if (this.youtubeLangSource === this.youtubeLangTarget) {
+                this.statusMessage = 'Le due lingue devono essere diverse per la modalità interprete.';
+                return;
+            }
+
+            this.youtubeVideoId = id;
+            this.statusMessage = '';
+
+            // Sincronizza le lingue con la modalità interprete standard
+            this.langA = this.youtubeLangSource;
+            this.langB = this.youtubeLangTarget;
+            this.onLanguagePairChange();
+
+            // In modalità YouTube vogliamo il doppiaggio automatico
+            this.readTranslationEnabled = true;
+
+            await this.initYoutubePlayer();
+
+            // Avvia automaticamente il microfono in lingua A (interprete umano sopra al video)
+            try {
+                await this.toggleListeningForLang('A');
+            } catch {
+                // Se fallisce (permessi microfono, ecc.), l'utente può usare il pulsante manuale
+            }
+        },
+
+        async initYoutubePlayer() {
+            if (!this.youtubeVideoId) {
+                return;
+            }
+
+            // Se il player esiste già, aggiorna solo il video
+            if (this.youtubePlayer && this.isYoutubePlayerReady) {
+                try {
+                    this.youtubePlayer.loadVideoById(this.youtubeVideoId);
+                } catch {
+                    // fallback: ricrea il player
+                    this.youtubePlayer = null;
+                    this.isYoutubePlayerReady = false;
+                }
+            }
+
+            if (this.youtubePlayer) {
+                return;
+            }
+
+            const createPlayer = () => {
+                try {
+                    this.youtubePlayer = new window.YT.Player(this.$refs.youtubePlayer, {
+                        videoId: this.youtubeVideoId,
+                        playerVars: {
+                            rel: 0,
+                            modestbranding: 1,
+                        },
+                        events: {
+                            onReady: () => {
+                                this.isYoutubePlayerReady = true;
+                            },
+                        },
+                    });
+                } catch {
+                    // ignora errori di inizializzazione
+                }
+            };
+
+            if (window.YT && window.YT.Player) {
+                createPlayer();
+                return;
+            }
+
+            // Carica l'API iframe di YouTube se non è presente
+            return new Promise((resolve) => {
+                const existing = document.getElementById('youtube-iframe-api');
+                if (!existing) {
+                    const tag = document.createElement('script');
+                    tag.id = 'youtube-iframe-api';
+                    tag.src = 'https://www.youtube.com/iframe_api';
+                    document.body.appendChild(tag);
+                }
+
+                const previous = window.onYouTubeIframeAPIReady;
+                window.onYouTubeIframeAPIReady = () => {
+                    if (typeof previous === 'function') {
+                        try {
+                            previous();
+                        } catch {
+                            // ignore
+                        }
+                    }
+                    createPlayer();
+                    resolve();
+                };
+            });
         },
 
         detectSpokenLanguage(text) {

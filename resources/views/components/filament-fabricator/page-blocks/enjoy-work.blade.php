@@ -2,22 +2,11 @@
 <div class="flex flex-col h-screen w-screen bg-[#343541]">
 
   <!-- Header -->
-  <div class="p-4 flex flex-col gap-3">
-    <div class="flex items-center gap-3">
-      <img id="teamLogo" src="/images/logoai.jpeg" alt="{{ __('enjoy-work.company_logo_alt') }}"
-           class="w-12 h-12 rounded-full object-cover border border-gray-500">
-      <h1 id="teamName" class="font-sans text-3xl text-white">EnjoyWork</h1>
-      <a href="/enjoy-talk-3d" class="ml-auto px-3 py-2 text-sm bg-emerald-600 hover:bg-emerald-700 text-white rounded-md">EnjoyTalk 3D</a>
-    </div>
-    <!-- Toggle Chat Mode -->
-    <div class="flex items-center gap-2">
-      <button id="toggleChatMode" class="flex items-center gap-2 px-3 py-2 rounded-md bg-[#4f4f58] hover:bg-[#5e5e69] text-white text-sm transition">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
-        </svg>
-        <span id="chatModeLabel" class="font-medium">Modalità Business</span>
-      </button>
-    </div>
+  <div class="p-4 flex items-center gap-3">
+    <img id="teamLogo" src="/images/logoai.jpeg" alt="{{ __('enjoy-work.company_logo_alt') }}" 
+         class="w-12 h-12 rounded-full object-cover border border-gray-500">
+    <h1 id="teamName" class="font-sans text-3xl text-white">EnjoyWork</h1>
+    <a href="/enjoy-talk-3d" class="ml-auto px-3 py-2 text-sm bg-emerald-600 hover:bg-emerald-700 text-white rounded-md">EnjoyTalk 3D</a>
   </div>
 
   <!-- Bottoni di risposte rapide -->
@@ -67,34 +56,6 @@ document.addEventListener('DOMContentLoaded', function() {
   let productIds = [];
   const teamSlug = window.location.pathname.split('/').pop();
   let firstMessageSent = false;
-  let currentPromptType = 'business'; // 'business' o 'chat_libera'
-
-  // Toggle button
-  const toggleButton = document.getElementById('toggleChatMode');
-  const chatModeLabel = document.getElementById('chatModeLabel');
-
-  function updateChatModeLabel() {
-    chatModeLabel.textContent = currentPromptType === 'business' ? 'Modalità Business' : 'Chat Libera';
-  }
-
-  toggleButton.addEventListener('click', function() {
-    currentPromptType = currentPromptType === 'business' ? 'chat_libera' : 'business';
-    updateChatModeLabel();
-    // Reset thread per cambiare modalità
-    threadId = null;
-    messagesElement.innerHTML = '';
-    // Invia nuovo greeting
-    postMessage(translations.greeting).then(response => {
-      const botMessage = {
-        id: Date.now(),
-        role: 'bot',
-        content: formatMessageContent(response.message),
-      };
-      addMessageToChat(botMessage);
-    });
-  });
-
-  updateChatModeLabel();
 
   // Estrai l'UUID dalla query string
   const urlParams = new URLSearchParams(window.location.search);
@@ -243,74 +204,26 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   async function postMessage(message) {
-    return new Promise((resolve) => {
-      try {
-        const params = new URLSearchParams({
+    try {
+      const response = await fetch('/api/chatbot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           message,
+          thread_id: threadId,
           team: teamSlug,
-          locale: locale,
-        });
-
-        if (uuid) {
-          params.set('uuid', uuid);
-        }
-
-        if (threadId) {
-          params.set('thread_id', threadId);
-        }
-
-        const endpoint = `/api/chatbot/neuron-website-stream?${params.toString()}`;
-        const evtSource = new EventSource(endpoint);
-        let collected = '';
-        let localThreadId = threadId;
-
-        evtSource.addEventListener('message', (e) => {
-          try {
-            const data = JSON.parse(e.data);
-            if (data.token) {
-              // Il primo token può contenere il thread_id in JSON
-              try {
-                const tok = JSON.parse(data.token);
-                if (tok && tok.thread_id) {
-                  localThreadId = tok.thread_id;
-                  return;
-                }
-              } catch (err) {
-                // token è solo testo, continua sotto
-              }
-              collected += data.token;
-            }
-          } catch (err) {
-            console.warn('Errore parsing SSE message:', err);
-          }
-        });
-
-        evtSource.addEventListener('done', () => {
-          try {
-            evtSource.close();
-          } catch (e) {}
-
-          threadId = localThreadId || threadId;
-          const finalMessage = collected || translations.send_error_message;
-
-          resolve({
-            message: finalMessage,
-            thread_id: threadId,
-          });
-        });
-
-        evtSource.addEventListener('error', (e) => {
-          console.error('Errore SSE:', e);
-          try {
-            evtSource.close();
-          } catch (err) {}
-          resolve({ message: translations.send_error_message });
-        });
-      } catch (error) {
-        console.error('Errore invio messaggio:', error);
-        resolve({ message: translations.send_error_message });
-      }
-    });
+          product_ids: productIds,
+          uuid: uuid, // Passa l'UUID all'API se disponibile
+          locale: locale
+        }),
+      });
+      const data = await response.json();
+      threadId = data.thread_id;
+      return data;
+    } catch (error) {
+      console.error('Errore invio messaggio:', error);
+      return { message: translations.send_error_message };
+    }
   }
 });
 </script>
