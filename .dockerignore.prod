@@ -18,9 +18,6 @@ yarn-error.log
 .env
 .env.backup
 .env.production
-.env.prod.local
-.env.prod
-.env.*
 .phpunit.result.cache
 
 # IDE and editor files
@@ -60,12 +57,3 @@ phpunit.xml
 *.sqlite
 *.sqlite-journal
 storage/webscraper/
-
-# Docker image exports
-*.tar
-*.tar.gz
-avatar-3d-v1-*.tar.gz
-
-# Database dumps
-*.sql
-ecommerce.sql

@@ -220,16 +220,19 @@ class CalzaturieroController extends Controller
 
             return response()->json($orderData);
         } catch (Throwable $e) {
-            Log::error('Errore in processCustomerOrder: ' . $e->getMessage(), ['exception' => $e]);
+            Log::error('Errore in processCustomerOrder: ' . $e->getMessage(), [
+                'exception' => $e,
+                'trace' => $e->getTraceAsString(),
+            ]);
             if ($processedFile) {
                 $processedFile->update([
                     'status'        => 'failed',
                     'error_message' => $e->getMessage(),
                 ]);
             }
+            // Non esporre dettagli interni all'utente
             return response()->json([
-                'error'   => 'Si è verificato un errore durante l\'elaborazione.',
-                'message' => $e->getMessage()
+                'error' => 'Si è verificato un errore durante l\'elaborazione. Contatta il supporto se il problema persiste.',
             ], 500);
         }
     }

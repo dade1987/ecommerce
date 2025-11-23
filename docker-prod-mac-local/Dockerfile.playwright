@@ -95,8 +95,21 @@ RUN apk add --no-cache \
     && apk del autoconf g++ make \
     && rm -rf /var/cache/apk/*
 
-# Installa bash
-RUN apk add --no-cache bash
+# Installa Node.js per Playwright scraper e bash
+RUN apk add --no-cache \
+    nodejs \
+    npm \
+    # Dipendenze per Chromium
+    chromium \
+    nss \
+    freetype \
+    harfbuzz \
+    ca-certificates \
+    ttf-freefont \
+    # Font aggiuntivi per rendering corretto
+    font-noto-emoji \
+    # Shell
+    bash
 
 # Crea directory necessarie
 RUN mkdir -p /var/www/html \
@@ -104,6 +117,17 @@ RUN mkdir -p /var/www/html \
     && mkdir -p /run/nginx \
     && mkdir -p /var/www/.cache \
     && chown -R www-data:www-data /var/www
+
+# Installa Playwright e scarica browser Chromium
+# Le dipendenze di sistema per Chromium sono già installate sopra con apk
+ENV PLAYWRIGHT_BROWSERS_PATH=/var/www/.cache/ms-playwright
+RUN npm install -g playwright@1.49.0 \
+    && npx playwright install chromium \
+    && chown -R www-data:www-data /var/www/.cache
+
+# Crea file .env.playwright per lo scraper
+RUN echo "PLAYWRIGHT_BROWSERS_PATH=/var/www/.cache/ms-playwright" > /var/www/html/.env.playwright \
+    && chown www-data:www-data /var/www/html/.env.playwright
 
 # Copia configurazioni
 COPY docker-prod/php.ini /usr/local/etc/php/conf.d/zz-custom.ini

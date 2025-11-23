@@ -23,14 +23,10 @@ if (!url) {
     let browser;
 
     try {
-        // Explicitly set the browser path to use the full chromium browser
-        const browserPath = process.env.PLAYWRIGHT_BROWSERS_PATH || '/var/www/.cache/ms-playwright';
-        const executablePath = `${browserPath}/chromium-1194/chrome-linux/chrome`;
-
         // Launch Chromium browser with anti-detection settings
+        // Let Playwright find the browser automatically from PLAYWRIGHT_BROWSERS_PATH
         browser = await chromium.launch({
             headless: true,
-            executablePath: executablePath,
             args: [
                 '--no-sandbox',
                 '--disable-setuid-sandbox',

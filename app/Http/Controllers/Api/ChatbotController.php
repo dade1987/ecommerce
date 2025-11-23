@@ -877,17 +877,46 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
      */
     private function scrapeUrl(string $url, string $query): array
     {
-        Log::info('scrapeUrl: Inizio scraping URL con query personalizzata', [
-            'url' => $url,
-            'query' => $query,
-        ]);
-
         if (empty($url)) {
             return ['error' => 'URL non fornito.'];
         }
 
         if (empty($query)) {
             return ['error' => 'Query di ricerca non fornita.'];
+        }
+
+        // Validazione URL per prevenire SSRF
+        if (!filter_var($url, FILTER_VALIDATE_URL)) {
+            return ['error' => 'Formato URL non valido.'];
+        }
+
+        $parsedUrl = parse_url($url);
+
+        // Permetti solo HTTP/HTTPS
+        if (!isset($parsedUrl['scheme']) || !in_array($parsedUrl['scheme'], ['http', 'https'])) {
+            return ['error' => 'Solo protocolli HTTP e HTTPS sono consentiti.'];
+        }
+
+        // Blocca IP privati e localhost per prevenire SSRF
+        $host = $parsedUrl['host'] ?? '';
+        $ip = gethostbyname($host);
+
+        // Verifica se l'IP è privato o riservato
+        if ($ip !== $host) { // gethostbyname ha risolto l'IP
+            if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+                return ['error' => 'Accesso a indirizzi IP privati o riservati non consentito.'];
+            }
+        }
+
+        // Blocca esplicitamente localhost e varianti
+        $blockedHosts = ['localhost', '127.0.0.1', '0.0.0.0', '::1'];
+        if (in_array(strtolower($host), $blockedHosts)) {
+            return ['error' => 'Accesso a localhost non consentito.'];
+        }
+
+        // Limita lunghezza query
+        if (strlen($query) > 500) {
+            $query = substr($query, 0, 500);
         }
 
         try {

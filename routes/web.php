@@ -48,5 +48,12 @@ Route::middleware('auth')->group(function () {
 
 });
 
-Route::get('{container0}/{item0?}/{container1?}/{item1?}/{container2?}/{item2?}', [PageController::class, 'index']);
+Route::get('{container0}/{item0?}/{container1?}/{item1?}/{container2?}/{item2?}', [PageController::class, 'index'])
+    ->middleware('auth')
+    ->where('container0', '[a-z0-9\-]+')
+    ->where('item0', '[a-z0-9\-]*')
+    ->where('container1', '[a-z0-9\-]*')
+    ->where('item1', '[a-z0-9\-]*')
+    ->where('container2', '[a-z0-9\-]*')
+    ->where('item2', '[a-z0-9\-]*');
 

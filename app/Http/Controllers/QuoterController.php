@@ -25,8 +25,6 @@ class QuoterController extends Controller
         $minutes = 60; // Durata del cookie in minuti
         $thread = $this->client->threads()->create([]);
 
-        Log::info('thread id '.$thread->id);
-
         return response('Thread_id cookie impostato')->cookie(
             'thread_id',
             $thread->id,
@@ -36,17 +34,25 @@ class QuoterController extends Controller
 
     public function uploadFile(Request $request)
     {
-        $threadId = $request->cookie('thread_id');
-        $userMessage = $request->input('message');
-        $locale = $request->input('locale', 'it');
-        App::setLocale($locale);
+        // Validazione file upload
+        $validated = $request->validate([
+            'file' => 'required|file|max:10240|mimes:pdf,doc,docx,jpg,jpeg,png,txt,csv,xlsx',
+            'message' => 'nullable|string|max:1000',
+            'locale' => 'nullable|string|in:it,en',
+        ]);
 
-        Log::info('thread id '.$threadId);
+        $threadId = $request->cookie('thread_id');
+        if (!$threadId) {
+            return response()->json(['error' => 'Thread ID mancante'], 400);
+        }
+
+        $locale = $validated['locale'] ?? 'it';
+        App::setLocale($locale);
 
         // Verifica se è stato caricato un file
         if ($request->hasFile('file')) {
             $file = $request->file('file');
-            $path = $file->store('uploads', 'public'); // Salva il file e ottieni la path
+            $path = $file->store('uploads', 'local'); // Salva in storage locale, non pubblico
 
             // Carica il file utilizzando la path
             $response = $this->client->files()->upload([
@@ -87,12 +93,19 @@ class QuoterController extends Controller
 
     public function sendMessage(Request $request)
     {
-        $threadId = $request->cookie('thread_id');
-        $userMessage = $request->input('message');
-        $locale = $request->input('locale', 'it');
-        App::setLocale($locale);
+        $validated = $request->validate([
+            'message' => 'required|string|max:2000',
+            'locale' => 'nullable|string|in:it,en',
+        ]);
 
-        Log::info('thread id '.$threadId);
+        $threadId = $request->cookie('thread_id');
+        if (!$threadId) {
+            return response()->json(['error' => 'Thread ID mancante'], 400);
+        }
+
+        $userMessage = $validated['message'];
+        $locale = $validated['locale'] ?? 'it';
+        App::setLocale($locale);
 
         $content = $this->generateContentBasedOnMessage($userMessage);
 
@@ -143,16 +156,24 @@ class QuoterController extends Controller
 
     private function retrieveRunResult($threadId, $runId)
     {
-        while (true) {
-            $run = $this->client->threads()->runs()->retrieve($threadId, $runId);
+        $maxAttempts = 60; // Timeout dopo 60 secondi
+        $attempts = 0;
 
-            Log::info(var_export($run, true));
+        while ($attempts < $maxAttempts) {
+            $run = $this->client->threads()->runs()->retrieve($threadId, $runId);
 
             if ($run->status === 'completed') {
                 return $run;
             }
 
-            sleep(1); // Attende un secondo prima di fare un'altra richiesta
+            if ($run->status === 'failed' || $run->status === 'cancelled') {
+                throw new \Exception('Run failed or cancelled');
+            }
+
+            $attempts++;
+            sleep(1);
         }
+
+        throw new \Exception('Run timeout exceeded');
     }
 }

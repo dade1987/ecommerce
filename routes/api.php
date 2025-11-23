@@ -70,35 +70,70 @@ Route::get('/events/{slug}', function ($slug) {
 });
 
 Route::post('/order/{slug}', function (Request $request, $slug) {
+    // Validazione input
+    $validated = $request->validate([
+        'delivery_date' => 'required|date|after:now',
+        'user_phone' => 'required|string|max:20|regex:/^[0-9\-\+\(\)\s]+$/',
+        'product_ids' => 'nullable|array',
+        'product_ids.*' => 'integer|exists:products,id',
+    ]);
+
     $team = App\Models\Team::where('slug', $slug)->firstOrFail();
+
+    // Verifica che i prodotti appartengano al team
+    if (!empty($validated['product_ids'])) {
+        $validProducts = App\Models\Product::where('team_id', $team->id)
+            ->whereIn('id', $validated['product_ids'])
+            ->pluck('id')
+            ->toArray();
+
+        if (count($validProducts) !== count($validated['product_ids'])) {
+            return response()->json([
+                'error' => 'Alcuni prodotti non sono validi per questo team',
+            ], 422);
+        }
+    }
 
     $order = new App\Models\Order();
     $order->team_id = $team->id;
-    $order->delivery_date = $request->input('delivery_date');
-    $order->phone = $request->input('user_phone'); // Aggiungi il numero di telefono all'ordine
+    $order->delivery_date = $validated['delivery_date'];
+    $order->phone = $validated['user_phone'];
     $order->save();
 
-    $productIds = $request->input('product_ids', []);
-    $order->products()->attach($productIds);
+    if (!empty($validated['product_ids'])) {
+        $order->products()->attach($validated['product_ids']);
+    }
 
     return response()->json([
         'order_id' => $order->id,
         'message' => 'Ordine creato con successo',
-    ]);
-});
+    ], 201);
+})->middleware('throttle:10,1'); // Max 10 richieste al minuto per IP
 
 Route::post('/customers', function (Request $request) {
-    $customer = new App\Models\Customer();
-    $customer->name = $request->input('name');
-    $customer->phone = $request->input('phone');
-    $customer->email = $request->input('email');
-    $customer->save();
+    // Validazione input per prevenire injection e dati malformati
+    $validated = $request->validate([
+        'name' => 'required|string|max:255',
+        'phone' => 'required|string|max:20|regex:/^[0-9\-\+\(\)\s]+$/',
+        'email' => 'required|email:rfc,dns|max:255',
+    ]);
+
+    // Verifica se esiste già un cliente con questa email
+    $existingCustomer = App\Models\Customer::where('email', $validated['email'])->first();
+    if ($existingCustomer) {
+        return response()->json([
+            'customer_id' => $existingCustomer->id,
+            'message' => 'Cliente già esistente',
+        ], 200);
+    }
+
+    $customer = App\Models\Customer::create($validated);
 
     return response()->json([
         'customer_id' => $customer->id,
         'message' => 'Cliente creato con successo',
-    ]);
-});
+    ], 201);
+})->middleware('throttle:10,1'); // Max 10 richieste al minuto per IP
 
 Route::get('/faqs/{teamslug}', function (Request $request, $teamslug) {
     $query = $request->input('query');
@@ -135,36 +170,62 @@ Route::post('/calzaturiero/process-order/{slug}', [CalzaturieroController::class
 // curl -X POST -F "file=@/path/to/your/file.pdf" https://cavalliniservice.com/api/calzaturiero/extract-product-info
 // Assicurati di sostituire "/path/to/your/file.pdf" con il percorso effettivo del file PDF che vuoi caricare.
 
-Route::post('/chatbot', [ChatbotController::class, 'handleChat']);
-Route::get('/chatbot/stream', [RealtimeChatController::class, 'stream']);
-Route::get('/chatbot/website-stream', [RealtimeChatWebsiteController::class, 'websiteStream']);
-Route::get('/chatbot/neuron-website-stream', [NeuronWebsiteStreamController::class, 'stream']);
-Route::post('/tts', [TtsController::class, 'synthesize']);
-Route::post('/chatbot/email-transcript', [ChatTranscriptController::class, 'emailTranscript']);
-Route::get('/chatbot/history', [ChatTranscriptController::class, 'history']);
+// Chatbot endpoints con rate limiting per prevenire abusi e costi OpenAI eccessivi
+Route::post('/chatbot', [ChatbotController::class, 'handleChat'])
+    ->middleware('throttle:30,1'); // Max 30 richieste al minuto per IP
+Route::get('/chatbot/stream', [RealtimeChatController::class, 'stream'])
+    ->middleware('throttle:30,1');
+Route::get('/chatbot/website-stream', [RealtimeChatWebsiteController::class, 'websiteStream'])
+    ->middleware('throttle:30,1');
+Route::get('/chatbot/neuron-website-stream', [NeuronWebsiteStreamController::class, 'stream'])
+    ->middleware('throttle:30,1');
+Route::post('/tts', [TtsController::class, 'synthesize'])
+    ->middleware('throttle:20,1'); // TTS più costoso, limite più basso
+Route::post('/chatbot/email-transcript', [ChatTranscriptController::class, 'emailTranscript'])
+    ->middleware('throttle:5,1'); // Invio email limitato
+Route::get('/chatbot/history', [ChatTranscriptController::class, 'history'])
+    ->middleware('throttle:60,1');
 
 // Endpoint per servire immagini/risorse statiche con CORS
 Route::get('/static/{filename}', function (Request $request, $filename) {
+    // Validazione nome file - solo caratteri sicuri
+    if (!preg_match('/^[a-zA-Z0-9\-_\.\/]+$/', $filename)) {
+        return response()->json(['error' => 'Invalid filename format'], 400);
+    }
+
+    // Blocca path traversal esplicito
+    if (str_contains($filename, '..') || str_contains($filename, '//')) {
+        return response()->json(['error' => 'Invalid path'], 400);
+    }
+
     // Whitelist di estensioni permesse
     $allowedExtensions = ['glb', 'gltf', 'png', 'jpg', 'jpeg', 'webp', 'gif', 'svg'];
-    $pathinfo = pathinfo($filename);
-    $extension = strtolower($pathinfo['extension'] ?? '');
-    
+    $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+
     if (!in_array($extension, $allowedExtensions)) {
         return response()->json(['error' => 'File type not allowed'], 403);
     }
-    
+
     // Costruisci il path dalla cartella public
-    $filePath = public_path($filename);
-    
-    // Verifica che il file esista e sia dentro public_html
-    if (!file_exists($filePath) || !str_starts_with(realpath($filePath), realpath(public_path()))) {
+    $basePath = realpath(public_path());
+    $filePath = realpath(public_path($filename));
+
+    // Verifica che il file esista e sia dentro public_path (protezione path traversal)
+    if (!$filePath || !$basePath) {
         return response()->json(['error' => 'File not found'], 404);
     }
-    
+
+    if (!str_starts_with($filePath, $basePath)) {
+        return response()->json(['error' => 'Access denied'], 403);
+    }
+
+    if (!file_exists($filePath) || !is_file($filePath)) {
+        return response()->json(['error' => 'File not found'], 404);
+    }
+
     // Serve il file (CORS headers aggiunti automaticamente dal middleware)
     return response()->file($filePath);
-})->where('filename', '.*');
+})->where('filename', '[a-zA-Z0-9\-_\.\/]+');
 
 // CORS è gestito dal config/cors.php e dal middleware \Illuminate\Http\Middleware\HandleCors
 

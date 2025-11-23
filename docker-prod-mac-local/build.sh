@@ -11,13 +11,13 @@ IMAGE_TAG="${1:-latest}"
 
 # Usa Dockerfile con Playwright se --playwright è specificato
 USE_PLAYWRIGHT=false
-DOCKERFILE="docker-prod/Dockerfile"
+DOCKERFILE="docker-prod-mac-local/Dockerfile"
 
 for arg in "$@"; do
     case $arg in
         --playwright)
             USE_PLAYWRIGHT=true
-            DOCKERFILE="docker-prod/Dockerfile.playwright"
+            DOCKERFILE="docker-prod-mac-local/Dockerfile.playwright"
             shift
             ;;
         --save)
@@ -59,9 +59,8 @@ fi
 
 # Build dell'immagine
 echo ""
-echo "Step 1: Building Docker image for linux/amd64..."
+echo "Step 1: Building Docker image for Mac (native ARM64)..."
 docker build \
-    --platform linux/amd64 \
     -f "${DOCKERFILE}" \
     -t "${FULL_IMAGE_NAME}" \
     --progress=plain \

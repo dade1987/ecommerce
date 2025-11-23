@@ -9,6 +9,12 @@ use Illuminate\Http\Request;
 
 class ArticleController extends Controller
 {
+    public function __construct()
+    {
+        // Tutte le operazioni richiedono autenticazione
+        $this->middleware('auth');
+    }
+
     public function index()
     {
         $articles = Article::with('tags', 'translations')->get();
@@ -25,9 +31,21 @@ class ArticleController extends Controller
 
     public function store(Request $request)
     {
-        $article = Article::create($request->all());
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'content' => 'required|string',
+            'slug' => 'required|string|max:255|unique:articles,slug',
+            'summary' => 'nullable|string|max:500',
+            'featured_image_id' => 'nullable|integer|exists:media,id',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+        ]);
+
+        // Rimuovi 'image' dai dati validati perché non è un campo del model
+        $articleData = collect($validated)->except('image')->toArray();
+        $article = Article::create($articleData);
+
         if ($request->hasFile('image')) {
-            $path = $request->file('image')->store('images', 'public');
+            $path = $request->file('image')->store('articles', 'public');
             $article->update(['image_path' => $path]);
         }
 
@@ -51,10 +69,23 @@ class ArticleController extends Controller
 
     public function update(Request $request, $id)
     {
-        $article = Article::find($id);
-        $article->update($request->all());
+        $article = Article::findOrFail($id);
+
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'content' => 'required|string',
+            'slug' => 'required|string|max:255|unique:articles,slug,' . $id,
+            'summary' => 'nullable|string|max:500',
+            'featured_image_id' => 'nullable|integer|exists:media,id',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+        ]);
+
+        // Rimuovi 'image' dai dati validati perché non è un campo del model
+        $articleData = collect($validated)->except('image')->toArray();
+        $article->update($articleData);
+
         if ($request->hasFile('image')) {
-            $path = $request->file('image')->store('images', 'public');
+            $path = $request->file('image')->store('articles', 'public');
             $article->update(['image_path' => $path]);
         }
 

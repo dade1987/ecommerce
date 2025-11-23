@@ -15,39 +15,21 @@ PGID=${PGID:-82}
 if [ "$PUID" != "82" ] || [ "$PGID" != "82" ]; then
     echo "Changing www-data UID:GID to ${PUID}:${PGID}..."
 
-    # Prima elimina l'utente www-data esistente
-    deluser www-data 2>/dev/null || true
-
-    # Elimina il gruppo www-data esistente
-    delgroup www-data 2>/dev/null || true
-
-    # Verifica se il GID è già in uso da un altro gruppo
-    EXISTING_GROUP=$(getent group "$PGID" | cut -d: -f1)
-
-    if [ -n "$EXISTING_GROUP" ] && [ "$EXISTING_GROUP" != "www-data" ]; then
-        echo "GID $PGID is used by group '$EXISTING_GROUP', removing it..."
-        delgroup "$EXISTING_GROUP" 2>/dev/null || true
+    # Cambia GID
+    if [ "$PGID" != "82" ]; then
+        delgroup www-data 2>/dev/null || true
+        addgroup -g "$PGID" www-data
     fi
 
-    # Verifica se l'UID è già in uso da un altro utente
-    EXISTING_USER=$(getent passwd "$PUID" | cut -d: -f1)
-
-    if [ -n "$EXISTING_USER" ] && [ "$EXISTING_USER" != "www-data" ]; then
-        echo "UID $PUID is used by user '$EXISTING_USER', removing it..."
-        deluser "$EXISTING_USER" 2>/dev/null || true
+    # Cambia UID e aggiunge al gruppo
+    if [ "$PUID" != "82" ]; then
+        deluser www-data 2>/dev/null || true
+        adduser -D -u "$PUID" -G www-data -s /bin/sh www-data
     fi
-
-    # Crea il gruppo www-data con il nuovo GID
-    addgroup -g "$PGID" www-data
-
-    # Crea l'utente www-data con il nuovo UID
-    adduser -D -u "$PUID" -G www-data -s /bin/sh www-data
-
-    echo "www-data user created with UID:$PUID GID:$PGID"
 
     # Fix ownership delle directory applicazione
-    chown -R www-data:www-data /var/www/html/bootstrap/cache 2>/dev/null || true
-    chown www-data:www-data /var/www/html 2>/dev/null || true
+    chown -R www-data:www-data /var/www/html/bootstrap/cache
+    chown www-data:www-data /var/www/html
 fi
 
 # Crea directory per logs se non esistono
@@ -117,10 +99,6 @@ fi
 # Ottimizza autoloader
 echo "Optimizing autoloader..."
 composer dump-autoload --optimize --no-dev 2>/dev/null || true
-
-# Reset OPcache per evitare problemi di caching stale
-echo "Resetting OPcache..."
-php -r "if (function_exists('opcache_reset')) { opcache_reset(); echo 'OPcache reset done\n'; } else { echo 'OPcache not available\n'; }" || true
 
 echo ""
 echo "=== Container ready! Starting services... ==="
