@@ -617,14 +617,28 @@ export default {
                     ua.includes('mobile');
                 // Considera anche il caso "simulatore mobile" in Chrome:
                 // - viewport stretta
-                // - pointer coarse (touch) dove disponibile
-                const isSmallViewport = typeof window !== 'undefined' && window.innerWidth && window.innerWidth <= 768;
+                // - pointer coarse (touch) dove disponibile)
+                const isSmallViewport =
+                    typeof window !== 'undefined' &&
+                    window.innerWidth &&
+                    window.innerWidth <= 768;
                 const isCoarsePointer =
                     typeof window !== 'undefined' &&
                     window.matchMedia &&
                     window.matchMedia('(pointer: coarse)').matches;
 
                 this.isMobileLowPower = !!(isMobileUa || isSmallViewport || isCoarsePointer);
+
+                // Debug: mostra a console lo stato della modalità low-power/mobile
+                try {
+                    console.log('[LiveTranslator] isMobileLowPower =', this.isMobileLowPower, {
+                        ua,
+                        isMobileUa,
+                        innerWidth: typeof window !== 'undefined' ? window.innerWidth : null,
+                        isSmallViewport,
+                        isCoarsePointer,
+                    });
+                } catch { }
             } catch {
                 this.isMobileLowPower = false;
             }
@@ -808,10 +822,15 @@ export default {
                                                 ? lastLine.slice(2).trim()
                                                 : lastLine.trim();
 
-                                            if (prevText && clean.length > prevText.length) {
-                                                // Consideriamo "stessa frase in aggiornamento" SOLO se il nuovo testo
-                                                // estende il precedente (prefisso), per evitare di fondere frasi diverse.
-                                                if (clean.startsWith(prevText)) {
+                                            if (prevText) {
+                                                // Consideriamo "stessa frase in aggiornamento" se:
+                                                // - il nuovo testo è IDENTICO al precedente, oppure
+                                                // - uno è prefisso dell'altro (frase che si allunga/prolunga leggermente).
+                                                if (
+                                                    clean === prevText ||
+                                                    clean.startsWith(prevText) ||
+                                                    prevText.startsWith(clean)
+                                                ) {
                                                     lines[lines.length - 1] = phraseWithDash;
                                                     this.originalConfirmed = lines.join('\n');
                                                     mergedWithPrevious = true;
