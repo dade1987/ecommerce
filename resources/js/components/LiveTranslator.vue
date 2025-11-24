@@ -825,11 +825,12 @@ export default {
                                             if (prevText) {
                                                 // Consideriamo "stessa frase in aggiornamento" se:
                                                 // - il nuovo testo è IDENTICO al precedente, oppure
-                                                // - uno è prefisso dell'altro (frase che si allunga/prolunga leggermente).
+                                                // - il nuovo testo è più lungo e comincia con il precedente
+                                                //   (caso tipico mobile: "ciao", "ciao io", "ciao io sono davide"...).
                                                 if (
                                                     clean === prevText ||
-                                                    clean.startsWith(prevText) ||
-                                                    prevText.startsWith(clean)
+                                                    (clean.length > prevText.length &&
+                                                        clean.startsWith(prevText))
                                                 ) {
                                                     lines[lines.length - 1] = phraseWithDash;
                                                     this.originalConfirmed = lines.join('\n');
