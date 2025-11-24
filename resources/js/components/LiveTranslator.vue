@@ -115,7 +115,7 @@
                                     :class="activeSpeaker === 'A' && isListening ? 'bg-red-400 animate-pulse' : 'bg-slate-300'"></span>
                             </span>
                             <span>{{ activeSpeaker === 'A' && isListening ? 'Parlante A attivo' : 'Parla Lingua A'
-                            }}</span>
+                                }}</span>
                         </button>
                     </div>
 
@@ -144,7 +144,7 @@
                                     :class="activeSpeaker === 'B' && isListening ? 'bg-red-400 animate-pulse' : 'bg-slate-300'"></span>
                             </span>
                             <span>{{ activeSpeaker === 'B' && isListening ? 'Parlante B attivo' : 'Parla Lingua B'
-                            }}</span>
+                                }}</span>
                         </button>
                     </div>
                 </div>
@@ -610,13 +610,21 @@ export default {
         detectMobileLowPower() {
             try {
                 const ua = (navigator.userAgent || '').toLowerCase();
-                const isMobile =
+                const isMobileUa =
                     ua.includes('iphone') ||
                     ua.includes('ipad') ||
                     ua.includes('android') ||
                     ua.includes('mobile');
+                // Considera anche il caso "simulatore mobile" in Chrome:
+                // - viewport stretta
+                // - pointer coarse (touch) dove disponibile
+                const isSmallViewport = typeof window !== 'undefined' && window.innerWidth && window.innerWidth <= 768;
+                const isCoarsePointer =
+                    typeof window !== 'undefined' &&
+                    window.matchMedia &&
+                    window.matchMedia('(pointer: coarse)').matches;
 
-                this.isMobileLowPower = !!isMobile;
+                this.isMobileLowPower = !!(isMobileUa || isSmallViewport || isCoarsePointer);
             } catch {
                 this.isMobileLowPower = false;
             }
