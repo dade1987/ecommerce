@@ -73,15 +73,15 @@
                 <div class="flex justify-end">
                     <button type="button" @click="showDebugPanel = !showDebugPanel"
                         class="px-2 py-1 rounded-md text-[10px] font-mono border border-slate-600 text-slate-300 bg-slate-900/70 hover:bg-slate-800">
-                        {{ showDebugPanel ? 'chiudi debug' : 'apri debug' }}
+                        {{ showDebugPanel ? ui.debugCloseLabel : ui.debugOpenLabel }}
                     </button>
                 </div>
                 <div v-if="showDebugPanel" class="border border-slate-700 rounded-lg bg-slate-900/80 p-2 space-y-1">
                     <div class="flex justify-between items-center">
-                        <span class="text-[10px] text-slate-400">debug log (mobile + desktop)</span>
+                        <span class="text-[10px] text-slate-400">{{ ui.debugTitle }}</span>
                         <button type="button" @click="copyDebugLogs"
                             class="px-2 py-0.5 rounded-md text-[10px] font-mono border border-slate-600 text-slate-200 bg-slate-800 hover:bg-slate-700">
-                            copia log
+                            {{ ui.debugCopyLabel }}
                         </button>
                     </div>
                     <textarea readonly
@@ -198,6 +198,9 @@
                             <div class="flex items-center justify-between">
                                 <span class="text-base md:text-lg font-semibold text-slate-100">
                                     {{ ui.translationTitle }}
+                                </span>
+                                <span v-if="isTtsLoading" class="text-[11px] md:text-xs text-emerald-300 italic ml-2">
+                                    {{ ui.ttsLoadingMessage }}
                                 </span>
                             </div>
                             <div ref="translationBox"
@@ -368,10 +371,14 @@
                         </button>
 
                         <p class="text-[11px] text-slate-400 mt-2">
-                            Il video verrà riprodotto qui a fianco. Tu parli ad alta voce quello che senti e il sistema
-                            farà da interprete come nella modalità microfono: ad ogni frase tradotta il video si mette
-                            in
-                            pausa mentre legge la traduzione, poi riprende automaticamente.
+                            Cliccando su <span class="font-semibold text-emerald-300">"Avvia modalità interprete sul
+                                video"</span> carichiamo il video qui a fianco con la lingua scelta sopra. Il sistema
+                            ascolta ciò che entra nel <span class="font-semibold">microfono</span> (ad esempio l'audio
+                            delle casse del computer): quando riconosce la fine di una frase mette in pausa il video,
+                            traduce la frase (e, se attivo, la legge ad alta voce) e infine fa ripartire
+                            automaticamente il video per la frase successiva. In qualsiasi momento puoi anche
+                            <span class="font-semibold">mettere tu in pausa il video</span> per tradurre o rileggere
+                            il testo con più calma.
                         </p>
 
                         <!-- Controllo microfono per modalità YouTube (interprete umano) -->
@@ -390,13 +397,16 @@
                                 </span>
                                 <span>
                                     {{ activeSpeaker === 'A' && isListening
-                                        ? 'Interprete attivo: parla sopra il video'
-                                        : 'Parla sopra il video (interprete)' }}
+                                        ? 'Interprete attivo: sto ascoltando la tua voce sopra il video'
+                                        : 'Avvia / ferma il microfono per parlare sopra il video (interprete)' }}
                                 </span>
                             </button>
                             <p class="text-[11px] text-slate-400">
-                                Riconosco la tua voce in <span class="font-semibold">{{ getLangLabel(langA) }}</span> e
-                                traduco in <span class="font-semibold">{{ getLangLabel(langB) }}</span>.
+                                Questo pulsante accende e spegne il microfono. Quando è attivo, ascolto l'audio che
+                                entra dal microfono (per esempio il video dalle casse) in
+                                <span class="font-semibold">{{ getLangLabel(langA) }}</span> e traduco in
+                                <span class="font-semibold">{{ getLangLabel(langB) }}</span>. Per un risultato
+                                ottimale usa le <span class="font-semibold">casse</span> e non solo le cuffie chiuse.
                             </p>
                         </div>
                     </div>
@@ -436,6 +446,10 @@
                                 <div class="flex items-center justify-between">
                                     <span class="text-sm md:text-base font-semibold text-slate-100">
                                         Traduzione in tempo reale
+                                    </span>
+                                    <span v-if="isTtsLoading"
+                                        class="text-[10px] md:text-[11px] text-emerald-300 italic ml-2">
+                                        {{ ui.ttsLoadingMessage }}
                                     </span>
                                 </div>
                                 <div ref="translationBox"
@@ -511,6 +525,7 @@ export default {
             // Modalità low-power per mobile (niente streaming token-per-token)
             isMobileLowPower: false,
             mobileCurrentTranslationIndex: null,
+            isTtsLoading: false,
 
             // Debug interno: pannello e log testuali copiabili
             showDebugPanel: false,
@@ -582,6 +597,27 @@ export default {
                     translationTitle: 'Traduzione',
                     suggestionsTitle: 'Suggerimenti per il colloquio',
                     ttsBusyMessage: 'Sto leggendo la traduzione, attendi che finisca prima di parlare.',
+                    ttsLoadingMessage: 'Caricamento traduzione in corso...',
+                    statusWhisperAutoForced: 'Modalità Whisper attiva automaticamente: il riconoscimento vocale del browser non è pienamente supportato qui.',
+                    statusMicInitError: 'Errore inizializzazione microfono.',
+                    statusSelectLangAB: '⚠️ Seleziona entrambe le lingue (A e B) prima di iniziare!',
+                    statusMicDenied: 'Permesso microfono negato. Abilitalo nelle impostazioni del browser.',
+                    statusMicStartError: 'Impossibile avviare il microfono.',
+                    statusLangPairMissing: 'Seleziona entrambe le lingue (A e B) per iniziare.',
+                    statusLangPairDifferent: 'Le due lingue devono essere diverse!',
+                    statusWhisperModeOn: 'Modalità Whisper attivata: userò OpenAI per il riconoscimento vocale.',
+                    statusBrowserModeOn: 'Modalità browser attivata: userò il riconoscimento vocale del browser.',
+                    statusYoutubeUrlInvalid: 'URL YouTube non valido. Usa un link completo al video.',
+                    statusYoutubeLangsMissing: 'Seleziona sia la lingua del video che la lingua di traduzione.',
+                    statusYoutubeLangsDifferent: 'Le due lingue devono essere diverse per la modalità interprete.',
+                    debugOpenLabel: 'apri debug',
+                    debugCloseLabel: 'chiudi debug',
+                    debugTitle: 'debug log (mobile + desktop)',
+                    debugCopyLabel: 'copia log',
+                    debugNoLogsMessage: 'nessun log da copiare',
+                    debugCopiedMessage: 'log copiati negli appunti',
+                    debugClipboardUnavailableMessage: 'clipboard non disponibile, seleziona il testo manualmente',
+                    debugCopyErrorMessage: 'errore copia, seleziona il testo manualmente',
                 },
                 en: {
                     title: 'PolyGlide - Instant Translator',
@@ -597,10 +633,497 @@ export default {
                     translationTitle: 'Translation',
                     suggestionsTitle: 'Interview suggestions',
                     ttsBusyMessage: 'I am reading the translation, please wait until it finishes before speaking.',
+                    ttsLoadingMessage: 'Loading translation...',
+                    statusWhisperAutoForced: 'Whisper mode is enabled automatically: browser speech recognition is not fully supported here.',
+                    statusMicInitError: 'Microphone initialization error.',
+                    statusSelectLangAB: '⚠️ Select both languages (A and B) before starting!',
+                    statusMicDenied: 'Microphone permission denied. Enable it in your browser settings.',
+                    statusMicStartError: 'Unable to start the microphone.',
+                    statusLangPairMissing: 'Select both languages (A and B) to get started.',
+                    statusLangPairDifferent: 'The two languages must be different!',
+                    statusWhisperModeOn: 'Whisper mode enabled: I will use OpenAI for speech recognition.',
+                    statusBrowserModeOn: 'Browser mode enabled: I will use the browser’s built-in speech recognition.',
+                    statusYoutubeUrlInvalid: 'Invalid YouTube URL. Please use a full video link.',
+                    statusYoutubeLangsMissing: 'Select both the video language and the translation language.',
+                    statusYoutubeLangsDifferent: 'The two languages must be different for interpreter mode.',
+                    debugOpenLabel: 'open debug',
+                    debugCloseLabel: 'close debug',
+                    debugTitle: 'debug log (mobile + desktop)',
+                    debugCopyLabel: 'copy log',
+                    debugNoLogsMessage: 'no logs to copy',
+                    debugCopiedMessage: 'logs copied to clipboard',
+                    debugClipboardUnavailableMessage: 'clipboard unavailable, select the text manually',
+                    debugCopyErrorMessage: 'copy error, select the text manually',
+                },
+                es: {
+                    title: 'PolyGlide - Traductor instantáneo',
+                    subtitle: 'Habla en cualquier idioma: verás el texto original y la traducción en directo.',
+                    langALabel: 'Idioma A',
+                    langBLabel: 'Idioma B',
+                    whisperLabel: 'Usar Whisper (OpenAI) en lugar del reconocimiento de voz del navegador',
+                    whisperForcedNote: 'forzado: no estás en Chrome',
+                    dubbingLabel: 'Leer la traducción en voz alta (doblaje)',
+                    originalTitle: 'Texto original',
+                    originalSubtitle: 'Reconocido por el micrófono',
+                    originalPlaceholder: 'Empieza a hablar para ver aquí la transcripción en tiempo real.',
+                    translationTitle: 'Traducción',
+                    suggestionsTitle: 'Sugerencias para la entrevista',
+                    ttsBusyMessage: 'Estoy leyendo la traducción, espera a que termine antes de volver a hablar.',
+                    ttsLoadingMessage: 'Cargando traducción...',
+                },
+                fr: {
+                    title: 'PolyGlide - Traducteur instantané',
+                    subtitle: 'Parle dans n’importe quelle langue : tu verras le texte original et la traduction en direct.',
+                    langALabel: 'Langue A',
+                    langBLabel: 'Langue B',
+                    whisperLabel: 'Utiliser Whisper (OpenAI) au lieu de la reconnaissance vocale du navigateur',
+                    whisperForcedNote: 'forcé : tu n’es pas sur Chrome',
+                    dubbingLabel: 'Lire la traduction à voix haute (doublage)',
+                    originalTitle: 'Texte original',
+                    originalSubtitle: 'Reconnu par le microphone',
+                    originalPlaceholder: 'Commence à parler pour voir ici la transcription en temps réel.',
+                    translationTitle: 'Traduction',
+                    suggestionsTitle: 'Suggestions pour l’entretien',
+                    ttsBusyMessage: 'Je lis la traduction, attends qu’elle soit terminée avant de reparler.',
+                    ttsLoadingMessage: 'Chargement de la traduction...',
+                },
+                de: {
+                    title: 'PolyGlide - Sofortübersetzer',
+                    subtitle: 'Sprich in jeder Sprache: Du siehst den Originaltext und die Live-Übersetzung.',
+                    langALabel: 'Sprache A',
+                    langBLabel: 'Sprache B',
+                    whisperLabel: 'Whisper (OpenAI) statt Spracherkennung des Browsers verwenden',
+                    whisperForcedNote: 'erzwungen: du verwendest nicht Chrome',
+                    dubbingLabel: 'Übersetzung vorlesen (Synchronisation)',
+                    originalTitle: 'Originaltext',
+                    originalSubtitle: 'Vom Mikrofon erkannt',
+                    originalPlaceholder: 'Beginne zu sprechen, um hier die Live-Transkription zu sehen.',
+                    translationTitle: 'Übersetzung',
+                    suggestionsTitle: 'Vorschläge für das Bewerbungsgespräch',
+                    ttsBusyMessage: 'Ich lese die Übersetzung, bitte warte, bis ich fertig bin, bevor du weitersprichst.',
+                    ttsLoadingMessage: 'Übersetzung wird geladen...',
+                },
+                pt: {
+                    title: 'PolyGlide - Tradutor instantâneo',
+                    subtitle: 'Fala em qualquer idioma: vais ver o texto original e a tradução em tempo real.',
+                    langALabel: 'Idioma A',
+                    langBLabel: 'Idioma B',
+                    whisperLabel: 'Usar Whisper (OpenAI) em vez do reconhecimento de voz do navegador',
+                    whisperForcedNote: 'forçado: não estás a usar o Chrome',
+                    dubbingLabel: 'Ler a tradução em voz alta (dobragem)',
+                    originalTitle: 'Texto original',
+                    originalSubtitle: 'Reconhecido pelo microfone',
+                    originalPlaceholder: 'Começa a falar para veres aqui a transcrição em tempo real.',
+                    translationTitle: 'Tradução',
+                    suggestionsTitle: 'Sugestões para a entrevista',
+                    ttsBusyMessage: 'Estou a ler a tradução, espera que termine antes de voltares a falar.',
+                    ttsLoadingMessage: 'A carregar a tradução...',
+                },
+                nl: {
+                    title: 'PolyGlide - Directe vertaler',
+                    subtitle: 'Spreek in elke taal: je ziet de originele tekst en de livevertaling.',
+                    langALabel: 'Taal A',
+                    langBLabel: 'Taal B',
+                    whisperLabel: 'Whisper (OpenAI) gebruiken in plaats van de spraakherkenning van de browser',
+                    whisperForcedNote: 'afgedwongen: je gebruikt geen Chrome',
+                    dubbingLabel: 'Vertaling hardop voorlezen (nasynchronisatie)',
+                    originalTitle: 'Originele tekst',
+                    originalSubtitle: 'Herkenning via microfoon',
+                    originalPlaceholder: 'Begin met spreken om hier de realtime transcriptie te zien.',
+                    translationTitle: 'Vertaling',
+                    suggestionsTitle: 'Sollicitatietips',
+                    ttsBusyMessage: 'Ik lees de vertaling voor, wacht tot ik klaar ben voordat je verder praat.',
+                    ttsLoadingMessage: 'Vertaling wordt geladen...',
+                },
+                sv: {
+                    title: 'PolyGlide - Omedelbar översättare',
+                    subtitle: 'Tala på vilket språk du vill: du ser originaltexten och översättningen i realtid.',
+                    langALabel: 'Språk A',
+                    langBLabel: 'Språk B',
+                    whisperLabel: 'Använd Whisper (OpenAI) istället för webbläsarens röstigenkänning',
+                    whisperForcedNote: 'tvingat: du använder inte Chrome',
+                    dubbingLabel: 'Läs upp översättningen (dubbning)',
+                    originalTitle: 'Originaltext',
+                    originalSubtitle: 'Upptäckt av mikrofonen',
+                    originalPlaceholder: 'Börja prata för att se transkriberingen i realtid här.',
+                    translationTitle: 'Översättning',
+                    suggestionsTitle: 'Intervjutips',
+                    ttsBusyMessage: 'Jag läser upp översättningen, vänta tills jag är klar innan du pratar igen.',
+                    ttsLoadingMessage: 'Laddar översättning...',
+                },
+                no: {
+                    title: 'PolyGlide - Umiddelbar oversetter',
+                    subtitle: 'Snakk på hvilket som helst språk: du ser originalteksten og oversettelsen i sanntid.',
+                    langALabel: 'Språk A',
+                    langBLabel: 'Språk B',
+                    whisperLabel: 'Bruk Whisper (OpenAI) i stedet for nettleserens talegjenkjenning',
+                    whisperForcedNote: 'tvunget: du bruker ikke Chrome',
+                    dubbingLabel: 'Les opp oversettelsen (dubbing)',
+                    originalTitle: 'Originaltekst',
+                    originalSubtitle: 'Gjenkjent av mikrofonen',
+                    originalPlaceholder: 'Begynn å snakke for å se sanntidstranskripsjon her.',
+                    translationTitle: 'Oversettelse',
+                    suggestionsTitle: 'Intervjutips',
+                    ttsBusyMessage: 'Jeg leser opp oversettelsen, vent til jeg er ferdig før du snakker igjen.',
+                    ttsLoadingMessage: 'Laster inn oversettelse...',
+                },
+                da: {
+                    title: 'PolyGlide - Instant oversætter',
+                    subtitle: 'Tal på hvilket som helst sprog: du ser originalteksten og live-oversættelsen.',
+                    langALabel: 'Sprog A',
+                    langBLabel: 'Sprog B',
+                    whisperLabel: 'Brug Whisper (OpenAI) i stedet for browserens stemmegenkendelse',
+                    whisperForcedNote: 'tvunget: du bruger ikke Chrome',
+                    dubbingLabel: 'Læs oversættelsen højt (dubbing)',
+                    originalTitle: 'Originaltekst',
+                    originalSubtitle: 'Genkendt af mikrofonen',
+                    originalPlaceholder: 'Begynd at tale for at se realtids-transskriptionen her.',
+                    translationTitle: 'Oversættelse',
+                    suggestionsTitle: 'Jobsamtale-tips',
+                    ttsBusyMessage: 'Jeg læser oversættelsen op, vent til jeg er færdig, før du taler igen.',
+                    ttsLoadingMessage: 'Indlæser oversættelse...',
+                },
+                fi: {
+                    title: 'PolyGlide - Välitön kääntäjä',
+                    subtitle: 'Puhu millä tahansa kielellä: näet alkuperäisen tekstin ja reaaliaikaisen käännöksen.',
+                    langALabel: 'Kieli A',
+                    langBLabel: 'Kieli B',
+                    whisperLabel: 'Käytä Whisperiä (OpenAI) selaimen puheentunnistuksen sijaan',
+                    whisperForcedNote: 'pakotettu: et käytä Chromea',
+                    dubbingLabel: 'Lue käännös ääneen (dubbaus)',
+                    originalTitle: 'Alkuperäinen teksti',
+                    originalSubtitle: 'Mikrofonin tunnistama',
+                    originalPlaceholder: 'Ala puhua nähdäksesi reaaliaikaisen transkription täällä.',
+                    translationTitle: 'Käännös',
+                    suggestionsTitle: 'Haastatteluvinkkejä',
+                    ttsBusyMessage: 'Luen käännöstä, odota kunnes olen valmis ennen kuin puhut uudestaan.',
+                    ttsLoadingMessage: 'Ladataan käännöstä...',
+                },
+                pl: {
+                    title: 'PolyGlide - Tłumacz natychmiastowy',
+                    subtitle: 'Mów w dowolnym języku: zobaczysz tekst oryginalny i tłumaczenie na żywo.',
+                    langALabel: 'Język A',
+                    langBLabel: 'Język B',
+                    whisperLabel: 'Użyj Whisper (OpenAI) zamiast rozpoznawania mowy przeglądarki',
+                    whisperForcedNote: 'wymuszone: nie korzystasz z Chrome',
+                    dubbingLabel: 'Odczytaj tłumaczenie na głos (dubbing)',
+                    originalTitle: 'Tekst oryginalny',
+                    originalSubtitle: 'Rozpoznany przez mikrofon',
+                    originalPlaceholder: 'Zacznij mówić, aby zobaczyć tutaj transkrypcję w czasie rzeczywistym.',
+                    translationTitle: 'Tłumaczenie',
+                    suggestionsTitle: 'Wskazówki do rozmowy kwalifikacyjnej',
+                    ttsBusyMessage: 'Czytam tłumaczenie, poczekaj, aż skończę, zanim znów zaczniesz mówić.',
+                    ttsLoadingMessage: 'Ładowanie tłumaczenia...',
+                },
+                cs: {
+                    title: 'PolyGlide - Okamžitý překladač',
+                    subtitle: 'Mluv jakýmkoliv jazykem: uvidíš původní text a překlad v reálném čase.',
+                    langALabel: 'Jazyk A',
+                    langBLabel: 'Jazyk B',
+                    whisperLabel: 'Použít Whisper (OpenAI) místo rozpoznávání řeči prohlížeče',
+                    whisperForcedNote: 'vynuceno: nepoužíváš Chrome',
+                    dubbingLabel: 'Přečíst překlad nahlas (dubbing)',
+                    originalTitle: 'Původní text',
+                    originalSubtitle: 'Rozpoznán mikrofonem',
+                    originalPlaceholder: 'Začni mluvit, aby ses zde podíval na přepis v reálném čase.',
+                    translationTitle: 'Překlad',
+                    suggestionsTitle: 'Tipy k pohovoru',
+                    ttsBusyMessage: 'Čtu překlad, počkej prosím, než skončím, než znovu promluvíš.',
+                    ttsLoadingMessage: 'Načítání překladu...',
+                },
+                sk: {
+                    title: 'PolyGlide - Okamžitý prekladač',
+                    subtitle: 'Hovor v akomkoľvek jazyku: uvidíš pôvodný text a preklad v reálnom čase.',
+                    langALabel: 'Jazyk A',
+                    langBLabel: 'Jazyk B',
+                    whisperLabel: 'Použiť Whisper (OpenAI) namiesto rozpoznávania reči v prehliadači',
+                    whisperForcedNote: 'vynútené: nepoužívaš Chrome',
+                    dubbingLabel: 'Prečítať preklad nahlas (dubbing)',
+                    originalTitle: 'Pôvodný text',
+                    originalSubtitle: 'Rozpoznaný mikrofónom',
+                    originalPlaceholder: 'Začni hovoriť, aby si tu videl prepis v reálnom čase.',
+                    translationTitle: 'Preklad',
+                    suggestionsTitle: 'Tipy na pohovor',
+                    ttsBusyMessage: 'Čítam preklad, počkaj, kým skončím, než znova prehovoríš.',
+                    ttsLoadingMessage: 'Načítava sa preklad...',
+                },
+                hu: {
+                    title: 'PolyGlide - Azonnali fordító',
+                    subtitle: 'Beszélj bármilyen nyelven: látni fogod az eredeti szöveget és az élő fordítást.',
+                    langALabel: 'A nyelv',
+                    langBLabel: 'B nyelv',
+                    whisperLabel: 'Használd a Whisper-t (OpenAI) a böngésző beszédfelismerése helyett',
+                    whisperForcedNote: 'kényszerítve: nem Chrome-ot használsz',
+                    dubbingLabel: 'Fordítás felolvasása (szinkron)',
+                    originalTitle: 'Eredeti szöveg',
+                    originalSubtitle: 'A mikrofon által felismert',
+                    originalPlaceholder: 'Kezdj el beszélni, hogy lásd itt a valós idejű átiratot.',
+                    translationTitle: 'Fordítás',
+                    suggestionsTitle: 'Állásinterjú tippek',
+                    ttsBusyMessage: 'Felolvasom a fordítást, várj, amíg befejezem, mielőtt újra beszélsz.',
+                    ttsLoadingMessage: 'Fordítás betöltése...',
+                },
+                ro: {
+                    title: 'PolyGlide - Traducător instant',
+                    subtitle: 'Vorbește în orice limbă: vei vedea textul original și traducerea în timp real.',
+                    langALabel: 'Limba A',
+                    langBLabel: 'Limba B',
+                    whisperLabel: 'Folosește Whisper (OpenAI) în locul recunoașterii vocale din browser',
+                    whisperForcedNote: 'forțat: nu folosești Chrome',
+                    dubbingLabel: 'Citește traducerea cu voce tare (dublaj)',
+                    originalTitle: 'Text original',
+                    originalSubtitle: 'Recunoscut de microfon',
+                    originalPlaceholder: 'Începe să vorbești pentru a vedea aici transcrierea în timp real.',
+                    translationTitle: 'Traducere',
+                    suggestionsTitle: 'Sugestii pentru interviu',
+                    ttsBusyMessage: 'Citesc traducerea, te rog așteaptă să termin înainte să vorbești din nou.',
+                    ttsLoadingMessage: 'Se încarcă traducerea...',
+                },
+                bg: {
+                    title: 'PolyGlide - Моментален преводач',
+                    subtitle: 'Говори на всеки език: ще виждаш оригиналния текст и превода в реално време.',
+                    langALabel: 'Език A',
+                    langBLabel: 'Език B',
+                    whisperLabel: 'Използвай Whisper (OpenAI) вместо разпознаването на реч в браузъра',
+                    whisperForcedNote: 'принудително: не използваш Chrome',
+                    dubbingLabel: 'Прочитане на превода на глас (дублиране)',
+                    originalTitle: 'Оригинален текст',
+                    originalSubtitle: 'Разпознат от микрофона',
+                    originalPlaceholder: 'Започни да говориш, за да видиш тук транскрипция в реално време.',
+                    translationTitle: 'Превод',
+                    suggestionsTitle: 'Съвети за интервю',
+                    ttsBusyMessage: 'Чета превода, изчакай да приключа, преди да говориш отново.',
+                    ttsLoadingMessage: 'Зареждане на превода...',
+                },
+                el: {
+                    title: 'PolyGlide - Άμεσος μεταφραστής',
+                    subtitle: 'Μίλησε σε οποιαδήποτε γλώσσα: θα βλέπεις το αρχικό κείμενο και τη ζωντανή μετάφραση.',
+                    langALabel: 'Γλώσσα A',
+                    langBLabel: 'Γλώσσα B',
+                    whisperLabel: 'Χρήση του Whisper (OpenAI) αντί για την αναγνώριση ομιλίας του browser',
+                    whisperForcedNote: 'υποχρεωτικά: δεν χρησιμοποιείς Chrome',
+                    dubbingLabel: 'Ανάγνωση της μετάφρασης (dubbing)',
+                    originalTitle: 'Αρχικό κείμενο',
+                    originalSubtitle: 'Αναγνωρισμένο από το μικρόφωνο',
+                    originalPlaceholder: 'Ξεκίνα να μιλάς για να δεις εδώ την απομαγνητοφώνηση σε πραγματικό χρόνο.',
+                    translationTitle: 'Μετάφραση',
+                    suggestionsTitle: 'Συμβουλές για συνέντευξη',
+                    ttsBusyMessage: 'Διαβάζω τη μετάφραση, περίμενε να τελειώσω πριν μιλήσεις ξανά.',
+                    ttsLoadingMessage: 'Φόρτωση μετάφρασης...',
+                },
+                uk: {
+                    title: 'PolyGlide - Миттєвий перекладач',
+                    subtitle: 'Говори будь-якою мовою: ти бачитимеш оригінальний текст і переклад у реальному часі.',
+                    langALabel: 'Мова A',
+                    langBLabel: 'Мова B',
+                    whisperLabel: 'Використовувати Whisper (OpenAI) замість розпізнавання мовлення браузера',
+                    whisperForcedNote: 'примусово: ти не використовуєш Chrome',
+                    dubbingLabel: 'Читати переклад уголос (дубляж)',
+                    originalTitle: 'Оригінальний текст',
+                    originalSubtitle: 'Розпізнано мікрофоном',
+                    originalPlaceholder: 'Почни говорити, щоб побачити тут транскрипцію в реальному часі.',
+                    translationTitle: 'Переклад',
+                    suggestionsTitle: 'Поради щодо співбесіди',
+                    ttsBusyMessage: 'Я читаю переклад, зачекай, доки я закінчу, перш ніж знову говорити.',
+                    ttsLoadingMessage: 'Завантаження перекладу...',
+                },
+                ru: {
+                    title: 'PolyGlide - Мгновенный переводчик',
+                    subtitle: 'Говори на любом языке: ты увидишь оригинальный текст и перевод в реальном времени.',
+                    langALabel: 'Язык A',
+                    langBLabel: 'Язык B',
+                    whisperLabel: 'Использовать Whisper (OpenAI) вместо распознавания речи браузером',
+                    whisperForcedNote: 'принудительно: ты не используешь Chrome',
+                    dubbingLabel: 'Зачитать перевод вслух (дубляж)',
+                    originalTitle: 'Исходный текст',
+                    originalSubtitle: 'Распознан микрофоном',
+                    originalPlaceholder: 'Начни говорить, чтобы здесь увидеть транскрипцию в реальном времени.',
+                    translationTitle: 'Перевод',
+                    suggestionsTitle: 'Советы по собеседованию',
+                    ttsBusyMessage: 'Я зачитываю перевод, подожди, пока я закончу, прежде чем снова говорить.',
+                    ttsLoadingMessage: 'Загрузка перевода...',
+                },
+                tr: {
+                    title: 'PolyGlide - Anlık çevirmen',
+                    subtitle: 'Herhangi bir dilde konuş: orijinal metni ve canlı çeviriyi göreceksin.',
+                    langALabel: 'Dil A',
+                    langBLabel: 'Dil B',
+                    whisperLabel: 'Tarayıcının ses tanıması yerine Whisper (OpenAI) kullan',
+                    whisperForcedNote: 'zorunlu: Chrome kullanmıyorsun',
+                    dubbingLabel: 'Çeviriyi sesli oku (dublaj)',
+                    originalTitle: 'Orijinal metin',
+                    originalSubtitle: 'Mikrofon tarafından algılandı',
+                    originalPlaceholder: 'Gerçek zamanlı metin dökümünü görmek için konuşmaya başla.',
+                    translationTitle: 'Çeviri',
+                    suggestionsTitle: 'Mülakat önerileri',
+                    ttsBusyMessage: 'Çeviriyi okuyorum, tekrar konuşmadan önce lütfen bitirmemi bekle.',
+                    ttsLoadingMessage: 'Çeviri yükleniyor...',
+                },
+                ar: {
+                    title: 'PolyGlide - مترجم فوري',
+                    subtitle: 'تحدّث بأي لغة: سترى النص الأصلي والترجمة مباشرة.',
+                    langALabel: 'اللغة أ',
+                    langBLabel: 'اللغة ب',
+                    whisperLabel: 'استخدم Whisper (OpenAI) بدلاً من التعرف على الصوت في المتصفح',
+                    whisperForcedNote: 'إجباري: أنت لا تستخدم كروم',
+                    dubbingLabel: 'قراءة الترجمة بصوت عالٍ (دبلجة)',
+                    originalTitle: 'النص الأصلي',
+                    originalSubtitle: 'يتعرّف عليه الميكروفون',
+                    originalPlaceholder: 'ابدأ التحدّث لتظهر هنا الكتابة الفورية للنص.',
+                    translationTitle: 'الترجمة',
+                    suggestionsTitle: 'نصائح للمقابلة',
+                    ttsBusyMessage: 'أقرأ الترجمة الآن، يرجى الانتظار حتى أنتهي قبل أن تتحدّث مجددًا.',
+                    ttsLoadingMessage: 'جارٍ تحميل الترجمة...',
+                },
+                he: {
+                    title: 'PolyGlide - מתרגם מיידי',
+                    subtitle: 'דבר בכל שפה: תראה את הטקסט המקורי ואת התרגום בזמן אמת.',
+                    langALabel: 'שפה A',
+                    langBLabel: 'שפה B',
+                    whisperLabel: 'השתמש ב‑Whisper (OpenAI) במקום זיהוי הדיבור של הדפדפן',
+                    whisperForcedNote: 'חובה: אינך משתמש ב‑Chrome',
+                    dubbingLabel: 'קריאת התרגום בקול (דיבוב)',
+                    originalTitle: 'טקסט מקורי',
+                    originalSubtitle: 'מזוהה על‑ידי המיקרופון',
+                    originalPlaceholder: 'התחל לדבר כדי לראות כאן תמלול בזמן אמת.',
+                    translationTitle: 'תרגום',
+                    suggestionsTitle: 'טיפים לראיון עבודה',
+                    ttsBusyMessage: 'אני מקריא את התרגום, המתן עד שאסיים לפני שתחזור לדבר.',
+                    ttsLoadingMessage: 'טוען תרגום...',
+                },
+                hi: {
+                    title: 'PolyGlide - त्वरित अनुवादक',
+                    subtitle: 'किसी भी भाषा में बोलें: आप मूल पाठ और लाइव अनुवाद देखेंगे।',
+                    langALabel: 'भाषा A',
+                    langBLabel: 'भाषा B',
+                    whisperLabel: 'ब्राउज़र की स्पीच रिकग्निशन की जगह Whisper (OpenAI) का उपयोग करें',
+                    whisperForcedNote: 'अनिवार्य: आप Chrome का उपयोग नहीं कर रहे हैं',
+                    dubbingLabel: 'अनुवाद को ज़ोर से पढ़ें (डबिंग)',
+                    originalTitle: 'मूल पाठ',
+                    originalSubtitle: 'माइक्रोफ़ोन द्वारा पहचाना गया',
+                    originalPlaceholder: 'रीयल‑टाइम ट्रांसक्रिप्शन देखने के लिए बोलना शुरू करें।',
+                    translationTitle: 'अनुवाद',
+                    suggestionsTitle: 'इंटरव्यू सुझाव',
+                    ttsBusyMessage: 'मैं अनुवाद पढ़ रहा हूँ, कृपया दोबारा बोलने से पहले समाप्त होने तक प्रतीक्षा करें।',
+                    ttsLoadingMessage: 'अनुवाद लोड हो रहा है...',
+                },
+                zh: {
+                    title: 'PolyGlide - 即时翻译器',
+                    subtitle: '用任何语言说话：你会看到原文和实时翻译。',
+                    langALabel: '语言 A',
+                    langBLabel: '语言 B',
+                    whisperLabel: '使用 Whisper（OpenAI）替代浏览器自带的语音识别',
+                    whisperForcedNote: '已强制启用：当前浏览器不是 Chrome',
+                    dubbingLabel: '朗读译文（配音）',
+                    originalTitle: '原文',
+                    originalSubtitle: '由麦克风识别',
+                    originalPlaceholder: '开始说话即可在此看到实时转写。',
+                    translationTitle: '翻译',
+                    suggestionsTitle: '面试建议',
+                    ttsBusyMessage: '我正在朗读译文，请等我读完再继续说话。',
+                    ttsLoadingMessage: '正在加载翻译…',
+                },
+                ja: {
+                    title: 'PolyGlide - インスタント翻訳',
+                    subtitle: 'どんな言語でも話せます。元のテキストとリアルタイム翻訳が表示されます。',
+                    langALabel: '言語 A',
+                    langBLabel: '言語 B',
+                    whisperLabel: 'ブラウザの音声認識の代わりに Whisper (OpenAI) を使用する',
+                    whisperForcedNote: '強制: Chrome 以外のブラウザを使用中です',
+                    dubbingLabel: '翻訳を音声で読み上げる（吹き替え）',
+                    originalTitle: '元のテキスト',
+                    originalSubtitle: 'マイクから認識',
+                    originalPlaceholder: '話し始めると、ここにリアルタイムの書き起こしが表示されます。',
+                    translationTitle: '翻訳',
+                    suggestionsTitle: '面接のヒント',
+                    ttsBusyMessage: '翻訳を読み上げています。終わるまでお待ちください。',
+                    ttsLoadingMessage: '翻訳を読み込み中…',
+                },
+                ko: {
+                    title: 'PolyGlide - 즉시 번역기',
+                    subtitle: '어떤 언어로 말해도 원문과 실시간 번역을 볼 수 있습니다.',
+                    langALabel: '언어 A',
+                    langBLabel: '언어 B',
+                    whisperLabel: '브라우저 음성 인식 대신 Whisper(OpenAI) 사용',
+                    whisperForcedNote: '강제: Chrome 브라우저가 아님',
+                    dubbingLabel: '번역 내용을 소리 내어 읽기 (더빙)',
+                    originalTitle: '원문',
+                    originalSubtitle: '마이크로 인식됨',
+                    originalPlaceholder: '말하기 시작하면 여기에 실시간 전사가 표시됩니다.',
+                    translationTitle: '번역',
+                    suggestionsTitle: '면접 팁',
+                    ttsBusyMessage: '번역을 읽는 중입니다. 끝날 때까지 기다렸다가 다시 말해 주세요.',
+                    ttsLoadingMessage: '번역 불러오는 중…',
+                },
+                id: {
+                    title: 'PolyGlide - Penerjemah instan',
+                    subtitle: 'Berbicaralah dalam bahasa apa pun: kamu akan melihat teks asli dan terjemahan langsung.',
+                    langALabel: 'Bahasa A',
+                    langBLabel: 'Bahasa B',
+                    whisperLabel: 'Gunakan Whisper (OpenAI) sebagai pengganti pengenalan suara browser',
+                    whisperForcedNote: 'dipaksa: kamu tidak menggunakan Chrome',
+                    dubbingLabel: 'Bacakan terjemahan (dubbing)',
+                    originalTitle: 'Teks asli',
+                    originalSubtitle: 'Dikenali oleh mikrofon',
+                    originalPlaceholder: 'Mulai berbicara untuk melihat transkripsi waktu nyata di sini.',
+                    translationTitle: 'Terjemahan',
+                    suggestionsTitle: 'Saran wawancara',
+                    ttsBusyMessage: 'Saya sedang membacakan terjemahan, tunggu sampai selesai sebelum berbicara lagi.',
+                    ttsLoadingMessage: 'Memuat terjemahan...',
+                },
+                ms: {
+                    title: 'PolyGlide - Penterjemah segera',
+                    subtitle: 'Bercakap dalam apa‑apa bahasa: anda akan melihat teks asal dan terjemahan secara langsung.',
+                    langALabel: 'Bahasa A',
+                    langBLabel: 'Bahasa B',
+                    whisperLabel: 'Guna Whisper (OpenAI) menggantikan pengecaman suara pelayar',
+                    whisperForcedNote: 'dipaksa: anda tidak menggunakan Chrome',
+                    dubbingLabel: 'Baca terjemahan dengan kuat (dubbing)',
+                    originalTitle: 'Teks asal',
+                    originalSubtitle: 'Dikenal pasti oleh mikrofon',
+                    originalPlaceholder: 'Mula bercakap untuk melihat transkripsi masa nyata di sini.',
+                    translationTitle: 'Terjemahan',
+                    suggestionsTitle: 'Petua temu duga',
+                    ttsBusyMessage: 'Saya sedang membaca terjemahan, tunggu sehingga saya selesai sebelum bercakap semula.',
+                    ttsLoadingMessage: 'Memuatkan terjemahan...',
+                },
+                th: {
+                    title: 'PolyGlide - ตัวแปลภาษาทันที',
+                    subtitle: 'พูดได้ทุกภาษา: คุณจะเห็นข้อความต้นฉบับและคำแปลแบบเรียลไทม์',
+                    langALabel: 'ภาษา A',
+                    langBLabel: 'ภาษา B',
+                    whisperLabel: 'ใช้ Whisper (OpenAI) แทนระบบรู้จำเสียงพูดของเบราว์เซอร์',
+                    whisperForcedNote: 'ถูกบังคับใช้: คุณไม่ได้ใช้ Chrome',
+                    dubbingLabel: 'อ่านคำแปลออกเสียง (พากย์เสียง)',
+                    originalTitle: 'ข้อความต้นฉบับ',
+                    originalSubtitle: 'รู้จำโดยไมโครโฟน',
+                    originalPlaceholder: 'เริ่มพูดเพื่อดูข้อความถอดเสียงแบบเรียลไทม์ที่นี่',
+                    translationTitle: 'คำแปล',
+                    suggestionsTitle: 'คำแนะนำสำหรับสัมภาษณ์งาน',
+                    ttsBusyMessage: 'กำลังอ่านคำแปลอยู่ กรุณารอให้เสร็จก่อนจึงพูดต่อ',
+                    ttsLoadingMessage: 'กำลังโหลดคำแปล...',
+                },
+                vi: {
+                    title: 'PolyGlide - Trình dịch tức thì',
+                    subtitle: 'Hãy nói bất kỳ ngôn ngữ nào: bạn sẽ thấy văn bản gốc và bản dịch theo thời gian thực.',
+                    langALabel: 'Ngôn ngữ A',
+                    langBLabel: 'Ngôn ngữ B',
+                    whisperLabel: 'Sử dụng Whisper (OpenAI) thay cho nhận dạng giọng nói của trình duyệt',
+                    whisperForcedNote: 'bắt buộc: bạn không dùng Chrome',
+                    dubbingLabel: 'Đọc to bản dịch (lồng tiếng)',
+                    originalTitle: 'Văn bản gốc',
+                    originalSubtitle: 'Được nhận dạng từ micro',
+                    originalPlaceholder: 'Bắt đầu nói để xem bản chép lại theo thời gian thực tại đây.',
+                    translationTitle: 'Bản dịch',
+                    suggestionsTitle: 'Gợi ý phỏng vấn',
+                    ttsBusyMessage: 'Tôi đang đọc bản dịch, hãy đợi cho đến khi tôi đọc xong rồi hãy nói tiếp.',
+                    ttsLoadingMessage: 'Đang tải bản dịch...',
                 },
             };
 
-            return dict[lang] || dict.en;
+            const base = dict.en;
+            const selected = dict[lang] || dict.en;
+            return { ...base, ...selected };
         },
         displayOriginalText() {
             const base = this.originalConfirmed || '';
@@ -663,15 +1186,15 @@ export default {
             try {
                 const text = (this.debugLogs || []).join('\n');
                 if (!text) {
-                    this.debugCopyStatus = 'nessun log da copiare';
+                    this.debugCopyStatus = this.ui.debugNoLogsMessage;
                 } else if (navigator.clipboard && navigator.clipboard.writeText) {
                     await navigator.clipboard.writeText(text);
-                    this.debugCopyStatus = 'log copiati negli appunti';
+                    this.debugCopyStatus = this.ui.debugCopiedMessage;
                 } else {
-                    this.debugCopyStatus = 'clipboard non disponibile, seleziona il testo manualmente';
+                    this.debugCopyStatus = this.ui.debugClipboardUnavailableMessage;
                 }
             } catch {
-                this.debugCopyStatus = 'errore copia, seleziona il testo manualmente';
+                this.debugCopyStatus = this.ui.debugCopyErrorMessage;
             }
 
             try {
@@ -793,7 +1316,12 @@ export default {
             try {
                 const nav = (navigator.language || (navigator.languages && navigator.languages[0]) || this.locale || 'it-IT').toString();
                 const code = nav.split(/[-_]/)[0].toLowerCase();
-                this.uiLocale = ['it', 'en'].includes(code) ? code : 'en';
+                const supported = [
+                    'it', 'en', 'es', 'fr', 'de', 'pt', 'nl', 'sv', 'no', 'da',
+                    'fi', 'pl', 'cs', 'sk', 'hu', 'ro', 'bg', 'el', 'uk', 'ru',
+                    'tr', 'ar', 'he', 'hi', 'zh', 'ja', 'ko', 'id', 'ms', 'th', 'vi',
+                ];
+                this.uiLocale = supported.includes(code) ? code : 'en';
             } catch {
                 this.uiLocale = 'it';
             }
@@ -811,7 +1339,7 @@ export default {
                     // Browser non-Chrome: forza modalità Whisper e non permettere cambio
                     this.useWhisper = true;
                     this.autoRestart = false;
-                    this.statusMessage = 'Modalità Whisper attiva automaticamente: il riconoscimento vocale del browser non è pienamente supportato qui.';
+                    this.statusMessage = this.ui.statusWhisperAutoForced;
                 }
             } catch {
                 this.isChromeWithWebSpeech = false;
@@ -973,8 +1501,10 @@ export default {
                             this.scrollToBottom('originalBox');
                         });
                         // Mentre parli, usa l'interim per una traduzione incrementale
-                        // solo su desktop: su mobile low-power saltiamo lo streaming
-                        if (interim && !this.isMobileLowPower) {
+                        // solo su desktop e solo nella modalità "call":
+                        // - su mobile low-power saltiamo lo streaming
+                        // - in modalità YouTube vogliamo traduzione SOLO a fine frase
+                        if (interim && !this.isMobileLowPower && this.activeTab === 'call') {
                             this.maybeStartPreviewTranslation(interim);
                         }
                     } catch (err) {
@@ -982,7 +1512,7 @@ export default {
                     }
                 };
             } catch (e) {
-                this.statusMessage = 'Errore inizializzazione microfono.';
+                this.statusMessage = this.ui.statusMicInitError;
             }
         },
 
@@ -1035,13 +1565,13 @@ export default {
 
             // Validazione: entrambe le lingue devono essere selezionate
             if (!this.langA || !this.langB) {
-                this.statusMessage = '⚠️ Seleziona entrambe le lingue (A e B) prima di iniziare!';
+                this.statusMessage = this.ui.statusSelectLangAB;
                 return;
             }
 
             const ok = await this.ensureMicPermission();
             if (!ok) {
-                this.statusMessage = 'Permesso microfono negato. Abilitalo nelle impostazioni del browser.';
+                this.statusMessage = this.ui.statusMicDenied;
                 return;
             }
 
@@ -1085,7 +1615,7 @@ export default {
                     }, 1000);
                 }
             } catch (e) {
-                this.statusMessage = 'Impossibile avviare il microfono.';
+                this.statusMessage = this.ui.statusMicStartError;
                 this.isListening = false;
                 this.activeSpeaker = null;
             }
@@ -1109,6 +1639,18 @@ export default {
             const commit = options && typeof options.commit === 'boolean' ? options.commit : true;
             const mergeLast = options && typeof options.mergeLast === 'boolean' ? options.mergeLast : false;
             const mergeIndex = options && typeof options.mergeIndex === 'number' ? options.mergeIndex : null;
+
+            // In modalità YouTube, se sembra una frase "vera" (non solo una parola)
+            // mettiamo SUBITO in pausa il video, senza aspettare che parta il TTS.
+            if (commit && this.activeTab === 'youtube') {
+                const words = safeText.split(/\s+/).filter(Boolean);
+                const hasSentencePunct = /[.!?…]$/.test(safeText);
+                const longEnough = safeText.length >= 15 || words.length >= 4;
+                const shouldPauseForSentence = hasSentencePunct || longEnough;
+                if (shouldPauseForSentence) {
+                    this.pauseYoutubeIfNeeded();
+                }
+            }
 
             this.debugLog('startTranslationStream', {
                 text: safeText,
@@ -1345,6 +1887,11 @@ export default {
                     this.lastSpeakerBeforeTts = null;
                     this.isTtsPlaying = false;
 
+                    // In modalità YouTube, al termine del TTS facciamo ripartire il video
+                    if (this.activeTab === 'youtube') {
+                        this.resumeYoutubeIfNeeded();
+                    }
+
                     if (shouldResume && speaker) {
                         this.toggleListeningForLang(speaker);
                     }
@@ -1359,6 +1906,10 @@ export default {
                     this.wasListeningBeforeTts = false;
                     this.lastSpeakerBeforeTts = null;
                     this.isTtsPlaying = false;
+
+                    if (this.activeTab === 'youtube') {
+                        this.resumeYoutubeIfNeeded();
+                    }
 
                     if (shouldResume && speaker) {
                         this.toggleListeningForLang(speaker);
@@ -1558,12 +2109,12 @@ export default {
         onLanguagePairChange() {
             // Validazione: entrambe le lingue devono essere selezionate e diverse
             if (!this.langA || !this.langB) {
-                this.statusMessage = 'Seleziona entrambe le lingue (A e B) per iniziare.';
+                this.statusMessage = this.ui.statusLangPairMissing;
                 return;
             }
 
             if (this.langA === this.langB) {
-                this.statusMessage = 'Le due lingue devono essere diverse!';
+                this.statusMessage = this.ui.statusLangPairDifferent;
                 this.langB = '';
                 return;
             }
@@ -1599,10 +2150,10 @@ export default {
             if (this.useWhisper) {
                 // In modalità Whisper evitiamo auto-restart lato componente
                 this.autoRestart = false;
-                this.statusMessage = 'Modalità Whisper attivata: userò OpenAI per il riconoscimento vocale.';
+                this.statusMessage = this.ui.statusWhisperModeOn;
             } else {
                 this.autoRestart = true;
-                this.statusMessage = 'Modalità browser attivata: userò il riconoscimento vocale del browser.';
+                this.statusMessage = this.ui.statusBrowserModeOn;
             }
         },
 
@@ -1633,17 +2184,17 @@ export default {
         async onYoutubeTranslateClick() {
             const id = this.extractYoutubeVideoId(this.youtubeUrl);
             if (!id) {
-                this.statusMessage = 'URL YouTube non valido. Usa un link completo al video.';
+                this.statusMessage = this.ui.statusYoutubeUrlInvalid;
                 return;
             }
 
             if (!this.youtubeLangSource || !this.youtubeLangTarget) {
-                this.statusMessage = 'Seleziona sia la lingua del video che la lingua di traduzione.';
+                this.statusMessage = this.ui.statusYoutubeLangsMissing;
                 return;
             }
 
             if (this.youtubeLangSource === this.youtubeLangTarget) {
-                this.statusMessage = 'Le due lingue devono essere diverse per la modalità interprete.';
+                this.statusMessage = this.ui.statusYoutubeLangsDifferent;
                 return;
             }
 
