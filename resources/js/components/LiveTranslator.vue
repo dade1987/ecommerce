@@ -782,22 +782,55 @@ export default {
                             if (res.isFinal) {
                                 const clean = text.trim();
                                 if (clean) {
-                                    // Ogni frase finale viene sempre aggiunta come nuova riga
-                                    // per evitare che le frasi successive sovrascrivano le precedenti.
                                     const phraseWithDash = `- ${clean}`;
+                                    let mergedWithPrevious = false;
 
-                                    this.originalConfirmed = this.originalConfirmed
-                                        ? `${this.originalConfirmed}\n${phraseWithDash}`
-                                        : phraseWithDash;
+                                    // Gestione speciale per mobile: molti browser inviano più final progressivi
+                                    // (es. "ciao", "ciao io", "ciao io sono davide"...).
+                                    // Solo in questo caso proviamo ad aggiornare l'ULTIMA riga invece di crearne una nuova.
+                                    if (this.isMobileLowPower) {
+                                        const now = Date.now();
+                                        const lines = (this.originalConfirmed || '')
+                                            .split('\n')
+                                            .filter(Boolean);
 
-                                    this.lastFinalOriginalAt = Date.now();
+                                        if (lines.length > 0 && now - this.lastFinalOriginalAt < 1500) {
+                                            const lastLine = lines[lines.length - 1];
+                                            const prevText = lastLine.startsWith('- ')
+                                                ? lastLine.slice(2).trim()
+                                                : lastLine.trim();
+
+                                            if (prevText && clean.length > prevText.length) {
+                                                // Consideriamo "stessa frase in aggiornamento" SOLO se il nuovo testo
+                                                // estende il precedente (prefisso), per evitare di fondere frasi diverse.
+                                                if (clean.startsWith(prevText)) {
+                                                    lines[lines.length - 1] = phraseWithDash;
+                                                    this.originalConfirmed = lines.join('\n');
+                                                    mergedWithPrevious = true;
+                                                }
+                                            }
+                                        }
+
+                                        this.lastFinalOriginalAt = now;
+                                    } else {
+                                        // Su desktop usiamo sempre una riga nuova per ogni final
+                                        this.lastFinalOriginalAt = Date.now();
+                                    }
+
+                                    if (!mergedWithPrevious) {
+                                        this.originalConfirmed = this.originalConfirmed
+                                            ? `${this.originalConfirmed}\n${phraseWithDash}`
+                                            : phraseWithDash;
+                                    }
+
                                     this.originalInterim = '';
-                                    // Traduci la singola frase appena conclusa
+
+                                    // Traduci la singola frase appena conclusa.
+                                    // Usiamo mergeLast SOLO nel caso mobile in cui stiamo veramente aggiornando
+                                    // la stessa frase (final progressivi).
                                     this.startTranslationStream(clean, {
                                         commit: true,
-                                        // Non usiamo piu' il mergeLast per la traduzione:
-                                        // ogni nuova frase crea una nuova riga anche a destra.
-                                        mergeLast: false,
+                                        mergeLast: mergedWithPrevious && this.isMobileLowPower,
                                     });
                                     this.maybeRequestInterviewSuggestion(clean);
                                 }
