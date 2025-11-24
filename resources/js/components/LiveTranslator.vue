@@ -115,7 +115,7 @@
                                     :class="activeSpeaker === 'A' && isListening ? 'bg-red-400 animate-pulse' : 'bg-slate-300'"></span>
                             </span>
                             <span>{{ activeSpeaker === 'A' && isListening ? 'Parlante A attivo' : 'Parla Lingua A'
-                                }}</span>
+                            }}</span>
                         </button>
                     </div>
 
@@ -144,7 +144,7 @@
                                     :class="activeSpeaker === 'B' && isListening ? 'bg-red-400 animate-pulse' : 'bg-slate-300'"></span>
                             </span>
                             <span>{{ activeSpeaker === 'B' && isListening ? 'Parlante B attivo' : 'Parla Lingua B'
-                                }}</span>
+                            }}</span>
                         </button>
                     </div>
                 </div>
@@ -805,28 +805,27 @@ export default {
                                 const clean = text.trim();
                                 if (clean) {
                                     const phraseWithDash = `- ${clean}`;
-                                    let mergedWithPrevious = false;
 
-                                    // Gestione speciale per mobile: molti browser inviano più final progressivi
-                                    // (es. "ciao", "ciao io", "ciao io sono davide"...).
-                                    // Solo in questo caso proviamo ad aggiornare l'ULTIMA riga invece di crearne una nuova.
+                                    // MOBILE: niente interim, ma usiamo i final progressivi
+                                    // per aggiornare/mergeare l'ULTIMA riga quando è la stessa frase.
                                     if (this.isMobileLowPower) {
                                         const now = Date.now();
                                         const lines = (this.originalConfirmed || '')
                                             .split('\n')
                                             .filter(Boolean);
 
-                                        if (lines.length > 0 && now - this.lastFinalOriginalAt < 1500) {
+                                        let mergedWithPrevious = false;
+
+                                        if (lines.length > 0 && now - this.lastFinalOriginalAt < 2000) {
                                             const lastLine = lines[lines.length - 1];
                                             const prevText = lastLine.startsWith('- ')
                                                 ? lastLine.slice(2).trim()
                                                 : lastLine.trim();
 
                                             if (prevText) {
-                                                // Consideriamo "stessa frase in aggiornamento" se:
-                                                // - il nuovo testo è IDENTICO al precedente, oppure
-                                                // - il nuovo testo è più lungo e comincia con il precedente
-                                                //   (caso tipico mobile: "ciao", "ciao io", "ciao io sono davide"...).
+                                                // Consideriamo "stessa frase" se il nuovo testo è
+                                                // uguale o un'estensione del precedente (caso tipico mobile:
+                                                // "ciao", "ciao io", "ciao io sono davide"...).
                                                 if (
                                                     clean === prevText ||
                                                     (clean.length > prevText.length &&
@@ -839,30 +838,41 @@ export default {
                                             }
                                         }
 
+                                        if (!mergedWithPrevious) {
+                                            this.originalConfirmed = this.originalConfirmed
+                                                ? `${this.originalConfirmed}\n${phraseWithDash}`
+                                                : phraseWithDash;
+                                        }
+
                                         this.lastFinalOriginalAt = now;
-                                    } else {
-                                        // Su desktop usiamo sempre una riga nuova per ogni final
-                                        this.lastFinalOriginalAt = Date.now();
+                                        this.originalInterim = '';
+
+                                        this.startTranslationStream(clean, {
+                                            commit: true,
+                                            // Se è la stessa frase aggiornata, sovrascriviamo
+                                            // anche l'ultima traduzione; altrimenti nuova riga.
+                                            mergeLast: mergedWithPrevious,
+                                        });
+                                        this.maybeRequestInterviewSuggestion(clean);
+                                        continue;
                                     }
 
-                                    if (!mergedWithPrevious) {
-                                        this.originalConfirmed = this.originalConfirmed
-                                            ? `${this.originalConfirmed}\n${phraseWithDash}`
-                                            : phraseWithDash;
-                                    }
-
+                                    this.lastFinalOriginalAt = Date.now();
+                                    this.originalConfirmed = this.originalConfirmed
+                                        ? `${this.originalConfirmed}\n${phraseWithDash}`
+                                        : phraseWithDash;
                                     this.originalInterim = '';
-
-                                    // Traduci la singola frase appena conclusa.
-                                    // Usiamo mergeLast SOLO nel caso mobile in cui stiamo veramente aggiornando
-                                    // la stessa frase (final progressivi).
                                     this.startTranslationStream(clean, {
                                         commit: true,
-                                        mergeLast: mergedWithPrevious && this.isMobileLowPower,
+                                        mergeLast: false,
                                     });
                                     this.maybeRequestInterviewSuggestion(clean);
                                 }
                             } else {
+                                // INTERIM solo su desktop / non-low-power
+                                if (this.isMobileLowPower) {
+                                    continue;
+                                }
                                 interim = [interim, text.trim()].filter(Boolean).join(' ');
                             }
                         }
