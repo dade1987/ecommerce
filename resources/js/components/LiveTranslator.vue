@@ -115,7 +115,7 @@
                                     :class="activeSpeaker === 'A' && isListening ? 'bg-red-400 animate-pulse' : 'bg-slate-300'"></span>
                             </span>
                             <span>{{ activeSpeaker === 'A' && isListening ? 'Parlante A attivo' : 'Parla Lingua A'
-                            }}</span>
+                                }}</span>
                         </button>
                     </div>
 
@@ -144,7 +144,7 @@
                                     :class="activeSpeaker === 'B' && isListening ? 'bg-red-400 animate-pulse' : 'bg-slate-300'"></span>
                             </span>
                             <span>{{ activeSpeaker === 'B' && isListening ? 'Parlante B attivo' : 'Parla Lingua B'
-                            }}</span>
+                                }}</span>
                         </button>
                     </div>
                 </div>
@@ -847,11 +847,12 @@ export default {
                                         this.lastFinalOriginalAt = now;
                                         this.originalInterim = '';
 
+                                        // Su mobile NON facciamo più il merge sulle traduzioni:
+                                        // ogni final genera SEMPRE una nuova riga tradotta, così
+                                        // non rischiamo di sovrascrivere le frasi precedenti.
                                         this.startTranslationStream(clean, {
                                             commit: true,
-                                            // Se è la stessa frase aggiornata, sovrascriviamo
-                                            // anche l'ultima traduzione; altrimenti nuova riga.
-                                            mergeLast: mergedWithPrevious,
+                                            mergeLast: false,
                                         });
                                         this.maybeRequestInterviewSuggestion(clean);
                                         continue;
