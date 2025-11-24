@@ -488,6 +488,9 @@ export default {
             lastSpeakerBeforeTts: null,
             translationThreadId: null,
 
+            // Modalità low-power per mobile (niente streaming token-per-token)
+            isMobileLowPower: false,
+
             // Stato per modalità "Traduttore Video Youtube"
             youtubeUrl: '',
             youtubeVideoId: '',
@@ -595,6 +598,7 @@ export default {
         this.detectUiLocale();
         this.initDefaultLanguages();
         this.detectEnvAndDefaultMode();
+        this.detectMobileLowPower();
     },
     beforeUnmount() {
         this.stopListeningInternal();
@@ -606,6 +610,21 @@ export default {
         }
     },
     methods: {
+        detectMobileLowPower() {
+            try {
+                const ua = (navigator.userAgent || '').toLowerCase();
+                const isMobile =
+                    ua.includes('iphone') ||
+                    ua.includes('ipad') ||
+                    ua.includes('android') ||
+                    ua.includes('mobile');
+
+                this.isMobileLowPower = !!isMobile;
+            } catch {
+                this.isMobileLowPower = false;
+            }
+        },
+
         setActiveTab(tab) {
             this.activeTab = tab;
             // In modalità YouTube abilitiamo sempre il doppiaggio,
@@ -823,8 +842,8 @@ export default {
                             this.scrollToBottom('originalBox');
                         });
                         // Mentre parli, usa l'interim per una traduzione incrementale
-                        // della frase corrente (senza toccare le frasi già concluse).
-                        if (interim) {
+                        // solo su desktop: su mobile low-power saltiamo lo streaming
+                        if (interim && !this.isMobileLowPower) {
                             this.maybeStartPreviewTranslation(interim);
                         }
                     } catch (err) {
@@ -1012,13 +1031,16 @@ export default {
                         const data = JSON.parse(e.data);
                         if (data.token) {
                             buffer += data.token;
-                            // Aggiorna solo la traduzione della frase corrente (streaming),
-                            // lasciando intatte le frasi già concluse.
-                            this.updateTranslationTokens(buffer);
+
+                            // Su desktop: aggiorna in streaming token-per-token.
+                            // Su mobile low-power: NON aggiornare in streaming, aspetta la frase finale.
+                            if (!this.isMobileLowPower) {
+                                this.updateTranslationTokens(buffer);
+                                this.$nextTick(() => {
+                                    this.scrollToBottom('translationBox');
+                                });
+                            }
                         }
-                        this.$nextTick(() => {
-                            this.scrollToBottom('translationBox');
-                        });
                     } catch { }
                 });
 
