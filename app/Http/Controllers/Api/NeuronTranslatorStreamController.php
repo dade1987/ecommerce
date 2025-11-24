@@ -19,7 +19,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  * riconosciute dal microfono, con streaming token-by-token.
  *
  * Endpoint:
- * GET /api/chatbot/neuron-translator-stream?text=...&source_lang=it-IT&locale=it
+ * GET /api/chatbot/translator-stream?text=...&source_lang=it-IT&locale=it
  */
 class NeuronTranslatorStreamController extends Controller
 {
