@@ -138,7 +138,7 @@
                                     :class="activeSpeaker === 'A' && isListening ? 'bg-red-400 animate-pulse' : 'bg-slate-300'"></span>
                             </span>
                             <span>{{ activeSpeaker === 'A' && isListening ? 'Parlante A attivo' : 'Parla Lingua A'
-                            }}</span>
+                                }}</span>
                         </button>
                     </div>
 
@@ -167,7 +167,7 @@
                                     :class="activeSpeaker === 'B' && isListening ? 'bg-red-400 animate-pulse' : 'bg-slate-300'"></span>
                             </span>
                             <span>{{ activeSpeaker === 'B' && isListening ? 'Parlante B attivo' : 'Parla Lingua B'
-                            }}</span>
+                                }}</span>
                         </button>
                     </div>
                 </div>
@@ -510,6 +510,7 @@ export default {
 
             // Modalità low-power per mobile (niente streaming token-per-token)
             isMobileLowPower: false,
+            mobileCurrentTranslationIndex: null,
 
             // Debug interno: pannello e log testuali copiabili
             showDebugPanel: false,
@@ -918,9 +919,18 @@ export default {
                                         }
 
                                         if (!mergedWithPrevious) {
+                                            // Nuova frase: aggiungi riga originale e "slot" traduzione
                                             this.originalConfirmed = this.originalConfirmed
                                                 ? `${this.originalConfirmed}\n${phraseWithDash}`
                                                 : phraseWithDash;
+
+                                            // Crea subito uno slot in translationSegments che verrà
+                                            // aggiornato quando arriva la traduzione finale.
+                                            this.mobileCurrentTranslationIndex = this.translationSegments.length;
+                                            this.translationSegments.push('- ...');
+                                        } else {
+                                            // Stessa frase: l'ultima riga originale è già stata aggiornata sopra,
+                                            // la traduzione userà lo stesso indice mobileCurrentTranslationIndex.
                                         }
 
                                         this.lastFinalOriginalAt = now;
@@ -928,9 +938,10 @@ export default {
 
                                         this.startTranslationStream(clean, {
                                             commit: true,
-                                            // Se è la stessa frase aggiornata, aggiorniamo anche
-                                            // l'ultima traduzione; altrimenti nuova riga.
-                                            mergeLast: mergedWithPrevious,
+                                            // Usiamo sempre lo stesso indice per tutta la frase mobile
+                                            // così la traduzione non sovrascrive mai le frasi precedenti.
+                                            mergeLast: false,
+                                            mergeIndex: this.mobileCurrentTranslationIndex,
                                         });
                                         this.maybeRequestInterviewSuggestion(clean);
                                         continue;
@@ -1091,18 +1102,20 @@ export default {
             }
         },
 
-        startTranslationStream(textSegment, options = { commit: true, mergeLast: false }) {
+        startTranslationStream(textSegment, options = { commit: true, mergeLast: false, mergeIndex: null }) {
             const safeText = ((textSegment || '').trim()).toLowerCase();
             if (!safeText) return;
 
             const commit = options && typeof options.commit === 'boolean' ? options.commit : true;
             const mergeLast = options && typeof options.mergeLast === 'boolean' ? options.mergeLast : false;
+            const mergeIndex = options && typeof options.mergeIndex === 'number' ? options.mergeIndex : null;
 
             this.debugLog('startTranslationStream', {
                 text: safeText,
                 commit,
                 mergeLast,
                 isMobileLowPower: this.isMobileLowPower,
+                mergeIndex,
             });
 
             // Se è già attivo uno stream e questa è una richiesta finale (commit: true),
@@ -1182,12 +1195,24 @@ export default {
                             commit,
                             mergeLast,
                             isMobileLowPower: this.isMobileLowPower,
+                            mergeIndex,
                             segmentsCountBefore: (this.translationSegments && this.translationSegments.length) || 0,
                         });
                         // Quando una frase è conclusa:
-                        // - se mergeLast è true, aggiorniamo l'ultima riga (caso mobile con final progressivi)
+                        // - se mergeIndex è un indice valido, aggiorniamo quella riga (caso mobile)
+                        // - altrimenti, se mergeLast è true, aggiorniamo l'ultima riga
                         // - altrimenti aggiungiamo una nuova riga
-                        if (mergeLast && this.translationSegments && this.translationSegments.length > 0) {
+                        if (
+                            mergeIndex !== null &&
+                            this.translationSegments &&
+                            this.translationSegments.length > mergeIndex
+                        ) {
+                            this.translationSegments.splice(
+                                mergeIndex,
+                                1,
+                                `- ${segment}`
+                            );
+                        } else if (mergeLast && this.translationSegments && this.translationSegments.length > 0) {
                             this.translationSegments.splice(
                                 this.translationSegments.length - 1,
                                 1,
