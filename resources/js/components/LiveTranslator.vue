@@ -69,6 +69,19 @@
                     {{ statusMessage }}
                 </p>
 
+                <!-- Pannello debug: pulsante + finestra log copiabile -->
+                <div class="flex justify-end">
+                    <button type="button" @click="showDebugPanel = !showDebugPanel"
+                        class="px-2 py-1 rounded-md text-[10px] font-mono border border-slate-600 text-slate-300 bg-slate-900/70 hover:bg-slate-800">
+                        {{ showDebugPanel ? 'chiudi debug' : 'apri debug' }}
+                    </button>
+                </div>
+                <div v-if="showDebugPanel" class="border border-slate-700 rounded-lg bg-slate-900/80 p-2">
+                    <textarea readonly
+                        class="w-full h-40 text-[10px] md:text-xs font-mono bg-transparent text-slate-200 resize-none outline-none"
+                        :value="debugLogs.join('\n')"></textarea>
+                </div>
+
                 <div class="flex flex-col items-center gap-1 text-slate-300">
                     <div class="flex items-center justify-center gap-2 text-[13px]">
                         <input id="useWhisper" type="checkbox" v-model="useWhisper" @change="onRecognitionModeChange"
@@ -115,7 +128,7 @@
                                     :class="activeSpeaker === 'A' && isListening ? 'bg-red-400 animate-pulse' : 'bg-slate-300'"></span>
                             </span>
                             <span>{{ activeSpeaker === 'A' && isListening ? 'Parlante A attivo' : 'Parla Lingua A'
-                                }}</span>
+                            }}</span>
                         </button>
                     </div>
 
@@ -144,7 +157,7 @@
                                     :class="activeSpeaker === 'B' && isListening ? 'bg-red-400 animate-pulse' : 'bg-slate-300'"></span>
                             </span>
                             <span>{{ activeSpeaker === 'B' && isListening ? 'Parlante B attivo' : 'Parla Lingua B'
-                                }}</span>
+                            }}</span>
                         </button>
                     </div>
                 </div>
@@ -488,6 +501,10 @@ export default {
             // Modalità low-power per mobile (niente streaming token-per-token)
             isMobileLowPower: false,
 
+            // Debug interno: pannello e log testuali copiabili
+            showDebugPanel: false,
+            debugLogs: [],
+
             // Stato per modalità "Traduttore Video Youtube"
             youtubeUrl: '',
             youtubeVideoId: '',
@@ -607,6 +624,29 @@ export default {
         }
     },
     methods: {
+        debugLog(...args) {
+            try {
+                const ts = new Date().toISOString();
+                const parts = args.map((a) => {
+                    if (typeof a === 'string') return a;
+                    try {
+                        return JSON.stringify(a);
+                    } catch {
+                        return String(a);
+                    }
+                });
+                const line = `[${ts}] ${parts.join(' ')}`;
+                this.debugLogs.push(line);
+                if (this.debugLogs.length > 500) {
+                    this.debugLogs.splice(0, this.debugLogs.length - 500);
+                }
+                // Manteniamo anche il log in console per comodità
+                console.log('[LiveTranslator DEBUG]', ...args);
+            } catch {
+                // ignora errori di logging
+            }
+        },
+
         detectMobileLowPower() {
             try {
                 const ua = (navigator.userAgent || '').toLowerCase();
@@ -629,16 +669,14 @@ export default {
 
                 this.isMobileLowPower = !!(isMobileUa || isSmallViewport || isCoarsePointer);
 
-                // Debug: mostra a console lo stato della modalità low-power/mobile
-                try {
-                    console.log('[LiveTranslator] isMobileLowPower =', this.isMobileLowPower, {
-                        ua,
-                        isMobileUa,
-                        innerWidth: typeof window !== 'undefined' ? window.innerWidth : null,
-                        isSmallViewport,
-                        isCoarsePointer,
-                    });
-                } catch { }
+                this.debugLog('detectMobileLowPower', {
+                    isMobileLowPower: this.isMobileLowPower,
+                    ua,
+                    isMobileUa,
+                    innerWidth: typeof window !== 'undefined' ? window.innerWidth : null,
+                    isSmallViewport,
+                    isCoarsePointer,
+                });
             } catch {
                 this.isMobileLowPower = false;
             }
@@ -802,9 +840,15 @@ export default {
                             if (!text) continue;
 
                             if (res.isFinal) {
-                                const clean = text.trim();
+                                const clean = text.trim().toLowerCase();
                                 if (clean) {
                                     const phraseWithDash = `- ${clean}`;
+
+                                    this.debugLog('speechFinal', {
+                                        from: 'browser',
+                                        isMobileLowPower: this.isMobileLowPower,
+                                        text: clean,
+                                    });
 
                                     // MOBILE: niente interim, ma usiamo i final progressivi
                                     // per aggiornare/mergeare l'ULTIMA riga quando è la stessa frase.
@@ -847,12 +891,11 @@ export default {
                                         this.lastFinalOriginalAt = now;
                                         this.originalInterim = '';
 
-                                        // Su mobile NON facciamo più il merge sulle traduzioni:
-                                        // ogni final genera SEMPRE una nuova riga tradotta, così
-                                        // non rischiamo di sovrascrivere le frasi precedenti.
                                         this.startTranslationStream(clean, {
                                             commit: true,
-                                            mergeLast: false,
+                                            // Se è la stessa frase aggiornata, aggiorniamo anche
+                                            // l'ultima traduzione; altrimenti nuova riga.
+                                            mergeLast: mergedWithPrevious,
                                         });
                                         this.maybeRequestInterviewSuggestion(clean);
                                         continue;
@@ -874,7 +917,7 @@ export default {
                                 if (this.isMobileLowPower) {
                                     continue;
                                 }
-                                interim = [interim, text.trim()].filter(Boolean).join(' ');
+                                interim = [interim, text.trim().toLowerCase()].filter(Boolean).join(' ');
                             }
                         }
 
@@ -1014,7 +1057,7 @@ export default {
         },
 
         startTranslationStream(textSegment, options = { commit: true, mergeLast: false }) {
-            const safeText = (textSegment || '').trim();
+            const safeText = ((textSegment || '').trim()).toLowerCase();
             if (!safeText) return;
 
             const commit = options && typeof options.commit === 'boolean' ? options.commit : true;
@@ -1090,7 +1133,7 @@ export default {
                     try {
                         es.close();
                     } catch { }
-                    const segment = buffer.trim();
+                    const segment = buffer.trim().toLowerCase();
                     if (commit && segment) {
                         // Quando una frase è conclusa:
                         // - se mergeLast è true, aggiorniamo l'ultima riga (caso mobile con final progressivi)
@@ -1314,7 +1357,7 @@ export default {
         },
 
         maybeStartPreviewTranslation(interimText) {
-            const text = (interimText || '').trim();
+            const text = ((interimText || '').trim()).toLowerCase();
             if (!text || text.length < 4) {
                 return;
             }
@@ -1331,7 +1374,7 @@ export default {
         },
 
         updateTranslationTokens(fullText) {
-            const clean = (fullText || '').trim();
+            const clean = ((fullText || '').trim()).toLowerCase();
             const container = this.$refs.translationLiveContainer;
 
             if (!container) {
