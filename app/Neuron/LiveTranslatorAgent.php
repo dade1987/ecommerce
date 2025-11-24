@@ -13,17 +13,13 @@ use NeuronAI\Providers\OpenAI\OpenAI;
  * LiveTranslatorAgent
  *
  * Agente Neuron AI dedicato alla traduzione live di frasi brevi riconosciute dal microfono.
- * Regole:
- * - Rileva automaticamente la lingua del testo in ingresso.
- * - Se il testo è in ITALIANO → restituisci SOLO la traduzione in INGLESE.
- * - Se il testo è in INGLESE → restituisci SOLO la traduzione in ITALIANO.
- * - Se il testo è in un\'altra lingua (tra le lingue più parlate: es. spagnolo, francese, tedesco,
- *   portoghese, russo, arabo, cinese, giapponese, hindi, ecc.), restituisci:
- *     - una riga in ITALIANO
- *     - una riga in INGLESE
- *   in questo ordine, senza spiegazioni aggiuntive.
- * - Non aggiungere etichette tipo "Italiano:" o "English:", soltanto il testo tradotto.
- * - Non spiegare cosa stai facendo, non commentare: restituisci solo il testo tradotto.
+ *
+ * Nuovo comportamento GENERALE:
+ * - Rileva automaticamente la lingua del testo in ingresso (qualunque lingua).
+ * - Traduce SEMPRE e SOLO nella lingua di destinazione indicata da target_lang (es. "it", "en", "ja", "es-ES"...),
+ *   passata dal frontend in base alla "Lingua B" selezionata dall'utente.
+ * - Non fa più nessuna logica speciale solo per italiano / inglese: ogni combinazione A→B è supportata.
+ * - Non aggiunge etichette o spiegazioni: restituisce solo il testo già pronto da mostrare all'utente.
  */
 class LiveTranslatorAgent extends Agent
 {
@@ -49,7 +45,7 @@ class LiveTranslatorAgent extends Agent
     {
         return new OpenAI(
             key: config('services.openai.key'),
-            model: 'gpt-4o-mini',
+            model: 'gpt-4o',
         );
     }
 
@@ -60,16 +56,24 @@ class LiveTranslatorAgent extends Agent
         $target = $this->targetLang ?: 'it';
 
         $base = <<<TXT
-Sei un traduttore vocale istantaneo per frasi brevi.
+You are a real-time voice translator for short sentences.
 
-Regole FONDAMENTALI:
-- Rileva automaticamente la lingua del testo in ingresso.
-- La lingua di DESTINAZIONE è fissata a: "{$target}" (codice lingua, es. "it", "en", "es-ES").
-- Indipendentemente dalla lingua di origine, restituisci SEMPRE e SOLO la traduzione del testo in questa lingua di destinazione.
-- NON restituire la frase originale, solo la traduzione.
-- NON aggiungere etichette, prefissi o spiegazioni (niente "Italiano:", "English:", ecc.).
-- NON spiegare le tue scelte, non commentare: restituisci SOLO il testo tradotto come dovrà essere mostrato all'utente.
-- Mantieni il tono e il registro più possibile fedeli all'originale (formale/informale).
+CORE RULES:
+- Automatically detect the input language (it can be any language).
+- The OUTPUT language is fixed to: "{$target}" (language code, e.g. "it", "en", "ja", "es-ES").
+- Regardless of the input language, you MUST ALWAYS return ONLY the translation of the text in this output language.
+- The output must be natural, fluent text in the target language (no mixed languages).
+- The user sentence to translate will always be wrapped between the guillemets « and ».
+- You MUST translate ONLY the text inside « » and ignore everything else.
+- Examples:
+  - input: «Japanese sentence», target_lang="it" → output ONLY in Italian.
+  - input: «Japanese sentence», target_lang="en" → output ONLY in English.
+  - input: «English sentence», target_lang="it" → output ONLY in Italian.
+  - input: «Spanish sentence», target_lang="de" → output ONLY in German.
+- DO NOT return the original sentence, only the translation.
+- DO NOT add labels, prefixes or explanations (no "Italian:", "English:", etc.).
+- DO NOT explain your choices, do not comment: return ONLY the translated text as it should be shown to the user.
+- Preserve the tone and register of the original sentence as much as possible (formal / informal).
 TXT;
 
         Log::debug('LiveTranslatorAgent.instructions', [

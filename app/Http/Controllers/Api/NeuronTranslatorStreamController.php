@@ -59,6 +59,11 @@ class NeuronTranslatorStreamController extends Controller
             ]);
 
             try {
+                // Wrap the user text between guillemets so the model clearly
+                // understands what must be translated and does not confuse it
+                // with instructions. We keep the raw text for logging/saving.
+                $wrappedText = '«'.$cleanText.'»';
+
                 $agent = LiveTranslatorAgent::make()
                     ->withLocale($locale)
                     ->withTargetLang($targetLang ?: null);
@@ -66,7 +71,7 @@ class NeuronTranslatorStreamController extends Controller
                 $fullContent = '';
 
                 $stream = $agent->stream(
-                    new UserMessage($cleanText)
+                    new UserMessage($wrappedText)
                 );
 
                 foreach ($stream as $chunk) {
