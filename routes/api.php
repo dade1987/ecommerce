@@ -142,7 +142,7 @@ Route::post('/chatbot', [ChatbotController::class, 'handleChat']);
 Route::get('/chatbot/stream', [RealtimeChatController::class, 'stream']);
 Route::get('/chatbot/website-stream', [RealtimeChatWebsiteController::class, 'websiteStream']);
 Route::get('/chatbot/neuron-website-stream', [NeuronWebsiteStreamController::class, 'stream']);
-Route::get('/chatbot/neuron-translator-stream', [NeuronTranslatorStreamController::class, 'stream']);
+Route::get('/chatbot/translator-stream', [NeuronTranslatorStreamController::class, 'stream']);
 Route::post('/chatbot/interview-suggestion', [InterviewSuggestionController::class, 'suggest']);
 Route::post('/tts', [TtsController::class, 'synthesize']);
 Route::post('/whisper/transcribe', [WhisperTranscriptionController::class, 'transcribe']);

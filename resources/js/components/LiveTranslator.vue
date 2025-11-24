@@ -176,9 +176,6 @@
                                 <span class="text-base md:text-lg font-semibold text-slate-100">
                                     {{ ui.translationTitle }}
                                 </span>
-                                <span class="text-xs text-slate-400">
-                                    GPT / Neuron AI
-                                </span>
                             </div>
                             <div ref="translationBox"
                                 class="h-[100px] md:min-h-[260px] md:max-h-[420px] rounded-xl border border-slate-700 bg-slate-900/60 p-4 text-sm md:text-base lg:text-lg overflow-y-auto leading-relaxed">
@@ -785,49 +782,22 @@ export default {
                             if (res.isFinal) {
                                 const clean = text.trim();
                                 if (clean) {
-                                    // Gestione speciale per mobile: molti browser inviano piu' final progressivi
-                                    // (es. \"perche'\", \"perche' nel\", \"perche' nel telefono\"...).
-                                    // In questi casi aggiorniamo l'ULTIMA riga invece di crearne una nuova.
+                                    // Ogni frase finale viene sempre aggiunta come nuova riga
+                                    // per evitare che le frasi successive sovrascrivano le precedenti.
                                     const phraseWithDash = `- ${clean}`;
-                                    const now = Date.now();
-                                    const lines = (this.originalConfirmed || '')
-                                        .split('\n')
-                                        .filter(Boolean);
 
-                                    let mergedWithPrevious = false;
+                                    this.originalConfirmed = this.originalConfirmed
+                                        ? `${this.originalConfirmed}\n${phraseWithDash}`
+                                        : phraseWithDash;
 
-                                    if (lines.length > 0 && now - this.lastFinalOriginalAt < 2000) {
-                                        const lastLine = lines[lines.length - 1];
-                                        const prevText = lastLine.startsWith('- ')
-                                            ? lastLine.slice(2).trim()
-                                            : lastLine.trim();
-
-                                        if (prevText) {
-                                            // Se il nuovo testo estende il precedente (o viceversa),
-                                            // consideriamolo come la stessa frase aggiornata.
-                                            if (
-                                                clean.startsWith(prevText) ||
-                                                prevText.startsWith(clean)
-                                            ) {
-                                                lines[lines.length - 1] = phraseWithDash;
-                                                this.originalConfirmed = lines.join('\n');
-                                                mergedWithPrevious = true;
-                                            }
-                                        }
-                                    }
-
-                                    if (!mergedWithPrevious) {
-                                        this.originalConfirmed = this.originalConfirmed
-                                            ? `${this.originalConfirmed}\n${phraseWithDash}`
-                                            : phraseWithDash;
-                                    }
-
-                                    this.lastFinalOriginalAt = now;
+                                    this.lastFinalOriginalAt = Date.now();
                                     this.originalInterim = '';
                                     // Traduci la singola frase appena conclusa
                                     this.startTranslationStream(clean, {
                                         commit: true,
-                                        mergeLast: mergedWithPrevious,
+                                        // Non usiamo piu' il mergeLast per la traduzione:
+                                        // ogni nuova frase crea una nuova riga anche a destra.
+                                        mergeLast: false,
                                     });
                                     this.maybeRequestInterviewSuggestion(clean);
                                 }
@@ -1018,8 +988,8 @@ export default {
 
             console.log(`📤 Traduzione richiesta: "${safeText.substring(0, 50)}..." → target_lang: ${targetLang}, source_lang: ${this.currentMicLang}`);
 
-            const origin = window.__NEURON_TRANSLATOR_ORIGIN__ || window.location.origin;
-            const endpoint = `/api/chatbot/neuron-translator-stream?${params.toString()}`;
+            const origin = window.location.origin;
+            const endpoint = `/api/chatbot/translator-stream?${params.toString()}`;
 
             try {
                 const es = new EventSource(`${origin}${endpoint}`);
