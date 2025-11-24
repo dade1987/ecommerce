@@ -76,10 +76,20 @@
                         {{ showDebugPanel ? 'chiudi debug' : 'apri debug' }}
                     </button>
                 </div>
-                <div v-if="showDebugPanel" class="border border-slate-700 rounded-lg bg-slate-900/80 p-2">
+                <div v-if="showDebugPanel" class="border border-slate-700 rounded-lg bg-slate-900/80 p-2 space-y-1">
+                    <div class="flex justify-between items-center">
+                        <span class="text-[10px] text-slate-400">debug log (mobile + desktop)</span>
+                        <button type="button" @click="copyDebugLogs"
+                            class="px-2 py-0.5 rounded-md text-[10px] font-mono border border-slate-600 text-slate-200 bg-slate-800 hover:bg-slate-700">
+                            copia log
+                        </button>
+                    </div>
                     <textarea readonly
                         class="w-full h-40 text-[10px] md:text-xs font-mono bg-transparent text-slate-200 resize-none outline-none"
                         :value="debugLogs.join('\n')"></textarea>
+                    <p v-if="debugCopyStatus" class="text-[10px] text-emerald-300">
+                        {{ debugCopyStatus }}
+                    </p>
                 </div>
 
                 <div class="flex flex-col items-center gap-1 text-slate-300">
@@ -504,6 +514,7 @@ export default {
             // Debug interno: pannello e log testuali copiabili
             showDebugPanel: false,
             debugLogs: [],
+            debugCopyStatus: '',
 
             // Stato per modalità "Traduttore Video Youtube"
             youtubeUrl: '',
@@ -644,6 +655,30 @@ export default {
                 console.log('[LiveTranslator DEBUG]', ...args);
             } catch {
                 // ignora errori di logging
+            }
+        },
+
+        async copyDebugLogs() {
+            try {
+                const text = (this.debugLogs || []).join('\n');
+                if (!text) {
+                    this.debugCopyStatus = 'nessun log da copiare';
+                } else if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(text);
+                    this.debugCopyStatus = 'log copiati negli appunti';
+                } else {
+                    this.debugCopyStatus = 'clipboard non disponibile, seleziona il testo manualmente';
+                }
+            } catch {
+                this.debugCopyStatus = 'errore copia, seleziona il testo manualmente';
+            }
+
+            try {
+                setTimeout(() => {
+                    this.debugCopyStatus = '';
+                }, 2000);
+            } catch {
+                // ignora
             }
         },
 
@@ -1063,6 +1098,13 @@ export default {
             const commit = options && typeof options.commit === 'boolean' ? options.commit : true;
             const mergeLast = options && typeof options.mergeLast === 'boolean' ? options.mergeLast : false;
 
+            this.debugLog('startTranslationStream', {
+                text: safeText,
+                commit,
+                mergeLast,
+                isMobileLowPower: this.isMobileLowPower,
+            });
+
             // Se è già attivo uno stream e questa è una richiesta finale (commit: true),
             // chiudiamo lo stream precedente per dare priorità alla frase completa
             if (this.currentStream) {
@@ -1135,6 +1177,13 @@ export default {
                     } catch { }
                     const segment = buffer.trim().toLowerCase();
                     if (commit && segment) {
+                        this.debugLog('translationDone', {
+                            segment,
+                            commit,
+                            mergeLast,
+                            isMobileLowPower: this.isMobileLowPower,
+                            segmentsCountBefore: (this.translationSegments && this.translationSegments.length) || 0,
+                        });
                         // Quando una frase è conclusa:
                         // - se mergeLast è true, aggiorniamo l'ultima riga (caso mobile con final progressivi)
                         // - altrimenti aggiungiamo una nuova riga
