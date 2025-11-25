@@ -1,0 +1,302 @@
+# Cursor Rules - Ecommerce Project
+
+## Regola 1: Riutilizzo del Codice Prima dell'Invenzione
+
+### Descrizione
+Prima di scrivere nuovo codice, cerca sempre soluzioni esistenti nel codebase. Solo dopo aver verificato che non esiste nulla di adatto, si può proporre una nuova soluzione, ma solo previa conferma esplicita dell'utente.
+
+### Check 1: Search Before Code
+**PRIMA di scrivere qualsiasi codice nuovo, DEVI cercare nel codebase soluzioni esistenti per quello scopo.**
+
+Suggerimenti:
+- Usa codebase_search per cercare pattern simili, funzionalità esistenti, classi o metodi che già risolvono il problema.
+- Cerca servizi, controller, modelli, traits, helpers o librerie esistenti che possano essere riutilizzati.
+- Verifica se esistono già pattern architetturali consolidati nel progetto per quella funzionalità.
+- Controlla se ci sono già middleware, validatori, form request o policy esistenti che possano essere adattati.
+
+**Enforcement:** ERRORE - Blocca se violato
+
+### Check 2: Reuse Existing Solutions
+**Se esiste già una soluzione nel codebase, DEVI riutilizzarla o estenderla invece di crearne una nuova.**
+
+Suggerimenti:
+- Adatta e riutilizza codice esistente piuttosto che duplicarlo.
+- Estendi classi esistenti invece di crearne di nuove se possibile.
+- Usa servizi, helper o utility già presenti nel progetto.
+- Segui i pattern e le convenzioni già stabilite nel codebase.
+
+**Enforcement:** ERRORE - Blocca se violato
+
+### Check 3: Ask Before Inventing
+**Se dopo aver cercato non trovi soluzioni esistenti e devi inventare qualcosa di nuovo, DEVI chiedere conferma esplicita all'utente PRIMA di implementarlo.**
+
+Suggerimenti:
+- Presenta all'utente: 1) Cosa hai cercato, 2) Cosa hai trovato (o non trovato), 3) La tua proposta di nuova soluzione.
+- Aspetta la conferma esplicita dell'utente prima di scrivere codice nuovo.
+- Se l'utente non risponde, NON procedere con l'implementazione.
+- Documenta perché la soluzione esistente non è adatta se ne esiste una.
+
+**Enforcement:** ERRORE - Blocca se violato
+
+### Check 4: Document Search Process
+**Quando proponi una nuova soluzione, documenta sempre il processo di ricerca che hai fatto.**
+
+Suggerimenti:
+- Indica quali termini di ricerca hai usato.
+- Elenca i file/classi che hai esaminato.
+- Spiega perché le soluzioni esistenti non sono adatte al caso d'uso.
+- Mostra esempi di codice esistente che hai considerato.
+
+### Check 5: Verify Method Existence
+**PRIMA di usare qualsiasi metodo, funzione o API, DEVI verificare che esista realmente nel codebase o nelle dipendenze del progetto.**
+
+Suggerimenti:
+- Usa grep o codebase_search per cercare la definizione del metodo prima di usarlo.
+- Verifica la firma del metodo (parametri, tipo di ritorno) leggendo il codice sorgente.
+- Controlla la documentazione delle classi usando read_file sul file che contiene il metodo.
+- Per metodi di framework/librerie esterne, verifica la versione installata e la documentazione corrispondente.
+- NON presumere che un metodo esista solo perché sembra logico che dovrebbe esistere.
+- Se il metodo non esiste, cerca alternative esistenti o chiedi conferma prima di crearlo.
+- Verifica anche metodi statici, magic methods, e metodi ereditati da classi parent.
+- Per metodi di modelli Eloquent, verifica le relazioni e gli scope definiti nel modello.
+
+**Enforcement:** ERRORE - Blocca se violato
+
+### Check 6: Follow Software Engineering Principles
+**DEVI sempre seguire i principi fondamentali di ingegneria del software: DRY, KISS, SOLID, YAGNI e altri principi importanti.**
+
+Suggerimenti:
+- **DRY (Don't Repeat Yourself):** Non duplicare codice. Estrai logica comune in funzioni, classi, traits o helper riutilizzabili.
+- **KISS (Keep It Simple, Stupid):** Mantieni il codice semplice e leggibile. Evita soluzioni complesse quando una semplice funziona.
+- **SOLID - Single Responsibility:** Ogni classe deve avere una sola responsabilità. Se una classe fa troppe cose, dividila.
+- **SOLID - Open/Closed:** Le classi devono essere aperte per estensione ma chiuse per modifica. Usa ereditarietà e interfacce.
+- **SOLID - Liskov Substitution:** Le classi derivate devono essere sostituibili con le loro classi base senza rompere il codice.
+- **SOLID - Interface Segregation:** Crea interfacce specifiche invece di interfacce grandi. I client non devono dipendere da metodi che non usano.
+- **SOLID - Dependency Inversion:** Dipendi da astrazioni (interfacce) non da implementazioni concrete. Usa Dependency Injection.
+- **YAGNI (You Aren't Gonna Need It):** Non implementare funzionalità finché non sono realmente necessarie.
+- **Principio di Least Surprise:** Il codice deve comportarsi come ci si aspetta. Nomi chiari, comportamento prevedibile.
+- **Separation of Concerns:** Separa le responsabilità (presentazione, logica, dati) in componenti distinti.
+- **Don't Optimize Prematurely:** Non ottimizzare prima di misurare. Scrivi codice chiaro prima, ottimizza solo se necessario.
+- **Fail Fast:** Rileva e gestisci gli errori il prima possibile invece di propagarli silenziosamente.
+- **Law of Demeter:** Un oggetto deve interagire solo con i suoi amici diretti, non con gli amici degli amici.
+- **Composition over Inheritance:** Preferisci la composizione all'ereditarietà quando possibile.
+
+**Enforcement:** ERRORE - Blocca se violato
+
+### Check 7: Use Laravel Best Practices and Patterns
+**DEVI sempre scegliere il pattern migliore per lo sviluppo considerando che si lavora in Laravel. Usa le funzionalità native di Laravel invece di reinventare la ruota.**
+
+Suggerimenti:
+- Per validazione: usa Form Request invece di validare manualmente nei controller.
+- Per autorizzazione: usa Policy o Gate invece di logica custom nei controller.
+- Per logica di business: usa Service classes o Action classes invece di metodi lunghi nei controller.
+- Per eventi: usa il sistema di Event/Listener di Laravel invece di chiamate dirette.
+- Per code: usa Job classes invece di eseguire operazioni pesanti nei controller.
+- Per notifiche: usa Notification classes invece di inviare email direttamente.
+- Per export/import: usa Laravel Excel o Export classes invece di generare file manualmente.
+- Per query complesse: usa Query Builder, Eloquent Scopes o Repository pattern quando appropriato.
+- Per cache: usa il sistema di cache di Laravel invece di variabili globali o sessioni.
+- Per configurazione: usa config files invece di hardcoding valori.
+- Per localizzazione: usa il sistema di traduzione di Laravel invece di stringhe hardcoded.
+- Per file storage: usa Storage facade invece di funzioni file PHP native quando possibile.
+- Per autenticazione: usa i middleware e guard di Laravel invece di logica custom.
+- Per relazioni: usa le relazioni Eloquent invece di query manuali quando possibile.
+- Per observer: usa Model Observers invece di hook manuali nei controller.
+- Verifica sempre se Laravel offre una soluzione nativa prima di implementare qualcosa di custom.
+- Segui le convenzioni di naming di Laravel (PascalCase per classi, camelCase per metodi, snake_case per tabelle).
+- Usa Dependency Injection invece di istanziare classi direttamente.
+- Per test: usa le funzionalità di testing di Laravel (Factories, Seeders, Assertions) invece di creare dati manualmente.
+
+**Enforcement:** ERRORE - Blocca se violato
+
+### Check 8: No Asynchronous JavaScript Code
+**È VIETATO usare codice asincrono in JavaScript. Non usare setTimeout, setInterval, async/await, Promise, fetch con async, o qualsiasi altra forma di codice asincrono.**
+
+**Scope:** `**/*.js`, `**/*.jsx`, `resources/**/*.js`
+
+Suggerimenti:
+- Usa codice sincrono invece di setTimeout o setInterval.
+- Per operazioni che richiedono attesa, usa callback o gestisci l'evento direttamente.
+- Non usare async/await nelle funzioni JavaScript.
+- Non usare Promise o .then() per gestire operazioni asincrone.
+- Per chiamate AJAX, usa jQuery.ajax con success/error callbacks invece di fetch con async/await.
+- Se devi eseguire codice dopo un evento, usa gli event listener invece di setTimeout.
+- Per animazioni, usa CSS transitions/animations invece di setTimeout per aggiornamenti.
+- Se hai bisogno di ritardare l'esecuzione, usa eventi DOM o callback invece di timeout.
+
+Pattern vietati:
+- `setTimeout`
+- `setInterval`
+- `async function`
+- `async (`
+- `await `
+- `new Promise`
+- `.then(`
+- `.catch(`
+- `.finally(`
+- `fetch(`
+- `async/await`
+
+**Enforcement:** ERRORE - Blocca se violato
+
+---
+
+## Regola 2: Standard di Qualità Laravel - Testing di Alta Qualità
+
+### Descrizione
+Standard di qualità per progetti Laravel: test completi, alta coverage, validazione Larastan e persistenza dei dati.
+
+**Scope:** `app/**/*.php`, `tests/**/*.php`
+
+### Check 1: Verify Project Structure Before Testing
+**PRIMA di scrivere qualsiasi test, DEVI verificare la struttura reale del progetto. NON presumere nomi di tabelle, modelli, relazioni o come il sistema gestisce le entità.**
+
+Suggerimenti:
+- Cerca il modello Eloquent corrispondente (es. Company, User, ecc.) per verificare il nome della tabella.
+- Verifica le migration per capire la struttura delle tabelle e i nomi effettivi.
+- Leggi il codice esistente per capire come il sistema gestisce le entità (es. come vengono recuperate le companies).
+- Cerca factory esistenti per vedere come vengono creati i dati di test.
+- Verifica relazioni, foreign key e vincoli nel database.
+- Controlla i seeder esistenti per capire come vengono popolati i dati.
+- NON inventare nomi di tabelle o modelli senza averli verificati nel codebase.
+- Usa codebase_search per trovare esempi di test esistenti che testano entità simili.
+- PRIMA di usare qualsiasi metodo nelle asserzioni o nel setup, verifica che esista realmente (vedi regola 'Verify Method Existence').
+- Verifica che i metodi delle classi di test (assert*, be*, actingAs*, ecc.) siano quelli corretti per la versione di Laravel/PHPUnit in uso.
+
+**Enforcement:** ERRORE - Blocca se violato
+
+### Check 2: Development Discipline
+**Ogni sviluppo o modifica deve includere un test unit o feature coerente.**
+
+Suggerimenti:
+- Ogni classe o feature nuova deve avere una classe di test in tests/Unit o tests/Feature con nome coerente.
+- Esempio: `app/Services/UserService.php` → `tests/Unit/Services/UserServiceTest.php`
+
+**Enforcement:** ERRORE - Blocca se violato
+
+### Check 3: Larastan Validation
+**Prima di ogni commit deve essere eseguito phpstan (Larastan) con livello minimo 8.**
+
+Suggerimenti:
+- Esegui: `vendor/bin/phpstan analyse --level=max app/ tests/`
+- Correggi tutti gli errori prima di pushare.
+
+**Enforcement:** ERRORE - Blocca se violato
+
+### Check 4: Database Persistence
+**Non usare RefreshDatabase o DatabaseTransactions: i dati devono restare nel DB per verifica manuale.**
+
+Pattern vietati:
+- `use RefreshDatabase`
+- `use DatabaseTransactions`
+
+### Check 5: No Mocks - Real Testing Only
+**È VIETATO usare mock, stub, fake o qualsiasi forma di simulazione nei test. I test devono testare solo casi reali con dati reali e interazioni reali.**
+
+Suggerimenti:
+- Usa dati reali creati con factory o seeder invece di mockare oggetti.
+- Testa le interazioni reali con il database, servizi esterni e componenti del sistema.
+- Se devi testare chiamate HTTP esterne, usa un server di test reale o configurazioni di test reali.
+- Per servizi esterni, crea dati di test reali o usa ambienti di test reali invece di mockare le risposte.
+- I test devono riflettere il comportamento reale del sistema in produzione.
+- Usa faker per generare dati realistici ma reali, non mock per simulare comportamenti.
+
+Pattern vietati:
+- `Mockery::mock`
+- `->mock(`
+- `->shouldReceive`
+- `->shouldReturn`
+- `->shouldNotReceive`
+- `Mock::`
+- `createMock`
+- `getMock`
+- `->willReturn`
+- `->willThrowException`
+- `->expects(`
+- `->method(`
+- `->with(`
+- `->andReturn`
+- `->andThrow`
+- `->andReturnUsing`
+- `->fake()`
+- `Fake::`
+- `Http::fake`
+- `Mail::fake`
+- `Notification::fake`
+- `Queue::fake`
+- `Storage::fake`
+- `Event::fake`
+- `Bus::fake`
+
+**Enforcement:** ERRORE - Blocca se violato
+
+### Check 6: Test Naming Convention
+**Il nome del metodo di test deve descrivere chiaramente il comportamento previsto.**
+
+Pattern richiesti:
+- `public function test_`
+
+Suggerimenti:
+- Esempio: `public function test_creates_user_successfully()`
+- Esempio: `public function test_fails_when_email_is_invalid()`
+
+### Check 7: Assertion Requirements
+**Ogni test deve includere almeno una asserzione di stato e una di contenuto/logica.**
+
+Pattern richiesti:
+- `assert(Status|See|Database|Json|Redirect)`
+
+**Minimo:** 2 asserzioni per test
+
+### Check 8: Edge Case and Error Flow
+**Per ogni caso positivo testato, deve esserci almeno un caso di errore o edge case.**
+
+Suggerimenti:
+- Aggiungi test per input nulli, duplicati, valori limite, accessi non autorizzati o eccezioni.
+- Simula condizioni di errore nei servizi e verifica la gestione corretta.
+
+### Check 9: Code Style and AAA Pattern
+**Usa sempre la struttura Arrange-Act-Assert per leggibilità e consistenza.**
+
+Suggerimenti:
+```php
+// Arrange
+// Act
+// Assert
+```
+
+### Check 10: Mutation Resistance
+**I test devono fallire se la logica del codice viene alterata. Usa Infection PHP per verificarlo.**
+
+Suggerimenti:
+- `composer require infection/infection --dev`
+- `vendor/bin/infection --min-msi=90`
+
+### Check 11: Code Coverage Enforcement
+**La coverage dei test deve essere ≥ 90% su app/ e tests/.**
+
+Suggerimenti:
+- `php artisan test --coverage --min=90`
+
+### Check 12: Manual Inspection Allowance
+**I test devono lasciare i record nel database per consentire l'analisi manuale.**
+
+Suggerimenti:
+- Usa factory controllate o DatabaseSeeder per popolare i dati.
+- Non usare teardown o truncate automatici.
+
+### Check 13: Dev Safety (Pre-Commit Check)
+**Il commit viene bloccato se non superi i controlli di qualità essenziali.**
+
+Suggerimenti:
+Prima del commit, assicurati che:
+1️⃣ Tutti i test passino → `php artisan test`
+2️⃣ Larastan sia pulito → `vendor/bin/phpstan analyse --level=max app/ tests/`
+3️⃣ Coverage ≥ 90% → `php artisan test --coverage`
+4️⃣ Nessuna violazione di regole in questo file
+
+Solo dopo questi step è consentito il commit.
+
+**Enforcement:** ERRORE - Blocca se violato
+
+

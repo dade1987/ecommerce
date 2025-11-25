@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\CalzaturieroController;
 use App\Http\Controllers\Api\ChatbotController;
 use App\Http\Controllers\Api\ChatTranscriptController;
+use App\Http\Controllers\Api\InterviewMindMapController;
 use App\Http\Controllers\Api\InterviewSuggestionController;
 use App\Http\Controllers\Api\NeuronTranslatorStreamController;
 use App\Http\Controllers\Api\NeuronWebsiteStreamController;
@@ -144,6 +145,7 @@ Route::get('/chatbot/website-stream', [RealtimeChatWebsiteController::class, 'we
 Route::get('/chatbot/neuron-website-stream', [NeuronWebsiteStreamController::class, 'stream']);
 Route::get('/chatbot/translator-stream', [NeuronTranslatorStreamController::class, 'stream']);
 Route::post('/chatbot/interview-suggestion', [InterviewSuggestionController::class, 'suggest']);
+Route::post('/chatbot/interview-mindmap', [InterviewMindMapController::class, 'generate']);
 Route::post('/tts', [TtsController::class, 'synthesize']);
 Route::post('/whisper/transcribe', [WhisperTranscriptionController::class, 'transcribe']);
 Route::post('/chatbot/email-transcript', [ChatTranscriptController::class, 'emailTranscript']);

@@ -120,7 +120,7 @@
                         <select v-model="langA" @change="onLanguagePairChange"
                             class="bg-slate-800 border text-sm rounded-md px-3 py-2 focus:outline-none focus:ring-2"
                             :class="langA ? 'border-slate-600 focus:ring-emerald-500' : 'border-red-500 focus:ring-red-500'">
-                            <option value="">-- Seleziona lingua A --</option>
+                            <option value="">{{ ui.selectLangAPlaceholder }}</option>
                             <option v-for="opt in availableLanguages" :key="opt.code" :value="opt.code">
                                 {{ opt.label }}
                             </option>
@@ -137,8 +137,9 @@
                                 <span class="inline-block w-1.5 h-3 rounded-full"
                                     :class="activeSpeaker === 'A' && isListening ? 'bg-red-400 animate-pulse' : 'bg-slate-300'"></span>
                             </span>
-                            <span>{{ activeSpeaker === 'A' && isListening ? 'Parlante A attivo' : 'Parla Lingua A'
-                                }}</span>
+                            <span>
+                                {{ activeSpeaker === 'A' && isListening ? ui.speakerAActive : ui.speakerASpeak }}
+                            </span>
                         </button>
                     </div>
 
@@ -149,7 +150,7 @@
                         <select v-model="langB" @change="onLanguagePairChange"
                             class="bg-slate-800 border text-sm rounded-md px-3 py-2 focus:outline-none focus:ring-2"
                             :class="langB ? 'border-slate-600 focus:ring-emerald-500' : 'border-red-500 focus:ring-red-500'">
-                            <option value="">-- Seleziona lingua B --</option>
+                            <option value="">{{ ui.selectLangBPlaceholder }}</option>
                             <option v-for="opt in availableLanguages" :key="opt.code" :value="opt.code">
                                 {{ opt.label }}
                             </option>
@@ -166,8 +167,9 @@
                                 <span class="inline-block w-1.5 h-3 rounded-full"
                                     :class="activeSpeaker === 'B' && isListening ? 'bg-red-400 animate-pulse' : 'bg-slate-300'"></span>
                             </span>
-                            <span>{{ activeSpeaker === 'B' && isListening ? 'Parlante B attivo' : 'Parla Lingua B'
-                                }}</span>
+                            <span>
+                                {{ activeSpeaker === 'B' && isListening ? ui.speakerBActive : ui.speakerBSpeak }}
+                            </span>
                         </button>
                     </div>
                 </div>
@@ -229,33 +231,51 @@
                                         </span>
                                     </h2>
                                 </div>
+                                <div v-if="cvText && langA && langB" class="flex items-center gap-2">
+                                    <button type="button"
+                                        class="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] md:text-xs font-semibold border border-emerald-500 text-emerald-100 bg-emerald-800 hover:bg-emerald-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                        :disabled="isLoadingSuggestion" @click="onRequestSuggestionsClick">
+                                        <span>
+                                            {{ isLoadingSuggestion ? '...' : ui.suggestionsButton }}
+                                        </span>
+                                    </button>
+                                    <button type="button"
+                                        class="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] md:text-xs font-semibold border border-sky-500 text-sky-100 bg-sky-800 hover:bg-sky-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                        :disabled="isMindMapLoading" @click="onToggleMindMapClick">
+                                        <span v-if="!mindMap.raw">
+                                            {{ isMindMapLoading ? '...' : ui.mindMapButton }}
+                                        </span>
+                                        <span v-else>
+                                            {{ isMindMapLoading ? '...' : ui.mindMapHideButton }}
+                                        </span>
+                                    </button>
+                                </div>
                             </div>
 
                             <div ref="suggestionsBox"
                                 class="h-[100px] md:min-h-[260px] md:max-h-[420px] rounded-xl border border-slate-700 bg-slate-900/70 p-4 text-xs md:text-sm lg:text-base overflow-y-auto space-y-3 leading-relaxed">
                                 <div v-if="!cvText" class="text-xs md:text-sm text-slate-500">
-                                    Carica il tuo CV qui sotto per abilitare i suggerimenti basati sul curriculum.
+                                    {{ ui.suggestionsNoCv }}
                                 </div>
 
                                 <div v-else-if="!langA || !langB" class="text-xs md:text-sm text-slate-500">
-                                    Seleziona entrambe le lingue per visualizzare i suggerimenti bilingue.
+                                    {{ ui.suggestionsNoLangs }}
                                 </div>
 
                                 <div v-else>
                                     <p v-if="isLoadingSuggestion" class="text-xs md:text-sm text-emerald-300 mb-2">
-                                        Sto preparando un suggerimento basato sul tuo CV...
+                                        {{ ui.suggestionsLoading }}
                                     </p>
 
                                     <div v-if="suggestions.length === 0 && !isLoadingSuggestion"
                                         class="text-xs md:text-sm text-slate-500">
-                                        Quando il sistema riconosce una frase (domanda o tua risposta), qui comparirà un
-                                        suggerimento nelle due lingue selezionate coerente con il tuo CV.
+                                        {{ ui.suggestionsEmpty }}
                                     </div>
 
                                     <div v-for="(item, idx) in suggestions" :key="idx"
                                         class="rounded-lg border border-slate-700 bg-slate-900/80 p-3 md:p-4 space-y-2 mb-2">
                                         <div class="text-[11px] md:text-xs text-slate-400">
-                                            Riferito alla frase:
+                                            {{ ui.suggestionRefersTo }}
                                             <span class="italic text-slate-300">
                                                 "{{ item.utterancePreview }}"
                                             </span>
@@ -281,6 +301,7 @@
                                             </div>
                                         </div>
                                     </div>
+
                                 </div>
                             </div>
                         </div>
@@ -290,24 +311,22 @@
                     <div class="border-t border-slate-700 pt-4 space-y-3">
                         <div>
                             <h2 class="text-sm font-semibold text-slate-100">
-                                CV per i suggerimenti
+                                {{ ui.cvSectionTitle }}
                             </h2>
                             <p class="text-[11px] text-slate-300 mt-1">
-                                Carica un file di testo con il tuo CV. Verrà usato solo per generare suggerimenti, non
-                                per
-                                le traduzioni.
+                                {{ ui.cvSectionDescription }}
                             </p>
                         </div>
                         <div
                             class="rounded-xl border border-slate-700 bg-slate-900/80 p-3 text-xs space-y-2 max-h-[260px] overflow-y-auto">
                             <label class="block text-[11px] font-medium text-slate-200 mb-1">
-                                Carica CV da file (.txt)
+                                {{ ui.cvUploadLabel }}
                             </label>
                             <input type="file" accept=".txt,.md,.rtf"
                                 class="block w-full text-[11px] text-slate-200 file:text-[11px] file:px-2 file:py-1 file:mr-2 file:rounded-md file:border-0 file:bg-emerald-600 file:text-white file:cursor-pointer cursor-pointer"
                                 @change="onCvFileChange" />
                             <p class="text-[10px] text-slate-500 mt-2">
-                                Suggerimento: salva il tuo CV in formato testo (.txt) e caricalo da qui.
+                                {{ ui.cvUploadHint }}
                             </p>
                         </div>
                     </div>
@@ -320,29 +339,67 @@
                     {{ statusMessage }}
                 </p>
 
+                <!-- Pannello debug: pulsante + finestra log copiabile (anche in modalità YouTube) -->
+                <div class="flex justify-end">
+                    <button type="button" @click="showDebugPanel = !showDebugPanel"
+                        class="px-2 py-1 rounded-md text-[10px] font-mono border border-slate-600 text-slate-300 bg-slate-900/70 hover:bg-slate-800">
+                        {{ showDebugPanel ? ui.debugCloseLabel : ui.debugOpenLabel }}
+                    </button>
+                </div>
+                <div v-if="showDebugPanel" class="border border-slate-700 rounded-lg bg-slate-900/80 p-2 space-y-1">
+                    <div class="flex justify-between items-center">
+                        <span class="text-[10px] text-slate-400">{{ ui.debugTitle }}</span>
+                        <button type="button" @click="copyDebugLogs"
+                            class="px-2 py-0.5 rounded-md text-[10px] font-mono border border-slate-600 text-slate-200 bg-slate-800 hover:bg-slate-700">
+                            {{ ui.debugCopyLabel }}
+                        </button>
+                    </div>
+                    <textarea readonly
+                        class="w-full h-40 text-[10px] md:text-xs font-mono bg-transparent text-slate-200 resize-none outline-none"
+                        :value="debugLogs.join('\n')"></textarea>
+                    <p v-if="debugCopyStatus" class="text-[10px] text-emerald-300">
+                        {{ debugCopyStatus }}
+                    </p>
+                </div>
+
+                <!-- Controllo modalità riconoscimento (Whisper / browser) anche per YouTube -->
+                <div class="flex flex-col items-center gap-1 text-slate-300">
+                    <div class="flex items-center justify-center gap-2 text-[13px]">
+                        <input id="useWhisperYoutube" type="checkbox" v-model="useWhisper"
+                            @change="onRecognitionModeChange" :disabled="!isChromeWithWebSpeech"
+                            class="h-3.5 w-3.5 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500 disabled:opacity-60 disabled:cursor-not-allowed" />
+                        <label for="useWhisperYoutube" class="cursor-pointer select-none">
+                            {{ ui.whisperLabel }}
+                            <span v-if="!isChromeWithWebSpeech" class="ml-1 text-[11px] text-emerald-300">
+                                ({{ ui.whisperForcedNote }})
+                            </span>
+                        </label>
+                    </div>
+                </div>
+
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
                     <!-- Colonna impostazioni video -->
                     <div class="lg:col-span-1 space-y-3">
                         <div class="space-y-2">
                             <label class="text-xs font-semibold text-emerald-400">
-                                URL video YouTube
+                                {{ ui.youtubeUrlLabel }}
                             </label>
                             <input v-model="youtubeUrl" type="text" placeholder="https://www.youtube.com/watch?v=..."
                                 class="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
                             <p class="text-[11px] text-slate-400">
-                                Incolla qui il link del video che vuoi usare durante la call di lavoro.
+                                {{ ui.youtubeUrlHelp }}
                             </p>
                         </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <div class="flex flex-col gap-1">
                                 <label class="text-xs font-semibold text-emerald-400">
-                                    Lingua del video
+                                    {{ ui.youtubeLangSourceLabel }}
                                 </label>
                                 <select v-model="youtubeLangSource"
                                     class="bg-slate-900 border text-sm rounded-md px-3 py-2 focus:outline-none focus:ring-2"
                                     :class="youtubeLangSource ? 'border-slate-600 focus:ring-emerald-500' : 'border-red-500 focus:ring-red-500'">
-                                    <option value="">-- Seleziona --</option>
+                                    <option value="">{{ ui.selectOptionPlaceholder }}</option>
                                     <option v-for="opt in availableLanguages" :key="'yt-src-' + opt.code"
                                         :value="opt.code">
                                         {{ opt.label }}
@@ -351,12 +408,12 @@
                             </div>
                             <div class="flex flex-col gap-1">
                                 <label class="text-xs font-semibold text-emerald-400">
-                                    Lingua di traduzione
+                                    {{ ui.youtubeLangTargetLabel }}
                                 </label>
                                 <select v-model="youtubeLangTarget"
                                     class="bg-slate-900 border text-sm rounded-md px-3 py-2 focus:outline-none focus:ring-2"
                                     :class="youtubeLangTarget ? 'border-slate-600 focus:ring-emerald-500' : 'border-red-500 focus:ring-red-500'">
-                                    <option value="">-- Seleziona --</option>
+                                    <option value="">{{ ui.selectOptionPlaceholder }}</option>
                                     <option v-for="opt in availableLanguages" :key="'yt-tgt-' + opt.code"
                                         :value="opt.code">
                                         {{ opt.label }}
@@ -367,18 +424,11 @@
 
                         <button type="button" @click="onYoutubeTranslateClick"
                             class="mt-2 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold border border-emerald-500 text-emerald-100 bg-emerald-700 hover:bg-emerald-600 transition">
-                            Avvia modalità interprete sul video
+                            {{ ui.youtubeStartButton }}
                         </button>
 
                         <p class="text-[11px] text-slate-400 mt-2">
-                            Cliccando su <span class="font-semibold text-emerald-300">"Avvia modalità interprete sul
-                                video"</span> carichiamo il video qui a fianco con la lingua scelta sopra. Il sistema
-                            ascolta ciò che entra nel <span class="font-semibold">microfono</span> (ad esempio l'audio
-                            delle casse del computer): quando riconosce la fine di una frase mette in pausa il video,
-                            traduce la frase (e, se attivo, la legge ad alta voce) e infine fa ripartire
-                            automaticamente il video per la frase successiva. In qualsiasi momento puoi anche
-                            <span class="font-semibold">mettere tu in pausa il video</span> per tradurre o rileggere
-                            il testo con più calma.
+                            {{ ui.youtubeExplain }}
                         </p>
 
                         <!-- Controllo microfono per modalità YouTube (interprete umano) -->
@@ -396,9 +446,8 @@
                                     </span>
                                 </span>
                                 <span>
-                                    {{ activeSpeaker === 'A' && isListening
-                                        ? 'Interprete attivo: sto ascoltando la tua voce sopra il video'
-                                        : 'Avvia / ferma il microfono per parlare sopra il video (interprete)' }}
+                                    {{ activeSpeaker === 'A' && isListening ? ui.youtubeMicAActive : ui.youtubeMicAHelp
+                                    }}
                                 </span>
                             </button>
                             <p class="text-[11px] text-slate-400">
@@ -473,10 +522,45 @@
             </div>
         </div>
     </div>
+
+    <!-- Modal mappa mentale (grafi) -->
+    <div v-if="showMindMapModal"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+        <div
+            class="bg-slate-900 rounded-2xl border border-slate-700 w-[92vw] h-[82vh] max-w-5xl flex flex-col shadow-2xl">
+            <div class="flex items-center justify-between px-4 py-2 border-b border-slate-700">
+                <div class="flex flex-col">
+                    <span class="text-sm md:text-base font-semibold text-slate-100">
+                        {{ ui.mindMapTitle }}
+                    </span>
+                    <span class="text-[11px] text-slate-400">
+                        {{ langA && getLangLabel(langA) ? getLangLabel(langA) : '' }}
+                    </span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button type="button"
+                        class="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] md:text-xs font-semibold border border-emerald-500 text-emerald-100 bg-emerald-900 hover:bg-emerald-800 transition"
+                        @click="exportMindMapAsPrint">
+                        <span>PDF</span>
+                    </button>
+                    <button type="button"
+                        class="inline-flex items-center justify-center w-7 h-7 rounded-full border border-slate-600 text-slate-200 hover:bg-slate-700 transition"
+                        @click="closeMindMapModal">
+                        ✕
+                    </button>
+                </div>
+            </div>
+            <div class="flex-1">
+                <div ref="mindMapGraphContainer" class="w-full h-full"></div>
+            </div>
+        </div>
+    </div>
 </template>
 
 <script>
 import WhisperSpeechRecognition from '../utils/WhisperSpeechRecognition';
+import { Network } from 'vis-network/standalone';
+import 'vis-network/styles/vis-network.css';
 
 export default {
     name: 'LiveTranslator',
@@ -506,6 +590,20 @@ export default {
             cvText: '',
             isLoadingSuggestion: false,
             suggestions: [],
+            // Thread e stato per mappa mentale basata sul CV e sulla history dei suggerimenti
+            interviewSuggestionThreadId: null, // Thread ID per mantenere il contesto dei suggerimenti
+            isMindMapLoading: false,
+            mindMap: {
+                langA: '',
+                langB: '',
+                raw: '',
+            },
+            mindMapGraph: {
+                nodes: [],
+                edges: [],
+            },
+            showMindMapModal: false,
+            mindMapNetwork: null,
             lastPreviewText: '',
             lastPreviewAt: 0,
             langA: '',
@@ -531,6 +629,8 @@ export default {
             showDebugPanel: false,
             debugLogs: [],
             debugCopyStatus: '',
+            webSpeechDebugSeq: 0,
+            lastWebSpeechEventAt: 0,
 
             // Stato per modalità "Traduttore Video Youtube"
             youtubeUrl: '',
@@ -547,7 +647,7 @@ export default {
                 { code: 'es', label: '🇪🇸 Español', micCode: 'es-ES' },
                 { code: 'fr', label: '🇫🇷 Français', micCode: 'fr-FR' },
                 { code: 'de', label: '🇩🇪 Deutsch', micCode: 'de-DE' },
-                { code: 'pt', label: '🇵🇹 Português', micCode: 'pt-PT' },
+                { code: 'pt', label: '🇵🇹 Português', micCode: 'pt-BR' },
                 { code: 'nl', label: '🇳🇱 Nederlands', micCode: 'nl-NL' },
                 { code: 'sv', label: '🇸🇪 Svenska', micCode: 'sv-SE' },
                 { code: 'no', label: '🇳🇴 Norsk', micCode: 'nb-NO' },
@@ -596,6 +696,35 @@ export default {
                     originalPlaceholder: 'Inizia a parlare per vedere qui la trascrizione in tempo reale.',
                     translationTitle: 'Traduzione',
                     suggestionsTitle: 'Suggerimenti per il colloquio',
+                    suggestionsButton: 'Genera suggerimenti',
+                    suggestionsNoCv: 'Carica il tuo CV qui sotto per abilitare i suggerimenti basati sul curriculum.',
+                    suggestionsNoLangs: 'Seleziona entrambe le lingue per visualizzare i suggerimenti bilingue.',
+                    suggestionsLoading: 'Sto preparando un suggerimento basato sul tuo CV...',
+                    suggestionsEmpty: 'Quando il sistema riconosce una frase (domanda o tua risposta), qui comparirà un suggerimento nelle due lingue selezionate coerente con il tuo CV.',
+                    suggestionRefersTo: 'Riferito alla frase:',
+                    mindMapTitle: 'Mappa mentale dei temi tecnici',
+                    mindMapButton: 'Mostra mappa mentale',
+                    mindMapHideButton: 'Nascondi mappa mentale',
+                    mindMapEmpty: 'La mappa mentale sarà disponibile dopo qualche scambio di suggerimenti.',
+                    cvSectionTitle: 'CV per i suggerimenti',
+                    cvSectionDescription: 'Carica un file di testo con il tuo CV. Verrà usato solo per generare suggerimenti, non per le traduzioni.',
+                    cvUploadLabel: 'Carica CV da file (.txt)',
+                    cvUploadHint: 'Suggerimento: salva il tuo CV in formato testo (.txt) e caricalo da qui.',
+                    youtubeUrlLabel: 'URL video YouTube',
+                    youtubeUrlHelp: 'Incolla qui il link del video che vuoi usare durante la call di lavoro.',
+                    youtubeLangSourceLabel: 'Lingua del video',
+                    youtubeLangTargetLabel: 'Lingua di traduzione',
+                    youtubeStartButton: 'Avvia modalità interprete sul video',
+                    youtubeExplain: 'Cliccando su "Avvia modalità interprete sul video" carichiamo il video qui a fianco con la lingua scelta sopra. Il sistema ascolta ciò che entra nel microfono (ad esempio l\'audio delle casse del computer): quando riconosce la fine di una frase mette in pausa il video, traduce la frase (e, se attivo, la legge ad alta voce) e infine fa ripartire automaticamente il video per la frase successiva. In qualsiasi momento puoi anche mettere tu in pausa il video per tradurre o rileggere il testo con più calma.',
+                    youtubeMicAActive: 'Interprete attivo: sto ascoltando la tua voce sopra il video',
+                    youtubeMicAHelp: 'Avvia / ferma il microfono per parlare sopra il video (interprete)',
+                    speakerAActive: 'Parlante A attivo',
+                    speakerASpeak: 'Parla Lingua A',
+                    speakerBActive: 'Parlante B attivo',
+                    speakerBSpeak: 'Parla Lingua B',
+                    selectLangAPlaceholder: '-- Seleziona lingua A --',
+                    selectLangBPlaceholder: '-- Seleziona lingua B --',
+                    selectOptionPlaceholder: '-- Seleziona --',
                     ttsBusyMessage: 'Sto leggendo la traduzione, attendi che finisca prima di parlare.',
                     ttsLoadingMessage: 'Caricamento traduzione in corso...',
                     statusWhisperAutoForced: 'Modalità Whisper attiva automaticamente: il riconoscimento vocale del browser non è pienamente supportato qui.',
@@ -632,6 +761,35 @@ export default {
                     originalPlaceholder: 'Start speaking to see the real-time transcription here.',
                     translationTitle: 'Translation',
                     suggestionsTitle: 'Interview suggestions',
+                    suggestionsButton: 'Generate suggestions',
+                    suggestionsNoCv: 'Upload your CV below to enable CV-based suggestions.',
+                    suggestionsNoLangs: 'Select both languages to see bilingual suggestions.',
+                    suggestionsLoading: 'Preparing a suggestion based on your CV...',
+                    suggestionsEmpty: 'When the system recognises a sentence (question or your answer), a suggestion consistent with your CV will appear here in both selected languages.',
+                    suggestionRefersTo: 'Refers to sentence:',
+                    mindMapTitle: 'Technical topics mind map',
+                    mindMapButton: 'Show mind map',
+                    mindMapHideButton: 'Hide mind map',
+                    mindMapEmpty: 'Mind map will be available after a few suggestion exchanges.',
+                    cvSectionTitle: 'CV for suggestions',
+                    cvSectionDescription: 'Upload a text file with your CV. It will be used only to generate suggestions, not for translations.',
+                    cvUploadLabel: 'Upload CV from file (.txt)',
+                    cvUploadHint: 'Tip: save your CV as a text file (.txt) and upload it here.',
+                    youtubeUrlLabel: 'YouTube video URL',
+                    youtubeUrlHelp: 'Paste here the link of the video you want to use during the work call.',
+                    youtubeLangSourceLabel: 'Video language',
+                    youtubeLangTargetLabel: 'Translation language',
+                    youtubeStartButton: 'Start interpreter mode on video',
+                    youtubeExplain: 'By clicking "Start interpreter mode on video" we load the video on the side with the language selected above. The system listens to what goes into the microphone (for example the audio from your speakers): when it detects the end of a sentence it pauses the video, translates the sentence (and, if enabled, reads it aloud), and then automatically resumes the video for the next sentence. At any moment you can also pause the video yourself to translate or re-read the text more calmly.',
+                    youtubeMicAActive: 'Interpreter active: I am listening to your voice over the video',
+                    youtubeMicAHelp: 'Start / stop the microphone to speak over the video (interpreter)',
+                    speakerAActive: 'Speaker A active',
+                    speakerASpeak: 'Speak Language A',
+                    speakerBActive: 'Speaker B active',
+                    speakerBSpeak: 'Speak Language B',
+                    selectLangAPlaceholder: '-- Select language A --',
+                    selectLangBPlaceholder: '-- Select language B --',
+                    selectOptionPlaceholder: '-- Select --',
                     ttsBusyMessage: 'I am reading the translation, please wait until it finishes before speaking.',
                     ttsLoadingMessage: 'Loading translation...',
                     statusWhisperAutoForced: 'Whisper mode is enabled automatically: browser speech recognition is not fully supported here.',
@@ -668,6 +826,16 @@ export default {
                     originalPlaceholder: 'Empieza a hablar para ver aquí la transcripción en tiempo real.',
                     translationTitle: 'Traducción',
                     suggestionsTitle: 'Sugerencias para la entrevista',
+                    suggestionsButton: 'Generar sugerencias',
+                    suggestionsNoCv: 'Carga tu CV aquí abajo para habilitar sugerencias basadas en el currículum.',
+                    suggestionsNoLangs: 'Selecciona ambos idiomas para ver sugerencias bilingües.',
+                    suggestionsLoading: 'Estoy preparando una sugerencia basada en tu CV...',
+                    suggestionsEmpty: 'Cuando el sistema reconozca una frase (pregunta o respuesta), aquí aparecerá una sugerencia coherente con tu CV en los dos idiomas seleccionados.',
+                    suggestionRefersTo: 'Relacionado con la frase:',
+                    mindMapTitle: 'Mapa mental de temas técnicos',
+                    mindMapButton: 'Mostrar mapa mental',
+                    mindMapHideButton: 'Ocultar mapa mental',
+                    mindMapEmpty: 'El mapa mental estará disponible después de algunos intercambios de sugerencias.',
                     ttsBusyMessage: 'Estoy leyendo la traducción, espera a que termine antes de volver a hablar.',
                     ttsLoadingMessage: 'Cargando traducción...',
                 },
@@ -684,6 +852,16 @@ export default {
                     originalPlaceholder: 'Commence à parler pour voir ici la transcription en temps réel.',
                     translationTitle: 'Traduction',
                     suggestionsTitle: 'Suggestions pour l’entretien',
+                    suggestionsButton: 'Générer des suggestions',
+                    suggestionsNoCv: 'Charge ton CV ci-dessous pour activer les suggestions basées sur le CV.',
+                    suggestionsNoLangs: 'Sélectionne les deux langues pour afficher les suggestions bilingues.',
+                    suggestionsLoading: 'Je prépare une suggestion basée sur ton CV...',
+                    suggestionsEmpty: 'Lorsque le système reconnaît une phrase (question ou réponse), une suggestion cohérente avec ton CV apparaîtra ici dans les deux langues sélectionnées.',
+                    suggestionRefersTo: 'Référence à la phrase :',
+                    mindMapTitle: 'Carte mentale des sujets techniques',
+                    mindMapButton: 'Afficher la carte mentale',
+                    mindMapHideButton: 'Masquer la carte mentale',
+                    mindMapEmpty: 'La carte mentale sera disponible après quelques échanges de suggestions.',
                     ttsBusyMessage: 'Je lis la traduction, attends qu’elle soit terminée avant de reparler.',
                     ttsLoadingMessage: 'Chargement de la traduction...',
                 },
@@ -700,6 +878,16 @@ export default {
                     originalPlaceholder: 'Beginne zu sprechen, um hier die Live-Transkription zu sehen.',
                     translationTitle: 'Übersetzung',
                     suggestionsTitle: 'Vorschläge für das Bewerbungsgespräch',
+                    suggestionsButton: 'Vorschläge erzeugen',
+                    suggestionsNoCv: 'Lade deinen Lebenslauf hier unten hoch, um CV-basierte Vorschläge zu aktivieren.',
+                    suggestionsNoLangs: 'Wähle beide Sprachen aus, um zweisprachige Vorschläge zu sehen.',
+                    suggestionsLoading: 'Ich bereite einen Vorschlag auf Basis deines Lebenslaufs vor...',
+                    suggestionsEmpty: 'Wenn das System einen Satz (Frage oder Antwort) erkennt, erscheint hier ein Vorschlag, der zu deinem Lebenslauf passt, in beiden ausgewählten Sprachen.',
+                    suggestionRefersTo: 'Bezogen auf den Satz:',
+                    mindMapTitle: 'Mindmap der technischen Themen',
+                    mindMapButton: 'Mindmap anzeigen',
+                    mindMapHideButton: 'Mindmap ausblenden',
+                    mindMapEmpty: 'Die Mindmap ist nach einigen Suggestionen verfügbar.',
                     ttsBusyMessage: 'Ich lese die Übersetzung, bitte warte, bis ich fertig bin, bevor du weitersprichst.',
                     ttsLoadingMessage: 'Übersetzung wird geladen...',
                 },
@@ -716,6 +904,12 @@ export default {
                     originalPlaceholder: 'Começa a falar para veres aqui a transcrição em tempo real.',
                     translationTitle: 'Tradução',
                     suggestionsTitle: 'Sugestões para a entrevista',
+                    suggestionsButton: 'Gerar sugestões',
+                    suggestionsNoCv: 'Carrega o teu CV abaixo para ativar sugestões baseadas no currículo.',
+                    suggestionsNoLangs: 'Seleciona ambos os idiomas para ver sugestões bilingues.',
+                    suggestionsLoading: 'Estou a preparar uma sugestão com base no teu CV...',
+                    suggestionsEmpty: 'Quando o sistema reconhecer uma frase (pergunta ou resposta), aqui aparecerá uma sugestão coerente com o teu CV nos dois idiomas selecionados.',
+                    suggestionRefersTo: 'Referente à frase:',
                     ttsBusyMessage: 'Estou a ler a tradução, espera que termine antes de voltares a falar.',
                     ttsLoadingMessage: 'A carregar a tradução...',
                 },
@@ -1335,6 +1529,12 @@ export default {
 
                 this.isChromeWithWebSpeech = !!isChrome;
 
+                console.log('🌐 detectEnvAndDefaultMode', {
+                    hasWebSpeech,
+                    uaSnippet: ua.slice(0, 160),
+                    isChromeWithWebSpeech: this.isChromeWithWebSpeech,
+                });
+
                 if (!this.isChromeWithWebSpeech) {
                     // Browser non-Chrome: forza modalità Whisper e non permettere cambio
                     this.useWhisper = true;
@@ -1366,28 +1566,106 @@ export default {
                 }
 
                 this.recognition = new RecClass();
-                this.recognition.lang = this.currentMicLang || this.detectRecognitionLang();
+                const detectedLang = this.currentMicLang || this.detectRecognitionLang();
+                this.recognition.lang = detectedLang;
                 this.recognition.continuous = true;
                 // In modalità Whisper non gestiamo davvero gli interim, arrivano solo final
                 this.recognition.interimResults = !this.useWhisper;
                 this.recognition.maxAlternatives = 1;
 
+                this.debugLog('WebSpeech init', {
+                    lang: detectedLang,
+                    continuous: true,
+                    interimResults: !this.useWhisper,
+                    maxAlternatives: 1,
+                    useWhisper: this.useWhisper,
+                    isChrome: this.isChromeWithWebSpeech,
+                });
+                console.log('🔧 WebSpeech INITIALIZED', {
+                    lang: detectedLang,
+                    continuous: true,
+                    interimResults: !this.useWhisper,
+                    maxAlternatives: 1,
+                    useWhisper: this.useWhisper,
+                    isChrome: this.isChromeWithWebSpeech,
+                });
+
                 this.recognition.onstart = () => {
-                    // Nessun messaggio di stato
+                    this.webSpeechDebugSeq += 1;
+                    this.lastWebSpeechEventAt = Date.now();
+
+                    this.debugLog('WebSpeech onstart', {
+                        lang: this.recognition.lang,
+                        continuous: this.recognition.continuous,
+                        interimResults: this.recognition.interimResults,
+                        maxAlternatives: this.recognition.maxAlternatives,
+                    });
+                    console.log('🎤 WebSpeech STARTED', {
+                        seq: this.webSpeechDebugSeq,
+                        ts: new Date().toISOString(),
+                        lang: this.recognition.lang,
+                        continuous: this.recognition.continuous,
+                        interimResults: this.recognition.interimResults,
+                        currentMicLang: this.currentMicLang,
+                        activeSpeaker: this.activeSpeaker,
+                        activeTab: this.activeTab,
+                    });
                 };
 
                 this.recognition.onerror = (e) => {
                     const err = e && (e.error || e.message) ? String(e.error || e.message) : 'errore sconosciuto';
-                    this.statusMessage = `Errore microfono: ${err}`;
+                    const errorCode = e && e.error ? e.error : 'unknown';
+                    // Non mostriamo il messaggio di errore all'utente, solo nel debug
                     this.isListening = false;
+
+                    this.webSpeechDebugSeq += 1;
+                    this.lastWebSpeechEventAt = Date.now();
+
+                    this.debugLog('WebSpeech onerror', {
+                        error: err,
+                        errorCode: errorCode,
+                        lang: this.recognition?.lang,
+                    });
+                    console.error('❌ WebSpeech ERROR', {
+                        seq: this.webSpeechDebugSeq,
+                        ts: new Date().toISOString(),
+                        error: err,
+                        errorCode: errorCode,
+                        lang: this.recognition?.lang,
+                        event: e,
+                        currentMicLang: this.currentMicLang,
+                        activeSpeaker: this.activeSpeaker,
+                        activeTab: this.activeTab,
+                    });
                 };
 
                 this.recognition.onend = () => {
+                    this.webSpeechDebugSeq += 1;
+                    this.lastWebSpeechEventAt = Date.now();
+
+                    this.debugLog('WebSpeech onend', {
+                        isListening: this.isListening,
+                        autoRestart: this.autoRestart,
+                        useWhisper: this.useWhisper,
+                    });
+                    console.log('🛑 WebSpeech ENDED', {
+                        seq: this.webSpeechDebugSeq,
+                        ts: new Date().toISOString(),
+                        isListening: this.isListening,
+                        autoRestart: this.autoRestart,
+                        currentMicLang: this.currentMicLang,
+                        activeSpeaker: this.activeSpeaker,
+                        activeTab: this.activeTab,
+                    });
+
                     // Niente auto-restart in modalità Whisper per evitare loop strani
                     if (this.isListening && this.autoRestart && !this.useWhisper) {
                         try {
                             this.recognition.start();
-                        } catch { }
+                            console.log('🔄 WebSpeech AUTO-RESTART');
+                        } catch (err) {
+                            console.error('❌ WebSpeech AUTO-RESTART FAILED', err);
+                        }
                     } else {
                         // Nessun messaggio di stato
                     }
@@ -1395,6 +1673,25 @@ export default {
 
                 this.recognition.onresult = (event) => {
                     try {
+                        this.webSpeechDebugSeq += 1;
+                        this.lastWebSpeechEventAt = Date.now();
+
+                        this.debugLog('WebSpeech onresult', {
+                            resultIndex: event.resultIndex,
+                            resultsLength: event.results?.length || 0,
+                            lang: this.recognition?.lang,
+                        });
+                        console.log('📥 WebSpeech RESULT EVENT', {
+                            seq: this.webSpeechDebugSeq,
+                            ts: new Date().toISOString(),
+                            resultIndex: event.resultIndex,
+                            resultsLength: event.results && event.results.length,
+                            lang: this.recognition && this.recognition.lang,
+                            currentMicLang: this.currentMicLang,
+                            activeSpeaker: this.activeSpeaker,
+                            activeTab: this.activeTab,
+                        });
+
                         let interim = '';
                         const results = event.results;
 
@@ -1402,6 +1699,13 @@ export default {
                             const res = results[i];
                             const text = (res[0] && res[0].transcript) || '';
                             if (!text) continue;
+
+                            console.log('   ↳ chunk', {
+                                i,
+                                isFinal: res.isFinal,
+                                transcript: text,
+                                confidence: res[0] && typeof res[0].confidence === 'number' ? res[0].confidence : undefined,
+                            });
 
                             if (res.isFinal) {
                                 const clean = text.trim().toLowerCase();
@@ -1471,7 +1775,6 @@ export default {
                                             mergeLast: false,
                                             mergeIndex: this.mobileCurrentTranslationIndex,
                                         });
-                                        this.maybeRequestInterviewSuggestion(clean);
                                         continue;
                                     }
 
@@ -1484,7 +1787,6 @@ export default {
                                         commit: true,
                                         mergeLast: false,
                                     });
-                                    this.maybeRequestInterviewSuggestion(clean);
                                 }
                             } else {
                                 // INTERIM solo su desktop / non-low-power
@@ -1547,17 +1849,31 @@ export default {
         async toggleListeningForLang(speaker) {
             // Non registrare mentre il TTS sta leggendo
             if (this.isTtsPlaying) {
-                this.statusMessage = this.ui.ttsBusyMessage || 'Sto leggendo la traduzione, attendi che finisca prima di parlare.';
+                console.log('⏸️ toggleListeningForLang: TTS is playing, ignore mic toggle', {
+                    speaker,
+                    langA: this.langA,
+                    langB: this.langB,
+                });
                 return;
             }
             // Se sta già ascoltando con lo stesso speaker, ferma
             if (this.isListening && this.activeSpeaker === speaker) {
+                console.log('🛑 toggleListeningForLang: stop same speaker', {
+                    speaker,
+                    currentMicLang: this.currentMicLang,
+                    activeTab: this.activeTab,
+                });
                 this.stopListeningInternal();
                 return;
             }
 
             // Se sta ascoltando con un altro speaker, ferma quello prima
             if (this.isListening && this.activeSpeaker !== speaker) {
+                console.log('🔁 toggleListeningForLang: switching speaker', {
+                    from: this.activeSpeaker,
+                    to: speaker,
+                    currentMicLang: this.currentMicLang,
+                });
                 this.stopListeningInternal();
                 // Attendi un attimo per assicurarsi che il recognition sia fermato
                 await new Promise(resolve => setTimeout(resolve, 200));
@@ -1566,12 +1882,20 @@ export default {
             // Validazione: entrambe le lingue devono essere selezionate
             if (!this.langA || !this.langB) {
                 this.statusMessage = this.ui.statusSelectLangAB;
+                console.warn('⚠️ toggleListeningForLang: missing langA/langB', {
+                    speaker,
+                    langA: this.langA,
+                    langB: this.langB,
+                });
                 return;
             }
 
             const ok = await this.ensureMicPermission();
             if (!ok) {
                 this.statusMessage = this.ui.statusMicDenied;
+                console.warn('⚠️ toggleListeningForLang: mic permission denied', {
+                    speaker,
+                });
                 return;
             }
 
@@ -1594,17 +1918,38 @@ export default {
             if (!this.recognition) {
                 this.initSpeechRecognition();
                 if (!this.recognition) {
+                    console.error('❌ toggleListeningForLang: initSpeechRecognition failed', {
+                        speaker,
+                        currentMicLang: this.currentMicLang,
+                    });
                     return;
                 }
             }
 
             // Aggiorna lingua del recognition
+            // Se il recognition è già in esecuzione, fermalo e riavvialo per applicare il cambio lingua
+            const wasRunning = this.isListening && this.recognition;
+            if (wasRunning) {
+                try {
+                    this.recognition.stop();
+                    this.recognition.abort && this.recognition.abort();
+                } catch { }
+                // Attendi che si fermi completamente
+                await new Promise(resolve => setTimeout(resolve, 300));
+            }
+
             if (this.recognition) {
                 this.recognition.lang = this.currentMicLang;
             }
 
             try {
                 this.isListening = true;
+                console.log('▶️ toggleListeningForLang: calling recognition.start()', {
+                    speaker,
+                    langSetOnRecognition: this.recognition.lang,
+                    currentMicLang: this.currentMicLang,
+                    activeTab: this.activeTab,
+                });
                 this.recognition.start();
 
                 // In modalità YouTube, aspetta 1 secondo dopo l'attivazione del microfono
@@ -1851,7 +2196,6 @@ export default {
             this.lastSpeakerBeforeTts = this.activeSpeaker;
             if (this.wasListeningBeforeTts) {
                 this.stopListeningInternal();
-                this.statusMessage = this.ui.ttsBusyMessage || this.statusMessage;
             }
 
             try {
@@ -2095,6 +2439,8 @@ export default {
                         const content = (e.target && e.target.result) || '';
                         if (typeof content === 'string') {
                             this.cvText = content;
+                            // Resetta il thread_id quando viene caricato un nuovo CV
+                            this.interviewSuggestionThreadId = null;
                         }
                     } catch {
                         // ignore parse errors
@@ -2352,6 +2698,197 @@ export default {
             console.log(`🔄 Lingua rilevata: ${detectedLang.toUpperCase()} → Microfono: ${this.currentMicLang} → Traduzione verso: ${this.currentTargetLang.toUpperCase()}`);
         },
 
+        onRequestSuggestionsClick() {
+            // Prende soprattutto le ultime frasi dette (originali) come contesto per il suggeritore
+            const lines = (this.originalConfirmed || '')
+                .split('\n')
+                .map((l) => l.trim())
+                .filter(Boolean);
+
+            if (!lines.length) {
+                return;
+            }
+
+            // Usa le ultime 3 frasi come contesto compatto
+            const lastContext = lines.slice(-3).join(' ');
+            this.maybeRequestInterviewSuggestion(lastContext);
+        },
+
+        async onToggleMindMapClick() {
+            if (this.isMindMapLoading) {
+                return;
+            }
+            await this.requestInterviewMindMap();
+        },
+
+        async requestInterviewMindMap() {
+            // Richiede la mappa mentale solo se:
+            // - c'è un CV
+            // - sono selezionate entrambe le lingue
+            // - se esiste un thread di suggerimenti, lo usiamo come contesto aggiuntivo
+            if (!this.cvText || !this.cvText.trim()) {
+                return;
+            }
+            if (!this.langA || !this.langB) {
+                return;
+            }
+
+            this.isMindMapLoading = true;
+
+            try {
+                const res = await fetch('/api/chatbot/interview-mindmap', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: JSON.stringify({
+                        cv_text: this.cvText,
+                        locale: this.locale || 'it',
+                        lang_a: this.langA,
+                        lang_b: this.langB,
+                        thread_id: this.interviewSuggestionThreadId,
+                    }),
+                });
+
+                const json = await res.json().catch(() => ({}));
+
+                if (!res.ok || json.error) {
+                    // In caso di errore, non mostriamo nulla
+                    this.mindMap = {
+                        langA: '',
+                        langB: '',
+                        raw: '',
+                    };
+                    return;
+                }
+
+                const nodes = Array.isArray(json.nodes) ? json.nodes : [];
+                const edges = Array.isArray(json.edges) ? json.edges : [];
+                const raw = (json.raw || '').trim();
+
+                if ((!nodes.length && !edges.length) && !raw) {
+                    this.mindMap = {
+                        langA: '',
+                        langB: '',
+                        raw: '',
+                    };
+                    return;
+                }
+
+                this.mindMap = {
+                    langA: '',
+                    langB: '',
+                    raw: raw || '',
+                };
+                this.mindMapGraph = {
+                    nodes,
+                    edges,
+                };
+                this.showMindMapModal = true;
+
+                this.$nextTick(() => {
+                    this.renderMindMapGraph();
+                });
+            } catch {
+                // Silenzioso: non blocca l'esperienza
+                this.mindMap = {
+                    langA: '',
+                    langB: '',
+                    raw: '',
+                };
+            } finally {
+                this.isMindMapLoading = false;
+            }
+        },
+
+        renderMindMapGraph() {
+            try {
+                const container = this.$refs.mindMapGraphContainer;
+                if (!container) {
+                    return;
+                }
+
+                const data = {
+                    nodes: this.mindMapGraph.nodes || [],
+                    edges: this.mindMapGraph.edges || [],
+                };
+
+                const options = {
+                    autoResize: true,
+                    nodes: {
+                        shape: 'dot',
+                        size: 14,
+                        font: {
+                            color: '#e5e7eb',
+                            size: 12,
+                        },
+                        borderWidth: 1,
+                        color: {
+                            border: '#22c55e',
+                            background: '#065f46',
+                            highlight: {
+                                border: '#22c55e',
+                                background: '#059669',
+                            },
+                        },
+                    },
+                    edges: {
+                        color: {
+                            color: '#64748b',
+                            highlight: '#e5e7eb',
+                        },
+                        width: 1,
+                        smooth: true,
+                        arrows: {
+                            to: { enabled: true, scaleFactor: 0.5 },
+                        },
+                        font: {
+                            color: '#9ca3af',
+                            size: 10,
+                            strokeWidth: 0,
+                            align: 'horizontal',
+                        },
+                    },
+                    layout: {
+                        improvedLayout: true,
+                    },
+                    physics: {
+                        enabled: true,
+                        stabilization: {
+                            iterations: 150,
+                            fit: true,
+                        },
+                    },
+                    interaction: {
+                        hover: true,
+                        dragNodes: true,
+                        zoomView: true,
+                        dragView: true,
+                    },
+                };
+
+                if (this.mindMapNetwork) {
+                    this.mindMapNetwork.destroy();
+                }
+
+                this.mindMapNetwork = new Network(container, data, options);
+            } catch (e) {
+                // Se la libreria non è disponibile o qualcosa va storto, non blocchiamo l'interfaccia
+                console.error('MindMap graph render error', e);
+            }
+        },
+
+        closeMindMapModal() {
+            this.showMindMapModal = false;
+        },
+
+        exportMindMapAsPrint() {
+            // Prima versione semplice: usa la finestra di stampa del browser.
+            // L'utente può scegliere "Salva come PDF".
+            window.print();
+        },
+
         async maybeRequestInterviewSuggestion(textSegment) {
             const safeText = (textSegment || '').trim();
             if (!safeText) {
@@ -2365,6 +2902,11 @@ export default {
 
             if (!this.langA || !this.langB) {
                 return;
+            }
+
+            // Genera thread_id se non esiste ancora
+            if (!this.interviewSuggestionThreadId) {
+                this.interviewSuggestionThreadId = 'interview_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
             }
 
             this.isLoadingSuggestion = true;
@@ -2382,6 +2924,7 @@ export default {
                         locale: this.locale || 'it',
                         lang_a: this.langA,
                         lang_b: this.langB,
+                        thread_id: this.interviewSuggestionThreadId,
                     }),
                 });
 
@@ -2392,10 +2935,16 @@ export default {
                     return;
                 }
 
+                // Aggiorna il thread_id se viene restituito uno nuovo
+                if (json.thread_id) {
+                    this.interviewSuggestionThreadId = json.thread_id;
+                }
+
                 const langAText = (json.suggestion_lang_a || '').trim();
                 const langBText = (json.suggestion_lang_b || '').trim();
 
-                if (!langAText && !langBText) {
+                // Se il suggerimento è vuoto o l'argomento non è cambiato, non aggiungere nulla
+                if ((!langAText && !langBText) || json.topic_changed === false) {
                     return;
                 }
 

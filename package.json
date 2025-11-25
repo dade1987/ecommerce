@@ -34,6 +34,7 @@
     "dependencies": {
         "@alpinejs/focus": "^3.13.0",
         "frappe-gantt": "^1.0.3",
-        "playwright": "^1.56.1"
+        "playwright": "^1.56.1",
+        "vis-network": "^10.0.2"
     }
 }
