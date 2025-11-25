@@ -18,6 +18,7 @@ use Modules\WebScraper\Console\Commands\RagSearchCommand;
 use Modules\WebScraper\Console\Commands\RagStatsCommand;
 use Modules\WebScraper\Console\Commands\UpdateChunksDomain;
 use Modules\WebScraper\Console\Commands\HybridSearchCommand;
+use Modules\WebScraper\Console\Commands\PurgeDomainCommand;
 
 class WebScraperServiceProvider extends ServiceProvider
 {
@@ -81,6 +82,7 @@ class WebScraperServiceProvider extends ServiceProvider
                 RagStatsCommand::class,
                 UpdateChunksDomain::class,
                 HybridSearchCommand::class,
+                PurgeDomainCommand::class,
             ]);
 
             // Publish configuration

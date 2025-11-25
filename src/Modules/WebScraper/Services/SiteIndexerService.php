@@ -77,13 +77,15 @@ class SiteIndexerService
             $scrapedData = $this->scraperService->scrapeSingleUrl($url);
 
             // Update page with scraped data
+            // Use 'full' content (includes header/footer) for RAG indexing
+            // This ensures contact info, addresses, phone numbers in footer are searchable
             $page->title = $scrapedData['metadata']['title'] ?? '';
             $page->description = $scrapedData['metadata']['description'] ?? '';
-            $page->content = $scrapedData['content']['main'] ?? '';
+            $page->content = $scrapedData['content']['full'] ?? $scrapedData['content']['main'] ?? '';
             $page->raw_html = $scrapedData['raw_html'] ?? '';
             $page->metadata = [
                 'scraped_at' => now()->toIso8601String(),
-                'scraper_version' => '1.0',
+                'scraper_version' => '1.1', // Version bump: now includes footer content
             ];
             $page->word_count = str_word_count($page->content);
             $page->save();
@@ -94,7 +96,7 @@ class SiteIndexerService
                 WebscraperChunk::where('page_id', $page->_id)->delete();
             }
 
-            // Step 3: Chunk the content
+            // Step 3: Chunk the content (now includes header/footer for complete coverage)
             Log::channel('webscraper')->info('SiteIndexer: Chunking content', [
                 'word_count' => $page->word_count,
                 'chunk_size' => $this->chunkSize,
