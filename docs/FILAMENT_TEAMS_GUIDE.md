@@ -172,3 +172,4 @@ Assicurati di includere:
 - Ogni team può avere più URL associati per lo scraping
 - Lo scraper processa gli URL nell'ordine in cui sono elencati nella sezione "Siti Web"
 
+

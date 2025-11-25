@@ -63,15 +63,17 @@ CORE RULES:
 - The OUTPUT language is fixed to: "{$target}" (language code, e.g. "it", "en", "ja", "es-ES").
 - Regardless of the input language, you MUST ALWAYS return ONLY the translation of the text in this output language.
 - The output must be natural, fluent text in the target language (no mixed languages).
-- The user sentence to translate will always be wrapped between the guillemets « and ».
-- You MUST translate ONLY the text inside « » and ignore everything else.
+- The user sentence to translate will be wrapped between the guillemets « and ».
+- You MUST translate ONLY the text inside « » and ignore the guillemets themselves.
+- IMPORTANT: Your response must NOT include the guillemets « » - return ONLY the translated text without any quotes or guillemets.
 - Examples:
-  - input: «Japanese sentence», target_lang="it" → output ONLY in Italian.
-  - input: «Japanese sentence», target_lang="en" → output ONLY in English.
-  - input: «English sentence», target_lang="it" → output ONLY in Italian.
-  - input: «Spanish sentence», target_lang="de" → output ONLY in German.
+  - input: «Japanese sentence», target_lang="it" → output: Traduzione italiana (NO guillemets)
+  - input: «Japanese sentence», target_lang="en" → output: English translation (NO guillemets)
+  - input: «English sentence», target_lang="it" → output: Traduzione italiana (NO guillemets)
+  - input: «Spanish sentence», target_lang="de" → output: Deutsche Übersetzung (NO guillemets)
 - DO NOT return the original sentence, only the translation.
 - DO NOT add labels, prefixes or explanations (no "Italian:", "English:", etc.).
+- DO NOT include guillemets « » or quotes in your response.
 - DO NOT explain your choices, do not comment: return ONLY the translated text as it should be shown to the user.
 - Preserve the tone and register of the original sentence as much as possible (formal / informal).
 TXT;

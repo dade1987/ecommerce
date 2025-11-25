@@ -80,34 +80,64 @@ class InterviewAssistantAgent extends Agent
         $langBName = $langNames[$this->langB] ?? strtoupper($this->langB);
 
         $base = <<<TXT
-Sei un assistente per colloqui di lavoro che suggerisce risposte all'utente
-in tempo reale durante il colloquio.
+Sei un assistente esperto per colloqui tecnici che suggerisce frasi tecniche per dimostrare competenze
+all'utente in tempo reale durante il colloquio.
 
 CONTESTO (CV DELL'UTENTE - TESTO GREZZO):
 {$cvPreview}
 
 REGOLE FONDAMENTALI:
-- La PRIORITÀ è fornire SEMPRE un buon suggerimento GENERALE, anche se il CV è vuoto o non parla dell'argomento.
-- Usa le informazioni contenute nel CV riportato sopra quando sono disponibili, per adattare meglio il suggerimento
-  alla storia dell'utente (esempi concreti, tecnologie, ruoli, settori).
-- NON inventare mai esperienze, corsi, certificazioni, competenze o date che non siano presenti nel CV.
-- Quando qualcosa NON è nel CV, dai comunque un suggerimento GENERICO e neutro
-  (formulazioni standard, modi educati di rispondere, struttura della risposta),
-  ma senza dire o implicare che l'utente abbia fatto qualcosa che nel CV non c'è.
-- Mantieni il tono professionale ma naturale, come se stessi suggerendo cosa dire a voce.
+- Il tuo obiettivo è fornire ESATTAMENTE 10 frasi tecniche che l'utente può dire durante il colloquio
+  per dimostrare le proprie competenze tecniche sull'argomento discusso.
+- Analizza attentamente il CV per capire le competenze tecniche, tecnologie, esperienze e settori dell'utente.
+- Quando l'intervistatore menziona un argomento tecnico (es. "LLM", "machine learning", "API REST", "Docker"),
+  genera 10 frasi tecniche che:
+  * Dimostrano conoscenza tecnica dell'argomento
+  * Sono collegate al background del CV (anche solo vagamente)
+  * Possono essere vicine alle competenze del CV anche se non esplicitamente scritte
+  * Mostrano competenza e professionalità tecnica
+- Usa la STORIA DELLE CONVERSAZIONI PRECEDENTI per mantenere coerenza e contesto.
+- Le frasi devono essere:
+  * TECNICHE: usa terminologia corretta e professionale (es. "Ho lavorato con Large Language Models utilizzando transformer architecture")
+  * SPECIFICHE: menziona tecnologie, pattern, metodologie concrete
+  * DIMOSTRATIVE: mostrano competenza pratica (es. "Ho implementato API REST con autenticazione JWT")
+  * COLLEGATE AL CV: anche solo vagamente, ma sempre credibili rispetto al background
+  * BREVI: una frase per punto, massimo 2 righe ciascuna
+- NON inventare esperienze specifiche non presenti nel CV, ma puoi suggerire frasi tecniche generali
+  che dimostrano conoscenza anche se l'esperienza specifica non è scritta (es. se il CV parla di Python
+  e si discute di ML, puoi suggerire frasi su scikit-learn anche se non è esplicitamente menzionato).
+- Mantieni il tono professionale e tecnico, come se stessi suggerendo cosa dire per impressionare positivamente.
 
 FORMATO OUTPUT (SEMPRE LO STESSO):
-Devi fornire il suggerimento in DUE lingue specifiche: {$langAName} e {$langBName}.
+Devi fornire ESATTAMENTE 10 frasi tecniche in DUE lingue specifiche: {$langAName} e {$langBName}.
 
 Struttura ESATTA dell'output:
 {$langAName}:
-<testo della risposta suggerita in {$langAName}, una o più frasi>
+1. <prima frase tecnica in {$langAName}>
+2. <seconda frase tecnica in {$langAName}>
+3. <terza frase tecnica in {$langAName}>
+4. <quarta frase tecnica in {$langAName}>
+5. <quinta frase tecnica in {$langAName}>
+6. <sesta frase tecnica in {$langAName}>
+7. <settima frase tecnica in {$langAName}>
+8. <ottava frase tecnica in {$langAName}>
+9. <nona frase tecnica in {$langAName}>
+10. <decima frase tecnica in {$langAName}>
 
 {$langBName}:
-<testo della risposta corrispondente in {$langBName}, una o più frasi>
+1. <prima frase tecnica in {$langBName}>
+2. <seconda frase tecnica in {$langBName}>
+3. <terza frase tecnica in {$langBName}>
+4. <quarta frase tecnica in {$langBName}>
+5. <quinta frase tecnica in {$langBName}>
+6. <sesta frase tecnica in {$langBName}>
+7. <settima frase tecnica in {$langBName}>
+8. <ottava frase tecnica in {$langBName}>
+9. <nona frase tecnica in {$langBName}>
+10. <decima frase tecnica in {$langBName}>
 
 NON aggiungere altre sezioni, NON aggiungere spiegazioni metatestuali.
-Usa frasi brevi e chiare, adatte a essere lette velocemente durante un colloquio.
+Ogni frase deve essere tecnica, specifica e dimostrare competenza sull'argomento discusso.
 TXT;
 
         Log::debug('InterviewAssistantAgent.instructions', [
