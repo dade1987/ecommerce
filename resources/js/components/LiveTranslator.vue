@@ -94,8 +94,8 @@
 
                 <div class="flex flex-col items-center gap-1 text-slate-300">
                     <div class="flex items-center justify-center gap-2 text-[13px]">
-                        <input id="useWhisper" type="checkbox" v-model="useWhisper" @change="onRecognitionModeChange"
-                            :disabled="!isChromeWithWebSpeech"
+                        <input id="useWhisper" type="checkbox" v-model="useWhisperCall"
+                            @change="onRecognitionModeChange('call')" :disabled="!isChromeWithWebSpeech"
                             class="h-3.5 w-3.5 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500 disabled:opacity-60 disabled:cursor-not-allowed" />
                         <label for="useWhisper" class="cursor-pointer select-none">
                             {{ ui.whisperLabel }}
@@ -105,8 +105,17 @@
                         </label>
                     </div>
 
+                    <div v-if="useWhisperCall"
+                        class="flex items-center justify-center gap-2 text-[11px] text-slate-300">
+                        <input id="whisperSingleSegmentCall" type="checkbox" v-model="whisperSendOnStopOnlyCall"
+                            class="h-3 w-3 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
+                        <label for="whisperSingleSegmentCall" class="cursor-pointer select-none">
+                            {{ ui.whisperSingleSegmentLabel }}
+                        </label>
+                    </div>
+
                     <label class="flex items-center gap-2 text-[13px] cursor-pointer select-none">
-                        <input type="checkbox" v-model="readTranslationEnabled"
+                        <input type="checkbox" v-model="readTranslationEnabledCall"
                             class="h-3.5 w-3.5 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
                         <span>{{ ui.dubbingLabel }}</span>
                     </label>
@@ -365,14 +374,22 @@
                 <!-- Controllo modalità riconoscimento (Whisper / browser) anche per YouTube -->
                 <div class="flex flex-col items-center gap-1 text-slate-300">
                     <div class="flex items-center justify-center gap-2 text-[13px]">
-                        <input id="useWhisperYoutube" type="checkbox" v-model="useWhisper"
-                            @change="onRecognitionModeChange" :disabled="!isChromeWithWebSpeech"
+                        <input id="useWhisperYoutube" type="checkbox" v-model="useWhisperYoutube"
+                            @change="onRecognitionModeChange('youtube')" :disabled="!isChromeWithWebSpeech"
                             class="h-3.5 w-3.5 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500 disabled:opacity-60 disabled:cursor-not-allowed" />
                         <label for="useWhisperYoutube" class="cursor-pointer select-none">
                             {{ ui.whisperLabel }}
                             <span v-if="!isChromeWithWebSpeech" class="ml-1 text-[11px] text-emerald-300">
                                 ({{ ui.whisperForcedNote }})
                             </span>
+                        </label>
+                    </div>
+                    <div v-if="useWhisperYoutube"
+                        class="flex items-center justify-center gap-2 text-[11px] text-slate-300">
+                        <input id="whisperSingleSegment" type="checkbox" v-model="whisperSendOnStopOnlyYoutube"
+                            class="h-3 w-3 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
+                        <label for="whisperSingleSegment" class="cursor-pointer select-none">
+                            {{ ui.whisperSingleSegmentLabel }}
                         </label>
                     </div>
                 </div>
@@ -422,17 +439,8 @@
                             </div>
                         </div>
 
-                        <button type="button" @click="onYoutubeTranslateClick"
-                            class="mt-2 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold border border-emerald-500 text-emerald-100 bg-emerald-700 hover:bg-emerald-600 transition">
-                            {{ ui.youtubeStartButton }}
-                        </button>
-
-                        <p class="text-[11px] text-slate-400 mt-2">
-                            {{ ui.youtubeExplain }}
-                        </p>
-
                         <!-- Controllo microfono per modalità YouTube (interprete umano) -->
-                        <div class="mt-4 space-y-1">
+                        <div class="mt-4 space-y-3">
                             <button type="button" @click="toggleListeningForLang('A')" :disabled="!langA || !langB"
                                 class="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition
                                     focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 border"
@@ -453,10 +461,31 @@
                             <p class="text-[11px] text-slate-400">
                                 Questo pulsante accende e spegne il microfono. Quando è attivo, ascolto l'audio che
                                 entra dal microfono (per esempio il video dalle casse) in
-                                <span class="font-semibold">{{ getLangLabel(langA) }}</span> e traduco in
-                                <span class="font-semibold">{{ getLangLabel(langB) }}</span>. Per un risultato
+                                <span class="font-semibold">{{ getLangLabel(youtubeLangSource) }}</span> e traduco in
+                                <span class="font-semibold">{{ getLangLabel(youtubeLangTarget) }}</span>. Per un
+                                risultato
                                 ottimale usa le <span class="font-semibold">casse</span> e non solo le cuffie chiuse.
                             </p>
+                            <div class="space-y-1">
+                                <label
+                                    class="flex items-start gap-2 text-[11px] text-slate-300 cursor-pointer select-none">
+                                    <input type="checkbox" v-model="youtubeAutoPauseEnabled"
+                                        class="mt-0.5 h-3.5 w-3.5 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
+                                    <span>
+                                        <span class="block font-semibold">{{ ui.youtubeAutoPauseLabel }}</span>
+                                        <span class="block text-slate-400">{{ ui.youtubeAutoPauseHint }}</span>
+                                    </span>
+                                </label>
+                                <label
+                                    class="flex items-start gap-2 text-[11px] text-slate-300 cursor-pointer select-none">
+                                    <input type="checkbox" v-model="youtubeAutoResumeEnabled"
+                                        class="mt-0.5 h-3.5 w-3.5 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
+                                    <span>
+                                        <span class="block font-semibold">{{ ui.youtubeAutoResumeLabel }}</span>
+                                        <span class="block text-slate-400">{{ ui.youtubeAutoResumeHint }}</span>
+                                    </span>
+                                </label>
+                            </div>
                         </div>
                     </div>
 
@@ -465,10 +494,8 @@
                         <div
                             class="aspect-video w-full rounded-xl border border-slate-700 bg-black overflow-hidden flex items-center justify-center">
                             <div v-if="!youtubeVideoId" class="text-xs text-slate-400 px-4 text-center">
-                                Incolla un URL di YouTube e clicca
-                                <span class="font-semibold text-emerald-300">"Avvia modalità interprete sul
-                                    video"</span>
-                                per caricare il player.
+                                Incolla un URL di YouTube e seleziona le lingue a sinistra:
+                                il player si carica automaticamente.
                             </div>
                             <div v-else ref="youtubePlayer" class="w-full h-full"></div>
                         </div>
@@ -611,9 +638,20 @@ export default {
             currentMicLang: '',
             currentTargetLang: '',
             activeSpeaker: null, // 'A' o 'B' - indica chi sta parlando
-            useWhisper: false,
+
+            // Modalità Whisper per tab: indipendenti
+            useWhisperCall: false,
+            useWhisperYoutube: false,
+
+            // Modalità "invia audio solo quando spengo il microfono" per Whisper, per tab
+            whisperSendOnStopOnlyCall: true,
+            whisperSendOnStopOnlyYoutube: true,
+
             isChromeWithWebSpeech: true,
-            readTranslationEnabled: false,
+
+            // Doppiaggio (TTS) indipendente per tab
+            readTranslationEnabledCall: false,
+            readTranslationEnabledYoutube: true,
             ttsQueue: [],
             isTtsPlaying: false,
             wasListeningBeforeTts: false,
@@ -639,6 +677,8 @@ export default {
             youtubeLangSource: '',
             youtubeLangTarget: '',
             isYoutubePlayerReady: false,
+            youtubeAutoResumeEnabled: true,
+            youtubeAutoPauseEnabled: true,
 
             availableLanguages: [
                 // Lingue principali europee
@@ -690,6 +730,7 @@ export default {
                     langBLabel: 'Lingua B',
                     whisperLabel: 'Usa Whisper (OpenAI) invece del riconoscimento vocale del browser',
                     whisperForcedNote: 'forzato: non sei su Chrome',
+                    whisperSingleSegmentLabel: 'Con Whisper invia l’audio solo quando spengo il microfono (meno chiamate, frasi più complete)',
                     dubbingLabel: 'Leggi la traduzione (doppiaggio)',
                     originalTitle: 'Testo originale',
                     originalSubtitle: 'Riconosciuto dal microfono',
@@ -718,6 +759,10 @@ export default {
                     youtubeExplain: 'Cliccando su "Avvia modalità interprete sul video" carichiamo il video qui a fianco con la lingua scelta sopra. Il sistema ascolta ciò che entra nel microfono (ad esempio l\'audio delle casse del computer): quando riconosce la fine di una frase mette in pausa il video, traduce la frase (e, se attivo, la legge ad alta voce) e infine fa ripartire automaticamente il video per la frase successiva. In qualsiasi momento puoi anche mettere tu in pausa il video per tradurre o rileggere il testo con più calma.',
                     youtubeMicAActive: 'Interprete attivo: sto ascoltando la tua voce sopra il video',
                     youtubeMicAHelp: 'Avvia / ferma il microfono per parlare sopra il video (interprete)',
+                    youtubeAutoPauseLabel: 'Rileva in automatico le pause e ferma il video per tradurre',
+                    youtubeAutoPauseHint: 'Se attivo, quando riconosco la fine di una frase metto in pausa il video e mostro la traduzione.',
+                    youtubeAutoResumeLabel: 'Dopo ogni traduzione fai ripartire automaticamente video e microfono',
+                    youtubeAutoResumeHint: 'Se attivo, quando la frase è stata tradotta riaccendo il microfono e faccio ripartire il video per la parte successiva.',
                     speakerAActive: 'Parlante A attivo',
                     speakerASpeak: 'Parla Lingua A',
                     speakerBActive: 'Parlante B attivo',
@@ -755,6 +800,7 @@ export default {
                     langBLabel: 'Language B',
                     whisperLabel: 'Use Whisper (OpenAI) instead of the browser speech recognition',
                     whisperForcedNote: 'forced: you are not on Chrome',
+                    whisperSingleSegmentLabel: 'With Whisper send audio only when I stop the microphone (fewer calls, more complete sentences)',
                     dubbingLabel: 'Read the translation aloud (dubbing)',
                     originalTitle: 'Original text',
                     originalSubtitle: 'Recognised from microphone',
@@ -783,6 +829,10 @@ export default {
                     youtubeExplain: 'By clicking "Start interpreter mode on video" we load the video on the side with the language selected above. The system listens to what goes into the microphone (for example the audio from your speakers): when it detects the end of a sentence it pauses the video, translates the sentence (and, if enabled, reads it aloud), and then automatically resumes the video for the next sentence. At any moment you can also pause the video yourself to translate or re-read the text more calmly.',
                     youtubeMicAActive: 'Interpreter active: I am listening to your voice over the video',
                     youtubeMicAHelp: 'Start / stop the microphone to speak over the video (interpreter)',
+                    youtubeAutoPauseLabel: 'Automatically detect pauses and stop the video to translate',
+                    youtubeAutoPauseHint: 'If enabled, when I detect the end of a sentence I pause the video and show the translation.',
+                    youtubeAutoResumeLabel: 'After each translation automatically restart video and microphone',
+                    youtubeAutoResumeHint: 'If enabled, once the sentence has been translated I turn the microphone back on and restart the video for the next part.',
                     speakerAActive: 'Speaker A active',
                     speakerASpeak: 'Speak Language A',
                     speakerBActive: 'Speaker B active',
@@ -1319,6 +1369,22 @@ export default {
             const selected = dict[lang] || dict.en;
             return { ...base, ...selected };
         },
+        // Flag effettivo Whisper in base alla tab attiva
+        useWhisperEffective() {
+            return this.activeTab === 'youtube' ? this.useWhisperYoutube : this.useWhisperCall;
+        },
+        // Modalità "invia audio solo quando spengo il microfono" effettiva per Whisper
+        whisperSendOnStopOnlyEffective() {
+            return this.activeTab === 'youtube'
+                ? this.whisperSendOnStopOnlyYoutube
+                : this.whisperSendOnStopOnlyCall;
+        },
+        // Doppiaggio effettivo in base alla tab
+        readTranslationEnabledEffective() {
+            return this.activeTab === 'youtube'
+                ? this.readTranslationEnabledYoutube
+                : this.readTranslationEnabledCall;
+        },
         displayOriginalText() {
             const base = this.originalConfirmed || '';
             const interim = this.originalInterim || '';
@@ -1335,6 +1401,20 @@ export default {
                 (this.translationSegments && this.translationSegments.length > 0) ||
                 (this.translationTokens && this.translationTokens.length > 0)
             );
+        },
+    },
+    watch: {
+        youtubeUrl() {
+            this.maybeAutoLoadYoutubePlayer();
+        },
+        youtubeLangSource() {
+            // La scelta delle lingue nella tab YouTube è indipendente dalla tab "call":
+            // qui ci limitiamo a caricare / ricaricare il player se la configurazione è valida.
+            this.maybeAutoLoadYoutubePlayer();
+        },
+        youtubeLangTarget() {
+            // Anche il cambio della lingua di destinazione YouTube non modifica langA/langB della tab "call".
+            this.maybeAutoLoadYoutubePlayer();
         },
     },
     mounted() {
@@ -1437,11 +1517,6 @@ export default {
 
         setActiveTab(tab) {
             this.activeTab = tab;
-            // In modalità YouTube abilitiamo sempre il doppiaggio,
-            // perché serve a fare da interprete sopra al video.
-            if (tab === 'youtube') {
-                this.readTranslationEnabled = true;
-            }
         },
 
         getLangLabel(langCode) {
@@ -1536,14 +1611,16 @@ export default {
                 });
 
                 if (!this.isChromeWithWebSpeech) {
-                    // Browser non-Chrome: forza modalità Whisper e non permettere cambio
-                    this.useWhisper = true;
+                    // Browser non-Chrome: forza modalità Whisper su entrambe le tab
+                    this.useWhisperCall = true;
+                    this.useWhisperYoutube = true;
                     this.autoRestart = false;
                     this.statusMessage = this.ui.statusWhisperAutoForced;
                 }
             } catch {
                 this.isChromeWithWebSpeech = false;
-                this.useWhisper = true;
+                this.useWhisperCall = true;
+                this.useWhisperYoutube = true;
                 this.autoRestart = false;
             }
         },
@@ -1552,14 +1629,14 @@ export default {
             try {
                 let RecClass = null;
 
-                if (this.useWhisper) {
+                if (this.useWhisperEffective) {
                     RecClass = WhisperSpeechRecognition;
                 } else {
                     RecClass = window.SpeechRecognition || window.webkitSpeechRecognition;
                 }
 
                 if (!RecClass) {
-                    this.statusMessage = this.useWhisper
+                    this.statusMessage = this.useWhisperEffective
                         ? 'Modalità Whisper attiva ma il wrapper non è disponibile in questo browser.'
                         : 'Riconoscimento vocale non disponibile in questo browser. Puoi attivare la modalità Whisper.';
                     return;
@@ -1570,23 +1647,23 @@ export default {
                 this.recognition.lang = detectedLang;
                 this.recognition.continuous = true;
                 // In modalità Whisper non gestiamo davvero gli interim, arrivano solo final
-                this.recognition.interimResults = !this.useWhisper;
+                this.recognition.interimResults = !this.useWhisperEffective;
                 this.recognition.maxAlternatives = 1;
 
                 this.debugLog('WebSpeech init', {
                     lang: detectedLang,
                     continuous: true,
-                    interimResults: !this.useWhisper,
+                    interimResults: !this.useWhisperEffective,
                     maxAlternatives: 1,
-                    useWhisper: this.useWhisper,
+                    useWhisper: this.useWhisperEffective,
                     isChrome: this.isChromeWithWebSpeech,
                 });
                 console.log('🔧 WebSpeech INITIALIZED', {
                     lang: detectedLang,
                     continuous: true,
-                    interimResults: !this.useWhisper,
+                    interimResults: !this.useWhisperEffective,
                     maxAlternatives: 1,
-                    useWhisper: this.useWhisper,
+                    useWhisper: this.useWhisperEffective,
                     isChrome: this.isChromeWithWebSpeech,
                 });
 
@@ -1610,6 +1687,17 @@ export default {
                         activeSpeaker: this.activeSpeaker,
                         activeTab: this.activeTab,
                     });
+
+                    // In modalità YouTube facciamo partire il video solo quando
+                    // il microfono è effettivamente attivo (evento onstart),
+                    // non con un timeout arbitrario.
+                    if (this.activeTab === 'youtube' && this.activeSpeaker === 'A' && this.isListening) {
+                        try {
+                            this.playYoutubeAfterMic();
+                        } catch {
+                            // se l'autoplay è bloccato, l'utente può premere play manualmente
+                        }
+                    }
                 };
 
                 this.recognition.onerror = (e) => {
@@ -1646,7 +1734,7 @@ export default {
                     this.debugLog('WebSpeech onend', {
                         isListening: this.isListening,
                         autoRestart: this.autoRestart,
-                        useWhisper: this.useWhisper,
+                        useWhisper: this.useWhisperEffective,
                     });
                     console.log('🛑 WebSpeech ENDED', {
                         seq: this.webSpeechDebugSeq,
@@ -1659,7 +1747,7 @@ export default {
                     });
 
                     // Niente auto-restart in modalità Whisper per evitare loop strani
-                    if (this.isListening && this.autoRestart && !this.useWhisper) {
+                    if (this.isListening && this.autoRestart && !this.useWhisperEffective) {
                         try {
                             this.recognition.start();
                             console.log('🔄 WebSpeech AUTO-RESTART');
@@ -1783,10 +1871,21 @@ export default {
                                         ? `${this.originalConfirmed}\n${phraseWithDash}`
                                         : phraseWithDash;
                                     this.originalInterim = '';
-                                    this.startTranslationStream(clean, {
-                                        commit: true,
-                                        mergeLast: false,
-                                    });
+
+                                    // In modalità YouTube, se il rilevamento automatico delle pause
+                                    // è disattivato, non traduciamo mentre il microfono è ancora acceso.
+                                    // Traduciamo solo quando arriva il final DOPO che l'utente ha spento il mic.
+                                    const shouldTranslateNow =
+                                        this.activeTab !== 'youtube' ||
+                                        this.youtubeAutoPauseEnabled ||
+                                        !this.isListening;
+
+                                    if (shouldTranslateNow) {
+                                        this.startTranslationStream(clean, {
+                                            commit: true,
+                                            mergeLast: false,
+                                        });
+                                    }
                                 }
                             } else {
                                 // INTERIM solo su desktop / non-low-power
@@ -1863,6 +1962,9 @@ export default {
                     currentMicLang: this.currentMicLang,
                     activeTab: this.activeTab,
                 });
+                if (this.activeTab === 'youtube') {
+                    this.pauseYoutubeIfNeeded();
+                }
                 this.stopListeningInternal();
                 return;
             }
@@ -1879,15 +1981,38 @@ export default {
                 await new Promise(resolve => setTimeout(resolve, 200));
             }
 
-            // Validazione: entrambe le lingue devono essere selezionate
-            if (!this.langA || !this.langB) {
-                this.statusMessage = this.ui.statusSelectLangAB;
-                console.warn('⚠️ toggleListeningForLang: missing langA/langB', {
-                    speaker,
-                    langA: this.langA,
-                    langB: this.langB,
-                });
-                return;
+            // Validazione lingue in base alla tab attiva:
+            // - nella tab "call" usiamo langA/langB
+            // - nella tab "youtube" usiamo youtubeLangSource / youtubeLangTarget
+            if (this.activeTab === 'youtube') {
+                if (!this.youtubeLangSource || !this.youtubeLangTarget) {
+                    this.statusMessage = this.ui.statusYoutubeLangsMissing;
+                    console.warn('⚠️ toggleListeningForLang: missing youtubeLangSource/youtubeLangTarget', {
+                        speaker,
+                        youtubeLangSource: this.youtubeLangSource,
+                        youtubeLangTarget: this.youtubeLangTarget,
+                    });
+                    return;
+                }
+                if (this.youtubeLangSource === this.youtubeLangTarget) {
+                    this.statusMessage = this.ui.statusYoutubeLangsDifferent;
+                    console.warn('⚠️ toggleListeningForLang: youtubeLangSource === youtubeLangTarget', {
+                        speaker,
+                        youtubeLangSource: this.youtubeLangSource,
+                        youtubeLangTarget: this.youtubeLangTarget,
+                    });
+                    return;
+                }
+            } else {
+                if (!this.langA || !this.langB) {
+                    this.statusMessage = this.ui.statusSelectLangAB;
+                    console.warn('⚠️ toggleListeningForLang: missing langA/langB', {
+                        speaker,
+                        langA: this.langA,
+                        langB: this.langB,
+                    });
+                    return;
+                }
             }
 
             const ok = await this.ensureMicPermission();
@@ -1899,19 +2024,37 @@ export default {
                 return;
             }
 
-            // Imposta lingua e target in base al parlante
+            // Imposta lingua di input e di destinazione in base al parlante
             this.activeSpeaker = speaker;
-            if (speaker === 'A') {
-                const langAObj = this.availableLanguages.find(l => l.code === this.langA);
-                if (langAObj) {
-                    this.currentMicLang = langAObj.micCode;
-                    this.currentTargetLang = this.langB;
+            if (this.activeTab === 'youtube') {
+                // Nella tab YouTube usiamo le lingue specifiche del video
+                if (speaker === 'A') {
+                    const srcObj = this.availableLanguages.find(l => l.code === this.youtubeLangSource);
+                    if (srcObj) {
+                        this.currentMicLang = srcObj.micCode;
+                        this.currentTargetLang = this.youtubeLangTarget;
+                    }
+                } else {
+                    const tgtObj = this.availableLanguages.find(l => l.code === this.youtubeLangTarget);
+                    if (tgtObj) {
+                        this.currentMicLang = tgtObj.micCode;
+                        this.currentTargetLang = this.youtubeLangSource;
+                    }
                 }
             } else {
-                const langBObj = this.availableLanguages.find(l => l.code === this.langB);
-                if (langBObj) {
-                    this.currentMicLang = langBObj.micCode;
-                    this.currentTargetLang = this.langA;
+                // Nella tab "call" manteniamo il comportamento standard basato su langA/langB
+                if (speaker === 'A') {
+                    const langAObj = this.availableLanguages.find(l => l.code === this.langA);
+                    if (langAObj) {
+                        this.currentMicLang = langAObj.micCode;
+                        this.currentTargetLang = this.langB;
+                    }
+                } else {
+                    const langBObj = this.availableLanguages.find(l => l.code === this.langB);
+                    if (langBObj) {
+                        this.currentMicLang = langBObj.micCode;
+                        this.currentTargetLang = this.langA;
+                    }
                 }
             }
 
@@ -1950,15 +2093,12 @@ export default {
                     currentMicLang: this.currentMicLang,
                     activeTab: this.activeTab,
                 });
-                this.recognition.start();
-
-                // In modalità YouTube, aspetta 1 secondo dopo l'attivazione del microfono
-                // e poi prova a far partire il video (quando il player è pronto).
-                if (this.activeTab === 'youtube') {
-                    setTimeout(() => {
-                        this.playYoutubeAfterMic();
-                    }, 1000);
+                if (this.useWhisperEffective && this.recognition && typeof this.recognition === 'object') {
+                    // Se abilitato, con Whisper usiamo un unico segmento:
+                    // inviamo l'audio a Whisper solo quando l'utente spegne il microfono.
+                    this.recognition.singleSegmentMode = !!this.whisperSendOnStopOnlyEffective;
                 }
+                this.recognition.start();
             } catch (e) {
                 this.statusMessage = this.ui.statusMicStartError;
                 this.isListening = false;
@@ -1987,7 +2127,7 @@ export default {
 
             // In modalità YouTube, se sembra una frase "vera" (non solo una parola)
             // mettiamo SUBITO in pausa il video, senza aspettare che parta il TTS.
-            if (commit && this.activeTab === 'youtube') {
+            if (commit && this.activeTab === 'youtube' && this.youtubeAutoPauseEnabled) {
                 const words = safeText.split(/\s+/).filter(Boolean);
                 const hasSentencePunct = /[.!?…]$/.test(safeText);
                 const longEnough = safeText.length >= 15 || words.length >= 4;
@@ -2059,9 +2199,10 @@ export default {
                         if (data.token) {
                             buffer += data.token;
 
-                            // Su desktop: aggiorna in streaming token-per-token.
-                            // Su mobile low-power: NON aggiornare in streaming, aspetta la frase finale.
-                            if (!this.isMobileLowPower) {
+                            // Su desktop in modalità "call": aggiorna in streaming token-per-token.
+                            // In modalità YouTube o mobile low-power: nessuno streaming token-per-token,
+                            // usiamo solo l'evento "done" per aggiornare la UI.
+                            if (!this.isMobileLowPower && this.activeTab === 'call') {
                                 this.updateTranslationTokens(buffer);
                                 this.$nextTick(() => {
                                     this.scrollToBottom('translationBox');
@@ -2109,8 +2250,8 @@ export default {
                             this.translationSegments.push(`- ${segment}`);
                         }
 
-                        // Se il doppiaggio è attivo, metti in coda la traduzione per il TTS
-                        if (this.readTranslationEnabled) {
+                        // Se il doppiaggio è attivo nella tab corrente, metti in coda la traduzione per il TTS
+                        if (this.readTranslationEnabledEffective) {
                             this.enqueueTranslationForTts(segment, targetLang);
                         }
 
@@ -2231,12 +2372,11 @@ export default {
                     this.lastSpeakerBeforeTts = null;
                     this.isTtsPlaying = false;
 
-                    // In modalità YouTube, al termine del TTS facciamo ripartire il video
                     if (this.activeTab === 'youtube') {
-                        this.resumeYoutubeIfNeeded();
-                    }
-
-                    if (shouldResume && speaker) {
+                        if (this.youtubeAutoResumeEnabled) {
+                            this.toggleListeningForLang('A');
+                        }
+                    } else if (shouldResume && speaker) {
                         this.toggleListeningForLang(speaker);
                     }
 
@@ -2252,10 +2392,10 @@ export default {
                     this.isTtsPlaying = false;
 
                     if (this.activeTab === 'youtube') {
-                        this.resumeYoutubeIfNeeded();
-                    }
-
-                    if (shouldResume && speaker) {
+                        if (this.youtubeAutoResumeEnabled) {
+                            this.toggleListeningForLang('A');
+                        }
+                    } else if (shouldResume && speaker) {
                         this.toggleListeningForLang(speaker);
                     }
 
@@ -2479,10 +2619,11 @@ export default {
             this.statusMessage = '';
         },
 
-        onRecognitionModeChange() {
+        onRecognitionModeChange(tab) {
             if (!this.isChromeWithWebSpeech) {
                 // In browser non supportati non permettiamo il cambio: resta Whisper
-                this.useWhisper = true;
+                this.useWhisperCall = true;
+                this.useWhisperYoutube = true;
                 this.autoRestart = false;
                 return;
             }
@@ -2493,7 +2634,9 @@ export default {
             }
             this.recognition = null;
 
-            if (this.useWhisper) {
+            const useWhisperForTab = tab === 'youtube' ? this.useWhisperYoutube : this.useWhisperCall;
+
+            if (useWhisperForTab) {
                 // In modalità Whisper evitiamo auto-restart lato componente
                 this.autoRestart = false;
                 this.statusMessage = this.ui.statusWhisperModeOn;
@@ -2552,8 +2695,8 @@ export default {
             this.langB = this.youtubeLangTarget;
             this.onLanguagePairChange();
 
-            // In modalità YouTube vogliamo il doppiaggio automatico
-            this.readTranslationEnabled = true;
+            // In modalità YouTube vogliamo il doppiaggio automatico per il video
+            this.readTranslationEnabledYoutube = true;
 
             await this.initYoutubePlayer();
 
@@ -2563,6 +2706,33 @@ export default {
             } catch {
                 // Se fallisce (permessi microfono, ecc.), l'utente può usare il pulsante manuale
             }
+        },
+
+        maybeAutoLoadYoutubePlayer() {
+            // Carica automaticamente il player YouTube quando:
+            // - URL valido
+            // - lingua sorgente e di destinazione impostate e diverse
+            const id = this.extractYoutubeVideoId(this.youtubeUrl);
+            if (!id) {
+                return;
+            }
+
+            if (!this.youtubeLangSource || !this.youtubeLangTarget) {
+                return;
+            }
+
+            if (this.youtubeLangSource === this.youtubeLangTarget) {
+                return;
+            }
+
+            // Se il video è già impostato con questo ID, non facciamo nulla:
+            // il bottone "Avvia modalità interprete sul video" gestirà il microfono.
+            if (this.youtubeVideoId === id) {
+                return;
+            }
+
+            this.youtubeVideoId = id;
+            this.initYoutubePlayer();
         },
 
         async initYoutubePlayer() {

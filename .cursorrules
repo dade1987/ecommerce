@@ -299,4 +299,312 @@ Solo dopo questi step è consentito il commit.
 
 **Enforcement:** ERRORE - Blocca se violato
 
+---
+
+## Regola 3: Sicurezza delle Applicazioni (AppSec) e Cultura - Shift Everywhere
+
+### Descrizione
+Sicurezza delle Applicazioni (AppSec) e Cultura: sicurezza integrata in tutte le fasi dello sviluppo con approccio Shift Everywhere.
+
+**Scope:** `**/*`
+
+### Check 1: Security-First Mindset
+**La sicurezza deve essere una mentalità radicata (security-first mindset) e non un ripensamento. La sicurezza è un problema di persone, non solo tecnico.**
+
+Suggerimenti:
+- Pensa alla sicurezza fin dall'inizio del design, non come aggiunta successiva.
+- Considera la sicurezza come parte integrante del processo di sviluppo, non come fase separata.
+- Forma il team con conoscenze specifiche per lo stack tecnologico utilizzato per evitare codice vulnerabile.
+
+**Enforcement:** ERRORE - Blocca se violato
+
+### Check 2: SSDLC Proattivo
+**Adotta un Ciclo di Vita di Sviluppo Software Sicuro (SSDLC), integrando la sicurezza in tutte le fasi, dalla concezione alla distribuzione.**
+
+Suggerimenti:
+- Integra controlli di sicurezza in ogni fase dello sviluppo.
+- Il costo di correggere i difetti cresce esponenzialmente se affrontati tardi.
+- Applica Shift Everywhere: sposta i controlli di sicurezza ovunque nello SDLC, non solo a sinistra.
+
+**Enforcement:** ERRORE - Blocca se violato
+
+### Check 3: Prioritizzazione basata sul Rischio
+**Concentrati sui problemi di sicurezza che rappresentano i rischi più significativi in base al threat model e al contesto di business.**
+
+Suggerimenti:
+- Conduci Threat Modeling per identificare minacce e vulnerabilità, idealmente all'inizio del progetto e continuamente.
+- Prioritizza le vulnerabilità in base al rischio reale per il business.
+- Non è possibile risolvere tutti i problemi in una volta sola.
+
+### Check 4: Zero Trust Architecture
+**Implementa l'architettura Zero Trust (ZTA) assumendo sempre la compromissione (assume breach) e verificando esplicitamente identità e integrità.**
+
+Suggerimenti:
+- Verifica sempre l'identità e l'integrità di utenti e componenti ogni volta che attraversano un confine di sicurezza.
+- Non fidarti mai implicitamente di richieste o dati.
+- Applica il principio del minimo privilegio (Least Privilege): concedi solo le autorizzazioni necessarie, per il tempo necessario.
+
+**Enforcement:** ERRORE - Blocca se violato
+
+### Check 5: Defense in Depth
+**Usa la difesa in profondità (DiD), applicando controlli di sicurezza a più livelli per minimizzare il raggio d'azione di un attacco.**
+
+Suggerimenti:
+- Implementa controlli di sicurezza a livello di rete, applicazione, database e accesso.
+- Non fare affidamento su un singolo livello di sicurezza.
+- Ogni livello deve essere in grado di resistere a un attacco indipendentemente dagli altri.
+
+### Check 6: Validazione degli Input
+**Non fidarti mai degli input. Tutte le applicazioni sono gateways per i dati; è fondamentale convalidare e sanificare rigorosamente gli input.**
+
+Suggerimenti:
+- Valida e sanifica TUTTI gli input utente per prevenire attacchi di iniezione (SQLi, XSS, Command Injection).
+- Usa Form Request di Laravel per validazione strutturata.
+- Applica whitelist invece di blacklist quando possibile.
+- Escape output per prevenire XSS.
+
+**Enforcement:** ERRORE - Blocca se violato
+
+### Check 7: Automazione della Sicurezza
+**Automatizza i controlli di sicurezza (SAST, DAST, SCA) nelle pipeline CI/CD. Applica Policy-as-Code (PaC).**
+
+Suggerimenti:
+- Integra SAST (Static Application Security Testing) nella pipeline CI/CD.
+- Esegui scansioni automatiche delle dipendenze (SCA - Software Composition Analysis).
+- Implementa Policy-as-Code: nessun codice con vulnerabilità critiche deve essere distribuito in produzione.
+- Usa strumenti come Larastan, PHPStan, SonarQube per analisi statica.
+
+### Check 8: Gestione Segreti
+**Utilizza sistemi maturi per la gestione dei segreti (secrets management) e automatizza la rotazione delle credenziali.**
+
+Suggerimenti:
+- Mai hardcodare password, API keys o token nel codice.
+- Usa variabili d'ambiente o sistemi di gestione segreti (es. HashiCorp Vault, AWS Secrets Manager).
+- Automatizza la rotazione periodica delle credenziali.
+- Non committare file .env nel repository.
+
+**Enforcement:** ERRORE - Blocca se violato
+
+### Check 9: Security Paved Roads
+**Fornisci strumenti di sicurezza che si integrino bene con il flusso di lavoro dello sviluppatore e che siano facili da usare (developer empathy).**
+
+Suggerimenti:
+- Crea Security Paved Roads per rendere la sicurezza predefinita e trasparente per lo sviluppatore.
+- Rendi facile fare la cosa giusta e difficile fare la cosa sbagliata.
+- Integra controlli di sicurezza nel workflow senza rallentare lo sviluppo.
+
+### Check 10: Gestione della Supply Chain
+**Utilizza l'analisi della composizione del software (SCA) e gli SBOM (Software Bill of Materials) per gestire il rischio della catena di fornitura software.**
+
+Suggerimenti:
+- Monitora le dipendenze open source per vulnerabilità note.
+- Mantieni aggiornate le dipendenze con patch di sicurezza.
+- Usa composer audit o strumenti simili per verificare vulnerabilità nelle dipendenze.
+- Documenta le dipendenze e le loro versioni.
+
+---
+
+## Regola 4: Domain-Driven Design per il Monolite Modulare
+
+### Descrizione
+Domain-Driven Design per il Monolite Modulare: partizionamento per dominio, Bounded Contexts, Linguaggio Ubiquo e comunicazione tramite API.
+
+**Scope:** `app/**/*.php`, `src/**/*.php`
+
+### Check 1: Partizionamento per Dominio
+**Il Monolite Modulare deve essere partizionato in base al dominio aziendale o ai flussi di lavoro, non in base alle capacità tecniche.**
+
+Suggerimenti:
+- Evita il partizionamento tecnico (presentazione, logica, persistenza) che 'spalma' il dominio su tutti gli strati.
+- Raggruppa codice per dominio di business (es. Assignment, LegalPractice, User, ecc.).
+- Ogni modulo deve rappresentare un Bounded Context con un modello di dominio coerente.
+
+**Enforcement:** ERRORE - Blocca se violato
+
+### Check 2: Bounded Contexts come Moduli
+**Ogni modulo all'interno del monolite deve rappresentare un Bounded Context con confine linguistico e semantico ben definito.**
+
+Suggerimenti:
+- Un Bounded Context definisce un confine in cui un singolo modello di dominio è coerente e applicabile.
+- Evita di condividere modelli di dominio tra Bounded Context diversi.
+- Ogni modulo deve avere la propria comprensione del dominio.
+
+**Enforcement:** ERRORE - Blocca se violato
+
+### Check 3: Linguaggio Ubiquo
+**Sviluppa un Linguaggio Ubiquo condiviso con gli esperti di dominio, privo di gergo tecnico, riflesso nel codice.**
+
+Suggerimenti:
+- Usa termini del dominio di business nei nomi di classi, metodi e variabili.
+- Evita termini tecnici generici quando esistono termini di dominio specifici.
+- Il linguaggio deve essere coerente tra codice, test e documentazione.
+- Coinvolgi esperti di dominio nella definizione del linguaggio.
+
+**Enforcement:** ERRORE - Blocca se violato
+
+### Check 4: Alta Coesione e Basso Accoppiamento
+**I moduli devono avere alta coesione funzionale (raggruppare dati e comportamenti che cambiano insieme) e basso accoppiamento tra di loro.**
+
+Suggerimenti:
+- Raggruppa dati e comportamenti che cambiano insieme nello stesso modulo.
+- Minimizza le dipendenze tra moduli.
+- L'obiettivo del Monolite Modulare è l'incapsulamento.
+
+**Enforcement:** ERRORE - Blocca se violato
+
+### Check 5: Proprietà Esclusiva dei Dati
+**Ciascun modulo (BC) deve possedere esclusivamente i propri dati. Nessun altro modulo deve accedere direttamente al database del modulo proprietario.**
+
+Suggerimenti:
+- Evita il Common Coupling: non condividere tabelle o database tra moduli.
+- Ogni modulo ha il proprio schema di database o namespace di tabelle.
+- L'accesso ai dati di un modulo deve avvenire solo tramite le API pubbliche del modulo.
+
+**Enforcement:** ERRORE - Blocca se violato
+
+### Check 6: Comunicazione tramite API/Contratti
+**La comunicazione tra i moduli deve avvenire tramite interfacce ben definite (API pubbliche o interfacce di servizio).**
+
+Suggerimenti:
+- Definisci contratti chiari tra moduli tramite interfacce o classi DTO.
+- Le modifiche ai dettagli interni di implementazione (come lo schema del database) non devono propagarsi all'esterno.
+- Usa Application Services o Service Classes per esporre funzionalità pubbliche del modulo.
+- Evita dipendenze dirette su implementazioni concrete di altri moduli.
+
+**Enforcement:** ERRORE - Blocca se violato
+
+### Check 7: Riferimenti tramite ID
+**Per ridurre l'accoppiamento, i moduli devono fare riferimento ad altri componenti (aggregati) in contesti esterni solo tramite ID.**
+
+Suggerimenti:
+- Non passare oggetti complessi tra moduli, usa solo ID primitivi.
+- Se serve più informazione, usa DTO o Value Objects leggeri.
+- Evita riferimenti diretti a modelli Eloquent di altri moduli.
+
+**Enforcement:** ERRORE - Blocca se violato
+
+### Check 8: Protezione del Core Domain
+**Investi risorse e attenzione di design sui Core Subdomains (il vantaggio competitivo) e usa pattern più semplici per Supporting e Generic Subdomains.**
+
+Suggerimenti:
+- Identifica quali parti del sistema sono Core Domain (vantaggio competitivo).
+- Per Core Domains complessi: usa Domain Model, Aggregati, Value Objects, Domain Services.
+- Per Supporting/Generic Subdomains: usa pattern più semplici come Transaction Script o Active Record.
+- Non sovra-ingegnerizzare parti non critiche del sistema.
+
+### Check 9: Anticorruption Layer per Legacy
+**Quando un modulo deve interagire con un sistema esterno o legacy mal progettato, implementa un Anticorruption Layer (ACL) per proteggere il modello interno.**
+
+Suggerimenti:
+- Crea un layer di traduzione tra il sistema legacy e il tuo modello di dominio.
+- L'ACL protegge il Core Domain dalla propagazione di concetti stranieri o cambiamenti frequenti.
+- Isola la complessità del sistema legacy in un modulo dedicato.
+- Usa Adapter pattern per tradurre tra i due modelli.
+
+### Check 10: Pattern Moduli src/Modules
+**Quando crei un nuovo modulo, DEVI seguire il pattern già stabilito in src/Modules, come dimostrato dai moduli esistenti (DataImporter, DataShare, Sharepoint).**
+
+Suggerimenti:
+- Crea il modulo in src/Modules/{ModuleName}/ seguendo la struttura standardizzata.
+- Struttura richiesta: Providers/{ModuleName}ServiceProvider.php, routes/, Http/Controllers/, Http/Middleware/, Http/Requests/, Services/, Models/, Contracts/, Traits/, config/, database/migrations/, resources/views/.
+- Il ServiceProvider deve registrare: config (mergeConfigFrom), middleware (aliasMiddleware), routes (loadRoutesFrom), migrations (loadMigrationsFrom), views (loadViewsFrom), commands se necessario.
+- Usa namespace Src\\Modules\\{ModuleName}\\ per tutte le classi del modulo.
+- Le routes devono essere definite in routes/{modulename}_routes.php e caricate dal ServiceProvider.
+- Il modulo deve essere abilitato/disabilitato tramite config('application.modules.{module_name}') nel ServiceProvider::boot().
+- Consulta i moduli esistenti (es. DataImporter) come riferimento per la struttura completa.
+- Ogni modulo deve essere autocontenuto con le proprie dipendenze, configurazioni e risorse.
+
+**Enforcement:** ERRORE - Blocca se violato
+
+---
+
+## Regola 5: Pattern di Implementazione e Qualità del Codice
+
+### Descrizione
+Pattern di Implementazione e Qualità del Codice: Ports & Adapters, Domain Model, CQRS, IoC e governance sulla modularità.
+
+**Scope:** `app/**/*.php`, `src/**/*.php`
+
+### Check 1: Ports & Adapters Architecture
+**Adotta l'architettura Ports & Adapters (Hexagonal) all'interno dei moduli complessi (Core Domains).**
+
+Suggerimenti:
+- Inverti la dipendenza: isola la logica di business (Domain Model o Inner Core) dai dettagli di infrastruttura.
+- Definisci Port (interfacce) per le dipendenze esterne (database, UI, servizi esterni).
+- Implementa Adapters per le implementazioni concrete (Eloquent, HTTP clients, ecc.).
+- Il Domain Model non deve dipendere da framework o librerie di infrastruttura.
+
+**Enforcement:** ERRORE - Blocca se violato
+
+### Check 2: Domain Model nel Core
+**Utilizza il pattern Domain Model (Aggregati, Value Objects, Domain Services) per i Core Subdomains con logica di business complessa e invarianti.**
+
+Suggerimenti:
+- Ports & Adapters è un requisito per implementare efficacemente un Domain Model.
+- Raggruppa entità correlate in Aggregati con invarianti ben definite.
+- Usa Value Objects per concetti del dominio che non hanno identità propria.
+- Sposta la logica di business nel Domain Model, non negli Application Services.
+
+**Enforcement:** ERRORE - Blocca se violato
+
+### Check 3: Evita Layered Architecture per Dominio Complesso
+**La tradizionale Architettura a Strati (Layered Architecture) è sconsigliata per i Core Domains complessi.**
+
+Suggerimenti:
+- La Layered Architecture accoppia la logica di business all'infrastruttura (Data Access Layer).
+- Rende difficili i cambiamenti basati sul dominio.
+- Preferisci Ports & Adapters per Core Domains complessi.
+
+### Check 4: CQRS per Data Read Complessi
+**Considera l'adozione di CQRS (Command-Query Responsibility Segregation) se sono richieste più rappresentazioni dei dati o esigenze analitiche/prestazionali.**
+
+Suggerimenti:
+- Separa modelli di scrittura (Command) da modelli di lettura (Query).
+- Usa CQRS quando un singolo modello non può soddisfare tutte le esigenze (Polyglot Modeling/Persistence).
+- Non applicare CQRS ovunque: solo dove necessario per complessità o performance.
+- In Laravel, considera Query Builders dedicati o viste materializzate per query complesse.
+
+### Check 5: Inversione di Controllo (IoC)
+**Sfrutta i container di Dependency Injection (DI) di Laravel per implementare il principio di Inversione di Controllo (IoC).**
+
+Suggerimenti:
+- Usa Dependency Injection invece di istanziare classi direttamente.
+- Dipendi da interfacce (astrazioni) non da implementazioni concrete.
+- Registra binding nel Service Provider di Laravel.
+- Il container DI facilita il decoupling e la testabilità.
+
+**Enforcement:** ERRORE - Blocca se violato
+
+### Check 6: Application Services per Orchestrazione
+**Utilizza gli Application Services (o classi Action) come strato per orchestrare i use cases e gestire le transazioni, ma NON devono contenere la logica di business.**
+
+Suggerimenti:
+- Gli Application Services orchestrano chiamate a Domain Services, Repository, Eventi.
+- Gestiscono transazioni e coordinamento tra componenti.
+- La logica di business deve risiedere nel Domain Model, non negli Application Services.
+- Mantieni gli Application Services sottili: delegano al Domain Model.
+
+**Enforcement:** ERRORE - Blocca se violato
+
+### Check 7: Test e Validazione
+**Sviluppa test rigorosi (unit, integrazione) per convalidare il modello di dominio e le misure di sicurezza.**
+
+Suggerimenti:
+- L'alto isolamento dei moduli Ports & Adapters facilita i test.
+- Testa il Domain Model in isolamento usando mock degli Adapters.
+- Testa gli Application Services con test di integrazione.
+- Valida anche le misure di sicurezza nei test.
+
+### Check 8: Governance sulla Modularità
+**Implementa strumenti di governance e Fitness Functions (es. test automatizzati di dipendenza) per mantenere i confini del modulo.**
+
+Suggerimenti:
+- Poiché le dipendenze tra moduli in un monolite non sono imposte a livello di processo, serve governance.
+- Crea test automatizzati che verificano che i moduli non violino i confini.
+- Usa strumenti come deptrac o archunit per verificare architettura.
+- Evita che il monolite si trasformi in un Big Ball of Mud (BBOM).
+- Documenta i confini dei moduli e le regole di comunicazione.
+
+**Enforcement:** ERRORE - Blocca se violato
+
 
