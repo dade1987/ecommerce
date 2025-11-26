@@ -2272,12 +2272,21 @@ export default {
 
             // In modalità YouTube, se sembra una frase "vera" (non solo una parola)
             // mettiamo SUBITO in pausa il video, senza aspettare che parta il TTS.
+            // Su mobile, evitiamo pause continue durante auto-restart di WebSpeech:
+            // mettiamo in pausa solo se non siamo in un loop di auto-restart.
             if (commit && this.activeTab === 'youtube' && this.youtubeAutoPauseEnabled) {
                 const words = safeText.split(/\s+/).filter(Boolean);
                 const hasSentencePunct = /[.!?…]$/.test(safeText);
                 const longEnough = safeText.length >= 15 || words.length >= 4;
                 const shouldPauseForSentence = hasSentencePunct || longEnough;
-                if (shouldPauseForSentence) {
+                // Su mobile con WebSpeech, evitiamo pause continue durante auto-restart:
+                // mettiamo in pausa solo se il microfono è ancora attivo (non in auto-restart loop)
+                const isWebSpeechAutoRestarting = this.isMobileLowPower &&
+                    !this.useWhisperEffective &&
+                    !this.useGoogleEffective &&
+                    this.isListening &&
+                    this.autoRestart;
+                if (shouldPauseForSentence && !isWebSpeechAutoRestarting) {
                     this.pauseYoutubeIfNeeded();
                 }
             }

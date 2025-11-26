@@ -108,7 +108,33 @@ export default class GoogleSpeechRecognition {
         this._isRecording = false;
         if (this._recorder && this._recorder.state !== 'inactive') {
             try {
-                this._recorder.stop();
+                // Su mobile, quando siamo in singleSegmentMode, dobbiamo esplicitamente
+                // richiedere i dati prima di stop() per assicurarci che tutti i chunk
+                // siano disponibili nel blob finale. Su mobile il MediaRecorder potrebbe
+                // non emettere automaticamente dataavailable prima di stop().
+                if (this.singleSegmentMode && typeof this._recorder.requestData === 'function') {
+                    console.log('🛑 GoogleSpeechRecognition: stop() in singleSegmentMode, chiamo requestData()');
+                    this._recorder.requestData();
+                    // Aspettiamo un breve momento per dare tempo al MediaRecorder
+                    // di emettere l'evento dataavailable prima di chiamare stop().
+                    // Questo è particolarmente importante su mobile.
+                    setTimeout(() => {
+                        if (this._recorder && this._recorder.state !== 'inactive') {
+                            try {
+                                console.log('🛑 GoogleSpeechRecognition: chiamo stop() dopo requestData()');
+                                this._recorder.stop();
+                            } catch {
+                                // ignora errori di stop
+                            }
+                        }
+                    }, 150);
+                } else {
+                    console.log('🛑 GoogleSpeechRecognition: stop() normale', {
+                        singleSegmentMode: this.singleSegmentMode,
+                        hasRequestData: typeof this._recorder.requestData === 'function',
+                    });
+                    this._recorder.stop();
+                }
             } catch {
                 // ignora errori di stop
             }
@@ -282,8 +308,17 @@ export default class GoogleSpeechRecognition {
 
         this._recorder.ondataavailable = (event) => {
             if (!event.data || event.data.size === 0) {
+                console.log('📦 GoogleSpeechRecognition: dataavailable event vuoto', {
+                    hasData: !!event.data,
+                    dataSize: event.data ? event.data.size : 0,
+                });
                 return;
             }
+            console.log('📦 GoogleSpeechRecognition: dataavailable', {
+                chunkSize: event.data.size,
+                chunksCount: this._chunks ? this._chunks.length + 1 : 1,
+                singleSegmentMode: this.singleSegmentMode,
+            });
             this._chunks.push(event.data);
         };
 
@@ -295,8 +330,24 @@ export default class GoogleSpeechRecognition {
                     ? !!(blob && blob.size > 0)
                     : this._segmentHasVoice;
 
+            console.log('🎤 GoogleSpeechRecognition onstop', {
+                singleSegmentMode: this.singleSegmentMode,
+                blobSize: blob ? blob.size : 0,
+                chunksCount: this._chunks ? this._chunks.length : 0,
+                segmentHasVoice: this._segmentHasVoice,
+                shouldSend,
+                isRecording: this._isRecording,
+            });
+
             if (shouldSend) {
                 this._handleChunk(blob);
+            } else {
+                console.warn('⚠️ GoogleSpeechRecognition: blob vuoto o segmentHasVoice=false, non invio trascrizione', {
+                    singleSegmentMode: this.singleSegmentMode,
+                    blobSize: blob ? blob.size : 0,
+                    segmentHasVoice: this._segmentHasVoice,
+                    chunksCount: this._chunks ? this._chunks.length : 0,
+                });
             }
 
             if (this._isRecording && !this.singleSegmentMode) {
