@@ -40,6 +40,12 @@ export default class WhisperSpeechRecognition {
         this._segmentStartedAt = 0;
         this._lastNonSilentAt = 0;
         this._segmentHasVoice = false;
+
+        // Se true, registriamo un unico segmento e inviamo tutto a Whisper
+        // solo quando viene chiamato stop(). Utile, ad esempio, per la
+        // modalità YouTube dove non vogliamo la segmentazione automatica
+        // in base alle pause.
+        this.singleSegmentMode = false;
     }
 
     async start() {
@@ -213,6 +219,27 @@ export default class WhisperSpeechRecognition {
                 return;
             }
 
+            // Ulteriore filtro anti-rumore: se il testo è molto corto, senza spazi,
+            // e contiene quasi solo punteggiatura / simboli (es. "**Whoosh!!!**"),
+            // lo consideriamo come output spurio e lo scartiamo.
+            if (text.length <= 16) {
+                const hasSpace = /\s/.test(text);
+                const lettersOnly = text.replace(/[^A-Za-zÀ-ÖØ-öø-ÿ]/g, '');
+                const nonLettersOnly = text.replace(/[A-Za-zÀ-ÖØ-öø-ÿ]/g, '');
+
+                const letterRatio = lettersOnly.length / Math.max(text.length, 1);
+
+                if (
+                    !hasSpace &&
+                    // pochissime lettere rispetto ai simboli
+                    letterRatio < 0.4 &&
+                    // oppure presenza evidente di pattern tipo "***!!!"
+                    /[\*\!\?\#\~]{2,}/.test(text)
+                ) {
+                    return;
+                }
+            }
+
             // Emula parzialmente l'oggetto SpeechRecognitionResult
             const result = {
                 0: { transcript: text },
@@ -277,12 +304,19 @@ export default class WhisperSpeechRecognition {
         this._recorder.onstop = () => {
             const blob = this._buildFinalBlob();
 
-            // Invia il segmento solo se c'è stata davvero voce
-            if (this._segmentHasVoice) {
+            // Invia il segmento solo se ha senso:
+            // - in modalità normale: solo se è stata rilevata voce (_segmentHasVoice)
+            // - in singleSegmentMode: basta che il blob non sia vuoto
+            const shouldSend =
+                this.singleSegmentMode
+                    ? !!(blob && blob.size > 0)
+                    : this._segmentHasVoice;
+
+            if (shouldSend) {
                 this._handleChunk(blob);
             }
 
-            if (this._isRecording) {
+            if (this._isRecording && !this.singleSegmentMode) {
                 // Riprendi con un nuovo segmento finché l'utente non ferma il microfono
                 this._startNewSegmentRecorder();
             } else {
@@ -294,8 +328,9 @@ export default class WhisperSpeechRecognition {
 
         this._recorder.start();
 
-        // Avvia un loop che controlla il volume e chiude il segmento quando c'è silenzio
-        if (this._analyser && this._volumeArray) {
+        // Avvia un loop che controlla il volume e chiude il segmento quando c'è silenzio,
+        // ma solo se non siamo in modalità "single segment".
+        if (!this.singleSegmentMode && this._analyser && this._volumeArray) {
             const checkVolume = () => {
                 if (!this._isRecording || !this._analyser || !this._volumeArray) {
                     this._volumeCheckRaf = null;
