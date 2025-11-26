@@ -1,17 +1,19 @@
 /**
- * Wrapper che emula in modo minimale la Web Speech API di Chrome
- * usando Whisper di OpenAI lato backend.
+ * Wrapper che emula la Web Speech API di Chrome
+ * usando Google Cloud Speech-to-Text lato backend.
  *
- * Espone la stessa interfaccia di base:
+ * Interfaccia esposta:
  *  - proprietà: lang, continuous, interimResults, maxAlternatives
  *  - callback: onstart, onresult, onerror, onend
  *  - metodi: start(), stop(), abort()
  *
- * Ogni volta che fermi l'ascolto, invia l'intera registrazione
- * al backend (/api/whisper/transcribe) e genera un unico risultato
- * finale (isFinal=true) con la trascrizione della frase.
+ * Implementazione molto simile a WhisperSpeechRecognition:
+ * registriamo dal microfono via MediaRecorder, segmentiamo con una VAD
+ * semplice e ad ogni segmento inviamo un blob al backend
+ * (/api/google-speech/transcribe). Ogni risposta genera un unico risultato
+ * finale (isFinal=true).
  */
-export default class WhisperSpeechRecognition {
+export default class GoogleSpeechRecognition {
     constructor() {
         this.lang = 'it-IT';
         this.continuous = true;
@@ -30,10 +32,11 @@ export default class WhisperSpeechRecognition {
         this._isRecording = false;
         this._resultIndex = 0;
         this._chunks = [];
+
         // Parametri per segmentare in base al silenzio
-        this._silenceMs = 800; // quanto tempo di silenzio per chiudere il segmento
-        this._maxSegmentMs = 6000; // sicurezza: durata massima di un singolo segmento
-        this._silenceThreshold = 0.02; // soglia RMS approssimativa per considerare "voce"
+        this._silenceMs = 800;
+        this._maxSegmentMs = 6000;
+        this._silenceThreshold = 0.02;
 
         this._audioContext = null;
         this._analyser = null;
@@ -43,10 +46,8 @@ export default class WhisperSpeechRecognition {
         this._lastNonSilentAt = 0;
         this._segmentHasVoice = false;
 
-        // Se true, registriamo un unico segmento e inviamo tutto a Whisper
-        // solo quando viene chiamato stop(). Utile, ad esempio, per la
-        // modalità YouTube dove non vogliamo la segmentazione automatica
-        // in base alle pause.
+        // Per ora manteniamo la stessa semantica di Whisper:
+        // se true, registriamo un unico segmento e inviamo tutto solo su stop().
         this.singleSegmentMode = false;
     }
 
@@ -63,8 +64,8 @@ export default class WhisperSpeechRecognition {
             }
 
             this._mediaStream = await navigator.mediaDevices.getUserMedia({
-                // Niente filtri di "pulizia" (echoCancellation / noiseSuppression / autoGainControl):
-                // vogliamo l'audio più grezzo possibile, sia per voce diretta che per audio dalle casse.
+                // Niente filtri di pulizia anche qui: trattiamo voce diretta e audio casse
+                // allo stesso modo, lasciando a Gemini/Whisper il compito di gestire il rumore.
                 audio: {
                     echoCancellation: false,
                     noiseSuppression: false,
@@ -80,7 +81,6 @@ export default class WhisperSpeechRecognition {
                 return;
             }
 
-            // Inizializza l'AudioContext per fare una VAD semplice (rilevazione silenzio)
             if (!this._audioContext && (window.AudioContext || window.webkitAudioContext)) {
                 const AC = window.AudioContext || window.webkitAudioContext;
                 this._audioContext = new AC();
@@ -92,8 +92,6 @@ export default class WhisperSpeechRecognition {
             }
 
             this._isRecording = true;
-
-            // Avvia il primo segmento di registrazione
             this._startNewSegmentRecorder();
 
             if (typeof this.onstart === 'function') {
@@ -159,7 +157,7 @@ export default class WhisperSpeechRecognition {
             try {
                 this.onerror({ error, message });
             } catch {
-                // ignore errors in user handlers
+                // ignore
             }
         }
     }
@@ -175,31 +173,26 @@ export default class WhisperSpeechRecognition {
     }
 
     async _handleChunk(blob) {
-        // Inviamo il segmento come singolo file a Whisper
-        // e produciamo un risultato "finale" (isFinal=true).
         try {
             if (!blob || blob.size === 0) {
                 return;
             }
 
             const formData = new FormData();
-
-            // Nome file con estensione .webm per aiutare Whisper nel riconoscere il formato
             formData.append('audio', blob, 'audio.webm');
 
-            // Passiamo la lingua BCP-47; il backend ridurrà a codice ISO-639-1
             if (this.lang) {
                 formData.append('lang', this.lang);
             }
 
             const origin = window.__NEURON_TRANSLATOR_ORIGIN__ || window.location.origin;
-            const resp = await fetch(`${origin}/api/whisper/transcribe`, {
+            const resp = await fetch(`${origin}/api/gemini-speech/transcribe`, {
                 method: 'POST',
                 body: formData,
             });
 
             if (!resp.ok) {
-                this._emitError('whisper_http_error', `Errore HTTP Whisper: ${resp.status}`);
+                this._emitError('google_speech_http_error', `Errore HTTP Google Speech: ${resp.status}`);
                 return;
             }
 
@@ -211,7 +204,7 @@ export default class WhisperSpeechRecognition {
 
             const lower = text.toLowerCase();
 
-            // Filtra output chiaramente spurio o generato su rumore
+            // Ricicliamo gli stessi filtri anti-rumore usati per Whisper
             if (
                 text.length < 4 ||
                 lower.includes('amara.org') ||
@@ -222,28 +215,20 @@ export default class WhisperSpeechRecognition {
                 return;
             }
 
-            // Ulteriore filtro anti-rumore: se il testo è molto corto, senza spazi,
-            // e contiene quasi solo punteggiatura / simboli (es. "**Whoosh!!!**"),
-            // lo consideriamo come output spurio e lo scartiamo.
             if (text.length <= 16) {
                 const hasSpace = /\s/.test(text);
                 const lettersOnly = text.replace(/[^A-Za-zÀ-ÖØ-öø-ÿ]/g, '');
-                const nonLettersOnly = text.replace(/[A-Za-zÀ-ÖØ-öø-ÿ]/g, '');
-
                 const letterRatio = lettersOnly.length / Math.max(text.length, 1);
 
                 if (
                     !hasSpace &&
-                    // pochissime lettere rispetto ai simboli
                     letterRatio < 0.4 &&
-                    // oppure presenza evidente di pattern tipo "***!!!"
                     /[\*\!\?\#\~]{2,}/.test(text)
                 ) {
                     return;
                 }
             }
 
-            // Emula parzialmente l'oggetto SpeechRecognitionResult
             const result = {
                 0: { transcript: text },
                 length: 1,
@@ -254,7 +239,6 @@ export default class WhisperSpeechRecognition {
             };
 
             const event = {
-                // Sempre 0: LiveTranslator scorre da resultIndex a results.length
                 resultIndex: 0,
                 results: [result],
             };
@@ -263,7 +247,7 @@ export default class WhisperSpeechRecognition {
                 this.onresult(event);
             }
         } catch (e) {
-            this._emitError(e.name || 'whisper_error', e.message || 'Errore chiamata Whisper');
+            this._emitError(e.name || 'google_speech_error', e.message || 'Errore chiamata Google Speech');
         }
     }
 
@@ -272,7 +256,6 @@ export default class WhisperSpeechRecognition {
             return new Blob();
         }
 
-        // Proviamo a preservare il tipo del primo chunk, altrimenti default webm
         const first = this._chunks[0];
         const type = first && first.type ? first.type : 'audio/webm';
         return new Blob(this._chunks, { type });
@@ -307,9 +290,6 @@ export default class WhisperSpeechRecognition {
         this._recorder.onstop = () => {
             const blob = this._buildFinalBlob();
 
-            // Invia il segmento solo se ha senso:
-            // - in modalità normale: solo se è stata rilevata voce (_segmentHasVoice)
-            // - in singleSegmentMode: basta che il blob non sia vuoto
             const shouldSend =
                 this.singleSegmentMode
                     ? !!(blob && blob.size > 0)
@@ -320,10 +300,8 @@ export default class WhisperSpeechRecognition {
             }
 
             if (this._isRecording && !this.singleSegmentMode) {
-                // Riprendi con un nuovo segmento finché l'utente non ferma il microfono
                 this._startNewSegmentRecorder();
             } else {
-                // Fermato dall'utente: chiudi completamente lo stream
                 this._stopStream();
                 this._emitEnd();
             }
@@ -331,8 +309,6 @@ export default class WhisperSpeechRecognition {
 
         this._recorder.start();
 
-        // Avvia un loop che controlla il volume e chiude il segmento quando c'è silenzio,
-        // ma solo se non siamo in modalità "single segment".
         if (!this.singleSegmentMode && this._analyser && this._volumeArray) {
             const checkVolume = () => {
                 if (!this._isRecording || !this._analyser || !this._volumeArray) {

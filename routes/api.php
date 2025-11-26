@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\CalzaturieroController;
 use App\Http\Controllers\Api\ChatbotController;
 use App\Http\Controllers\Api\ChatTranscriptController;
+use App\Http\Controllers\Api\GoogleSpeechTranscriptionController;
 use App\Http\Controllers\Api\InterviewMindMapController;
 use App\Http\Controllers\Api\InterviewSuggestionController;
 use App\Http\Controllers\Api\NeuronTranslatorStreamController;
@@ -148,6 +149,7 @@ Route::post('/chatbot/interview-suggestion', [InterviewSuggestionController::cla
 Route::post('/chatbot/interview-mindmap', [InterviewMindMapController::class, 'generate']);
 Route::post('/tts', [TtsController::class, 'synthesize']);
 Route::post('/whisper/transcribe', [WhisperTranscriptionController::class, 'transcribe']);
+Route::post('/google-speech/transcribe', [GoogleSpeechTranscriptionController::class, 'transcribe']);
 Route::post('/chatbot/email-transcript', [ChatTranscriptController::class, 'emailTranscript']);
 Route::get('/chatbot/history', [ChatTranscriptController::class, 'history']);
 

@@ -9,6 +9,7 @@ grumphp:
             triggered_by: ['php', 'phtml', 'php3', 'php4', 'php5']
         composer:
             file: ./composer.json
+            no_check_lock: true
         phpstan:
             autoload_file: ~
             configuration: ./phpstan.neon.dist

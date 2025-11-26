@@ -18,7 +18,9 @@
         "drewm/mailchimp-api": "^2.5",
         "filament/filament": "^3.2",
         "filament/forms": "^3.2",
+        "google/cloud-speech": "^2.2",
         "guzzlehttp/guzzle": "^7.2",
+        "hosseinhezami/laravel-gemini": "^1.0",
         "intervention/image": "^2.7",
         "invaders-xx/filament-jsoneditor": "^5.0",
         "label305/docx-extractor": "^0.2.3",
@@ -68,6 +70,7 @@
     "autoload": {
         "psr-4": {
             "App\\": "app/",
+            "Modules\\": "src/Modules/",
             "Database\\Factories\\": "database/factories/",
             "Database\\Seeders\\": "database/seeders/"
         }

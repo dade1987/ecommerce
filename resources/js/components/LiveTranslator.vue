@@ -14,7 +14,7 @@
             <!-- Tabs -->
             <div class="mb-6 border-b border-slate-700 pb-2">
                 <div class="text-[11px] uppercase tracking-[0.2em] text-slate-400 mb-2">
-                    Modalità
+                    {{ ui.modeLabel }}
                 </div>
                 <div class="inline-flex rounded-xl bg-slate-900/70 p-1 shadow-inner shadow-black/40 text-sm">
                     <button type="button"
@@ -31,10 +31,10 @@
                         </span>
                         <span class="flex flex-col items-start leading-tight">
                             <span class="text-[11px] uppercase tracking-wide">
-                                Interprete &amp; CV
+                                {{ ui.tabCallTitle }}
                             </span>
                             <span class="hidden md:inline text-[11px] text-slate-400">
-                                Call di lavoro in tempo reale
+                                {{ ui.tabCallSubtitle }}
                             </span>
                         </span>
                     </button>
@@ -53,10 +53,10 @@
                         </span>
                         <span class="flex flex-col items-start leading-tight">
                             <span class="text-[11px] uppercase tracking-wide">
-                                YouTube Interprete
+                                {{ ui.tabYoutubeTitle }}
                             </span>
                             <span class="hidden md:inline text-[11px] text-slate-400">
-                                Video + traduzione frase per frase
+                                {{ ui.tabYoutubeSubtitle }}
                             </span>
                         </span>
                     </button>
@@ -95,17 +95,24 @@
                 <div class="flex flex-col items-center gap-1 text-slate-300">
                     <div class="flex items-center justify-center gap-2 text-[13px]">
                         <input id="useWhisper" type="checkbox" v-model="useWhisperCall"
-                            @change="onRecognitionModeChange('call')" :disabled="!isChromeWithWebSpeech"
-                            class="h-3.5 w-3.5 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500 disabled:opacity-60 disabled:cursor-not-allowed" />
+                            @change="onRecognitionModeChange('call')"
+                            class="h-3.5 w-3.5 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
                         <label for="useWhisper" class="cursor-pointer select-none">
                             {{ ui.whisperLabel }}
-                            <span v-if="!isChromeWithWebSpeech" class="ml-1 text-[11px] text-emerald-300">
-                                ({{ ui.whisperForcedNote }})
-                            </span>
                         </label>
                     </div>
 
-                    <div v-if="useWhisperCall"
+                    <div class="flex items-center justify-center gap-2 text-[13px] mt-1">
+                        <input id="useGoogleCall" type="checkbox" v-model="useGoogleCall"
+                            @change="onGoogleRecognitionModeChange('call')"
+                            class="h-3.5 w-3.5 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
+                        <label for="useGoogleCall" class="cursor-pointer select-none">
+                            {{ ui.googleCloudLabel }}
+                        </label>
+                    </div>
+
+                    <!-- Checkbox: rilevamento automatico pause / invia solo su stop (Whisper + Gemini) -->
+                    <div v-if="useWhisperCall || useGoogleCall"
                         class="flex items-center justify-center gap-2 text-[11px] text-slate-300">
                         <input id="whisperSingleSegmentCall" type="checkbox" v-model="whisperSendOnStopOnlyCall"
                             class="h-3 w-3 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
@@ -217,7 +224,7 @@
                             <div ref="translationBox"
                                 class="h-[100px] md:min-h-[260px] md:max-h-[420px] rounded-xl border border-slate-700 bg-slate-900/60 p-4 text-sm md:text-base lg:text-lg overflow-y-auto leading-relaxed">
                                 <div v-if="!hasAnyTranslation" class="text-slate-500 text-xs md:text-sm">
-                                    La traduzione apparirà qui man mano che parli.
+                                    {{ ui.translationPlaceholder }}
                                 </div>
                                 <div v-else class="space-y-2">
                                     <!-- Frasi già tradotte (segmenti fissi) -->
@@ -375,16 +382,22 @@
                 <div class="flex flex-col items-center gap-1 text-slate-300">
                     <div class="flex items-center justify-center gap-2 text-[13px]">
                         <input id="useWhisperYoutube" type="checkbox" v-model="useWhisperYoutube"
-                            @change="onRecognitionModeChange('youtube')" :disabled="!isChromeWithWebSpeech"
-                            class="h-3.5 w-3.5 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500 disabled:opacity-60 disabled:cursor-not-allowed" />
+                            @change="onRecognitionModeChange('youtube')"
+                            class="h-3.5 w-3.5 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
                         <label for="useWhisperYoutube" class="cursor-pointer select-none">
                             {{ ui.whisperLabel }}
-                            <span v-if="!isChromeWithWebSpeech" class="ml-1 text-[11px] text-emerald-300">
-                                ({{ ui.whisperForcedNote }})
-                            </span>
                         </label>
                     </div>
-                    <div v-if="useWhisperYoutube"
+                    <div class="flex items-center justify-center gap-2 text-[13px] mt-1">
+                        <input id="useGoogleYoutube" type="checkbox" v-model="useGoogleYoutube"
+                            @change="onGoogleRecognitionModeChange('youtube')"
+                            class="h-3.5 w-3.5 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
+                        <label for="useGoogleYoutube" class="cursor-pointer select-none">
+                            {{ ui.googleCloudLabel }}
+                        </label>
+                    </div>
+                    <!-- Checkbox: rilevamento automatico pause / invia solo su stop (Whisper + Gemini) -->
+                    <div v-if="useWhisperYoutube || useGoogleYoutube"
                         class="flex items-center justify-center gap-2 text-[11px] text-slate-300">
                         <input id="whisperSingleSegment" type="checkbox" v-model="whisperSendOnStopOnlyYoutube"
                             class="h-3 w-3 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
@@ -459,12 +472,11 @@
                                 </span>
                             </button>
                             <p class="text-[11px] text-slate-400">
-                                Questo pulsante accende e spegne il microfono. Quando è attivo, ascolto l'audio che
-                                entra dal microfono (per esempio il video dalle casse) in
-                                <span class="font-semibold">{{ getLangLabel(youtubeLangSource) }}</span> e traduco in
-                                <span class="font-semibold">{{ getLangLabel(youtubeLangTarget) }}</span>. Per un
-                                risultato
-                                ottimale usa le <span class="font-semibold">casse</span> e non solo le cuffie chiuse.
+                                {{ ui.youtubeMicHelp }}
+                                <span class="font-semibold">{{ getLangLabel(youtubeLangSource) }}</span>
+                                {{ ui.youtubeMicHelpPart2 }}
+                                <span class="font-semibold">{{ getLangLabel(youtubeLangTarget) }}</span>.
+                                {{ ui.youtubeMicHelpPart3 }}
                             </p>
                             <div class="space-y-1">
                                 <label
@@ -494,8 +506,7 @@
                         <div
                             class="aspect-video w-full rounded-xl border border-slate-700 bg-black overflow-hidden flex items-center justify-center">
                             <div v-if="!youtubeVideoId" class="text-xs text-slate-400 px-4 text-center">
-                                Incolla un URL di YouTube e seleziona le lingue a sinistra:
-                                il player si carica automaticamente.
+                                {{ ui.youtubePlayerPlaceholder }}
                             </div>
                             <div v-else ref="youtubePlayer" class="w-full h-full"></div>
                         </div>
@@ -505,13 +516,13 @@
                             <div class="flex flex-col gap-2">
                                 <div class="flex items-center justify-between">
                                     <span class="text-sm md:text-base font-semibold text-slate-100">
-                                        Testo riconosciuto dal microfono
+                                        {{ ui.youtubeOriginalTitle }}
                                     </span>
                                 </div>
                                 <div ref="originalBox"
                                     class="h-[120px] md:h-[200px] rounded-xl border border-slate-700 bg-slate-900/60 p-3 text-xs md:text-sm overflow-y-auto leading-relaxed">
                                     <p v-if="!displayOriginalText" class="text-slate-500 text-xs md:text-sm">
-                                        Inizia a parlare sopra il video per vedere qui le frasi riconosciute.
+                                        {{ ui.youtubeOriginalPlaceholder }}
                                     </p>
                                     <p v-else class="whitespace-pre-wrap">
                                         {{ displayOriginalText }}
@@ -521,7 +532,7 @@
                             <div class="flex flex-col gap-2">
                                 <div class="flex items-center justify-between">
                                     <span class="text-sm md:text-base font-semibold text-slate-100">
-                                        Traduzione in tempo reale
+                                        {{ ui.youtubeTranslationTitle }}
                                     </span>
                                     <span v-if="isTtsLoading"
                                         class="text-[10px] md:text-[11px] text-emerald-300 italic ml-2">
@@ -531,8 +542,7 @@
                                 <div ref="translationBox"
                                     class="h-[120px] md:h-[200px] rounded-xl border border-slate-700 bg-slate-900/60 p-3 text-xs md:text-sm overflow-y-auto leading-relaxed">
                                     <div v-if="!hasAnyTranslation" class="text-slate-500 text-xs md:text-sm">
-                                        Le traduzioni delle frasi parlate appariranno qui, mentre il video si mette in
-                                        pausa durante il doppiaggio.
+                                        {{ ui.youtubeTranslationPlaceholder }}
                                     </div>
                                     <div v-else class="space-y-2">
                                         <div v-for="(seg, idx) in translationSegments" :key="'yt-seg-' + idx"
@@ -586,6 +596,7 @@
 
 <script>
 import WhisperSpeechRecognition from '../utils/WhisperSpeechRecognition';
+import GoogleSpeechRecognition from '../utils/GoogleSpeechRecognition';
 import { Network } from 'vis-network/standalone';
 import 'vis-network/styles/vis-network.css';
 
@@ -643,6 +654,11 @@ export default {
             useWhisperCall: false,
             useWhisperYoutube: false,
 
+            // Modalità Google/Gemini per tab: indipendenti
+            // Il default effettivo viene deciso da detectEnvAndDefaultMode()
+            useGoogleCall: false,
+            useGoogleYoutube: false,
+
             // Modalità "invia audio solo quando spengo il microfono" per Whisper, per tab
             whisperSendOnStopOnlyCall: true,
             whisperSendOnStopOnlyYoutube: true,
@@ -676,6 +692,7 @@ export default {
             youtubePlayer: null,
             youtubeLangSource: '',
             youtubeLangTarget: '',
+            lastYoutubeFinalForManualStop: '',
             isYoutubePlayerReady: false,
             youtubeAutoResumeEnabled: true,
             youtubeAutoPauseEnabled: true,
@@ -724,13 +741,14 @@ export default {
             const lang = (this.uiLocale || 'it').toLowerCase();
             const dict = {
                 it: {
-                    title: 'PolyGlide - Traduttore Istantaneo',
+                    title: 'PolyGlide – l\'interprete virtuale che ti fa parlare con chiunque',
                     subtitle: 'Parla in qualsiasi lingua: vedrai il testo originale e la traduzione live.',
                     langALabel: 'Lingua A',
                     langBLabel: 'Lingua B',
                     whisperLabel: 'Usa Whisper (OpenAI) invece del riconoscimento vocale del browser',
-                    whisperForcedNote: 'forzato: non sei su Chrome',
-                    whisperSingleSegmentLabel: 'Con Whisper invia l’audio solo quando spengo il microfono (meno chiamate, frasi più complete)',
+                    whisperForcedNote: '',
+                    whisperSingleSegmentLabel: 'Invia l’audio solo quando spengo il microfono (meno chiamate, frasi più complete)',
+                    googleCloudLabel: 'Usa Gemini (compatibile con tutti i browser)',
                     dubbingLabel: 'Leggi la traduzione (doppiaggio)',
                     originalTitle: 'Testo originale',
                     originalSubtitle: 'Riconosciuto dal microfono',
@@ -792,15 +810,30 @@ export default {
                     debugCopiedMessage: 'log copiati negli appunti',
                     debugClipboardUnavailableMessage: 'clipboard non disponibile, seleziona il testo manualmente',
                     debugCopyErrorMessage: 'errore copia, seleziona il testo manualmente',
+                    modeLabel: 'Modalità',
+                    tabCallTitle: 'Interprete & CV',
+                    tabCallSubtitle: 'Call di lavoro in tempo reale',
+                    tabYoutubeTitle: 'YouTube Interprete',
+                    tabYoutubeSubtitle: 'Video + traduzione frase per frase',
+                    translationPlaceholder: 'La traduzione apparirà qui man mano che parli.',
+                    youtubeMicHelp: 'Questo pulsante accende e spegne il microfono. Quando è attivo, ascolto l\'audio che entra dal microfono (per esempio il video dalle casse) in',
+                    youtubeMicHelpPart2: 'e traduco in',
+                    youtubeMicHelpPart3: 'Per un risultato ottimale usa le casse e non solo le cuffie chiuse.',
+                    youtubePlayerPlaceholder: 'Incolla un URL di YouTube e seleziona le lingue a sinistra: il player si carica automaticamente.',
+                    youtubeOriginalTitle: 'Testo riconosciuto dal microfono',
+                    youtubeOriginalPlaceholder: 'Inizia a parlare sopra il video per vedere qui le frasi riconosciute.',
+                    youtubeTranslationTitle: 'Traduzione in tempo reale',
+                    youtubeTranslationPlaceholder: 'Le traduzioni delle frasi parlate appariranno qui, mentre il video si mette in pausa durante il doppiaggio.',
                 },
                 en: {
-                    title: 'PolyGlide - Instant Translator',
+                    title: 'PolyGlide – the virtual interpreter that lets you talk to anyone',
                     subtitle: 'Speak in any language: you will see the original text and the live translation.',
                     langALabel: 'Language A',
                     langBLabel: 'Language B',
                     whisperLabel: 'Use Whisper (OpenAI) instead of the browser speech recognition',
-                    whisperForcedNote: 'forced: you are not on Chrome',
-                    whisperSingleSegmentLabel: 'With Whisper send audio only when I stop the microphone (fewer calls, more complete sentences)',
+                    whisperForcedNote: '',
+                    whisperSingleSegmentLabel: 'Send audio only when I stop the microphone (fewer calls, more complete sentences)',
+                    googleCloudLabel: 'Use Gemini (compatible with all browsers)',
                     dubbingLabel: 'Read the translation aloud (dubbing)',
                     originalTitle: 'Original text',
                     originalSubtitle: 'Recognised from microphone',
@@ -862,9 +895,23 @@ export default {
                     debugCopiedMessage: 'logs copied to clipboard',
                     debugClipboardUnavailableMessage: 'clipboard unavailable, select the text manually',
                     debugCopyErrorMessage: 'copy error, select the text manually',
+                    modeLabel: 'Mode',
+                    tabCallTitle: 'Interpreter & CV',
+                    tabCallSubtitle: 'Real-time work call',
+                    tabYoutubeTitle: 'YouTube Interpreter',
+                    tabYoutubeSubtitle: 'Video + phrase-by-phrase translation',
+                    translationPlaceholder: 'The translation will appear here as you speak.',
+                    youtubeMicHelp: 'This button turns the microphone on and off. When active, I listen to the audio entering the microphone (for example the video from speakers) in',
+                    youtubeMicHelpPart2: 'and translate to',
+                    youtubeMicHelpPart3: 'For optimal results use speakers and not just closed headphones.',
+                    youtubePlayerPlaceholder: 'Paste a YouTube URL and select the languages on the left: the player loads automatically.',
+                    youtubeOriginalTitle: 'Text recognized from microphone',
+                    youtubeOriginalPlaceholder: 'Start speaking over the video to see recognized phrases here.',
+                    youtubeTranslationTitle: 'Real-time translation',
+                    youtubeTranslationPlaceholder: 'Translations of spoken phrases will appear here, while the video pauses during dubbing.',
                 },
                 es: {
-                    title: 'PolyGlide - Traductor instantáneo',
+                    title: 'PolyGlide – el intérprete virtual que te permite hablar con cualquiera',
                     subtitle: 'Habla en cualquier idioma: verás el texto original y la traducción en directo.',
                     langALabel: 'Idioma A',
                     langBLabel: 'Idioma B',
@@ -888,9 +935,23 @@ export default {
                     mindMapEmpty: 'El mapa mental estará disponible después de algunos intercambios de sugerencias.',
                     ttsBusyMessage: 'Estoy leyendo la traducción, espera a que termine antes de volver a hablar.',
                     ttsLoadingMessage: 'Cargando traducción...',
+                    modeLabel: 'Modo',
+                    tabCallTitle: 'Intérprete y CV',
+                    tabCallSubtitle: 'Llamada de trabajo en tiempo real',
+                    tabYoutubeTitle: 'Intérprete de YouTube',
+                    tabYoutubeSubtitle: 'Video + traducción frase por frase',
+                    translationPlaceholder: 'La traducción aparecerá aquí mientras hablas.',
+                    youtubeMicHelp: 'Este botón enciende y apaga el micrófono. Cuando está activo, escucho el audio que entra por el micrófono (por ejemplo el video desde los altavoces) en',
+                    youtubeMicHelpPart2: 'y traduzco a',
+                    youtubeMicHelpPart3: 'Para un resultado óptimo usa los altavoces y no solo los auriculares cerrados.',
+                    youtubePlayerPlaceholder: 'Pega una URL de YouTube y selecciona los idiomas a la izquierda: el reproductor se carga automáticamente.',
+                    youtubeOriginalTitle: 'Texto reconocido del micrófono',
+                    youtubeOriginalPlaceholder: 'Comienza a hablar sobre el video para ver aquí las frases reconocidas.',
+                    youtubeTranslationTitle: 'Traducción en tiempo real',
+                    youtubeTranslationPlaceholder: 'Las traducciones de las frases habladas aparecerán aquí, mientras el video se pone en pausa durante el doblaje.',
                 },
                 fr: {
-                    title: 'PolyGlide - Traducteur instantané',
+                    title: 'PolyGlide – l\'interprète virtuel qui te permet de parler à n\'importe qui',
                     subtitle: 'Parle dans n’importe quelle langue : tu verras le texte original et la traduction en direct.',
                     langALabel: 'Langue A',
                     langBLabel: 'Langue B',
@@ -912,11 +973,25 @@ export default {
                     mindMapButton: 'Afficher la carte mentale',
                     mindMapHideButton: 'Masquer la carte mentale',
                     mindMapEmpty: 'La carte mentale sera disponible après quelques échanges de suggestions.',
-                    ttsBusyMessage: 'Je lis la traduction, attends qu’elle soit terminée avant de reparler.',
+                    ttsBusyMessage: 'Je lis la traduction, attends qu\'elle soit terminée avant de reparler.',
                     ttsLoadingMessage: 'Chargement de la traduction...',
+                    modeLabel: 'Mode',
+                    tabCallTitle: 'Interprète et CV',
+                    tabCallSubtitle: 'Appel de travail en temps réel',
+                    tabYoutubeTitle: 'Interprète YouTube',
+                    tabYoutubeSubtitle: 'Vidéo + traduction phrase par phrase',
+                    translationPlaceholder: 'La traduction apparaîtra ici au fur et à mesure que tu parles.',
+                    youtubeMicHelp: 'Ce bouton allume et éteint le microphone. Quand il est actif, j\'écoute l\'audio qui entre dans le microphone (par exemple la vidéo depuis les haut-parleurs) en',
+                    youtubeMicHelpPart2: 'et je traduis en',
+                    youtubeMicHelpPart3: 'Pour un résultat optimal, utilise les haut-parleurs et pas seulement les écouteurs fermés.',
+                    youtubePlayerPlaceholder: 'Colle une URL YouTube et sélectionne les langues à gauche : le lecteur se charge automatiquement.',
+                    youtubeOriginalTitle: 'Texte reconnu par le microphone',
+                    youtubeOriginalPlaceholder: 'Commence à parler au-dessus de la vidéo pour voir ici les phrases reconnues.',
+                    youtubeTranslationTitle: 'Traduction en temps réel',
+                    youtubeTranslationPlaceholder: 'Les traductions des phrases parlées apparaîtront ici, pendant que la vidéo se met en pause pendant le doublage.',
                 },
                 de: {
-                    title: 'PolyGlide - Sofortübersetzer',
+                    title: 'PolyGlide – der virtuelle Dolmetscher, der dich mit jedem sprechen lässt',
                     subtitle: 'Sprich in jeder Sprache: Du siehst den Originaltext und die Live-Übersetzung.',
                     langALabel: 'Sprache A',
                     langBLabel: 'Sprache B',
@@ -940,9 +1015,23 @@ export default {
                     mindMapEmpty: 'Die Mindmap ist nach einigen Suggestionen verfügbar.',
                     ttsBusyMessage: 'Ich lese die Übersetzung, bitte warte, bis ich fertig bin, bevor du weitersprichst.',
                     ttsLoadingMessage: 'Übersetzung wird geladen...',
+                    modeLabel: 'Modus',
+                    tabCallTitle: 'Dolmetscher & Lebenslauf',
+                    tabCallSubtitle: 'Arbeitsgespräch in Echtzeit',
+                    tabYoutubeTitle: 'YouTube Dolmetscher',
+                    tabYoutubeSubtitle: 'Video + Satz-für-Satz-Übersetzung',
+                    translationPlaceholder: 'Die Übersetzung erscheint hier, während du sprichst.',
+                    youtubeMicHelp: 'Diese Schaltfläche schaltet das Mikrofon ein und aus. Wenn es aktiv ist, höre ich das Audio, das in das Mikrofon eintritt (z. B. das Video von den Lautsprechern) in',
+                    youtubeMicHelpPart2: 'und übersetze in',
+                    youtubeMicHelpPart3: 'Für optimale Ergebnisse verwende Lautsprecher und nicht nur geschlossene Kopfhörer.',
+                    youtubePlayerPlaceholder: 'Füge eine YouTube-URL ein und wähle die Sprachen links aus: Der Player lädt sich automatisch.',
+                    youtubeOriginalTitle: 'Vom Mikrofon erkanntes Text',
+                    youtubeOriginalPlaceholder: 'Beginne über das Video zu sprechen, um hier die erkannten Sätze zu sehen.',
+                    youtubeTranslationTitle: 'Echtzeitübersetzung',
+                    youtubeTranslationPlaceholder: 'Die Übersetzungen der gesprochenen Sätze erscheinen hier, während das Video während der Synchronisation pausiert wird.',
                 },
                 pt: {
-                    title: 'PolyGlide - Tradutor instantâneo',
+                    title: 'PolyGlide – o intérprete virtual que te permite falar com qualquer pessoa',
                     subtitle: 'Fala em qualquer idioma: vais ver o texto original e a tradução em tempo real.',
                     langALabel: 'Idioma A',
                     langBLabel: 'Idioma B',
@@ -964,7 +1053,7 @@ export default {
                     ttsLoadingMessage: 'A carregar a tradução...',
                 },
                 nl: {
-                    title: 'PolyGlide - Directe vertaler',
+                    title: 'PolyGlide – de virtuele tolk die je met iedereen laat praten',
                     subtitle: 'Spreek in elke taal: je ziet de originele tekst en de livevertaling.',
                     langALabel: 'Taal A',
                     langBLabel: 'Taal B',
@@ -980,7 +1069,7 @@ export default {
                     ttsLoadingMessage: 'Vertaling wordt geladen...',
                 },
                 sv: {
-                    title: 'PolyGlide - Omedelbar översättare',
+                    title: 'PolyGlide – den virtuella tolken som låter dig prata med vem som helst',
                     subtitle: 'Tala på vilket språk du vill: du ser originaltexten och översättningen i realtid.',
                     langALabel: 'Språk A',
                     langBLabel: 'Språk B',
@@ -996,7 +1085,7 @@ export default {
                     ttsLoadingMessage: 'Laddar översättning...',
                 },
                 no: {
-                    title: 'PolyGlide - Umiddelbar oversetter',
+                    title: 'PolyGlide – den virtuelle tolken som lar deg snakke med hvem som helst',
                     subtitle: 'Snakk på hvilket som helst språk: du ser originalteksten og oversettelsen i sanntid.',
                     langALabel: 'Språk A',
                     langBLabel: 'Språk B',
@@ -1012,7 +1101,7 @@ export default {
                     ttsLoadingMessage: 'Laster inn oversettelse...',
                 },
                 da: {
-                    title: 'PolyGlide - Instant oversætter',
+                    title: 'PolyGlide – den virtuelle tolk, der lader dig tale med hvem som helst',
                     subtitle: 'Tal på hvilket som helst sprog: du ser originalteksten og live-oversættelsen.',
                     langALabel: 'Sprog A',
                     langBLabel: 'Sprog B',
@@ -1028,7 +1117,7 @@ export default {
                     ttsLoadingMessage: 'Indlæser oversættelse...',
                 },
                 fi: {
-                    title: 'PolyGlide - Välitön kääntäjä',
+                    title: 'PolyGlide – virtuaalinen tulkki, joka antaa sinun puhua kenelle tahansa',
                     subtitle: 'Puhu millä tahansa kielellä: näet alkuperäisen tekstin ja reaaliaikaisen käännöksen.',
                     langALabel: 'Kieli A',
                     langBLabel: 'Kieli B',
@@ -1044,7 +1133,7 @@ export default {
                     ttsLoadingMessage: 'Ladataan käännöstä...',
                 },
                 pl: {
-                    title: 'PolyGlide - Tłumacz natychmiastowy',
+                    title: 'PolyGlide – wirtualny tłumacz, który pozwala rozmawiać z kimkolwiek',
                     subtitle: 'Mów w dowolnym języku: zobaczysz tekst oryginalny i tłumaczenie na żywo.',
                     langALabel: 'Język A',
                     langBLabel: 'Język B',
@@ -1060,7 +1149,7 @@ export default {
                     ttsLoadingMessage: 'Ładowanie tłumaczenia...',
                 },
                 cs: {
-                    title: 'PolyGlide - Okamžitý překladač',
+                    title: 'PolyGlide – virtuální tlumočník, který vám umožní mluvit s kýmkoli',
                     subtitle: 'Mluv jakýmkoliv jazykem: uvidíš původní text a překlad v reálném čase.',
                     langALabel: 'Jazyk A',
                     langBLabel: 'Jazyk B',
@@ -1076,7 +1165,7 @@ export default {
                     ttsLoadingMessage: 'Načítání překladu...',
                 },
                 sk: {
-                    title: 'PolyGlide - Okamžitý prekladač',
+                    title: 'PolyGlide – virtuálny tlmočník, ktorý vám umožní hovoriť s kýmkoľvek',
                     subtitle: 'Hovor v akomkoľvek jazyku: uvidíš pôvodný text a preklad v reálnom čase.',
                     langALabel: 'Jazyk A',
                     langBLabel: 'Jazyk B',
@@ -1092,7 +1181,7 @@ export default {
                     ttsLoadingMessage: 'Načítava sa preklad...',
                 },
                 hu: {
-                    title: 'PolyGlide - Azonnali fordító',
+                    title: 'PolyGlide – a virtuális tolmács, aki bárkivel beszélni enged',
                     subtitle: 'Beszélj bármilyen nyelven: látni fogod az eredeti szöveget és az élő fordítást.',
                     langALabel: 'A nyelv',
                     langBLabel: 'B nyelv',
@@ -1108,7 +1197,7 @@ export default {
                     ttsLoadingMessage: 'Fordítás betöltése...',
                 },
                 ro: {
-                    title: 'PolyGlide - Traducător instant',
+                    title: 'PolyGlide – interpretul virtual care îți permite să vorbești cu oricine',
                     subtitle: 'Vorbește în orice limbă: vei vedea textul original și traducerea în timp real.',
                     langALabel: 'Limba A',
                     langBLabel: 'Limba B',
@@ -1124,7 +1213,7 @@ export default {
                     ttsLoadingMessage: 'Se încarcă traducerea...',
                 },
                 bg: {
-                    title: 'PolyGlide - Моментален преводач',
+                    title: 'PolyGlide – виртуалният преводач, който ти позволява да говориш с всеки',
                     subtitle: 'Говори на всеки език: ще виждаш оригиналния текст и превода в реално време.',
                     langALabel: 'Език A',
                     langBLabel: 'Език B',
@@ -1140,7 +1229,7 @@ export default {
                     ttsLoadingMessage: 'Зареждане на превода...',
                 },
                 el: {
-                    title: 'PolyGlide - Άμεσος μεταφραστής',
+                    title: 'PolyGlide – ο εικονικός διερμηνέας που σου επιτρέπει να μιλάς με οποιονδήποτε',
                     subtitle: 'Μίλησε σε οποιαδήποτε γλώσσα: θα βλέπεις το αρχικό κείμενο και τη ζωντανή μετάφραση.',
                     langALabel: 'Γλώσσα A',
                     langBLabel: 'Γλώσσα B',
@@ -1156,7 +1245,7 @@ export default {
                     ttsLoadingMessage: 'Φόρτωση μετάφρασης...',
                 },
                 uk: {
-                    title: 'PolyGlide - Миттєвий перекладач',
+                    title: 'PolyGlide – віртуальний перекладач, який дозволяє розмовляти з будь-ким',
                     subtitle: 'Говори будь-якою мовою: ти бачитимеш оригінальний текст і переклад у реальному часі.',
                     langALabel: 'Мова A',
                     langBLabel: 'Мова B',
@@ -1172,7 +1261,7 @@ export default {
                     ttsLoadingMessage: 'Завантаження перекладу...',
                 },
                 ru: {
-                    title: 'PolyGlide - Мгновенный переводчик',
+                    title: 'PolyGlide – виртуальный переводчик, который позволяет говорить с кем угодно',
                     subtitle: 'Говори на любом языке: ты увидишь оригинальный текст и перевод в реальном времени.',
                     langALabel: 'Язык A',
                     langBLabel: 'Язык B',
@@ -1188,7 +1277,7 @@ export default {
                     ttsLoadingMessage: 'Загрузка перевода...',
                 },
                 tr: {
-                    title: 'PolyGlide - Anlık çevirmen',
+                    title: 'PolyGlide – herkesle konuşmanı sağlayan sanal çevirmen',
                     subtitle: 'Herhangi bir dilde konuş: orijinal metni ve canlı çeviriyi göreceksin.',
                     langALabel: 'Dil A',
                     langBLabel: 'Dil B',
@@ -1204,7 +1293,7 @@ export default {
                     ttsLoadingMessage: 'Çeviri yükleniyor...',
                 },
                 ar: {
-                    title: 'PolyGlide - مترجم فوري',
+                    title: 'PolyGlide – المترجم الافتراضي الذي يتيح لك التحدث مع أي شخص',
                     subtitle: 'تحدّث بأي لغة: سترى النص الأصلي والترجمة مباشرة.',
                     langALabel: 'اللغة أ',
                     langBLabel: 'اللغة ب',
@@ -1220,7 +1309,7 @@ export default {
                     ttsLoadingMessage: 'جارٍ تحميل الترجمة...',
                 },
                 he: {
-                    title: 'PolyGlide - מתרגם מיידי',
+                    title: 'PolyGlide – המתרגם הווירטואלי שמאפשר לך לדבר עם כל אחד',
                     subtitle: 'דבר בכל שפה: תראה את הטקסט המקורי ואת התרגום בזמן אמת.',
                     langALabel: 'שפה A',
                     langBLabel: 'שפה B',
@@ -1236,7 +1325,7 @@ export default {
                     ttsLoadingMessage: 'טוען תרגום...',
                 },
                 hi: {
-                    title: 'PolyGlide - त्वरित अनुवादक',
+                    title: 'PolyGlide – वर्चुअल दुभाषिया जो आपको किसी से भी बात करने देता है',
                     subtitle: 'किसी भी भाषा में बोलें: आप मूल पाठ और लाइव अनुवाद देखेंगे।',
                     langALabel: 'भाषा A',
                     langBLabel: 'भाषा B',
@@ -1252,7 +1341,7 @@ export default {
                     ttsLoadingMessage: 'अनुवाद लोड हो रहा है...',
                 },
                 zh: {
-                    title: 'PolyGlide - 即时翻译器',
+                    title: 'PolyGlide – 让您与任何人交谈的虚拟口译员',
                     subtitle: '用任何语言说话：你会看到原文和实时翻译。',
                     langALabel: '语言 A',
                     langBLabel: '语言 B',
@@ -1268,7 +1357,7 @@ export default {
                     ttsLoadingMessage: '正在加载翻译…',
                 },
                 ja: {
-                    title: 'PolyGlide - インスタント翻訳',
+                    title: 'PolyGlide – 誰とでも話せるバーチャル通訳',
                     subtitle: 'どんな言語でも話せます。元のテキストとリアルタイム翻訳が表示されます。',
                     langALabel: '言語 A',
                     langBLabel: '言語 B',
@@ -1284,7 +1373,7 @@ export default {
                     ttsLoadingMessage: '翻訳を読み込み中…',
                 },
                 ko: {
-                    title: 'PolyGlide - 즉시 번역기',
+                    title: 'PolyGlide – 누구와도 대화할 수 있게 해주는 가상 통역사',
                     subtitle: '어떤 언어로 말해도 원문과 실시간 번역을 볼 수 있습니다.',
                     langALabel: '언어 A',
                     langBLabel: '언어 B',
@@ -1300,7 +1389,7 @@ export default {
                     ttsLoadingMessage: '번역 불러오는 중…',
                 },
                 id: {
-                    title: 'PolyGlide - Penerjemah instan',
+                    title: 'PolyGlide – penerjemah virtual yang memungkinkan Anda berbicara dengan siapa pun',
                     subtitle: 'Berbicaralah dalam bahasa apa pun: kamu akan melihat teks asli dan terjemahan langsung.',
                     langALabel: 'Bahasa A',
                     langBLabel: 'Bahasa B',
@@ -1316,7 +1405,7 @@ export default {
                     ttsLoadingMessage: 'Memuat terjemahan...',
                 },
                 ms: {
-                    title: 'PolyGlide - Penterjemah segera',
+                    title: 'PolyGlide – penterjemah maya yang membolehkan anda bercakap dengan sesiapa sahaja',
                     subtitle: 'Bercakap dalam apa‑apa bahasa: anda akan melihat teks asal dan terjemahan secara langsung.',
                     langALabel: 'Bahasa A',
                     langBLabel: 'Bahasa B',
@@ -1332,7 +1421,7 @@ export default {
                     ttsLoadingMessage: 'Memuatkan terjemahan...',
                 },
                 th: {
-                    title: 'PolyGlide - ตัวแปลภาษาทันที',
+                    title: 'PolyGlide – ล่ามเสมือนที่ให้คุณพูดคุยกับใครก็ได้',
                     subtitle: 'พูดได้ทุกภาษา: คุณจะเห็นข้อความต้นฉบับและคำแปลแบบเรียลไทม์',
                     langALabel: 'ภาษา A',
                     langBLabel: 'ภาษา B',
@@ -1348,7 +1437,7 @@ export default {
                     ttsLoadingMessage: 'กำลังโหลดคำแปล...',
                 },
                 vi: {
-                    title: 'PolyGlide - Trình dịch tức thì',
+                    title: 'PolyGlide – thông dịch viên ảo cho phép bạn nói chuyện với bất kỳ ai',
                     subtitle: 'Hãy nói bất kỳ ngôn ngữ nào: bạn sẽ thấy văn bản gốc và bản dịch theo thời gian thực.',
                     langALabel: 'Ngôn ngữ A',
                     langBLabel: 'Ngôn ngữ B',
@@ -1372,6 +1461,10 @@ export default {
         // Flag effettivo Whisper in base alla tab attiva
         useWhisperEffective() {
             return this.activeTab === 'youtube' ? this.useWhisperYoutube : this.useWhisperCall;
+        },
+        // Flag effettivo Google Speech in base alla tab attiva
+        useGoogleEffective() {
+            return this.activeTab === 'youtube' ? this.useGoogleYoutube : this.useGoogleCall;
         },
         // Modalità "invia audio solo quando spengo il microfono" effettiva per Whisper
         whisperSendOnStopOnlyEffective() {
@@ -1609,18 +1702,33 @@ export default {
                     uaSnippet: ua.slice(0, 160),
                     isChromeWithWebSpeech: this.isChromeWithWebSpeech,
                 });
-
-                if (!this.isChromeWithWebSpeech) {
-                    // Browser non-Chrome: forza modalità Whisper su entrambe le tab
-                    this.useWhisperCall = true;
-                    this.useWhisperYoutube = true;
+                if (this.isChromeWithWebSpeech) {
+                    // Chrome con WebSpeech disponibile:
+                    //  - default: WebSpeech nativo (nessun motore backend attivo)
+                    //  - autoRestart attivo per mantenere il comportamento "streaming" del browser
+                    this.useGoogleCall = false;
+                    this.useGoogleYoutube = false;
+                    this.useWhisperCall = false;
+                    this.useWhisperYoutube = false;
+                    this.autoRestart = true;
+                    this.statusMessage = this.ui.statusBrowserModeOn;
+                } else {
+                    // Altri browser (senza WebSpeech affidabile):
+                    //  - prima scelta: Gemini (Google)
+                    //  - seconda scelta: Whisper (attivabile manualmente)
+                    this.useGoogleCall = true;
+                    this.useGoogleYoutube = true;
+                    this.useWhisperCall = false;
+                    this.useWhisperYoutube = false;
                     this.autoRestart = false;
-                    this.statusMessage = this.ui.statusWhisperAutoForced;
                 }
             } catch {
                 this.isChromeWithWebSpeech = false;
-                this.useWhisperCall = true;
-                this.useWhisperYoutube = true;
+                // In caso di errore conservativo: usa Gemini come fallback principale.
+                this.useGoogleCall = true;
+                this.useGoogleYoutube = true;
+                this.useWhisperCall = false;
+                this.useWhisperYoutube = false;
                 this.autoRestart = false;
             }
         },
@@ -1629,7 +1737,9 @@ export default {
             try {
                 let RecClass = null;
 
-                if (this.useWhisperEffective) {
+                if (this.useGoogleEffective) {
+                    RecClass = GoogleSpeechRecognition;
+                } else if (this.useWhisperEffective) {
                     RecClass = WhisperSpeechRecognition;
                 } else {
                     RecClass = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -1646,8 +1756,9 @@ export default {
                 const detectedLang = this.currentMicLang || this.detectRecognitionLang();
                 this.recognition.lang = detectedLang;
                 this.recognition.continuous = true;
-                // In modalità Whisper non gestiamo davvero gli interim, arrivano solo final
-                this.recognition.interimResults = !this.useWhisperEffective;
+                // In modalità backend (Whisper / Google) non gestiamo davvero gli interim, arrivano solo final
+                const isBackendEngine = this.useWhisperEffective || this.useGoogleEffective;
+                this.recognition.interimResults = !isBackendEngine;
                 this.recognition.maxAlternatives = 1;
 
                 this.debugLog('WebSpeech init', {
@@ -1747,7 +1858,7 @@ export default {
                     });
 
                     // Niente auto-restart in modalità Whisper per evitare loop strani
-                    if (this.isListening && this.autoRestart && !this.useWhisperEffective) {
+                    if (this.isListening && this.autoRestart && !this.useWhisperEffective && !this.useGoogleEffective) {
                         try {
                             this.recognition.start();
                             console.log('🔄 WebSpeech AUTO-RESTART');
@@ -1872,6 +1983,12 @@ export default {
                                         : phraseWithDash;
                                     this.originalInterim = '';
 
+                                    // In modalità YouTube con rilevamento automatico delle pause disattivato,
+                                    // memorizziamo l'ultima frase finale per tradurla quando l'utente spegne il microfono.
+                                    if (this.activeTab === 'youtube' && !this.youtubeAutoPauseEnabled) {
+                                        this.lastYoutubeFinalForManualStop = clean;
+                                    }
+
                                     // In modalità YouTube, se il rilevamento automatico delle pause
                                     // è disattivato, non traduciamo mentre il microfono è ancora acceso.
                                     // Traduciamo solo quando arriva il final DOPO che l'utente ha spento il mic.
@@ -1922,12 +2039,13 @@ export default {
                 if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
                     return true;
                 }
-
+                // Usiamo i constraint grezzi (senza filtri) per tutti i browser, così il
+                // segnale resta il più possibile fedele sia per voce diretta che per audio dalle casse.
                 const stream = await navigator.mediaDevices.getUserMedia({
                     audio: {
-                        echoCancellation: true,
-                        noiseSuppression: true,
-                        autoGainControl: true,
+                        echoCancellation: false,
+                        noiseSuppression: false,
+                        autoGainControl: false,
                         sampleRate: { ideal: 48000 },
                         channelCount: 1,
                         latency: 0,
@@ -2086,6 +2204,12 @@ export default {
             }
 
             try {
+                // Suggerisci al motore di riconoscimento se stai ascoltando
+                // la voce diretta al microfono o audio proveniente dalle casse (YouTube).
+                if (this.recognition && typeof this.recognition === 'object') {
+                    this.recognition.sourceHint = this.activeTab === 'youtube' ? 'speaker' : 'mic';
+                }
+
                 this.isListening = true;
                 console.log('▶️ toggleListeningForLang: calling recognition.start()', {
                     speaker,
@@ -2093,9 +2217,10 @@ export default {
                     currentMicLang: this.currentMicLang,
                     activeTab: this.activeTab,
                 });
-                if (this.useWhisperEffective && this.recognition && typeof this.recognition === 'object') {
-                    // Se abilitato, con Whisper usiamo un unico segmento:
-                    // inviamo l'audio a Whisper solo quando l'utente spegne il microfono.
+                // Per i motori backend (Whisper + Gemini) rispettiamo la checkbox
+                // "invia audio solo quando spengo il microfono" usando singleSegmentMode
+                const isBackendEngine = this.useWhisperEffective || this.useGoogleEffective;
+                if (isBackendEngine && this.recognition && typeof this.recognition === 'object') {
                     this.recognition.singleSegmentMode = !!this.whisperSendOnStopOnlyEffective;
                 }
                 this.recognition.start();
@@ -2109,6 +2234,26 @@ export default {
         stopListeningInternal() {
             this.isListening = false;
             this.activeSpeaker = null;
+
+            // Modalità YouTube con WebSpeech "puro" e rilevamento automatico delle pause disattivato:
+            // se abbiamo un'ultima frase finale memorizzata, la traduciamo adesso quando l'utente
+            // spegne manualmente il microfono.
+            if (
+                this.activeTab === 'youtube' &&
+                !this.youtubeAutoPauseEnabled &&
+                !this.useWhisperEffective &&
+                !this.useGoogleEffective
+            ) {
+                const pending = (this.lastYoutubeFinalForManualStop || '').trim();
+                if (pending) {
+                    this.startTranslationStream(pending, {
+                        commit: true,
+                        mergeLast: false,
+                    });
+                    this.lastYoutubeFinalForManualStop = '';
+                }
+            }
+
             if (this.recognition) {
                 try {
                     this.recognition.stop();
@@ -2620,14 +2765,6 @@ export default {
         },
 
         onRecognitionModeChange(tab) {
-            if (!this.isChromeWithWebSpeech) {
-                // In browser non supportati non permettiamo il cambio: resta Whisper
-                this.useWhisperCall = true;
-                this.useWhisperYoutube = true;
-                this.autoRestart = false;
-                return;
-            }
-
             // Quando si cambia modalità, fermiamo eventuale ascolto in corso
             if (this.isListening) {
                 this.stopListeningInternal();
@@ -2640,10 +2777,46 @@ export default {
                 // In modalità Whisper evitiamo auto-restart lato componente
                 this.autoRestart = false;
                 this.statusMessage = this.ui.statusWhisperModeOn;
+
+                // Se abiliti Whisper per una tab, spegni l'eventuale Google/Gemini sulla stessa tab
+                if (tab === 'youtube') {
+                    this.useGoogleYoutube = false;
+                } else {
+                    this.useGoogleCall = false;
+                }
             } else {
-                this.autoRestart = true;
-                this.statusMessage = this.ui.statusBrowserModeOn;
+                // Whisper disattivato per questa tab: se sei su Chrome e non hai nessun motore backend
+                // attivo, torniamo a WebSpeech nativo con autoRestart attivo; altrimenti restiamo
+                // in modalità backend (Gemini) senza autoRestart.
+                const hasGoogleForTab = tab === 'youtube' ? this.useGoogleYoutube : this.useGoogleCall;
+
+                if (this.isChromeWithWebSpeech && !hasGoogleForTab) {
+                    this.autoRestart = true;
+                    this.statusMessage = this.ui.statusBrowserModeOn;
+                } else {
+                    this.autoRestart = false;
+                    this.statusMessage = '';
+                }
             }
+        },
+
+        onGoogleRecognitionModeChange(tab) {
+            // Motori mutuamente esclusivi: se abiliti Google, spegni Whisper per la stessa tab.
+            if (tab === 'youtube') {
+                if (this.useGoogleYoutube) {
+                    this.useWhisperYoutube = false;
+                }
+            } else {
+                if (this.useGoogleCall) {
+                    this.useWhisperCall = false;
+                }
+            }
+
+            // Qualsiasi cambio motore: stoppa eventuale ascolto in corso e resetta il recognition
+            if (this.isListening) {
+                this.stopListeningInternal();
+            }
+            this.recognition = null;
         },
 
         // --- Modalità Traduttore Video Youtube ---
