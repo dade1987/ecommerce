@@ -230,27 +230,48 @@ export default class GoogleSpeechRecognition {
 
             const lower = text.toLowerCase();
 
-            // Ricicliamo gli stessi filtri anti-rumore usati per Whisper
+            // Filtri anti-rumore aggressivi: scarta output spurio, titoletti, simboli, ecc.
             if (
-                text.length < 4 ||
+                text.length < 3 ||
+                // Pattern comuni di titoletti/sottotitoli
                 lower.includes('amara.org') ||
                 lower.includes('sottotitoli creati') ||
                 lower.includes('sottotitoli e revisione a cura di qtss') ||
-                (lower.includes('sottotitoli') && lower.includes('qtss'))
+                (lower.includes('sottotitoli') && lower.includes('qtss')) ||
+                lower.includes('subtitle') ||
+                lower.includes('caption') ||
+                // Pattern di simboli/spazzatura
+                /^[\*\!\?\#\~\-\_\.\,\;\:\"\'\(\)\[\]\{\}]+$/.test(text) ||
+                // Solo numeri o simboli
+                /^[\d\s\*\!\?\#\~\-\_\.\,\;\:\"\'\(\)\[\]\{\}]+$/.test(text)
             ) {
+                console.log('🚫 GoogleSpeechRecognition: testo filtrato (pattern comune)', { text });
                 return;
             }
 
-            if (text.length <= 16) {
+            // Filtri per testi corti con molti simboli
+            if (text.length <= 20) {
                 const hasSpace = /\s/.test(text);
                 const lettersOnly = text.replace(/[^A-Za-zÀ-ÖØ-öø-ÿ]/g, '');
                 const letterRatio = lettersOnly.length / Math.max(text.length, 1);
+                const symbolCount = (text.match(/[\*\!\?\#\~\-\_\.\,\;\:\"\'\(\)\[\]\{\}]/g) || []).length;
+                const symbolRatio = symbolCount / Math.max(text.length, 1);
 
+                // Scarta se:
+                // - Non ha spazi E ha pochi caratteri letterali (< 40%) E ha molti simboli (> 30%)
+                // - O ha pattern evidenti di spazzatura (es. "***!!!", "---", ecc.)
                 if (
-                    !hasSpace &&
-                    letterRatio < 0.4 &&
-                    /[\*\!\?\#\~]{2,}/.test(text)
+                    (!hasSpace && letterRatio < 0.4 && symbolRatio > 0.3) ||
+                    /[\*\!\?\#\~]{2,}/.test(text) ||
+                    /^[\-\_\.]{3,}$/.test(text) ||
+                    (symbolRatio > 0.5 && letterRatio < 0.3)
                 ) {
+                    console.log('🚫 GoogleSpeechRecognition: testo filtrato (troppi simboli)', {
+                        text,
+                        letterRatio,
+                        symbolRatio,
+                        hasSpace,
+                    });
                     return;
                 }
             }

@@ -378,22 +378,22 @@
                     </p>
                 </div>
 
-                <!-- Controllo modalità riconoscimento (Whisper / browser) anche per YouTube -->
+                <!-- Controllo modalità riconoscimento (Gemini / Whisper / browser) anche per YouTube -->
                 <div class="flex flex-col items-center gap-1 text-slate-300">
                     <div class="flex items-center justify-center gap-2 text-[13px]">
-                        <input id="useWhisperYoutube" type="checkbox" v-model="useWhisperYoutube"
-                            @change="onRecognitionModeChange('youtube')"
-                            class="h-3.5 w-3.5 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
-                        <label for="useWhisperYoutube" class="cursor-pointer select-none">
-                            {{ ui.whisperLabel }}
-                        </label>
-                    </div>
-                    <div class="flex items-center justify-center gap-2 text-[13px] mt-1">
                         <input id="useGoogleYoutube" type="checkbox" v-model="useGoogleYoutube"
                             @change="onGoogleRecognitionModeChange('youtube')"
                             class="h-3.5 w-3.5 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
                         <label for="useGoogleYoutube" class="cursor-pointer select-none">
                             {{ ui.googleCloudLabel }}
+                        </label>
+                    </div>
+                    <div class="flex items-center justify-center gap-2 text-[13px] mt-1">
+                        <input id="useWhisperYoutube" type="checkbox" v-model="useWhisperYoutube"
+                            @change="onRecognitionModeChange('youtube')"
+                            class="h-3.5 w-3.5 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
+                        <label for="useWhisperYoutube" class="cursor-pointer select-none">
+                            {{ ui.whisperLabel }}
                         </label>
                     </div>
                     <!-- Checkbox: rilevamento automatico pause / invia solo su stop (Whisper + Gemini) -->
@@ -471,13 +471,6 @@
                                     }}
                                 </span>
                             </button>
-                            <p class="text-[11px] text-slate-400">
-                                {{ ui.youtubeMicHelp }}
-                                <span class="font-semibold">{{ getLangLabel(youtubeLangSource) }}</span>
-                                {{ ui.youtubeMicHelpPart2 }}
-                                <span class="font-semibold">{{ getLangLabel(youtubeLangTarget) }}</span>.
-                                {{ ui.youtubeMicHelpPart3 }}
-                            </p>
                             <div class="space-y-1">
                                 <label
                                     class="flex items-start gap-2 text-[11px] text-slate-300 cursor-pointer select-none">
@@ -655,9 +648,9 @@ export default {
             useWhisperYoutube: false,
 
             // Modalità Google/Gemini per tab: indipendenti
-            // Il default effettivo viene deciso da detectEnvAndDefaultMode()
+            // YouTube: Gemini sempre attivo di default
             useGoogleCall: false,
-            useGoogleYoutube: false,
+            useGoogleYoutube: true,
 
             // Modalità "invia audio solo quando spengo il microfono" per Whisper, per tab
             whisperSendOnStopOnlyCall: true,
@@ -695,7 +688,7 @@ export default {
             lastYoutubeFinalForManualStop: '',
             isYoutubePlayerReady: false,
             youtubeAutoResumeEnabled: true,
-            youtubeAutoPauseEnabled: true,
+            youtubeAutoPauseEnabled: false, // Default: disabilitato, l'utente controlla manualmente
 
             availableLanguages: [
                 // Lingue principali europee
@@ -773,14 +766,12 @@ export default {
                     youtubeUrlHelp: 'Incolla qui il link del video che vuoi usare durante la call di lavoro.',
                     youtubeLangSourceLabel: 'Lingua del video',
                     youtubeLangTargetLabel: 'Lingua di traduzione',
-                    youtubeStartButton: 'Avvia modalità interprete sul video',
-                    youtubeExplain: 'Cliccando su "Avvia modalità interprete sul video" carichiamo il video qui a fianco con la lingua scelta sopra. Il sistema ascolta ciò che entra nel microfono (ad esempio l\'audio delle casse del computer): quando riconosce la fine di una frase mette in pausa il video, traduce la frase (e, se attivo, la legge ad alta voce) e infine fa ripartire automaticamente il video per la frase successiva. In qualsiasi momento puoi anche mettere tu in pausa il video per tradurre o rileggere il testo con più calma.',
-                    youtubeMicAActive: 'Interprete attivo: sto ascoltando la tua voce sopra il video',
-                    youtubeMicAHelp: 'Avvia / ferma il microfono per parlare sopra il video (interprete)',
-                    youtubeAutoPauseLabel: 'Rileva in automatico le pause e ferma il video per tradurre',
-                    youtubeAutoPauseHint: 'Se attivo, quando riconosco la fine di una frase metto in pausa il video e mostro la traduzione.',
-                    youtubeAutoResumeLabel: 'Dopo ogni traduzione fai ripartire automaticamente video e microfono',
-                    youtubeAutoResumeHint: 'Se attivo, quando la frase è stata tradotta riaccendo il microfono e faccio ripartire il video per la parte successiva.',
+                    youtubeMicAActive: 'Ferma video',
+                    youtubeMicAHelp: 'Riproduci video',
+                    youtubeAutoPauseLabel: 'Rileva in automatico le pause',
+                    youtubeAutoPauseHint: '',
+                    youtubeAutoResumeLabel: 'Riprendi automaticamente dopo traduzione',
+                    youtubeAutoResumeHint: '',
                     speakerAActive: 'Parlante A attivo',
                     speakerASpeak: 'Parla Lingua A',
                     speakerBActive: 'Parlante B attivo',
@@ -816,9 +807,6 @@ export default {
                     tabYoutubeTitle: 'YouTube Interprete',
                     tabYoutubeSubtitle: 'Video + traduzione frase per frase',
                     translationPlaceholder: 'La traduzione apparirà qui man mano che parli.',
-                    youtubeMicHelp: 'Questo pulsante accende e spegne il microfono. Quando è attivo, ascolto l\'audio che entra dal microfono (per esempio il video dalle casse) in',
-                    youtubeMicHelpPart2: 'e traduco in',
-                    youtubeMicHelpPart3: 'Per un risultato ottimale usa le casse e non solo le cuffie chiuse.',
                     youtubePlayerPlaceholder: 'Incolla un URL di YouTube e seleziona le lingue a sinistra: il player si carica automaticamente.',
                     youtubeOriginalTitle: 'Testo riconosciuto dal microfono',
                     youtubeOriginalPlaceholder: 'Inizia a parlare sopra il video per vedere qui le frasi riconosciute.',
@@ -858,14 +846,12 @@ export default {
                     youtubeUrlHelp: 'Paste here the link of the video you want to use during the work call.',
                     youtubeLangSourceLabel: 'Video language',
                     youtubeLangTargetLabel: 'Translation language',
-                    youtubeStartButton: 'Start interpreter mode on video',
-                    youtubeExplain: 'By clicking "Start interpreter mode on video" we load the video on the side with the language selected above. The system listens to what goes into the microphone (for example the audio from your speakers): when it detects the end of a sentence it pauses the video, translates the sentence (and, if enabled, reads it aloud), and then automatically resumes the video for the next sentence. At any moment you can also pause the video yourself to translate or re-read the text more calmly.',
-                    youtubeMicAActive: 'Interpreter active: I am listening to your voice over the video',
-                    youtubeMicAHelp: 'Start / stop the microphone to speak over the video (interpreter)',
-                    youtubeAutoPauseLabel: 'Automatically detect pauses and stop the video to translate',
-                    youtubeAutoPauseHint: 'If enabled, when I detect the end of a sentence I pause the video and show the translation.',
-                    youtubeAutoResumeLabel: 'After each translation automatically restart video and microphone',
-                    youtubeAutoResumeHint: 'If enabled, once the sentence has been translated I turn the microphone back on and restart the video for the next part.',
+                    youtubeMicAActive: 'Stop video',
+                    youtubeMicAHelp: 'Play video',
+                    youtubeAutoPauseLabel: 'Automatically detect pauses',
+                    youtubeAutoPauseHint: '',
+                    youtubeAutoResumeLabel: 'Auto-resume after translation',
+                    youtubeAutoResumeHint: '',
                     speakerAActive: 'Speaker A active',
                     speakerASpeak: 'Speak Language A',
                     speakerBActive: 'Speaker B active',
@@ -901,9 +887,6 @@ export default {
                     tabYoutubeTitle: 'YouTube Interpreter',
                     tabYoutubeSubtitle: 'Video + phrase-by-phrase translation',
                     translationPlaceholder: 'The translation will appear here as you speak.',
-                    youtubeMicHelp: 'This button turns the microphone on and off. When active, I listen to the audio entering the microphone (for example the video from speakers) in',
-                    youtubeMicHelpPart2: 'and translate to',
-                    youtubeMicHelpPart3: 'For optimal results use speakers and not just closed headphones.',
                     youtubePlayerPlaceholder: 'Paste a YouTube URL and select the languages on the left: the player loads automatically.',
                     youtubeOriginalTitle: 'Text recognized from microphone',
                     youtubeOriginalPlaceholder: 'Start speaking over the video to see recognized phrases here.',
@@ -941,9 +924,6 @@ export default {
                     tabYoutubeTitle: 'Intérprete de YouTube',
                     tabYoutubeSubtitle: 'Video + traducción frase por frase',
                     translationPlaceholder: 'La traducción aparecerá aquí mientras hablas.',
-                    youtubeMicHelp: 'Este botón enciende y apaga el micrófono. Cuando está activo, escucho el audio que entra por el micrófono (por ejemplo el video desde los altavoces) en',
-                    youtubeMicHelpPart2: 'y traduzco a',
-                    youtubeMicHelpPart3: 'Para un resultado óptimo usa los altavoces y no solo los auriculares cerrados.',
                     youtubePlayerPlaceholder: 'Pega una URL de YouTube y selecciona los idiomas a la izquierda: el reproductor se carga automáticamente.',
                     youtubeOriginalTitle: 'Texto reconocido del micrófono',
                     youtubeOriginalPlaceholder: 'Comienza a hablar sobre el video para ver aquí las frases reconocidas.',
@@ -981,9 +961,6 @@ export default {
                     tabYoutubeTitle: 'Interprète YouTube',
                     tabYoutubeSubtitle: 'Vidéo + traduction phrase par phrase',
                     translationPlaceholder: 'La traduction apparaîtra ici au fur et à mesure que tu parles.',
-                    youtubeMicHelp: 'Ce bouton allume et éteint le microphone. Quand il est actif, j\'écoute l\'audio qui entre dans le microphone (par exemple la vidéo depuis les haut-parleurs) en',
-                    youtubeMicHelpPart2: 'et je traduis en',
-                    youtubeMicHelpPart3: 'Pour un résultat optimal, utilise les haut-parleurs et pas seulement les écouteurs fermés.',
                     youtubePlayerPlaceholder: 'Colle une URL YouTube et sélectionne les langues à gauche : le lecteur se charge automatiquement.',
                     youtubeOriginalTitle: 'Texte reconnu par le microphone',
                     youtubeOriginalPlaceholder: 'Commence à parler au-dessus de la vidéo pour voir ici les phrases reconnues.',
@@ -1021,9 +998,6 @@ export default {
                     tabYoutubeTitle: 'YouTube Dolmetscher',
                     tabYoutubeSubtitle: 'Video + Satz-für-Satz-Übersetzung',
                     translationPlaceholder: 'Die Übersetzung erscheint hier, während du sprichst.',
-                    youtubeMicHelp: 'Diese Schaltfläche schaltet das Mikrofon ein und aus. Wenn es aktiv ist, höre ich das Audio, das in das Mikrofon eintritt (z. B. das Video von den Lautsprechern) in',
-                    youtubeMicHelpPart2: 'und übersetze in',
-                    youtubeMicHelpPart3: 'Für optimale Ergebnisse verwende Lautsprecher und nicht nur geschlossene Kopfhörer.',
                     youtubePlayerPlaceholder: 'Füge eine YouTube-URL ein und wähle die Sprachen links aus: Der Player lädt sich automatisch.',
                     youtubeOriginalTitle: 'Vom Mikrofon erkanntes Text',
                     youtubeOriginalPlaceholder: 'Beginne über das Video zu sprechen, um hier die erkannten Sätze zu sehen.',
@@ -1704,10 +1678,11 @@ export default {
                 });
                 if (this.isChromeWithWebSpeech) {
                     // Chrome con WebSpeech disponibile:
-                    //  - default: WebSpeech nativo (nessun motore backend attivo)
+                    //  - default: WebSpeech nativo per tab "call" (nessun motore backend attivo)
+                    //  - YouTube: Gemini sempre attivo di default (più affidabile per video)
                     //  - autoRestart attivo per mantenere il comportamento "streaming" del browser
                     this.useGoogleCall = false;
-                    this.useGoogleYoutube = false;
+                    this.useGoogleYoutube = true; // YouTube: sempre Gemini di default
                     this.useWhisperCall = false;
                     this.useWhisperYoutube = false;
                     this.autoRestart = true;
@@ -1761,34 +1736,50 @@ export default {
                 this.recognition.interimResults = !isBackendEngine;
                 this.recognition.maxAlternatives = 1;
 
+                const engine = this.useGoogleEffective ? 'gemini' : (this.useWhisperEffective ? 'whisper' : 'webspeech');
                 this.debugLog('WebSpeech init', {
+                    engine,
                     lang: detectedLang,
                     continuous: true,
-                    interimResults: !this.useWhisperEffective,
+                    interimResults: !isBackendEngine,
                     maxAlternatives: 1,
                     useWhisper: this.useWhisperEffective,
+                    useGoogle: this.useGoogleEffective,
                     isChrome: this.isChromeWithWebSpeech,
+                    activeTab: this.activeTab,
+                    isMobileLowPower: this.isMobileLowPower,
                 });
                 console.log('🔧 WebSpeech INITIALIZED', {
+                    engine,
                     lang: detectedLang,
                     continuous: true,
-                    interimResults: !this.useWhisperEffective,
+                    interimResults: !isBackendEngine,
                     maxAlternatives: 1,
                     useWhisper: this.useWhisperEffective,
+                    useGoogle: this.useGoogleEffective,
                     isChrome: this.isChromeWithWebSpeech,
+                    activeTab: this.activeTab,
+                    isMobileLowPower: this.isMobileLowPower,
+                    useGoogleCall: this.useGoogleCall,
+                    useGoogleYoutube: this.useGoogleYoutube,
+                    useWhisperCall: this.useWhisperCall,
+                    useWhisperYoutube: this.useWhisperYoutube,
                 });
 
                 this.recognition.onstart = () => {
                     this.webSpeechDebugSeq += 1;
                     this.lastWebSpeechEventAt = Date.now();
 
+                    const engine = this.useGoogleEffective ? 'gemini' : (this.useWhisperEffective ? 'whisper' : 'webspeech');
                     this.debugLog('WebSpeech onstart', {
+                        engine,
                         lang: this.recognition.lang,
                         continuous: this.recognition.continuous,
                         interimResults: this.recognition.interimResults,
                         maxAlternatives: this.recognition.maxAlternatives,
                     });
                     console.log('🎤 WebSpeech STARTED', {
+                        engine,
                         seq: this.webSpeechDebugSeq,
                         ts: new Date().toISOString(),
                         lang: this.recognition.lang,
@@ -1797,6 +1788,8 @@ export default {
                         currentMicLang: this.currentMicLang,
                         activeSpeaker: this.activeSpeaker,
                         activeTab: this.activeTab,
+                        useGoogle: this.useGoogleEffective,
+                        useWhisper: this.useWhisperEffective,
                     });
 
                     // In modalità YouTube facciamo partire il video solo quando
@@ -1880,7 +1873,9 @@ export default {
                             resultsLength: event.results?.length || 0,
                             lang: this.recognition?.lang,
                         });
+                        const engine = this.useGoogleEffective ? 'gemini' : (this.useWhisperEffective ? 'whisper' : 'webspeech');
                         console.log('📥 WebSpeech RESULT EVENT', {
+                            engine,
                             seq: this.webSpeechDebugSeq,
                             ts: new Date().toISOString(),
                             resultIndex: event.resultIndex,
@@ -1889,6 +1884,9 @@ export default {
                             currentMicLang: this.currentMicLang,
                             activeSpeaker: this.activeSpeaker,
                             activeTab: this.activeTab,
+                            useGoogle: this.useGoogleEffective,
+                            useWhisper: this.useWhisperEffective,
+                            isMobileLowPower: this.isMobileLowPower,
                         });
 
                         let interim = '';
@@ -2272,21 +2270,24 @@ export default {
 
             // In modalità YouTube, se sembra una frase "vera" (non solo una parola)
             // mettiamo SUBITO in pausa il video, senza aspettare che parta il TTS.
-            // Su mobile, evitiamo pause continue durante auto-restart di WebSpeech:
-            // mettiamo in pausa solo se non siamo in un loop di auto-restart.
+            // IMPORTANTE: mettiamo in pausa SOLO quando il microfono è spento (isListening === false)
+            // o quando è una frase finale completa, per evitare pause continue durante la registrazione.
             if (commit && this.activeTab === 'youtube' && this.youtubeAutoPauseEnabled) {
                 const words = safeText.split(/\s+/).filter(Boolean);
                 const hasSentencePunct = /[.!?…]$/.test(safeText);
                 const longEnough = safeText.length >= 15 || words.length >= 4;
                 const shouldPauseForSentence = hasSentencePunct || longEnough;
-                // Su mobile con WebSpeech, evitiamo pause continue durante auto-restart:
-                // mettiamo in pausa solo se il microfono è ancora attivo (non in auto-restart loop)
-                const isWebSpeechAutoRestarting = this.isMobileLowPower &&
-                    !this.useWhisperEffective &&
-                    !this.useGoogleEffective &&
-                    this.isListening &&
-                    this.autoRestart;
-                if (shouldPauseForSentence && !isWebSpeechAutoRestarting) {
+                // Mettiamo in pausa SOLO se:
+                // 1. Il microfono è spento (l'utente ha finito di parlare), OPPURE
+                // 2. È una frase finale completa con punteggiatura (non durante registrazione continua)
+                const shouldPause = shouldPauseForSentence && (!this.isListening || hasSentencePunct);
+                if (shouldPause) {
+                    console.log('⏸️ YouTube: metto in pausa video', {
+                        text: safeText.substring(0, 50),
+                        isListening: this.isListening,
+                        hasSentencePunct,
+                        longEnough,
+                    });
                     this.pauseYoutubeIfNeeded();
                 }
             }
