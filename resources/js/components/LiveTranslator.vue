@@ -457,12 +457,14 @@
                             </div>
                         </div>
 
-                        <!-- Indicatore stato video/microfono per modalità YouTube (non cliccabile) -->
+                        <!-- Pulsante microfono per modalità YouTube (controlla anche il video con delay) -->
                         <div class="mt-4">
-                            <div class="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold border select-none cursor-default"
+                            <button type="button" @click="toggleListeningForLang('A')"
+                                :disabled="!youtubeLangSource || !youtubeLangTarget" class="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold border transition
+                                    focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900"
                                 :class="isListening
                                     ? 'bg-emerald-600 text-white border-emerald-400 shadow-lg shadow-emerald-500/30'
-                                    : 'bg-slate-700 text-slate-100 border-slate-500'">
+                                    : 'bg-slate-700 text-slate-100 border-slate-500 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed'">
                                 <span
                                     class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-black/30 border border-slate-500">
                                     <span class="inline-block w-1.5 h-3 rounded-full"
@@ -472,7 +474,7 @@
                                 <span>
                                     {{ youtubeStatusLabel }}
                                 </span>
-                            </div>
+                            </button>
                         </div>
                     </div>
 
