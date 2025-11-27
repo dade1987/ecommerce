@@ -1790,10 +1790,16 @@ export default {
                     this.recognition.continuous = true;
                     this.recognition.interimResults = false;
                 } else {
-                    // WebSpeech del browser: comportamento identico tra desktop e mobile.
-                    // continuous true + interimResults true (streaming classico).
-                    this.recognition.continuous = true;
-                    this.recognition.interimResults = true;
+                    // WebSpeech del browser:
+                    //  - desktop: continuous true + interimResults true (streaming classico)
+                    //  - mobile: continuous false + interimResults false (solo final, niente interim)
+                    if (this.isMobileLowPower) {
+                        this.recognition.continuous = false;
+                        this.recognition.interimResults = false;
+                    } else {
+                        this.recognition.continuous = true;
+                        this.recognition.interimResults = true;
+                    }
                 }
 
                 const engine = this.useGoogleEffective ? 'gemini' : (this.useWhisperEffective ? 'whisper' : 'webspeech');
