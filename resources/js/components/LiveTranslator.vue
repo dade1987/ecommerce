@@ -472,7 +472,7 @@
                                     </span>
                                 </span>
                                 <span>
-                                    {{ youtubeStatusLabel }}
+                                    {{ isListening ? ui.youtubeMicAActive : ui.youtubeMicAHelp }}
                                 </span>
                             </button>
                         </div>
@@ -660,6 +660,7 @@ export default {
             // Modalità low-power per mobile (niente streaming token-per-token)
             isMobileLowPower: false,
             mobileCurrentTranslationIndex: null,
+            pendingMobileOriginalText: '',
             isTtsLoading: false,
 
             // Debug: ultimo audio inviato a un motore backend (Whisper/Gemini)
@@ -757,8 +758,8 @@ export default {
                     youtubeUrlHelp: 'Incolla qui il link del video che vuoi usare durante la call di lavoro.',
                     youtubeLangSourceLabel: 'Lingua del video',
                     youtubeLangTargetLabel: 'Lingua di traduzione',
-                    youtubeMicAActive: 'Ferma video',
-                    youtubeMicAHelp: 'Riproduci video',
+                    youtubeMicAActive: 'Stop + Pausa video',
+                    youtubeMicAHelp: 'Registra + Play video',
                     youtubeAutoPauseLabel: 'Rileva in automatico le pause',
                     youtubeAutoPauseHint: '',
                     youtubeAutoResumeLabel: 'Riprendi automaticamente dopo traduzione',
@@ -2143,6 +2144,27 @@ export default {
                                         }
 
                                         if (!mergedWithPrevious) {
+                                            // Nuova frase: prima, se c'è una frase precedente in sospeso,
+                                            // traducila adesso (una sola volta).
+                                            if (this.pendingMobileOriginalText && this.mobileCurrentTranslationIndex !== null) {
+                                                this.debugLog('WebSpeech onresult: MOBILE translating pending phrase before new one', {
+                                                    text: this.pendingMobileOriginalText.substring(0, 50),
+                                                    mobileCurrentTranslationIndex: this.mobileCurrentTranslationIndex,
+                                                });
+                                                console.log('📤 WebSpeech onresult: MOBILE translating pending phrase before new one', {
+                                                    ts: new Date().toISOString(),
+                                                    text: this.pendingMobileOriginalText.substring(0, 50),
+                                                    mobileCurrentTranslationIndex: this.mobileCurrentTranslationIndex,
+                                                });
+                                                this.startTranslationStream(this.pendingMobileOriginalText, {
+                                                    commit: true,
+                                                    mergeLast: false,
+                                                    mergeIndex: this.mobileCurrentTranslationIndex,
+                                                    shouldEnqueueTts: true,
+                                                });
+                                                this.pendingMobileOriginalText = '';
+                                            }
+
                                             // Nuova frase: aggiungi riga originale e "slot" traduzione
                                             this.originalConfirmed = this.originalConfirmed
                                                 ? `${this.originalConfirmed}\n${phraseWithDash}`
@@ -2153,63 +2175,41 @@ export default {
                                             this.mobileCurrentTranslationIndex = this.translationSegments.length;
                                             this.translationSegments.push('- ...');
 
-                                            // Nuova frase: traduci sempre
                                             this.lastFinalOriginalAt = now;
                                             this.originalInterim = '';
+                                            this.pendingMobileOriginalText = clean;
 
-                                            this.debugLog('WebSpeech onresult: MOBILE new phrase, starting translation', {
+                                            this.debugLog('WebSpeech onresult: MOBILE new phrase, pending for translation', {
                                                 text: clean.substring(0, 50),
                                                 mobileCurrentTranslationIndex: this.mobileCurrentTranslationIndex,
                                             });
-                                            console.log('📤 WebSpeech onresult: MOBILE new phrase, starting translation', {
+                                            console.log('📝 WebSpeech onresult: MOBILE new phrase, pending for translation', {
                                                 ts: new Date().toISOString(),
                                                 text: clean.substring(0, 50),
                                                 mobileCurrentTranslationIndex: this.mobileCurrentTranslationIndex,
                                             });
-
-                                            this.startTranslationStream(clean, {
-                                                commit: true,
-                                                mergeLast: false,
-                                                mergeIndex: this.mobileCurrentTranslationIndex,
-                                            });
                                         } else {
-                                            // Stessa frase: aggiorna solo se è un'estensione significativa
-                                            // o se ha punteggiatura finale (frase completa)
+                                            // Stessa frase: aggiorna comunque il testo originale e
+                                            // tieni in pending solo l'ultima versione completa.
+                                            this.lastFinalOriginalAt = now;
+                                            this.originalInterim = '';
+                                            this.pendingMobileOriginalText = clean;
+
                                             if (isSignificantExtension) {
-                                                this.lastFinalOriginalAt = now;
-                                                this.originalInterim = '';
-
-                                                // Cancella la traduzione precedente e rifai con il testo completo
-                                                if (this.mobileCurrentTranslationIndex !== null &&
-                                                    this.translationSegments[this.mobileCurrentTranslationIndex]) {
-                                                    this.translationSegments[this.mobileCurrentTranslationIndex] = '- ...';
-                                                }
-
-                                                this.debugLog('WebSpeech onresult: MOBILE significant extension, retranslating', {
+                                                this.debugLog('WebSpeech onresult: MOBILE significant extension, keep pending', {
                                                     text: clean.substring(0, 50),
                                                     mobileCurrentTranslationIndex: this.mobileCurrentTranslationIndex,
                                                 });
-                                                console.log('🔄 WebSpeech onresult: MOBILE significant extension, retranslating', {
+                                                console.log('🔄 WebSpeech onresult: MOBILE significant extension, keep pending', {
                                                     ts: new Date().toISOString(),
                                                     text: clean.substring(0, 50),
                                                     mobileCurrentTranslationIndex: this.mobileCurrentTranslationIndex,
                                                 });
-
-                                                this.startTranslationStream(clean, {
-                                                    commit: true,
-                                                    mergeLast: false,
-                                                    mergeIndex: this.mobileCurrentTranslationIndex,
-                                                });
                                             } else {
-                                                // Estensione minore: aggiorna solo il testo originale,
-                                                // non rifare la traduzione (evita chiamate API multiple)
-                                                this.lastFinalOriginalAt = now;
-                                                this.originalInterim = '';
-
-                                                this.debugLog('WebSpeech onresult: MOBILE minor extension, skipping translation', {
+                                                this.debugLog('WebSpeech onresult: MOBILE minor extension, updating pending only', {
                                                     text: clean.substring(0, 50),
                                                 });
-                                                console.log('⏭️ WebSpeech onresult: MOBILE minor extension, skipping translation', {
+                                                console.log('⏭️ WebSpeech onresult: MOBILE minor extension, updating pending only', {
                                                     ts: new Date().toISOString(),
                                                     text: clean.substring(0, 50),
                                                 });
@@ -2791,30 +2791,29 @@ export default {
             this.isListening = false;
             this.activeSpeaker = null;
 
-            // Modalità YouTube con WebSpeech "puro" e rilevamento automatico delle pause disattivato:
-            // se abbiamo un'ultima frase finale memorizzata, la traduciamo adesso quando l'utente
-            // spegne manualmente il microfono.
-            if (
-                this.activeTab === 'youtube' &&
-                !this.youtubeAutoPauseEnabled &&
-                !this.useWhisperEffective &&
-                !this.useGoogleEffective
-            ) {
-                const pending = (this.lastYoutubeFinalForManualStop || '').trim();
-                if (pending) {
-                    this.debugLog('stopListeningInternal: translating pending YouTube final', {
-                        pending,
-                    });
-                    console.log('📝 stopListeningInternal: translating pending YouTube final', {
-                        ts: new Date().toISOString(),
-                        pending,
-                    });
-                    this.startTranslationStream(pending, {
-                        commit: true,
-                        mergeLast: false,
-                    });
-                    this.lastYoutubeFinalForManualStop = '';
-                }
+            // Su mobile low-power: se c'è una frase in sospeso (pendingMobileOriginalText),
+            // traduciamola una sola volta quando l'utente spegne il microfono.
+            if (this.isMobileLowPower && this.pendingMobileOriginalText && this.mobileCurrentTranslationIndex !== null) {
+                const pendingText = this.pendingMobileOriginalText;
+                const pendingIndex = this.mobileCurrentTranslationIndex;
+                this.pendingMobileOriginalText = '';
+
+                this.debugLog('stopListeningInternal: MOBILE translating pending phrase on stop', {
+                    pendingText: pendingText.substring(0, 50),
+                    mobileCurrentTranslationIndex: pendingIndex,
+                });
+                console.log('📝 stopListeningInternal: MOBILE translating pending phrase on stop', {
+                    ts: new Date().toISOString(),
+                    pendingText: pendingText.substring(0, 50),
+                    mobileCurrentTranslationIndex: pendingIndex,
+                });
+
+                this.startTranslationStream(pendingText, {
+                    commit: true,
+                    mergeLast: false,
+                    mergeIndex: pendingIndex,
+                    shouldEnqueueTts: true,
+                });
             }
 
             if (this.recognition) {
@@ -2911,7 +2910,7 @@ export default {
             });
         },
 
-        startTranslationStream(textSegment, options = { commit: true, mergeLast: false, mergeIndex: null }) {
+        startTranslationStream(textSegment, options = { commit: true, mergeLast: false, mergeIndex: null, shouldEnqueueTts: true }) {
             const safeText = ((textSegment || '').trim()).toLowerCase();
             if (!safeText) {
                 this.debugLog('startTranslationStream: empty text, skipping', {
@@ -2927,12 +2926,14 @@ export default {
             const commit = options && typeof options.commit === 'boolean' ? options.commit : true;
             const mergeLast = options && typeof options.mergeLast === 'boolean' ? options.mergeLast : false;
             const mergeIndex = options && typeof options.mergeIndex === 'number' ? options.mergeIndex : null;
+            const shouldEnqueueTts = options && typeof options.shouldEnqueueTts === 'boolean' ? options.shouldEnqueueTts : true;
 
             this.debugLog('startTranslationStream START', {
                 text: safeText.substring(0, 100),
                 commit,
                 mergeLast,
                 mergeIndex,
+                shouldEnqueueTts,
                 activeTab: this.activeTab,
                 isListening: this.isListening,
                 youtubeAutoPauseEnabled: this.youtubeAutoPauseEnabled,
@@ -3189,8 +3190,10 @@ export default {
                             });
                         }
 
-                        // Se il doppiaggio è attivo nella tab corrente, metti in coda la traduzione per il TTS
-                        if (this.readTranslationEnabledEffective) {
+                        // Se il doppiaggio è attivo nella tab corrente, metti in coda la traduzione per il TTS.
+                        // Su mobile low-power possiamo decidere di non leggere le prime versioni brevi della frase
+                        // (vedi shouldEnqueueTts negli options).
+                        if (this.readTranslationEnabledEffective && shouldEnqueueTts) {
                             this.debugLog('startTranslationStream: enqueueing for TTS', {
                                 segment: segment.substring(0, 50),
                                 targetLang,
