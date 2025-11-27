@@ -2043,9 +2043,9 @@ export default {
                                         text: clean,
                                     });
 
-                                    // MOBILE (solo tab "call"): niente interim, ma usiamo i final progressivi
+                                    // MOBILE: niente interim, ma usiamo i final progressivi
                                     // per aggiornare/mergeare l'ULTIMA riga quando è la stessa frase.
-                                    if (this.isMobileLowPower && this.activeTab === 'call') {
+                                    if (this.isMobileLowPower) {
                                         this.debugLog('WebSpeech onresult: MOBILE processing final', {
                                             text: clean.substring(0, 50),
                                             textLength: clean.length,
