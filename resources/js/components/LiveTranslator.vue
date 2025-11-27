@@ -380,31 +380,33 @@
 
                 <!-- Controllo modalità riconoscimento (Gemini / Whisper / browser) anche per YouTube -->
                 <div class="flex flex-col items-center gap-1 text-slate-300">
-                    <div class="flex items-center justify-center gap-2 text-[13px]">
-                        <input id="useGoogleYoutube" type="checkbox" v-model="useGoogleYoutube"
-                            @change="onGoogleRecognitionModeChange('youtube')"
-                            class="h-3.5 w-3.5 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
-                        <label for="useGoogleYoutube" class="cursor-pointer select-none">
-                            {{ ui.googleCloudLabel }}
-                        </label>
-                    </div>
-                    <div class="flex items-center justify-center gap-2 text-[13px] mt-1">
-                        <input id="useWhisperYoutube" type="checkbox" v-model="useWhisperYoutube"
-                            @change="onRecognitionModeChange('youtube')"
-                            class="h-3.5 w-3.5 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
-                        <label for="useWhisperYoutube" class="cursor-pointer select-none">
-                            {{ ui.whisperLabel }}
-                        </label>
-                    </div>
-                    <!-- Checkbox: rilevamento automatico pause / invia solo su stop (Whisper + Gemini) -->
-                    <div v-if="useWhisperYoutube || useGoogleYoutube"
-                        class="flex items-center justify-center gap-2 text-[11px] text-slate-300">
-                        <input id="whisperSingleSegment" type="checkbox" v-model="whisperSendOnStopOnlyYoutube"
-                            class="h-3 w-3 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
-                        <label for="whisperSingleSegment" class="cursor-pointer select-none">
-                            {{ ui.whisperSingleSegmentLabel }}
-                        </label>
-                    </div>
+                    <template v-if="!isMobileLowPower">
+                        <div class="flex items-center justify-center gap-2 text-[13px]">
+                            <input id="useGoogleYoutube" type="checkbox" v-model="useGoogleYoutube"
+                                @change="onGoogleRecognitionModeChange('youtube')"
+                                class="h-3.5 w-3.5 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
+                            <label for="useGoogleYoutube" class="cursor-pointer select-none">
+                                {{ ui.googleCloudLabel }}
+                            </label>
+                        </div>
+                        <div class="flex items-center justify-center gap-2 text-[13px] mt-1">
+                            <input id="useWhisperYoutube" type="checkbox" v-model="useWhisperYoutube"
+                                @change="onRecognitionModeChange('youtube')"
+                                class="h-3.5 w-3.5 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
+                            <label for="useWhisperYoutube" class="cursor-pointer select-none">
+                                {{ ui.whisperLabel }}
+                            </label>
+                        </div>
+                        <!-- Checkbox: rilevamento automatico pause / invia solo su stop (Whisper + Gemini) -->
+                        <div v-if="useWhisperYoutube || useGoogleYoutube"
+                            class="flex items-center justify-center gap-2 text-[11px] text-slate-300">
+                            <input id="whisperSingleSegment" type="checkbox" v-model="whisperSendOnStopOnlyYoutube"
+                                class="h-3 w-3 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
+                            <label for="whisperSingleSegment" class="cursor-pointer select-none">
+                                {{ ui.whisperSingleSegmentLabel }}
+                            </label>
+                        </div>
+                    </template>
                     <label class="flex items-center gap-2 text-[13px] cursor-pointer select-none mt-2">
                         <input type="checkbox" v-model="readTranslationEnabledYoutube"
                             class="h-3.5 w-3.5 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
@@ -638,9 +640,9 @@ export default {
             useWhisperYoutube: false,
 
             // Modalità Google/Gemini per tab: indipendenti
-            // YouTube: Gemini sempre attivo di default
+            // YouTube: nessun motore backend selezionato di default (usa WebSpeech se disponibile)
             useGoogleCall: false,
-            useGoogleYoutube: true,
+            useGoogleYoutube: false,
 
             // Modalità "invia audio solo quando spengo il microfono" per Whisper, per tab
             whisperSendOnStopOnlyCall: true,
@@ -1618,6 +1620,20 @@ export default {
 
         setActiveTab(tab) {
             this.activeTab = tab;
+            // Su mobile, nella tab YouTube disabilitiamo completamente Gemini/Whisper:
+            // resta solo WebSpeech del browser (se disponibile).
+            if (tab === 'youtube' && this.isMobileLowPower) {
+                this.useGoogleYoutube = false;
+                this.useWhisperYoutube = false;
+
+                if (!this.isChromeWithWebSpeech) {
+                    // Nessun WebSpeech disponibile: la modalità YouTube non è utilizzabile.
+                    this.statusMessage = 'Riconoscimento vocale non disponibile in questo browser.';
+                } else {
+                    // WebSpeech attivo: ripristina messaggio standard browser mode.
+                    this.statusMessage = this.ui.statusBrowserModeOn;
+                }
+            }
         },
 
         getLangLabel(langCode) {
@@ -1770,22 +1786,14 @@ export default {
                 const isBackendEngine = this.useWhisperEffective || this.useGoogleEffective;
                 this.recognition.maxAlternatives = 1;
 
-                // Per i motori backend (Whisper / Gemini) usiamo sempre continuous true e solo final.
-                // Per WebSpeech del browser distinguiamo desktop vs mobile:
-                //  - desktop: continuous true + interimResults true (streaming classico)
-                //  - mobile low-power: continuous false + interimResults false per avere
-                //    un solo final affidabile per frase, come nei siti di registrazione.
                 if (isBackendEngine) {
                     this.recognition.continuous = true;
                     this.recognition.interimResults = false;
                 } else {
-                    if (this.isMobileLowPower) {
-                        this.recognition.continuous = false;
-                        this.recognition.interimResults = false;
-                    } else {
-                        this.recognition.continuous = true;
-                        this.recognition.interimResults = true;
-                    }
+                    // WebSpeech del browser: comportamento identico tra desktop e mobile.
+                    // continuous true + interimResults true (streaming classico).
+                    this.recognition.continuous = true;
+                    this.recognition.interimResults = true;
                 }
 
                 const engine = this.useGoogleEffective ? 'gemini' : (this.useWhisperEffective ? 'whisper' : 'webspeech');
@@ -3812,6 +3820,20 @@ export default {
         },
 
         onRecognitionModeChange(tab) {
+            // Su mobile, nella tab YouTube Gemini/Whisper non sono disponibili:
+            // forziamo sempre WebSpeech e ignoriamo i toggle.
+            if (tab === 'youtube' && this.isMobileLowPower) {
+                this.useWhisperYoutube = false;
+                this.useGoogleYoutube = false;
+
+                if (!this.isChromeWithWebSpeech) {
+                    this.statusMessage = 'Riconoscimento vocale non disponibile in questo browser.';
+                } else {
+                    this.statusMessage = this.ui.statusBrowserModeOn;
+                }
+                return;
+            }
+
             // Quando si cambia modalità, fermiamo eventuale ascolto in corso
             if (this.isListening) {
                 this.stopListeningInternal();
@@ -3848,6 +3870,20 @@ export default {
         },
 
         onGoogleRecognitionModeChange(tab) {
+            // Su mobile, nella tab YouTube Gemini/Whisper non sono disponibili:
+            // forziamo sempre WebSpeech e ignoriamo i toggle.
+            if (tab === 'youtube' && this.isMobileLowPower) {
+                this.useGoogleYoutube = false;
+                this.useWhisperYoutube = false;
+
+                if (!this.isChromeWithWebSpeech) {
+                    this.statusMessage = 'Riconoscimento vocale non disponibile in questo browser.';
+                } else {
+                    this.statusMessage = this.ui.statusBrowserModeOn;
+                }
+                return;
+            }
+
             // Motori mutuamente esclusivi: se abiliti Google, spegni Whisper per la stessa tab.
             if (tab === 'youtube') {
                 if (this.useGoogleYoutube) {
