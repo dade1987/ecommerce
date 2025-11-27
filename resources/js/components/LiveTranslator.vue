@@ -657,10 +657,9 @@ export default {
             lastSpeakerBeforeTts: null,
             translationThreadId: null,
 
-            // Modalità low-power per mobile (niente streaming token-per-token)
+            // Modalità low-power per mobile (usata solo per ottimizzare la UI,
+            // la logica di traduzione ora è uguale a desktop)
             isMobileLowPower: false,
-            mobileCurrentTranslationIndex: null,
-            pendingMobileOriginalText: '',
             isTtsLoading: false,
 
             // Debug: ultimo audio inviato a un motore backend (Whisper/Gemini)
@@ -1766,19 +1765,36 @@ export default {
                 this.recognition = new RecClass();
                 const detectedLang = this.currentMicLang || this.detectRecognitionLang();
                 this.recognition.lang = detectedLang;
-                this.recognition.continuous = true;
-                // In modalità backend (Whisper / Google) non gestiamo davvero gli interim, arrivano solo final
+
+                // Configurazione base
                 const isBackendEngine = this.useWhisperEffective || this.useGoogleEffective;
-                this.recognition.interimResults = !isBackendEngine;
                 this.recognition.maxAlternatives = 1;
+
+                // Per i motori backend (Whisper / Gemini) usiamo sempre continuous true e solo final.
+                // Per WebSpeech del browser distinguiamo desktop vs mobile:
+                //  - desktop: continuous true + interimResults true (streaming classico)
+                //  - mobile low-power: continuous false + interimResults false per avere
+                //    un solo final affidabile per frase, come nei siti di registrazione.
+                if (isBackendEngine) {
+                    this.recognition.continuous = true;
+                    this.recognition.interimResults = false;
+                } else {
+                    if (this.isMobileLowPower) {
+                        this.recognition.continuous = false;
+                        this.recognition.interimResults = false;
+                    } else {
+                        this.recognition.continuous = true;
+                        this.recognition.interimResults = true;
+                    }
+                }
 
                 const engine = this.useGoogleEffective ? 'gemini' : (this.useWhisperEffective ? 'whisper' : 'webspeech');
                 this.debugLog('WebSpeech init', {
                     engine,
                     lang: detectedLang,
-                    continuous: true,
-                    interimResults: !isBackendEngine,
-                    maxAlternatives: 1,
+                    continuous: this.recognition.continuous,
+                    interimResults: this.recognition.interimResults,
+                    maxAlternatives: this.recognition.maxAlternatives,
                     useWhisper: this.useWhisperEffective,
                     useGoogle: this.useGoogleEffective,
                     isChrome: this.isChromeWithWebSpeech,
@@ -2067,155 +2083,21 @@ export default {
                                         text: clean,
                                     });
 
-                                    // MOBILE: niente interim, ma usiamo i final progressivi
-                                    // per aggiornare/mergeare l'ULTIMA riga quando è la stessa frase.
+                                    // MOBILE: ora usiamo continuous=false e interimResults=false,
+                                    // quindi ogni frase genera un solo final affidabile come su desktop.
+                                    // Manteniamo solo la logica di merge sul testo, ma la traduzione
+                                    // parte esattamente come su desktop.
                                     if (this.isMobileLowPower) {
-                                        this.debugLog('WebSpeech onresult: MOBILE processing final', {
+                                        this.debugLog('WebSpeech onresult: MOBILE final (no special handling)', {
                                             text: clean.substring(0, 50),
                                             textLength: clean.length,
-                                            lastFinalOriginalAt: this.lastFinalOriginalAt,
-                                            timeSinceLastFinal: Date.now() - this.lastFinalOriginalAt,
                                         });
-                                        console.log('📱 WebSpeech onresult: MOBILE processing final', {
+                                        console.log('📱 WebSpeech onresult: MOBILE final (no special handling)', {
                                             ts: new Date().toISOString(),
                                             text: clean.substring(0, 50),
                                             textLength: clean.length,
-                                            lastFinalOriginalAt: this.lastFinalOriginalAt,
-                                            timeSinceLastFinal: Date.now() - this.lastFinalOriginalAt,
                                         });
-
-                                        const now = Date.now();
-                                        const lines = (this.originalConfirmed || '')
-                                            .split('\n')
-                                            .filter(Boolean);
-
-                                        let mergedWithPrevious = false;
-                                        let isSignificantExtension = false;
-
-                                        if (lines.length > 0 && now - this.lastFinalOriginalAt < 2000) {
-                                            const lastLine = lines[lines.length - 1];
-                                            const prevText = lastLine.startsWith('- ')
-                                                ? lastLine.slice(2).trim()
-                                                : lastLine.trim();
-
-                                            if (prevText) {
-                                                // Consideriamo "stessa frase" se il nuovo testo è
-                                                // uguale o un'estensione del precedente (caso tipico mobile:
-                                                // "ciao", "ciao io", "ciao io sono davide"...).
-                                                if (
-                                                    clean === prevText ||
-                                                    (clean.length > prevText.length &&
-                                                        clean.startsWith(prevText))
-                                                ) {
-                                                    lines[lines.length - 1] = phraseWithDash;
-                                                    this.originalConfirmed = lines.join('\n');
-                                                    mergedWithPrevious = true;
-
-                                                    // Consideriamo "estensione significativa" solo se:
-                                                    // - Aggiunge almeno 3 caratteri E una parola completa
-                                                    // - O aggiunge punteggiatura finale (., !, ?)
-                                                    const addedChars = clean.length - prevText.length;
-                                                    const addedWords = clean.split(/\s+/).length - prevText.split(/\s+/).length;
-                                                    const hasNewPunct = /[.!?…]$/.test(clean) && !/[.!?…]$/.test(prevText);
-
-                                                    isSignificantExtension = hasNewPunct || (addedChars >= 3 && addedWords > 0);
-
-                                                    this.debugLog('WebSpeech onresult: MOBILE merged with previous', {
-                                                        mergedWithPrevious,
-                                                        isSignificantExtension,
-                                                        prevText: prevText.substring(0, 50),
-                                                        clean: clean.substring(0, 50),
-                                                        addedChars,
-                                                        addedWords,
-                                                        hasNewPunct,
-                                                    });
-                                                    console.log('🔄 WebSpeech onresult: MOBILE merged with previous', {
-                                                        ts: new Date().toISOString(),
-                                                        mergedWithPrevious,
-                                                        isSignificantExtension,
-                                                        prevText: prevText.substring(0, 50),
-                                                        clean: clean.substring(0, 50),
-                                                        addedChars,
-                                                        addedWords,
-                                                        hasNewPunct,
-                                                    });
-                                                }
-                                            }
-                                        }
-
-                                        if (!mergedWithPrevious) {
-                                            // Nuova frase: prima, se c'è una frase precedente in sospeso,
-                                            // traducila adesso (una sola volta).
-                                            if (this.pendingMobileOriginalText && this.mobileCurrentTranslationIndex !== null) {
-                                                this.debugLog('WebSpeech onresult: MOBILE translating pending phrase before new one', {
-                                                    text: this.pendingMobileOriginalText.substring(0, 50),
-                                                    mobileCurrentTranslationIndex: this.mobileCurrentTranslationIndex,
-                                                });
-                                                console.log('📤 WebSpeech onresult: MOBILE translating pending phrase before new one', {
-                                                    ts: new Date().toISOString(),
-                                                    text: this.pendingMobileOriginalText.substring(0, 50),
-                                                    mobileCurrentTranslationIndex: this.mobileCurrentTranslationIndex,
-                                                });
-                                                this.startTranslationStream(this.pendingMobileOriginalText, {
-                                                    commit: true,
-                                                    mergeLast: false,
-                                                    mergeIndex: this.mobileCurrentTranslationIndex,
-                                                    shouldEnqueueTts: true,
-                                                });
-                                                this.pendingMobileOriginalText = '';
-                                            }
-
-                                            // Nuova frase: aggiungi riga originale e "slot" traduzione
-                                            this.originalConfirmed = this.originalConfirmed
-                                                ? `${this.originalConfirmed}\n${phraseWithDash}`
-                                                : phraseWithDash;
-
-                                            // Crea subito uno slot in translationSegments che verrà
-                                            // aggiornato quando arriva la traduzione finale.
-                                            this.mobileCurrentTranslationIndex = this.translationSegments.length;
-                                            this.translationSegments.push('- ...');
-
-                                            this.lastFinalOriginalAt = now;
-                                            this.originalInterim = '';
-                                            this.pendingMobileOriginalText = clean;
-
-                                            this.debugLog('WebSpeech onresult: MOBILE new phrase, pending for translation', {
-                                                text: clean.substring(0, 50),
-                                                mobileCurrentTranslationIndex: this.mobileCurrentTranslationIndex,
-                                            });
-                                            console.log('📝 WebSpeech onresult: MOBILE new phrase, pending for translation', {
-                                                ts: new Date().toISOString(),
-                                                text: clean.substring(0, 50),
-                                                mobileCurrentTranslationIndex: this.mobileCurrentTranslationIndex,
-                                            });
-                                        } else {
-                                            // Stessa frase: aggiorna comunque il testo originale e
-                                            // tieni in pending solo l'ultima versione completa.
-                                            this.lastFinalOriginalAt = now;
-                                            this.originalInterim = '';
-                                            this.pendingMobileOriginalText = clean;
-
-                                            if (isSignificantExtension) {
-                                                this.debugLog('WebSpeech onresult: MOBILE significant extension, keep pending', {
-                                                    text: clean.substring(0, 50),
-                                                    mobileCurrentTranslationIndex: this.mobileCurrentTranslationIndex,
-                                                });
-                                                console.log('🔄 WebSpeech onresult: MOBILE significant extension, keep pending', {
-                                                    ts: new Date().toISOString(),
-                                                    text: clean.substring(0, 50),
-                                                    mobileCurrentTranslationIndex: this.mobileCurrentTranslationIndex,
-                                                });
-                                            } else {
-                                                this.debugLog('WebSpeech onresult: MOBILE minor extension, updating pending only', {
-                                                    text: clean.substring(0, 50),
-                                                });
-                                                console.log('⏭️ WebSpeech onresult: MOBILE minor extension, updating pending only', {
-                                                    ts: new Date().toISOString(),
-                                                    text: clean.substring(0, 50),
-                                                });
-                                            }
-                                        }
-                                        continue;
+                                        // Lasciamo proseguire nel ramo "DESKTOP processing final"
                                     }
 
                                     this.debugLog('WebSpeech onresult: DESKTOP processing final', {
