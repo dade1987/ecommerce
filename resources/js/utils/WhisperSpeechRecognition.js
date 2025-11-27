@@ -62,15 +62,27 @@ export default class WhisperSpeechRecognition {
                 return;
             }
 
+            // Su mobile alcuni device/Chrome combinano male le impostazioni "raw" (tutto false)
+            // con il routing audio, producendo solo rumore. Per avvicinarci al comportamento
+            // dei siti di registrazione standard, su dispositivi "coarse pointer" (touch/mobile)
+            // chiediamo semplicemente audio: true e lasciamo al sistema i filtri predefiniti.
+            let audioConstraints = {
+                echoCancellation: false,
+                noiseSuppression: false,
+                autoGainControl: false,
+                channelCount: 1,
+            };
+            try {
+                if (typeof window !== 'undefined' && window.matchMedia &&
+                    window.matchMedia('(pointer: coarse)').matches) {
+                    audioConstraints = true;
+                }
+            } catch {
+                // in caso di errore manteniamo i constraint "raw"
+            }
+
             this._mediaStream = await navigator.mediaDevices.getUserMedia({
-                // Niente filtri di "pulizia" (echoCancellation / noiseSuppression / autoGainControl):
-                // vogliamo l'audio più grezzo possibile, sia per voce diretta che per audio dalle casse.
-                audio: {
-                    echoCancellation: false,
-                    noiseSuppression: false,
-                    autoGainControl: false,
-                    channelCount: 1,
-                },
+                audio: audioConstraints,
             });
 
             if (typeof MediaRecorder === 'undefined') {

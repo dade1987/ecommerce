@@ -63,15 +63,26 @@ export default class GoogleSpeechRecognition {
                 return;
             }
 
+            // Come per Whisper: su mobile alcuni device producono solo rumore se forziamo
+            // tutti i filtri a false. Per avvicinarci al comportamento dei siti di registrazione,
+            // su dispositivi "coarse pointer" chiediamo semplicemente audio: true.
+            let audioConstraints = {
+                echoCancellation: false,
+                noiseSuppression: false,
+                autoGainControl: false,
+                channelCount: 1,
+            };
+            try {
+                if (typeof window !== 'undefined' && window.matchMedia &&
+                    window.matchMedia('(pointer: coarse)').matches) {
+                    audioConstraints = true;
+                }
+            } catch {
+                // in caso di errore manteniamo i constraint "raw"
+            }
+
             this._mediaStream = await navigator.mediaDevices.getUserMedia({
-                // Niente filtri di pulizia anche qui: trattiamo voce diretta e audio casse
-                // allo stesso modo, lasciando a Gemini/Whisper il compito di gestire il rumore.
-                audio: {
-                    echoCancellation: false,
-                    noiseSuppression: false,
-                    autoGainControl: false,
-                    channelCount: 1,
-                },
+                audio: audioConstraints,
             });
 
             if (typeof MediaRecorder === 'undefined') {
