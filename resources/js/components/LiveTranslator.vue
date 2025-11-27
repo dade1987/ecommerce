@@ -2431,10 +2431,15 @@ export default {
                     currentMicLang: this.currentMicLang,
                     activeTab: this.activeTab,
                 });
+                // IMPORTANTE: in modalità singleSegmentMode, l'audio viene inviato al backend
+                // solo quando viene chiamato recognition.stop(). Quindi dobbiamo fermare
+                // il recognition PRIMA di mettere in pausa il video, per assicurarci che
+                // l'audio venga inviato correttamente.
+                this.stopListeningInternal();
+                // Dopo aver fermato il recognition (che invia l'audio), possiamo mettere in pausa il video
                 if (this.activeTab === 'youtube') {
                     this.pauseYoutubeIfNeeded();
                 }
-                this.stopListeningInternal();
                 return;
             }
 
