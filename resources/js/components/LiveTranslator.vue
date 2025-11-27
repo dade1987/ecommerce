@@ -1923,11 +1923,44 @@ export default {
                         });
 
                         let interim = '';
-                        const results = event.results;
+                        // event.results è un SpeechRecognitionResultList (array-like), non un vero array
+                        // Su mobile Chrome può essere un oggetto array-like, quindi lo convertiamo in array
+                        const results = event.results ? Array.from(event.results) : [];
 
-                        for (let i = event.resultIndex; i < results.length; i++) {
+                        this.debugLog('WebSpeech onresult: results converted', {
+                            originalType: typeof event.results,
+                            isArrayLike: event.results && typeof event.results.length === 'number',
+                            convertedLength: results.length,
+                            isArray: Array.isArray(results),
+                        });
+                        console.log('🔍 WebSpeech onresult: results converted', {
+                            ts: new Date().toISOString(),
+                            originalType: typeof event.results,
+                            isArrayLike: event.results && typeof event.results.length === 'number',
+                            convertedLength: results.length,
+                            isArray: Array.isArray(results),
+                        });
+
+                        if (results.length === 0) {
+                            this.debugLog('WebSpeech onresult: empty results, skipping', {});
+                            console.warn('⚠️ WebSpeech onresult: empty results, skipping', {
+                                ts: new Date().toISOString(),
+                            });
+                            return;
+                        }
+
+                        // Verifica che resultIndex sia valido
+                        const resultIndex = typeof event.resultIndex === 'number' && event.resultIndex >= 0
+                            ? event.resultIndex
+                            : 0;
+                        const startIndex = Math.max(0, Math.min(resultIndex, results.length));
+
+                        for (let i = startIndex; i < results.length; i++) {
                             const res = results[i];
-                            const text = (res[0] && res[0].transcript) || '';
+                            if (!res || !res[0]) {
+                                continue;
+                            }
+                            const text = res[0].transcript || '';
                             if (!text) {
                                 this.debugLog('WebSpeech onresult: empty text in result', {
                                     i,
@@ -2248,14 +2281,14 @@ export default {
 
                         this.debugLog('WebSpeech onresult END', {
                             processedResults: results.length,
-                            finalCount: results.filter(r => r.isFinal).length,
-                            interimCount: results.filter(r => !r.isFinal).length,
+                            finalCount: results.filter(r => r && r.isFinal).length,
+                            interimCount: results.filter(r => r && !r.isFinal).length,
                         });
                         console.log('✅ WebSpeech onresult END', {
                             ts: new Date().toISOString(),
                             processedResults: results.length,
-                            finalCount: results.filter(r => r.isFinal).length,
-                            interimCount: results.filter(r => !r.isFinal).length,
+                            finalCount: results.filter(r => r && r.isFinal).length,
+                            interimCount: results.filter(r => r && !r.isFinal).length,
                         });
                     } catch (err) {
                         this.debugLog('WebSpeech onresult: ERROR', {
@@ -3598,9 +3631,45 @@ export default {
             const tryPlay = () => {
                 try {
                     if (this.youtubePlayer && typeof this.youtubePlayer.playVideo === 'function') {
-                        this.debugLog('playYoutubeAfterMic: calling playVideo()', {});
+                        // Verifica lo stato del video prima di chiamare playVideo()
+                        // Se è già in PLAYING (1) o BUFFERING (3), non chiamare playVideo() di nuovo
+                        let currentState = null;
+                        if (typeof this.youtubePlayer.getPlayerState === 'function') {
+                            try {
+                                currentState = this.youtubePlayer.getPlayerState();
+                            } catch {
+                                // Ignora errori nel recupero dello stato
+                            }
+                        }
+
+                        this.debugLog('playYoutubeAfterMic: checking video state', {
+                            currentState,
+                            stateName: currentState === 1 ? 'PLAYING' : currentState === 2 ? 'PAUSED' : currentState === 3 ? 'BUFFERING' : 'OTHER',
+                        });
+                        console.log('🔍 playYoutubeAfterMic: checking video state', {
+                            ts: new Date().toISOString(),
+                            currentState,
+                            stateName: currentState === 1 ? 'PLAYING' : currentState === 2 ? 'PAUSED' : currentState === 3 ? 'BUFFERING' : 'OTHER',
+                        });
+
+                        // Se il video è già in PLAYING o BUFFERING, non chiamare playVideo()
+                        if (currentState === 1 || currentState === 3) {
+                            this.debugLog('playYoutubeAfterMic: video already playing/buffering, skipping playVideo()', {
+                                currentState,
+                            });
+                            console.log('⏭️ playYoutubeAfterMic: video already playing/buffering, skipping playVideo()', {
+                                ts: new Date().toISOString(),
+                                currentState,
+                            });
+                            return;
+                        }
+
+                        this.debugLog('playYoutubeAfterMic: calling playVideo()', {
+                            currentState,
+                        });
                         console.log('▶️ playYoutubeAfterMic: calling playVideo()', {
                             ts: new Date().toISOString(),
+                            currentState,
                         });
                         this.youtubePlayer.playVideo();
                         this.debugLog('playYoutubeAfterMic: playVideo() called successfully', {});
