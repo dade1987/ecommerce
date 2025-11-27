@@ -2686,6 +2686,24 @@ export default {
                     ts: new Date().toISOString(),
                     speaker,
                 });
+
+                // In modalità YouTube, speaker A: dopo aver acceso il microfono,
+                // avvia il video con un leggero delay per rispettare le policy mobile.
+                if (this.activeTab === 'youtube' && this.activeSpeaker === 'A') {
+                    try {
+                        setTimeout(() => {
+                            try {
+                                if (this.youtubePlayer && typeof this.youtubePlayer.playVideo === 'function') {
+                                    this.youtubePlayer.playVideo();
+                                }
+                            } catch {
+                                // ignora errori del player
+                            }
+                        }, 200);
+                    } catch {
+                        // ignora errori del timer
+                    }
+                }
             } catch (e) {
                 this.debugLog('toggleListeningForLang: ERROR calling recognition.start()', {
                     error: String(e),
@@ -2775,34 +2793,73 @@ export default {
                         ? this.recognition.singleSegmentMode
                         : false;
 
-                    this.debugLog('stopListeningInternal: calling recognition.stop()', {
-                        recognitionLang: this.recognition.lang,
-                        singleSegmentMode,
-                        isBackendEngine,
-                        wasListening,
-                    });
-                    console.log('🛑 stopListeningInternal: calling recognition.stop()', {
-                        ts: new Date().toISOString(),
-                        recognitionLang: this.recognition.lang,
-                        singleSegmentMode,
-                        isBackendEngine,
-                        wasListening,
-                    });
-                    this.recognition.stop();
-                    if (this.recognition.abort) {
-                        this.recognition.abort();
+                    const stopRecognition = () => {
+                        try {
+                            this.debugLog('stopListeningInternal: calling recognition.stop()', {
+                                recognitionLang: this.recognition?.lang,
+                                singleSegmentMode,
+                                isBackendEngine,
+                                wasListening,
+                            });
+                            console.log('🛑 stopListeningInternal: calling recognition.stop()', {
+                                ts: new Date().toISOString(),
+                                recognitionLang: this.recognition?.lang,
+                                singleSegmentMode,
+                                isBackendEngine,
+                                wasListening,
+                            });
+                            if (this.recognition) {
+                                this.recognition.stop();
+                                if (this.recognition.abort) {
+                                    this.recognition.abort();
+                                }
+                            }
+                            this.debugLog('stopListeningInternal: recognition.stop() called successfully', {});
+                            console.log('✅ stopListeningInternal: recognition.stop() called successfully', {
+                                ts: new Date().toISOString(),
+                            });
+                        } catch (err) {
+                            this.debugLog('stopListeningInternal: error stopping recognition', {
+                                error: String(err),
+                                errorName: err?.name,
+                                errorMessage: err?.message,
+                            });
+                            console.error('❌ stopListeningInternal: error stopping recognition', {
+                                ts: new Date().toISOString(),
+                                error: String(err),
+                                errorName: err?.name,
+                                errorMessage: err?.message,
+                                stack: err?.stack,
+                            });
+                        }
+                    };
+
+                    // In modalità YouTube, speaker A: ferma prima il video, poi dopo 200ms spegni il microfono.
+                    if (this.activeTab === 'youtube' && wasActiveSpeaker === 'A') {
+                        try {
+                            if (this.youtubePlayer && typeof this.youtubePlayer.pauseVideo === 'function') {
+                                this.youtubePlayer.pauseVideo();
+                            }
+                        } catch {
+                            // ignora errori del player
+                        }
+                        try {
+                            setTimeout(() => {
+                                stopRecognition();
+                            }, 200);
+                        } catch {
+                            stopRecognition();
+                        }
+                    } else {
+                        stopRecognition();
                     }
-                    this.debugLog('stopListeningInternal: recognition.stop() called successfully', {});
-                    console.log('✅ stopListeningInternal: recognition.stop() called successfully', {
-                        ts: new Date().toISOString(),
-                    });
                 } catch (err) {
-                    this.debugLog('stopListeningInternal: error stopping recognition', {
+                    this.debugLog('stopListeningInternal: error preparing recognition stop', {
                         error: String(err),
                         errorName: err?.name,
                         errorMessage: err?.message,
                     });
-                    console.error('❌ stopListeningInternal: error stopping recognition', {
+                    console.error('❌ stopListeningInternal: error preparing recognition stop', {
                         ts: new Date().toISOString(),
                         error: String(err),
                         errorName: err?.name,
@@ -4101,22 +4158,6 @@ export default {
                                         '5': 'CUED',
                                     }[String(event.data)] || 'UNKNOWN',
                                 });
-
-                                // In modalità YouTube il microfono segue lo stato del player:
-                                // PLAYING → mic acceso, PAUSED/ENDED → mic spento.
-                                if (this.activeTab === 'youtube') {
-                                    if (event.data === 1) {
-                                        // PLAYING
-                                        if (!this.isListening) {
-                                            this.toggleListeningForLang('A');
-                                        }
-                                    } else if (event.data === 0 || event.data === 2) {
-                                        // ENDED o PAUSED
-                                        if (this.isListening) {
-                                            this.stopListeningInternal();
-                                        }
-                                    }
-                                }
                             },
                         },
                     });
