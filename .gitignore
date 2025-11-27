@@ -30,3 +30,5 @@ storage/webscraper/webscraper.sqlite
 # SSL Certificates
 /docker-dev/certs/*.pem
 /docker-dev/certs/*.key
+docker-dev-playwright/certs/avatar-3d-v1.local-key.pem
+docker-dev-playwright/certs/avatar-3d-v1.local.pem

@@ -620,7 +620,7 @@ EOT;
                         }
                     }
 
-                    return [
+                    $result = [
                         'success' => true,
                         'method' => 'hybrid_rag', // New method identifier
                         'answer' => trim($answer),
@@ -629,6 +629,11 @@ EOT;
                         'search_stats' => $hybridResult['stats'],
                         'from_cache' => false,
                     ];
+
+                    // Salva la ricerca nel database WebsiteSearch se team_id è fornito
+                    $this->saveWebsiteSearch($url, $query, $result, $options);
+
+                    return $result;
 
                 } catch (\Exception $e) {
                     Log::channel('webscraper')->error('WebScraper: LLM answer generation failed', [
@@ -730,7 +735,7 @@ EOT;
                 'results_found' => count($searchResults['results']),
             ]);
 
-            return [
+            $result = [
                 'success' => true,
                 'method' => 'scraping_with_indexing',
                 'answer' => $aiAnalysisText,
@@ -739,6 +744,11 @@ EOT;
                 'results_found' => count($searchResults['results']),
                 'indexed_for_future' => true,
             ];
+
+            // Salva la ricerca nel database WebsiteSearch se team_id è fornito
+            $this->saveWebsiteSearch($url, $query, $result, $options);
+
+            return $result;
 
         } catch (\Exception $e) {
             Log::channel('webscraper')->error('WebScraper: Traditional search failed', [
@@ -814,6 +824,41 @@ EOT;
             return [
                 'error' => $e->getMessage(),
             ];
+        }
+    }
+
+    /**
+     * Salva la ricerca nel database WebsiteSearch
+     *
+     * @param string $url URL del sito cercato
+     * @param string $query Query di ricerca
+     * @param array $result Risultato della ricerca
+     * @param array $options Opzioni (team_id, locale)
+     */
+    protected function saveWebsiteSearch(string $url, string $query, array $result, array $options = []): void
+    {
+        try {
+            \App\Models\WebsiteSearch::create([
+                'website' => $url,
+                'query' => $query,
+                'team_id' => $options['team_id'] ?? null,
+                'locale' => $options['locale'] ?? 'it',
+                'response' => $result['answer'] ?? null,
+                'content_length' => strlen($result['answer'] ?? ''),
+                'from_cache' => ($result['method'] === 'hybrid_rag' || ($result['from_cache'] ?? false)),
+            ]);
+
+            Log::channel('webscraper')->info('WebScraper: WebsiteSearch saved', [
+                'url' => $url,
+                'query' => $query,
+                'team_id' => $options['team_id'] ?? null,
+            ]);
+        } catch (\Throwable $e) {
+            Log::channel('webscraper')->error('WebScraper: Failed to save WebsiteSearch', [
+                'error' => $e->getMessage(),
+                'url' => $url,
+                'query' => $query,
+            ]);
         }
     }
 }

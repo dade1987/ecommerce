@@ -113,6 +113,29 @@ class HybridSearchCommand extends Command
             $this->line('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
             $this->info(sprintf('✨ Found %d results in %.2f ms', count($results['results']), $results['stats']['duration_ms']));
 
+            // Salva la ricerca nel database WebsiteSearch
+            try {
+                $websiteUrl = $domain ? "https://{$domain}" : '';
+                $summary = sprintf(
+                    'Trovati %d risultati per la query "%s" nel dominio %s',
+                    count($results['results']),
+                    $query,
+                    $domain ?? 'tutti i domini'
+                );
+                
+                \App\Models\WebsiteSearch::create([
+                    'website' => $websiteUrl,
+                    'query' => $query,
+                    'team_id' => null, // Comando CLI, nessun team associato
+                    'locale' => 'it',
+                    'response' => $summary,
+                    'content_length' => strlen($summary),
+                    'from_cache' => true, // Hybrid search usa contenuto indicizzato
+                ]);
+            } catch (\Throwable $e) {
+                $this->warn('Failed to save WebsiteSearch: ' . $e->getMessage());
+            }
+
             return 0;
 
         } catch (\Exception $e) {

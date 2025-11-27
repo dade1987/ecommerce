@@ -16,6 +16,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (Schema::connection($this->connection)->hasTable('search_result_cache')) {
+            return;
+        }
+
         Schema::connection($this->connection)->create('search_result_cache', function (Blueprint $table) {
             $table->id();
             $table->text('site_url');
