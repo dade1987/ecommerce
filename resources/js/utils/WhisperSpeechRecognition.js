@@ -62,23 +62,32 @@ export default class WhisperSpeechRecognition {
                 return;
             }
 
-            // Su mobile alcuni device/Chrome combinano male le impostazioni "raw" (tutto false)
-            // con il routing audio, producendo solo rumore. Per avvicinarci al comportamento
-            // dei siti di registrazione standard, su dispositivi "coarse pointer" (touch/mobile)
-            // chiediamo semplicemente audio: true e lasciamo al sistema i filtri predefiniti.
-            let audioConstraints = {
+            // Strategia:
+            // - Per sorgente "speaker" (YouTube / casse): usiamo sempre constraint "raw"
+            //   senza echoCancellation/noiseSuppression, per non far sparire l'audio del video.
+            // - Per sorgente "mic" (voce diretta):
+            //   - desktop: constraint "raw" (più controllo).
+            //   - mobile (pointer: coarse): audio: true, come i siti di registrazione standard.
+            let audioConstraints;
+            const rawConstraints = {
                 echoCancellation: false,
                 noiseSuppression: false,
                 autoGainControl: false,
                 channelCount: 1,
             };
-            try {
-                if (typeof window !== 'undefined' && window.matchMedia &&
-                    window.matchMedia('(pointer: coarse)').matches) {
-                    audioConstraints = true;
+
+            if (this.sourceHint === 'speaker') {
+                audioConstraints = rawConstraints;
+            } else {
+                audioConstraints = rawConstraints;
+                try {
+                    if (typeof window !== 'undefined' && window.matchMedia &&
+                        window.matchMedia('(pointer: coarse)').matches) {
+                        audioConstraints = true;
+                    }
+                } catch {
+                    // in caso di errore restiamo con i constraint "raw"
                 }
-            } catch {
-                // in caso di errore manteniamo i constraint "raw"
             }
 
             this._mediaStream = await navigator.mediaDevices.getUserMedia({

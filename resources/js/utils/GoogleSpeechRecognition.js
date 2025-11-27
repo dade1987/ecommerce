@@ -63,22 +63,32 @@ export default class GoogleSpeechRecognition {
                 return;
             }
 
-            // Come per Whisper: su mobile alcuni device producono solo rumore se forziamo
-            // tutti i filtri a false. Per avvicinarci al comportamento dei siti di registrazione,
-            // su dispositivi "coarse pointer" chiediamo semplicemente audio: true.
-            let audioConstraints = {
+            // Stessa strategia di Whisper:
+            // - sourceHint === 'speaker' (YouTube / casse) → constraint "raw" senza echo/noise,
+            //   per non cancellare l'audio del video.
+            // - altrimenti:
+            //   - desktop → constraint raw
+            //   - mobile (pointer: coarse) → audio:true, come i siti di registrazione.
+            let audioConstraints;
+            const rawConstraints = {
                 echoCancellation: false,
                 noiseSuppression: false,
                 autoGainControl: false,
                 channelCount: 1,
             };
-            try {
-                if (typeof window !== 'undefined' && window.matchMedia &&
-                    window.matchMedia('(pointer: coarse)').matches) {
-                    audioConstraints = true;
+
+            if (this.sourceHint === 'speaker') {
+                audioConstraints = rawConstraints;
+            } else {
+                audioConstraints = rawConstraints;
+                try {
+                    if (typeof window !== 'undefined' && window.matchMedia &&
+                        window.matchMedia('(pointer: coarse)').matches) {
+                        audioConstraints = true;
+                    }
+                } catch {
+                    // se matchMedia fallisce, restiamo con i constraint raw
                 }
-            } catch {
-                // in caso di errore manteniamo i constraint "raw"
             }
 
             this._mediaStream = await navigator.mediaDevices.getUserMedia({
