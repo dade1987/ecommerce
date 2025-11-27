@@ -2228,18 +2228,10 @@ export default {
                     console.warn('⚠️ ensureMicPermission: no mediaDevices/getUserMedia');
                     return true;
                 }
-                // Usiamo i constraint grezzi (senza filtri) per tutti i browser, così il
-                // segnale resta il più possibile fedele sia per voce diretta che per audio dalle casse.
+                // Per il semplice check dei permessi microfono non vogliamo toccare
+                // la configurazione audio di Android: usiamo audio:true ovunque.
                 const constraints = {
-                    audio: {
-                        echoCancellation: false,
-                        noiseSuppression: false,
-                        autoGainControl: false,
-                        sampleRate: { ideal: 48000 },
-                        channelCount: 1,
-                        latency: 0,
-                        volume: 1.0,
-                    },
+                    audio: true,
                 };
                 this.debugLog('ensureMicPermission: calling getUserMedia', { constraints });
                 console.log('🎤 ensureMicPermission: calling getUserMedia', {

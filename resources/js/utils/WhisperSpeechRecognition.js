@@ -62,32 +62,22 @@ export default class WhisperSpeechRecognition {
                 return;
             }
 
-            // Strategia:
-            // - Per sorgente "speaker" (YouTube / casse): usiamo sempre constraint "raw"
-            //   senza echoCancellation/noiseSuppression, per non far sparire l'audio del video.
-            // - Per sorgente "mic" (voce diretta):
-            //   - desktop: constraint "raw" (più controllo).
-            //   - mobile (pointer: coarse): audio: true, come i siti di registrazione standard.
-            let audioConstraints;
-            const rawConstraints = {
+            // Su mobile non dobbiamo mai forzare i filtri audio: lasciamo la
+            // configurazione di Android invariata usando audio:true.
+            // Su desktop manteniamo i constraint "raw" per avere un segnale pulito.
+            let audioConstraints = {
                 echoCancellation: false,
                 noiseSuppression: false,
                 autoGainControl: false,
                 channelCount: 1,
             };
-
-            if (this.sourceHint === 'speaker') {
-                audioConstraints = rawConstraints;
-            } else {
-                audioConstraints = rawConstraints;
-                try {
-                    if (typeof window !== 'undefined' && window.matchMedia &&
-                        window.matchMedia('(pointer: coarse)').matches) {
-                        audioConstraints = true;
-                    }
-                } catch {
-                    // in caso di errore restiamo con i constraint "raw"
+            try {
+                if (typeof window !== 'undefined' && window.matchMedia &&
+                    window.matchMedia('(pointer: coarse)').matches) {
+                    audioConstraints = true;
                 }
+            } catch {
+                // in caso di errore restiamo con i constraint raw (desktop)
             }
 
             this._mediaStream = await navigator.mediaDevices.getUserMedia({
