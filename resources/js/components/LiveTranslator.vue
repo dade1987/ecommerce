@@ -2483,15 +2483,7 @@ export default {
                     currentMicLang: this.currentMicLang,
                     activeTab: this.activeTab,
                 });
-                // IMPORTANTE: in modalità singleSegmentMode, l'audio viene inviato al backend
-                // solo quando viene chiamato recognition.stop(). Quindi dobbiamo fermare
-                // il recognition PRIMA di mettere in pausa il video, per assicurarci che
-                // l'audio venga inviato correttamente.
                 this.stopListeningInternal();
-                // Dopo aver fermato il recognition (che invia l'audio), possiamo mettere in pausa il video
-                if (this.activeTab === 'youtube') {
-                    this.pauseYoutubeIfNeeded();
-                }
                 return;
             }
 
@@ -2805,6 +2797,14 @@ export default {
                 }
             }
 
+            // In modalità YouTube, la logica di pausa del video è centralizzata qui:
+            // ogni volta che il microfono viene spento (manuale o automatico), mettiamo
+            // in pausa il player UNA sola volta. Non ci sono altre pause sparse
+            // in startTranslationStream o processTtsQueue.
+            if (this.activeTab === 'youtube') {
+                this.pauseYoutubeIfNeeded();
+            }
+
             if (this.recognition) {
                 try {
                     const isBackendEngine = this.useWhisperEffective || this.useGoogleEffective;
@@ -2901,55 +2901,9 @@ export default {
                 currentMicLang: this.currentMicLang,
             });
 
-            // In modalità YouTube, se sembra una frase "vera" (non solo una parola)
-            // mettiamo SUBITO in pausa il video, senza aspettare che parta il TTS.
-            // IMPORTANTE: mettiamo in pausa SOLO quando il microfono è spento (isListening === false)
-            // o quando è una frase finale completa, per evitare pause continue durante la registrazione.
-            if (commit && this.activeTab === 'youtube' && this.youtubeAutoPauseEnabled) {
-                const words = safeText.split(/\s+/).filter(Boolean);
-                const hasSentencePunct = /[.!?…]$/.test(safeText);
-                const longEnough = safeText.length >= 15 || words.length >= 4;
-                const shouldPauseForSentence = hasSentencePunct || longEnough;
-                // Mettiamo in pausa SOLO se:
-                // 1. Il microfono è spento (l'utente ha finito di parlare), OPPURE
-                // 2. È una frase finale completa con punteggiatura (non durante registrazione continua)
-                const shouldPause = shouldPauseForSentence && (!this.isListening || hasSentencePunct);
-                this.debugLog('startTranslationStream: YouTube pause check', {
-                    shouldPause,
-                    shouldPauseForSentence,
-                    isListening: this.isListening,
-                    hasSentencePunct,
-                    longEnough,
-                    wordsCount: words.length,
-                    textLength: safeText.length,
-                });
-                console.log('⏸️ startTranslationStream: YouTube pause check', {
-                    ts: new Date().toISOString(),
-                    shouldPause,
-                    shouldPauseForSentence,
-                    isListening: this.isListening,
-                    hasSentencePunct,
-                    longEnough,
-                    wordsCount: words.length,
-                    textLength: safeText.length,
-                });
-                if (shouldPause) {
-                    this.debugLog('startTranslationStream: pausing YouTube video', {
-                        text: safeText.substring(0, 50),
-                        isListening: this.isListening,
-                        hasSentencePunct,
-                        longEnough,
-                    });
-                    console.log('⏸️ YouTube: metto in pausa video', {
-                        ts: new Date().toISOString(),
-                        text: safeText.substring(0, 50),
-                        isListening: this.isListening,
-                        hasSentencePunct,
-                        longEnough,
-                    });
-                    this.pauseYoutubeIfNeeded();
-                }
-            }
+            // NOTA: la pausa del video YouTube è ora gestita SOLO quando il microfono viene spento
+            // (stopListeningInternal), per evitare interazioni imprevedibili tra WebSpeech,
+            // YouTube player e TTS, soprattutto su mobile. Qui non tocchiamo più il player.
 
             // Se è già attivo uno stream e questa è una richiesta finale (commit: true),
             // chiudiamo lo stream precedente per dare priorità alla frase completa
@@ -3335,14 +3289,10 @@ export default {
                 activeSpeaker: this.activeSpeaker,
             });
 
-            // In modalità YouTube, mettiamo in pausa il video mentre parte il TTS
-            if (this.activeTab === 'youtube') {
-                this.debugLog('processTtsQueue: pausing YouTube video for TTS', {});
-                console.log('⏸️ processTtsQueue: pausing YouTube video for TTS', {
-                    ts: new Date().toISOString(),
-                });
-                this.pauseYoutubeIfNeeded();
-            }
+            // In modalità YouTube NON tocchiamo più il player da qui:
+            // la pausa del video è gestita solo quando il microfono viene spento
+            // (stopListeningInternal). Questo evita doppie pause e comportamenti
+            // imprevedibili dopo la prima traduzione, soprattutto su mobile.
 
             // Se il microfono è attivo, mettilo in pausa mentre il TTS parla
             this.wasListeningBeforeTts = this.isListening;
