@@ -1835,10 +1835,19 @@ export default {
                     this.webSpeechDebugSeq += 1;
                     this.lastWebSpeechEventAt = Date.now();
 
+                    const isBackendEngine = this.useWhisperEffective || this.useGoogleEffective;
+                    const singleSegmentMode = isBackendEngine && this.recognition && typeof this.recognition === 'object'
+                        ? this.recognition.singleSegmentMode
+                        : false;
+
                     this.debugLog('WebSpeech onend', {
                         isListening: this.isListening,
                         autoRestart: this.autoRestart,
                         useWhisper: this.useWhisperEffective,
+                        useGoogle: this.useGoogleEffective,
+                        isBackendEngine,
+                        singleSegmentMode,
+                        timeSinceLastResult: this.lastWebSpeechEventAt > 0 ? Date.now() - this.lastWebSpeechEventAt : null,
                     });
                     console.log('🛑 WebSpeech ENDED', {
                         seq: this.webSpeechDebugSeq,
@@ -1848,6 +1857,11 @@ export default {
                         currentMicLang: this.currentMicLang,
                         activeSpeaker: this.activeSpeaker,
                         activeTab: this.activeTab,
+                        useWhisper: this.useWhisperEffective,
+                        useGoogle: this.useGoogleEffective,
+                        isBackendEngine,
+                        singleSegmentMode,
+                        timeSinceLastResult: this.lastWebSpeechEventAt > 0 ? Date.now() - this.lastWebSpeechEventAt : null,
                     });
 
                     // Niente auto-restart in modalità Whisper per evitare loop strani
@@ -1866,9 +1880,15 @@ export default {
                 this.recognition.onresult = (event) => {
                     try {
                         this.webSpeechDebugSeq += 1;
-                        this.lastWebSpeechEventAt = Date.now();
+                        const resultTimestamp = Date.now();
+                        this.lastWebSpeechEventAt = resultTimestamp;
 
                         const engine = this.useGoogleEffective ? 'gemini' : (this.useWhisperEffective ? 'whisper' : 'webspeech');
+                        const isBackendEngine = this.useWhisperEffective || this.useGoogleEffective;
+                        const singleSegmentMode = isBackendEngine && this.recognition && typeof this.recognition === 'object'
+                            ? this.recognition.singleSegmentMode
+                            : false;
+
                         this.debugLog('WebSpeech onresult START', {
                             engine,
                             resultIndex: event.resultIndex,
@@ -1881,6 +1901,8 @@ export default {
                             useWhisper: this.useWhisperEffective,
                             isMobileLowPower: this.isMobileLowPower,
                             isListening: this.isListening,
+                            isBackendEngine,
+                            singleSegmentMode,
                         });
                         console.log('📥 WebSpeech RESULT EVENT START', {
                             engine,
@@ -1896,6 +1918,8 @@ export default {
                             useWhisper: this.useWhisperEffective,
                             isMobileLowPower: this.isMobileLowPower,
                             isListening: this.isListening,
+                            isBackendEngine,
+                            singleSegmentMode,
                         });
 
                         let interim = '';
@@ -2664,18 +2688,35 @@ export default {
         },
 
         stopListeningInternal() {
+            const wasListening = this.isListening;
+            const wasActiveSpeaker = this.activeSpeaker;
+            const isBackendEngine = this.useWhisperEffective || this.useGoogleEffective;
+            const singleSegmentMode = isBackendEngine && this.recognition && typeof this.recognition === 'object'
+                ? this.recognition.singleSegmentMode
+                : false;
+
             this.debugLog('stopListeningInternal START', {
-                wasListening: this.isListening,
-                activeSpeaker: this.activeSpeaker,
+                wasListening,
+                activeSpeaker: wasActiveSpeaker,
                 activeTab: this.activeTab,
                 hasRecognition: !!this.recognition,
+                isBackendEngine,
+                singleSegmentMode,
+                useWhisperEffective: this.useWhisperEffective,
+                useGoogleEffective: this.useGoogleEffective,
+                whisperSendOnStopOnlyEffective: this.whisperSendOnStopOnlyEffective,
             });
             console.log('🛑 stopListeningInternal START', {
                 ts: new Date().toISOString(),
-                wasListening: this.isListening,
-                activeSpeaker: this.activeSpeaker,
+                wasListening,
+                activeSpeaker: wasActiveSpeaker,
                 activeTab: this.activeTab,
                 hasRecognition: !!this.recognition,
+                isBackendEngine,
+                singleSegmentMode,
+                useWhisperEffective: this.useWhisperEffective,
+                useGoogleEffective: this.useGoogleEffective,
+                whisperSendOnStopOnlyEffective: this.whisperSendOnStopOnlyEffective,
             });
 
             this.isListening = false;
@@ -2709,12 +2750,23 @@ export default {
 
             if (this.recognition) {
                 try {
+                    const isBackendEngine = this.useWhisperEffective || this.useGoogleEffective;
+                    const singleSegmentMode = isBackendEngine && this.recognition && typeof this.recognition === 'object'
+                        ? this.recognition.singleSegmentMode
+                        : false;
+
                     this.debugLog('stopListeningInternal: calling recognition.stop()', {
                         recognitionLang: this.recognition.lang,
+                        singleSegmentMode,
+                        isBackendEngine,
+                        wasListening,
                     });
                     console.log('🛑 stopListeningInternal: calling recognition.stop()', {
                         ts: new Date().toISOString(),
                         recognitionLang: this.recognition.lang,
+                        singleSegmentMode,
+                        isBackendEngine,
+                        wasListening,
                     });
                     this.recognition.stop();
                     if (this.recognition.abort) {
@@ -2727,10 +2779,15 @@ export default {
                 } catch (err) {
                     this.debugLog('stopListeningInternal: error stopping recognition', {
                         error: String(err),
+                        errorName: err?.name,
+                        errorMessage: err?.message,
                     });
                     console.error('❌ stopListeningInternal: error stopping recognition', {
                         ts: new Date().toISOString(),
                         error: String(err),
+                        errorName: err?.name,
+                        errorMessage: err?.message,
+                        stack: err?.stack,
                     });
                 }
             }
