@@ -1840,20 +1840,37 @@ export default {
                         ? this.recognition.singleSegmentMode
                         : false;
 
+                    const timeSinceLastResult = this.lastWebSpeechEventAt > 0
+                        ? Date.now() - this.lastWebSpeechEventAt
+                        : null;
+                    // In modalità YouTube EVITIAMO l'auto-restart continuo del WebSpeech,
+                    // perché genererebbe un loop di onstart/onend che interagisce male
+                    // con il player YouTube (soprattutto su mobile). Manteniamo
+                    // l'auto-restart solo nella modalità "call".
+                    const shouldAutoRestart =
+                        this.activeTab === 'call' &&
+                        this.isListening &&
+                        this.autoRestart &&
+                        !this.useWhisperEffective &&
+                        !this.useGoogleEffective;
+
                     this.debugLog('WebSpeech onend', {
                         isListening: this.isListening,
                         autoRestart: this.autoRestart,
+                        shouldAutoRestart,
+                        activeTab: this.activeTab,
                         useWhisper: this.useWhisperEffective,
                         useGoogle: this.useGoogleEffective,
                         isBackendEngine,
                         singleSegmentMode,
-                        timeSinceLastResult: this.lastWebSpeechEventAt > 0 ? Date.now() - this.lastWebSpeechEventAt : null,
+                        timeSinceLastResult,
                     });
                     console.log('🛑 WebSpeech ENDED', {
                         seq: this.webSpeechDebugSeq,
                         ts: new Date().toISOString(),
                         isListening: this.isListening,
                         autoRestart: this.autoRestart,
+                        shouldAutoRestart,
                         currentMicLang: this.currentMicLang,
                         activeSpeaker: this.activeSpeaker,
                         activeTab: this.activeTab,
@@ -1861,11 +1878,13 @@ export default {
                         useGoogle: this.useGoogleEffective,
                         isBackendEngine,
                         singleSegmentMode,
-                        timeSinceLastResult: this.lastWebSpeechEventAt > 0 ? Date.now() - this.lastWebSpeechEventAt : null,
+                        timeSinceLastResult,
                     });
 
-                    // Niente auto-restart in modalità Whisper per evitare loop strani
-                    if (this.isListening && this.autoRestart && !this.useWhisperEffective && !this.useGoogleEffective) {
+                    // Niente auto-restart:
+                    // - in modalità Whisper / Gemini (backend)
+                    // - in modalità YouTube (per evitare loop con il player)
+                    if (shouldAutoRestart) {
                         try {
                             this.recognition.start();
                             console.log('🔄 WebSpeech AUTO-RESTART');
