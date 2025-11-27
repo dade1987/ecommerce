@@ -3596,6 +3596,19 @@ export default {
                 hasPlayer: !!this.youtubePlayer,
                 hasPlayVideo: !!(this.youtubePlayer && typeof this.youtubePlayer.playVideo === 'function'),
             });
+
+            // Su mobile, per evitare conflitti con le policy audio/video di Chrome (che possono causare
+            // pause immediate se il play è avviato da script mentre il mic è attivo),
+            // EVITIAMO di far partire il video automaticamente. Lasciamo che sia l'utente
+            // a premere Play sul video.
+            if (this.isMobileLowPower) {
+                this.debugLog('playYoutubeAfterMic: skipping auto-play on mobile', {});
+                console.log('📱 playYoutubeAfterMic: skipping auto-play on mobile (user must tap Play)', {
+                    ts: new Date().toISOString(),
+                });
+                return;
+            }
+
             // Prova a far partire il video non appena il player è pronto.
             const tryPlay = () => {
                 try {
