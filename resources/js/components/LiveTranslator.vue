@@ -94,20 +94,20 @@
 
                 <div class="flex flex-col items-center gap-1 text-slate-300">
                     <div class="flex items-center justify-center gap-2 text-[13px]">
-                        <input id="useWhisper" type="checkbox" v-model="useWhisperCall"
-                            @change="onRecognitionModeChange('call')"
-                            class="h-3.5 w-3.5 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
-                        <label for="useWhisper" class="cursor-pointer select-none">
-                            {{ ui.whisperLabel }}
-                        </label>
-                    </div>
-
-                    <div class="flex items-center justify-center gap-2 text-[13px] mt-1">
                         <input id="useGoogleCall" type="checkbox" v-model="useGoogleCall"
                             @change="onGoogleRecognitionModeChange('call')"
                             class="h-3.5 w-3.5 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
                         <label for="useGoogleCall" class="cursor-pointer select-none">
                             {{ ui.googleCloudLabel }}
+                        </label>
+                    </div>
+
+                    <div class="flex items-center justify-center gap-2 text-[13px] mt-1">
+                        <input id="useWhisper" type="checkbox" v-model="useWhisperCall"
+                            @change="onRecognitionModeChange('call')"
+                            class="h-3.5 w-3.5 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
+                        <label for="useWhisper" class="cursor-pointer select-none">
+                            {{ ui.whisperLabel }}
                         </label>
                     </div>
 
@@ -405,6 +405,11 @@
                             {{ ui.whisperSingleSegmentLabel }}
                         </label>
                     </div>
+                    <label class="flex items-center gap-2 text-[13px] cursor-pointer select-none mt-2">
+                        <input type="checkbox" v-model="readTranslationEnabledYoutube"
+                            class="h-3.5 w-3.5 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
+                        <span>{{ ui.dubbingLabel }}</span>
+                    </label>
                 </div>
 
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -452,44 +457,21 @@
                             </div>
                         </div>
 
-                        <!-- Controllo microfono per modalità YouTube (interprete umano) -->
-                        <div class="mt-4 space-y-3">
-                            <button type="button" @click="toggleListeningForLang('A')" :disabled="!langA || !langB"
-                                class="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition
-                                    focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 border"
-                                :class="activeSpeaker === 'A' && isListening
+                        <!-- Indicatore stato video/microfono per modalità YouTube (non cliccabile) -->
+                        <div class="mt-4">
+                            <div class="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold border select-none cursor-default"
+                                :class="isListening
                                     ? 'bg-emerald-600 text-white border-emerald-400 shadow-lg shadow-emerald-500/30'
-                                    : 'bg-slate-700 text-slate-100 border-slate-500 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed'">
+                                    : 'bg-slate-700 text-slate-100 border-slate-500'">
                                 <span
                                     class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-black/30 border border-slate-500">
                                     <span class="inline-block w-1.5 h-3 rounded-full"
-                                        :class="activeSpeaker === 'A' && isListening ? 'bg-red-400 animate-pulse' : 'bg-slate-300'">
+                                        :class="isListening ? 'bg-red-400 animate-pulse' : 'bg-slate-300'">
                                     </span>
                                 </span>
                                 <span>
-                                    {{ activeSpeaker === 'A' && isListening ? ui.youtubeMicAActive : ui.youtubeMicAHelp
-                                    }}
+                                    {{ youtubeStatusLabel }}
                                 </span>
-                            </button>
-                            <div class="space-y-1">
-                                <label
-                                    class="flex items-start gap-2 text-[11px] text-slate-300 cursor-pointer select-none">
-                                    <input type="checkbox" v-model="youtubeAutoPauseEnabled"
-                                        class="mt-0.5 h-3.5 w-3.5 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
-                                    <span>
-                                        <span class="block font-semibold">{{ ui.youtubeAutoPauseLabel }}</span>
-                                        <span class="block text-slate-400">{{ ui.youtubeAutoPauseHint }}</span>
-                                    </span>
-                                </label>
-                                <label
-                                    class="flex items-start gap-2 text-[11px] text-slate-300 cursor-pointer select-none">
-                                    <input type="checkbox" v-model="youtubeAutoResumeEnabled"
-                                        class="mt-0.5 h-3.5 w-3.5 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
-                                    <span>
-                                        <span class="block font-semibold">{{ ui.youtubeAutoResumeLabel }}</span>
-                                        <span class="block text-slate-400">{{ ui.youtubeAutoResumeHint }}</span>
-                                    </span>
-                                </label>
                             </div>
                         </div>
                     </div>
@@ -685,10 +667,8 @@ export default {
             youtubePlayer: null,
             youtubeLangSource: '',
             youtubeLangTarget: '',
-            lastYoutubeFinalForManualStop: '',
             isYoutubePlayerReady: false,
-            youtubeAutoResumeEnabled: true,
-            youtubeAutoPauseEnabled: false, // Default: disabilitato, l'utente controlla manualmente
+            youtubePlayerState: -1,
 
             availableLanguages: [
                 // Lingue principali europee
@@ -738,7 +718,7 @@ export default {
                     subtitle: 'Parla in qualsiasi lingua: vedrai il testo originale e la traduzione live.',
                     langALabel: 'Lingua A',
                     langBLabel: 'Lingua B',
-                    whisperLabel: 'Usa Whisper (OpenAI) invece del riconoscimento vocale del browser',
+                    whisperLabel: 'Usa Whisper (OpenAI)',
                     whisperForcedNote: '',
                     whisperSingleSegmentLabel: 'Invia l’audio solo quando spengo il microfono (meno chiamate, frasi più complete)',
                     googleCloudLabel: 'Usa Gemini (compatibile con tutti i browser)',
@@ -812,13 +792,19 @@ export default {
                     youtubeOriginalPlaceholder: 'Inizia a parlare sopra il video per vedere qui le frasi riconosciute.',
                     youtubeTranslationTitle: 'Traduzione in tempo reale',
                     youtubeTranslationPlaceholder: 'Le traduzioni delle frasi parlate appariranno qui, mentre il video si mette in pausa durante il doppiaggio.',
+                    youtubeStatusPlaying: 'Riproduzione in corso',
+                    youtubeStatusPaused: 'Pausa',
+                    youtubeStatusTranscriptionRequested: 'Trascrizione richiesta',
+                    youtubeStatusTranscriptionDone: 'Trascrizione arrivata',
+                    youtubeStatusTranslationRequested: 'Traduzione richiesta',
+                    youtubeStatusReadingTranslation: 'Lettura traduzione',
                 },
                 en: {
                     title: 'PolyGlide – the virtual interpreter that lets you talk to anyone',
                     subtitle: 'Speak in any language: you will see the original text and the live translation.',
                     langALabel: 'Language A',
                     langBLabel: 'Language B',
-                    whisperLabel: 'Use Whisper (OpenAI) instead of the browser speech recognition',
+                    whisperLabel: 'Use Whisper (OpenAI)',
                     whisperForcedNote: '',
                     whisperSingleSegmentLabel: 'Send audio only when I stop the microphone (fewer calls, more complete sentences)',
                     googleCloudLabel: 'Use Gemini (compatible with all browsers)',
@@ -892,6 +878,12 @@ export default {
                     youtubeOriginalPlaceholder: 'Start speaking over the video to see recognized phrases here.',
                     youtubeTranslationTitle: 'Real-time translation',
                     youtubeTranslationPlaceholder: 'Translations of spoken phrases will appear here, while the video pauses during dubbing.',
+                    youtubeStatusPlaying: 'Playback in progress',
+                    youtubeStatusPaused: 'Paused',
+                    youtubeStatusTranscriptionRequested: 'Transcription requested',
+                    youtubeStatusTranscriptionDone: 'Transcription received',
+                    youtubeStatusTranslationRequested: 'Translation requested',
+                    youtubeStatusReadingTranslation: 'Reading translation',
                 },
                 es: {
                     title: 'PolyGlide – el intérprete virtual que te permite hablar con cualquiera',
@@ -1469,6 +1461,35 @@ export default {
                 (this.translationTokens && this.translationTokens.length > 0)
             );
         },
+        youtubeStatusLabel() {
+            if (this.activeTab !== 'youtube') {
+                return '';
+            }
+
+            if (this.isTtsPlaying) {
+                return this.ui.youtubeStatusReadingTranslation;
+            }
+
+            if (this.currentStream) {
+                return this.ui.youtubeStatusTranslationRequested;
+            }
+
+            if (this.isListening) {
+                // Il microfono è attivo ma non stiamo ancora leggendo la traduzione:
+                // consideriamo la trascrizione in corso/richiesta.
+                return this.ui.youtubeStatusTranscriptionRequested;
+            }
+
+            if (this.originalConfirmed) {
+                return this.ui.youtubeStatusTranscriptionDone;
+            }
+
+            if (this.youtubePlayerState === 1) {
+                return this.ui.youtubeStatusPlaying;
+            }
+
+            return this.ui.youtubeStatusPaused;
+        },
     },
     watch: {
         youtubeUrl() {
@@ -1679,29 +1700,30 @@ export default {
                 if (this.isChromeWithWebSpeech) {
                     // Chrome con WebSpeech disponibile:
                     //  - default: WebSpeech nativo per tab "call" (nessun motore backend attivo)
-                    //  - YouTube: Gemini sempre attivo di default (più affidabile per video)
-                    //  - autoRestart attivo per mantenere il comportamento "streaming" del browser
+                    //  - YouTube: nessun motore backend selezionato di default
+                    //  - autoRestart attivo per mantenere il comportamento "streaming" del browser sulla tab "call"
                     this.useGoogleCall = false;
-                    this.useGoogleYoutube = true; // YouTube: sempre Gemini di default
+                    this.useGoogleYoutube = false;
                     this.useWhisperCall = false;
                     this.useWhisperYoutube = false;
                     this.autoRestart = true;
                     this.statusMessage = this.ui.statusBrowserModeOn;
                 } else {
                     // Altri browser (senza WebSpeech affidabile):
-                    //  - prima scelta: Gemini (Google)
+                    //  - prima scelta: Gemini (Google) sulla tab "call"
                     //  - seconda scelta: Whisper (attivabile manualmente)
+                    //  - YouTube: nessun motore backend selezionato di default
                     this.useGoogleCall = true;
-                    this.useGoogleYoutube = true;
+                    this.useGoogleYoutube = false;
                     this.useWhisperCall = false;
                     this.useWhisperYoutube = false;
                     this.autoRestart = false;
                 }
             } catch {
                 this.isChromeWithWebSpeech = false;
-                // In caso di errore conservativo: usa Gemini come fallback principale.
+                // In caso di errore conservativo: usa Gemini come fallback principale (solo tab "call").
                 this.useGoogleCall = true;
-                this.useGoogleYoutube = true;
+                this.useGoogleYoutube = false;
                 this.useWhisperCall = false;
                 this.useWhisperYoutube = false;
                 this.autoRestart = false;
@@ -1791,24 +1813,17 @@ export default {
                         useGoogle: this.useGoogleEffective,
                         useWhisper: this.useWhisperEffective,
                     });
-
-                    // In modalità YouTube facciamo partire il video solo quando
-                    // il microfono è effettivamente attivo (evento onstart),
-                    // non con un timeout arbitrario.
-                    if (this.activeTab === 'youtube' && this.activeSpeaker === 'A' && this.isListening) {
-                        try {
-                            this.playYoutubeAfterMic();
-                        } catch {
-                            // se l'autoplay è bloccato, l'utente può premere play manualmente
-                        }
-                    }
                 };
 
                 this.recognition.onerror = (e) => {
                     const err = e && (e.error || e.message) ? String(e.error || e.message) : 'errore sconosciuto';
                     const errorCode = e && e.error ? e.error : 'unknown';
-                    // Non mostriamo il messaggio di errore all'utente, solo nel debug
-                    this.isListening = false;
+                    // Non mostriamo il messaggio di errore all'utente, solo nel debug.
+                    // In modalità YouTube non spegniamo il microfono in base agli eventi WebSpeech:
+                    // lo stato del mic segue solo il player (play/pause).
+                    if (this.activeTab === 'call') {
+                        this.isListening = false;
+                    }
 
                     this.webSpeechDebugSeq += 1;
                     this.lastWebSpeechEventAt = Date.now();
@@ -2026,9 +2041,9 @@ export default {
                                         text: clean,
                                     });
 
-                                    // MOBILE: niente interim, ma usiamo i final progressivi
+                                    // MOBILE (solo tab "call"): niente interim, ma usiamo i final progressivi
                                     // per aggiornare/mergeare l'ULTIMA riga quando è la stessa frase.
-                                    if (this.isMobileLowPower) {
+                                    if (this.isMobileLowPower && this.activeTab === 'call') {
                                         this.debugLog('WebSpeech onresult: MOBILE processing final', {
                                             text: clean.substring(0, 50),
                                             textLength: clean.length,
@@ -2200,66 +2215,22 @@ export default {
                                         : phraseWithDash;
                                     this.originalInterim = '';
 
-                                    // In modalità YouTube con rilevamento automatico delle pause disattivato,
-                                    // memorizziamo l'ultima frase finale per tradurla quando l'utente spegne il microfono.
-                                    if (this.activeTab === 'youtube' && !this.youtubeAutoPauseEnabled) {
-                                        this.lastYoutubeFinalForManualStop = clean;
-                                        this.debugLog('WebSpeech onresult: storing YouTube final for manual stop', {
-                                            text: clean.substring(0, 50),
-                                        });
-                                        console.log('💾 WebSpeech onresult: storing YouTube final for manual stop', {
-                                            ts: new Date().toISOString(),
-                                            text: clean.substring(0, 50),
-                                        });
-                                    }
-
-                                    // In modalità YouTube, se il rilevamento automatico delle pause
-                                    // è disattivato, non traduciamo mentre il microfono è ancora acceso.
-                                    // Traduciamo solo quando arriva il final DOPO che l'utente ha spento il mic.
-                                    const shouldTranslateNow =
-                                        this.activeTab !== 'youtube' ||
-                                        this.youtubeAutoPauseEnabled ||
-                                        !this.isListening;
-
-                                    this.debugLog('WebSpeech onresult: translation decision', {
-                                        shouldTranslateNow,
-                                        activeTab: this.activeTab,
-                                        youtubeAutoPauseEnabled: this.youtubeAutoPauseEnabled,
-                                        isListening: this.isListening,
+                                    // Traduzione sempre immediata a fine frase, in qualunque tab.
+                                    this.debugLog('WebSpeech onresult: starting translation', {
+                                        text: clean.substring(0, 50),
                                     });
-                                    console.log('🔍 WebSpeech onresult: translation decision', {
+                                    console.log('📤 WebSpeech onresult: starting translation', {
                                         ts: new Date().toISOString(),
-                                        shouldTranslateNow,
-                                        activeTab: this.activeTab,
-                                        youtubeAutoPauseEnabled: this.youtubeAutoPauseEnabled,
-                                        isListening: this.isListening,
+                                        text: clean.substring(0, 50),
                                     });
-
-                                    if (shouldTranslateNow) {
-                                        this.debugLog('WebSpeech onresult: starting translation', {
-                                            text: clean.substring(0, 50),
-                                        });
-                                        console.log('📤 WebSpeech onresult: starting translation', {
-                                            ts: new Date().toISOString(),
-                                            text: clean.substring(0, 50),
-                                        });
-                                        this.startTranslationStream(clean, {
-                                            commit: true,
-                                            mergeLast: false,
-                                        });
-                                    } else {
-                                        this.debugLog('WebSpeech onresult: skipping translation (YouTube manual mode)', {
-                                            text: clean.substring(0, 50),
-                                        });
-                                        console.log('⏭️ WebSpeech onresult: skipping translation (YouTube manual mode)', {
-                                            ts: new Date().toISOString(),
-                                            text: clean.substring(0, 50),
-                                        });
-                                    }
+                                    this.startTranslationStream(clean, {
+                                        commit: true,
+                                        mergeLast: false,
+                                    });
                                 }
                             } else {
                                 // INTERIM solo su desktop / non-low-power
-                                if (this.isMobileLowPower) {
+                                if (this.isMobileLowPower && this.activeTab === 'call') {
                                     continue;
                                 }
                                 interim = [interim, text.trim().toLowerCase()].filter(Boolean).join(' ');
@@ -2795,22 +2766,6 @@ export default {
                     });
                     this.lastYoutubeFinalForManualStop = '';
                 }
-            }
-
-            // In modalità YouTube, la logica di pausa del video è centralizzata qui:
-            // ogni volta che il microfono viene spento (manuale o automatico), mettiamo
-            // in pausa il player UNA sola volta SOLO se l'auto-pausa è abilitata.
-            // Non ci sono altre pause sparse in startTranslationStream o processTtsQueue.
-            if (this.activeTab === 'youtube' && this.youtubeAutoPauseEnabled) {
-                this.pauseYoutubeIfNeeded();
-            } else if (this.activeTab === 'youtube' && !this.youtubeAutoPauseEnabled) {
-                this.debugLog('stopListeningInternal: skipping pause (auto-pause disabled)', {
-                    youtubeAutoPauseEnabled: this.youtubeAutoPauseEnabled,
-                });
-                console.log('⏭️ stopListeningInternal: skipping pause (auto-pause disabled)', {
-                    ts: new Date().toISOString(),
-                    youtubeAutoPauseEnabled: this.youtubeAutoPauseEnabled,
-                });
             }
 
             if (this.recognition) {
@@ -3995,9 +3950,6 @@ export default {
             this.langB = this.youtubeLangTarget;
             this.onLanguagePairChange();
 
-            // In modalità YouTube vogliamo il doppiaggio automatico per il video
-            this.readTranslationEnabledYoutube = true;
-
             await this.initYoutubePlayer();
 
             // Avvia automaticamente il microfono in lingua A (interprete umano sopra al video)
@@ -4124,6 +4076,8 @@ export default {
                                 });
                             },
                             onStateChange: (event) => {
+                                this.youtubePlayerState = typeof event.data === 'number' ? event.data : -1;
+
                                 this.debugLog('initYoutubePlayer: onStateChange event', {
                                     state: event.data,
                                     stateNames: {
@@ -4147,6 +4101,22 @@ export default {
                                         '5': 'CUED',
                                     }[String(event.data)] || 'UNKNOWN',
                                 });
+
+                                // In modalità YouTube il microfono segue lo stato del player:
+                                // PLAYING → mic acceso, PAUSED/ENDED → mic spento.
+                                if (this.activeTab === 'youtube') {
+                                    if (event.data === 1) {
+                                        // PLAYING
+                                        if (!this.isListening) {
+                                            this.toggleListeningForLang('A');
+                                        }
+                                    } else if (event.data === 0 || event.data === 2) {
+                                        // ENDED o PAUSED
+                                        if (this.isListening) {
+                                            this.stopListeningInternal();
+                                        }
+                                    }
+                                }
                             },
                         },
                     });
