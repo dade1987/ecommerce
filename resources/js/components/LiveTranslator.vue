@@ -530,6 +530,12 @@
                                     </div>
                                 </div>
                             </div>
+                            <div v-if="lastBackendAudioUrl" class="mt-1 text-[11px] text-slate-400 italic break-all">
+                                <a :href="lastBackendAudioUrl" download="backend-audio.webm"
+                                    class="underline hover:text-emerald-300">
+                                    {{ ui.downloadBackendAudioLabel }}
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -655,6 +661,9 @@ export default {
             isMobileLowPower: false,
             mobileCurrentTranslationIndex: null,
             isTtsLoading: false,
+
+            // Debug: ultimo audio inviato a un motore backend (Whisper/Gemini)
+            lastBackendAudioUrl: '',
 
             // Debug interno: pannello e log testuali copiabili
             showDebugPanel: false,
@@ -800,6 +809,7 @@ export default {
                     youtubeStatusTranscriptionDone: 'Trascrizione arrivata',
                     youtubeStatusTranslationRequested: 'Traduzione richiesta',
                     youtubeStatusReadingTranslation: 'Lettura traduzione',
+                    downloadBackendAudioLabel: 'Scarica audio inviato al riconoscimento vocale',
                 },
                 en: {
                     title: 'PolyGlide – the virtual interpreter that lets you talk to anyone',
@@ -886,6 +896,7 @@ export default {
                     youtubeStatusTranscriptionDone: 'Transcription received',
                     youtubeStatusTranslationRequested: 'Translation requested',
                     youtubeStatusReadingTranslation: 'Reading translation',
+                    downloadBackendAudioLabel: 'Download audio sent to speech recognition',
                 },
                 es: {
                     title: 'PolyGlide – el intérprete virtual que te permite hablar con cualquiera',
@@ -1915,6 +1926,18 @@ export default {
 
                 this.recognition.onresult = (event) => {
                     try {
+                        // Debug: link audio inviato al backend (Whisper / Gemini)
+                        if (event && event.audioUrl) {
+                            try {
+                                if (this.lastBackendAudioUrl) {
+                                    URL.revokeObjectURL(this.lastBackendAudioUrl);
+                                }
+                                this.lastBackendAudioUrl = event.audioUrl;
+                            } catch {
+                                // ignora errori nel revoke
+                            }
+                        }
+
                         this.webSpeechDebugSeq += 1;
                         const resultTimestamp = Date.now();
                         this.lastWebSpeechEventAt = resultTimestamp;
@@ -2651,15 +2674,21 @@ export default {
                 this.isListening = true;
                 const isBackendEngine = this.useWhisperEffective || this.useGoogleEffective;
                 if (isBackendEngine && this.recognition && typeof this.recognition === 'object') {
-                    this.recognition.singleSegmentMode = !!this.whisperSendOnStopOnlyEffective;
+                    let singleSegment = !!this.whisperSendOnStopOnlyEffective;
+                    if (this.isMobileLowPower) {
+                        singleSegment = true;
+                    }
+                    this.recognition.singleSegmentMode = singleSegment;
                     this.debugLog('toggleListeningForLang: singleSegmentMode set', {
                         singleSegmentMode: this.recognition.singleSegmentMode,
                         whisperSendOnStopOnlyEffective: this.whisperSendOnStopOnlyEffective,
+                        isMobileLowPower: this.isMobileLowPower,
                     });
                     console.log('⚙️ toggleListeningForLang: singleSegmentMode set', {
                         ts: new Date().toISOString(),
                         singleSegmentMode: this.recognition.singleSegmentMode,
                         whisperSendOnStopOnlyEffective: this.whisperSendOnStopOnlyEffective,
+                        isMobileLowPower: this.isMobileLowPower,
                     });
                 }
 

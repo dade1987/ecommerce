@@ -271,6 +271,8 @@ export default class WhisperSpeechRecognition {
                 // Sempre 0: LiveTranslator scorre da resultIndex a results.length
                 resultIndex: 0,
                 results: [result],
+                // Link di debug per scaricare l'audio inviato al backend
+                audioUrl: URL.createObjectURL(blob),
             };
 
             if (typeof this.onresult === 'function') {

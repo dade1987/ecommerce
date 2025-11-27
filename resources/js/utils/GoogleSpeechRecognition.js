@@ -288,6 +288,8 @@ export default class GoogleSpeechRecognition {
             const event = {
                 resultIndex: 0,
                 results: [result],
+                // Link di debug per scaricare l'audio inviato al backend
+                audioUrl: URL.createObjectURL(blob),
             };
 
             if (typeof this.onresult === 'function') {
