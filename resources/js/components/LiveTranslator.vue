@@ -2799,10 +2799,18 @@ export default {
 
             // In modalità YouTube, la logica di pausa del video è centralizzata qui:
             // ogni volta che il microfono viene spento (manuale o automatico), mettiamo
-            // in pausa il player UNA sola volta. Non ci sono altre pause sparse
-            // in startTranslationStream o processTtsQueue.
-            if (this.activeTab === 'youtube') {
+            // in pausa il player UNA sola volta SOLO se l'auto-pausa è abilitata.
+            // Non ci sono altre pause sparse in startTranslationStream o processTtsQueue.
+            if (this.activeTab === 'youtube' && this.youtubeAutoPauseEnabled) {
                 this.pauseYoutubeIfNeeded();
+            } else if (this.activeTab === 'youtube' && !this.youtubeAutoPauseEnabled) {
+                this.debugLog('stopListeningInternal: skipping pause (auto-pause disabled)', {
+                    youtubeAutoPauseEnabled: this.youtubeAutoPauseEnabled,
+                });
+                console.log('⏭️ stopListeningInternal: skipping pause (auto-pause disabled)', {
+                    ts: new Date().toISOString(),
+                    youtubeAutoPauseEnabled: this.youtubeAutoPauseEnabled,
+                });
             }
 
             if (this.recognition) {
