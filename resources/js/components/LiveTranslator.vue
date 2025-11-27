@@ -1868,13 +1868,21 @@ export default {
                         this.webSpeechDebugSeq += 1;
                         this.lastWebSpeechEventAt = Date.now();
 
-                        this.debugLog('WebSpeech onresult', {
+                        const engine = this.useGoogleEffective ? 'gemini' : (this.useWhisperEffective ? 'whisper' : 'webspeech');
+                        this.debugLog('WebSpeech onresult START', {
+                            engine,
                             resultIndex: event.resultIndex,
                             resultsLength: event.results?.length || 0,
                             lang: this.recognition?.lang,
+                            currentMicLang: this.currentMicLang,
+                            activeSpeaker: this.activeSpeaker,
+                            activeTab: this.activeTab,
+                            useGoogle: this.useGoogleEffective,
+                            useWhisper: this.useWhisperEffective,
+                            isMobileLowPower: this.isMobileLowPower,
+                            isListening: this.isListening,
                         });
-                        const engine = this.useGoogleEffective ? 'gemini' : (this.useWhisperEffective ? 'whisper' : 'webspeech');
-                        console.log('📥 WebSpeech RESULT EVENT', {
+                        console.log('📥 WebSpeech RESULT EVENT START', {
                             engine,
                             seq: this.webSpeechDebugSeq,
                             ts: new Date().toISOString(),
@@ -1887,6 +1895,7 @@ export default {
                             useGoogle: this.useGoogleEffective,
                             useWhisper: this.useWhisperEffective,
                             isMobileLowPower: this.isMobileLowPower,
+                            isListening: this.isListening,
                         });
 
                         let interim = '';
@@ -1895,13 +1904,39 @@ export default {
                         for (let i = event.resultIndex; i < results.length; i++) {
                             const res = results[i];
                             const text = (res[0] && res[0].transcript) || '';
-                            if (!text) continue;
+                            if (!text) {
+                                this.debugLog('WebSpeech onresult: empty text in result', {
+                                    i,
+                                    isFinal: res.isFinal,
+                                    hasRes0: !!res[0],
+                                });
+                                console.log('   ↳ chunk (empty text)', {
+                                    ts: new Date().toISOString(),
+                                    i,
+                                    isFinal: res.isFinal,
+                                    hasRes0: !!res[0],
+                                });
+                                continue;
+                            }
 
-                            console.log('   ↳ chunk', {
+                            this.debugLog('WebSpeech onresult: chunk received', {
                                 i,
                                 isFinal: res.isFinal,
-                                transcript: text,
+                                transcript: text.substring(0, 100),
+                                transcriptLength: text.length,
                                 confidence: res[0] && typeof res[0].confidence === 'number' ? res[0].confidence : undefined,
+                                isMobileLowPower: this.isMobileLowPower,
+                                activeTab: this.activeTab,
+                            });
+                            console.log('   ↳ chunk', {
+                                ts: new Date().toISOString(),
+                                i,
+                                isFinal: res.isFinal,
+                                transcript: text.substring(0, 100),
+                                transcriptLength: text.length,
+                                confidence: res[0] && typeof res[0].confidence === 'number' ? res[0].confidence : undefined,
+                                isMobileLowPower: this.isMobileLowPower,
+                                activeTab: this.activeTab,
                             });
 
                             if (res.isFinal) {
@@ -1918,12 +1953,27 @@ export default {
                                     // MOBILE: niente interim, ma usiamo i final progressivi
                                     // per aggiornare/mergeare l'ULTIMA riga quando è la stessa frase.
                                     if (this.isMobileLowPower) {
+                                        this.debugLog('WebSpeech onresult: MOBILE processing final', {
+                                            text: clean.substring(0, 50),
+                                            textLength: clean.length,
+                                            lastFinalOriginalAt: this.lastFinalOriginalAt,
+                                            timeSinceLastFinal: Date.now() - this.lastFinalOriginalAt,
+                                        });
+                                        console.log('📱 WebSpeech onresult: MOBILE processing final', {
+                                            ts: new Date().toISOString(),
+                                            text: clean.substring(0, 50),
+                                            textLength: clean.length,
+                                            lastFinalOriginalAt: this.lastFinalOriginalAt,
+                                            timeSinceLastFinal: Date.now() - this.lastFinalOriginalAt,
+                                        });
+
                                         const now = Date.now();
                                         const lines = (this.originalConfirmed || '')
                                             .split('\n')
                                             .filter(Boolean);
 
                                         let mergedWithPrevious = false;
+                                        let isSignificantExtension = false;
 
                                         if (lines.length > 0 && now - this.lastFinalOriginalAt < 2000) {
                                             const lastLine = lines[lines.length - 1];
@@ -1943,6 +1993,35 @@ export default {
                                                     lines[lines.length - 1] = phraseWithDash;
                                                     this.originalConfirmed = lines.join('\n');
                                                     mergedWithPrevious = true;
+
+                                                    // Consideriamo "estensione significativa" solo se:
+                                                    // - Aggiunge almeno 3 caratteri E una parola completa
+                                                    // - O aggiunge punteggiatura finale (., !, ?)
+                                                    const addedChars = clean.length - prevText.length;
+                                                    const addedWords = clean.split(/\s+/).length - prevText.split(/\s+/).length;
+                                                    const hasNewPunct = /[.!?…]$/.test(clean) && !/[.!?…]$/.test(prevText);
+
+                                                    isSignificantExtension = hasNewPunct || (addedChars >= 3 && addedWords > 0);
+
+                                                    this.debugLog('WebSpeech onresult: MOBILE merged with previous', {
+                                                        mergedWithPrevious,
+                                                        isSignificantExtension,
+                                                        prevText: prevText.substring(0, 50),
+                                                        clean: clean.substring(0, 50),
+                                                        addedChars,
+                                                        addedWords,
+                                                        hasNewPunct,
+                                                    });
+                                                    console.log('🔄 WebSpeech onresult: MOBILE merged with previous', {
+                                                        ts: new Date().toISOString(),
+                                                        mergedWithPrevious,
+                                                        isSignificantExtension,
+                                                        prevText: prevText.substring(0, 50),
+                                                        clean: clean.substring(0, 50),
+                                                        addedChars,
+                                                        addedWords,
+                                                        hasNewPunct,
+                                                    });
                                                 }
                                             }
                                         }
@@ -1957,23 +2036,87 @@ export default {
                                             // aggiornato quando arriva la traduzione finale.
                                             this.mobileCurrentTranslationIndex = this.translationSegments.length;
                                             this.translationSegments.push('- ...');
+
+                                            // Nuova frase: traduci sempre
+                                            this.lastFinalOriginalAt = now;
+                                            this.originalInterim = '';
+
+                                            this.debugLog('WebSpeech onresult: MOBILE new phrase, starting translation', {
+                                                text: clean.substring(0, 50),
+                                                mobileCurrentTranslationIndex: this.mobileCurrentTranslationIndex,
+                                            });
+                                            console.log('📤 WebSpeech onresult: MOBILE new phrase, starting translation', {
+                                                ts: new Date().toISOString(),
+                                                text: clean.substring(0, 50),
+                                                mobileCurrentTranslationIndex: this.mobileCurrentTranslationIndex,
+                                            });
+
+                                            this.startTranslationStream(clean, {
+                                                commit: true,
+                                                mergeLast: false,
+                                                mergeIndex: this.mobileCurrentTranslationIndex,
+                                            });
                                         } else {
-                                            // Stessa frase: l'ultima riga originale è già stata aggiornata sopra,
-                                            // la traduzione userà lo stesso indice mobileCurrentTranslationIndex.
+                                            // Stessa frase: aggiorna solo se è un'estensione significativa
+                                            // o se ha punteggiatura finale (frase completa)
+                                            if (isSignificantExtension) {
+                                                this.lastFinalOriginalAt = now;
+                                                this.originalInterim = '';
+
+                                                // Cancella la traduzione precedente e rifai con il testo completo
+                                                if (this.mobileCurrentTranslationIndex !== null &&
+                                                    this.translationSegments[this.mobileCurrentTranslationIndex]) {
+                                                    this.translationSegments[this.mobileCurrentTranslationIndex] = '- ...';
+                                                }
+
+                                                this.debugLog('WebSpeech onresult: MOBILE significant extension, retranslating', {
+                                                    text: clean.substring(0, 50),
+                                                    mobileCurrentTranslationIndex: this.mobileCurrentTranslationIndex,
+                                                });
+                                                console.log('🔄 WebSpeech onresult: MOBILE significant extension, retranslating', {
+                                                    ts: new Date().toISOString(),
+                                                    text: clean.substring(0, 50),
+                                                    mobileCurrentTranslationIndex: this.mobileCurrentTranslationIndex,
+                                                });
+
+                                                this.startTranslationStream(clean, {
+                                                    commit: true,
+                                                    mergeLast: false,
+                                                    mergeIndex: this.mobileCurrentTranslationIndex,
+                                                });
+                                            } else {
+                                                // Estensione minore: aggiorna solo il testo originale,
+                                                // non rifare la traduzione (evita chiamate API multiple)
+                                                this.lastFinalOriginalAt = now;
+                                                this.originalInterim = '';
+
+                                                this.debugLog('WebSpeech onresult: MOBILE minor extension, skipping translation', {
+                                                    text: clean.substring(0, 50),
+                                                });
+                                                console.log('⏭️ WebSpeech onresult: MOBILE minor extension, skipping translation', {
+                                                    ts: new Date().toISOString(),
+                                                    text: clean.substring(0, 50),
+                                                });
+                                            }
                                         }
-
-                                        this.lastFinalOriginalAt = now;
-                                        this.originalInterim = '';
-
-                                        this.startTranslationStream(clean, {
-                                            commit: true,
-                                            // Usiamo sempre lo stesso indice per tutta la frase mobile
-                                            // così la traduzione non sovrascrive mai le frasi precedenti.
-                                            mergeLast: false,
-                                            mergeIndex: this.mobileCurrentTranslationIndex,
-                                        });
                                         continue;
                                     }
+
+                                    this.debugLog('WebSpeech onresult: DESKTOP processing final', {
+                                        text: clean.substring(0, 50),
+                                        textLength: clean.length,
+                                        activeTab: this.activeTab,
+                                        youtubeAutoPauseEnabled: this.youtubeAutoPauseEnabled,
+                                        isListening: this.isListening,
+                                    });
+                                    console.log('💻 WebSpeech onresult: DESKTOP processing final', {
+                                        ts: new Date().toISOString(),
+                                        text: clean.substring(0, 50),
+                                        textLength: clean.length,
+                                        activeTab: this.activeTab,
+                                        youtubeAutoPauseEnabled: this.youtubeAutoPauseEnabled,
+                                        isListening: this.isListening,
+                                    });
 
                                     this.lastFinalOriginalAt = Date.now();
                                     this.originalConfirmed = this.originalConfirmed
@@ -1985,6 +2128,13 @@ export default {
                                     // memorizziamo l'ultima frase finale per tradurla quando l'utente spegne il microfono.
                                     if (this.activeTab === 'youtube' && !this.youtubeAutoPauseEnabled) {
                                         this.lastYoutubeFinalForManualStop = clean;
+                                        this.debugLog('WebSpeech onresult: storing YouTube final for manual stop', {
+                                            text: clean.substring(0, 50),
+                                        });
+                                        console.log('💾 WebSpeech onresult: storing YouTube final for manual stop', {
+                                            ts: new Date().toISOString(),
+                                            text: clean.substring(0, 50),
+                                        });
                                     }
 
                                     // In modalità YouTube, se il rilevamento automatico delle pause
@@ -1995,10 +2145,39 @@ export default {
                                         this.youtubeAutoPauseEnabled ||
                                         !this.isListening;
 
+                                    this.debugLog('WebSpeech onresult: translation decision', {
+                                        shouldTranslateNow,
+                                        activeTab: this.activeTab,
+                                        youtubeAutoPauseEnabled: this.youtubeAutoPauseEnabled,
+                                        isListening: this.isListening,
+                                    });
+                                    console.log('🔍 WebSpeech onresult: translation decision', {
+                                        ts: new Date().toISOString(),
+                                        shouldTranslateNow,
+                                        activeTab: this.activeTab,
+                                        youtubeAutoPauseEnabled: this.youtubeAutoPauseEnabled,
+                                        isListening: this.isListening,
+                                    });
+
                                     if (shouldTranslateNow) {
+                                        this.debugLog('WebSpeech onresult: starting translation', {
+                                            text: clean.substring(0, 50),
+                                        });
+                                        console.log('📤 WebSpeech onresult: starting translation', {
+                                            ts: new Date().toISOString(),
+                                            text: clean.substring(0, 50),
+                                        });
                                         this.startTranslationStream(clean, {
                                             commit: true,
                                             mergeLast: false,
+                                        });
+                                    } else {
+                                        this.debugLog('WebSpeech onresult: skipping translation (YouTube manual mode)', {
+                                            text: clean.substring(0, 50),
+                                        });
+                                        console.log('⏭️ WebSpeech onresult: skipping translation (YouTube manual mode)', {
+                                            ts: new Date().toISOString(),
+                                            text: clean.substring(0, 50),
                                         });
                                     }
                                 }
@@ -2013,6 +2192,18 @@ export default {
 
                         this.originalInterim = interim;
 
+                        this.debugLog('WebSpeech onresult: interim updated', {
+                            interim: interim.substring(0, 50),
+                            interimLength: interim.length,
+                            willStartPreview: interim && !this.isMobileLowPower && this.activeTab === 'call',
+                        });
+                        console.log('📝 WebSpeech onresult: interim updated', {
+                            ts: new Date().toISOString(),
+                            interim: interim.substring(0, 50),
+                            interimLength: interim.length,
+                            willStartPreview: interim && !this.isMobileLowPower && this.activeTab === 'call',
+                        });
+
                         this.$nextTick(() => {
                             this.scrollToBottom('originalBox');
                         });
@@ -2021,10 +2212,40 @@ export default {
                         // - su mobile low-power saltiamo lo streaming
                         // - in modalità YouTube vogliamo traduzione SOLO a fine frase
                         if (interim && !this.isMobileLowPower && this.activeTab === 'call') {
+                            this.debugLog('WebSpeech onresult: starting preview translation', {
+                                interim: interim.substring(0, 50),
+                            });
+                            console.log('🔍 WebSpeech onresult: starting preview translation', {
+                                ts: new Date().toISOString(),
+                                interim: interim.substring(0, 50),
+                            });
                             this.maybeStartPreviewTranslation(interim);
                         }
+
+                        this.debugLog('WebSpeech onresult END', {
+                            processedResults: results.length,
+                            finalCount: results.filter(r => r.isFinal).length,
+                            interimCount: results.filter(r => !r.isFinal).length,
+                        });
+                        console.log('✅ WebSpeech onresult END', {
+                            ts: new Date().toISOString(),
+                            processedResults: results.length,
+                            finalCount: results.filter(r => r.isFinal).length,
+                            interimCount: results.filter(r => !r.isFinal).length,
+                        });
                     } catch (err) {
-                        console.warn('Errore gestione risultato speech', err);
+                        this.debugLog('WebSpeech onresult: ERROR', {
+                            error: String(err),
+                            errorName: err?.name,
+                            errorMessage: err?.message,
+                        });
+                        console.error('❌ WebSpeech onresult: ERROR', {
+                            ts: new Date().toISOString(),
+                            error: String(err),
+                            errorName: err?.name,
+                            errorMessage: err?.message,
+                            stack: err?.stack,
+                        });
                     }
                 };
             } catch (e) {
@@ -2034,12 +2255,28 @@ export default {
 
         async ensureMicPermission() {
             try {
+                this.debugLog('ensureMicPermission START', {
+                    hasMediaDevices: !!navigator.mediaDevices,
+                    hasGetUserMedia: !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia),
+                    activeTab: this.activeTab,
+                    activeSpeaker: this.activeSpeaker,
+                });
+                console.log('🎤 ensureMicPermission START', {
+                    ts: new Date().toISOString(),
+                    hasMediaDevices: !!navigator.mediaDevices,
+                    hasGetUserMedia: !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia),
+                    activeTab: this.activeTab,
+                    activeSpeaker: this.activeSpeaker,
+                });
+
                 if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    this.debugLog('ensureMicPermission: no mediaDevices/getUserMedia', {});
+                    console.warn('⚠️ ensureMicPermission: no mediaDevices/getUserMedia');
                     return true;
                 }
                 // Usiamo i constraint grezzi (senza filtri) per tutti i browser, così il
                 // segnale resta il più possibile fedele sia per voce diretta che per audio dalle casse.
-                const stream = await navigator.mediaDevices.getUserMedia({
+                const constraints = {
                     audio: {
                         echoCancellation: false,
                         noiseSuppression: false,
@@ -2049,21 +2286,108 @@ export default {
                         latency: 0,
                         volume: 1.0,
                     },
+                };
+                this.debugLog('ensureMicPermission: calling getUserMedia', { constraints });
+                console.log('🎤 ensureMicPermission: calling getUserMedia', {
+                    ts: new Date().toISOString(),
+                    constraints,
+                });
+
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
+
+                this.debugLog('ensureMicPermission: getUserMedia SUCCESS', {
+                    streamId: stream?.id,
+                    tracksCount: stream?.getTracks()?.length || 0,
+                    tracks: stream?.getTracks()?.map(t => ({
+                        id: t.id,
+                        kind: t.kind,
+                        label: t.label,
+                        enabled: t.enabled,
+                        muted: t.muted,
+                        readyState: t.readyState,
+                    })) || [],
+                });
+                console.log('✅ ensureMicPermission: getUserMedia SUCCESS', {
+                    ts: new Date().toISOString(),
+                    streamId: stream?.id,
+                    tracksCount: stream?.getTracks()?.length || 0,
+                    tracks: stream?.getTracks()?.map(t => ({
+                        id: t.id,
+                        kind: t.kind,
+                        label: t.label,
+                        enabled: t.enabled,
+                        muted: t.muted,
+                        readyState: t.readyState,
+                    })) || [],
                 });
 
                 try {
-                    stream.getTracks().forEach((t) => t.stop());
-                } catch { }
+                    stream.getTracks().forEach((t) => {
+                        this.debugLog('ensureMicPermission: stopping track', {
+                            trackId: t.id,
+                            kind: t.kind,
+                        });
+                        t.stop();
+                    });
+                } catch (err) {
+                    this.debugLog('ensureMicPermission: error stopping tracks', { error: String(err) });
+                    console.warn('⚠️ ensureMicPermission: error stopping tracks', err);
+                }
 
+                this.debugLog('ensureMicPermission: SUCCESS', {});
+                console.log('✅ ensureMicPermission: SUCCESS', { ts: new Date().toISOString() });
                 return true;
-            } catch {
+            } catch (err) {
+                this.debugLog('ensureMicPermission: ERROR', {
+                    error: String(err),
+                    errorName: err?.name,
+                    errorMessage: err?.message,
+                });
+                console.error('❌ ensureMicPermission: ERROR', {
+                    ts: new Date().toISOString(),
+                    error: String(err),
+                    errorName: err?.name,
+                    errorMessage: err?.message,
+                    stack: err?.stack,
+                });
                 return false;
             }
         },
 
         async toggleListeningForLang(speaker) {
+            this.debugLog('toggleListeningForLang START', {
+                speaker,
+                isTtsPlaying: this.isTtsPlaying,
+                isListening: this.isListening,
+                activeSpeaker: this.activeSpeaker,
+                activeTab: this.activeTab,
+                langA: this.langA,
+                langB: this.langB,
+                currentMicLang: this.currentMicLang,
+                useWhisperEffective: this.useWhisperEffective,
+                useGoogleEffective: this.useGoogleEffective,
+            });
+            console.log('🎙️ toggleListeningForLang START', {
+                ts: new Date().toISOString(),
+                speaker,
+                isTtsPlaying: this.isTtsPlaying,
+                isListening: this.isListening,
+                activeSpeaker: this.activeSpeaker,
+                activeTab: this.activeTab,
+                langA: this.langA,
+                langB: this.langB,
+                currentMicLang: this.currentMicLang,
+                useWhisperEffective: this.useWhisperEffective,
+                useGoogleEffective: this.useGoogleEffective,
+            });
+
             // Non registrare mentre il TTS sta leggendo
             if (this.isTtsPlaying) {
+                this.debugLog('toggleListeningForLang: TTS is playing, ignore mic toggle', {
+                    speaker,
+                    langA: this.langA,
+                    langB: this.langB,
+                });
                 console.log('⏸️ toggleListeningForLang: TTS is playing, ignore mic toggle', {
                     speaker,
                     langA: this.langA,
@@ -2073,6 +2397,11 @@ export default {
             }
             // Se sta già ascoltando con lo stesso speaker, ferma
             if (this.isListening && this.activeSpeaker === speaker) {
+                this.debugLog('toggleListeningForLang: stop same speaker', {
+                    speaker,
+                    currentMicLang: this.currentMicLang,
+                    activeTab: this.activeTab,
+                });
                 console.log('🛑 toggleListeningForLang: stop same speaker', {
                     speaker,
                     currentMicLang: this.currentMicLang,
@@ -2087,6 +2416,11 @@ export default {
 
             // Se sta ascoltando con un altro speaker, ferma quello prima
             if (this.isListening && this.activeSpeaker !== speaker) {
+                this.debugLog('toggleListeningForLang: switching speaker', {
+                    from: this.activeSpeaker,
+                    to: speaker,
+                    currentMicLang: this.currentMicLang,
+                });
                 console.log('🔁 toggleListeningForLang: switching speaker', {
                     from: this.activeSpeaker,
                     to: speaker,
@@ -2134,6 +2468,7 @@ export default {
             const ok = await this.ensureMicPermission();
             if (!ok) {
                 this.statusMessage = this.ui.statusMicDenied;
+                this.debugLog('toggleListeningForLang: mic permission denied', { speaker });
                 console.warn('⚠️ toggleListeningForLang: mic permission denied', {
                     speaker,
                 });
@@ -2174,9 +2509,36 @@ export default {
                 }
             }
 
+            this.debugLog('toggleListeningForLang: language set', {
+                speaker,
+                currentMicLang: this.currentMicLang,
+                currentTargetLang: this.currentTargetLang,
+                activeTab: this.activeTab,
+            });
+            console.log('🌐 toggleListeningForLang: language set', {
+                ts: new Date().toISOString(),
+                speaker,
+                currentMicLang: this.currentMicLang,
+                currentTargetLang: this.currentTargetLang,
+                activeTab: this.activeTab,
+            });
+
             if (!this.recognition) {
+                this.debugLog('toggleListeningForLang: initializing recognition', {
+                    speaker,
+                    currentMicLang: this.currentMicLang,
+                });
+                console.log('🔧 toggleListeningForLang: initializing recognition', {
+                    ts: new Date().toISOString(),
+                    speaker,
+                    currentMicLang: this.currentMicLang,
+                });
                 this.initSpeechRecognition();
                 if (!this.recognition) {
+                    this.debugLog('toggleListeningForLang: initSpeechRecognition failed', {
+                        speaker,
+                        currentMicLang: this.currentMicLang,
+                    });
                     console.error('❌ toggleListeningForLang: initSpeechRecognition failed', {
                         speaker,
                         currentMicLang: this.currentMicLang,
@@ -2189,16 +2551,39 @@ export default {
             // Se il recognition è già in esecuzione, fermalo e riavvialo per applicare il cambio lingua
             const wasRunning = this.isListening && this.recognition;
             if (wasRunning) {
+                this.debugLog('toggleListeningForLang: stopping running recognition', {
+                    speaker,
+                    wasRunning,
+                });
+                console.log('🛑 toggleListeningForLang: stopping running recognition', {
+                    ts: new Date().toISOString(),
+                    speaker,
+                    wasRunning,
+                });
                 try {
                     this.recognition.stop();
                     this.recognition.abort && this.recognition.abort();
-                } catch { }
+                } catch (err) {
+                    this.debugLog('toggleListeningForLang: error stopping recognition', {
+                        error: String(err),
+                    });
+                    console.warn('⚠️ toggleListeningForLang: error stopping recognition', err);
+                }
                 // Attendi che si fermi completamente
                 await new Promise(resolve => setTimeout(resolve, 300));
             }
 
             if (this.recognition) {
                 this.recognition.lang = this.currentMicLang;
+                this.debugLog('toggleListeningForLang: recognition.lang set', {
+                    lang: this.recognition.lang,
+                    currentMicLang: this.currentMicLang,
+                });
+                console.log('🌐 toggleListeningForLang: recognition.lang set', {
+                    ts: new Date().toISOString(),
+                    lang: this.recognition.lang,
+                    currentMicLang: this.currentMicLang,
+                });
             }
 
             try {
@@ -2206,23 +2591,72 @@ export default {
                 // la voce diretta al microfono o audio proveniente dalle casse (YouTube).
                 if (this.recognition && typeof this.recognition === 'object') {
                     this.recognition.sourceHint = this.activeTab === 'youtube' ? 'speaker' : 'mic';
+                    this.debugLog('toggleListeningForLang: sourceHint set', {
+                        sourceHint: this.recognition.sourceHint,
+                        activeTab: this.activeTab,
+                    });
+                    console.log('🎯 toggleListeningForLang: sourceHint set', {
+                        ts: new Date().toISOString(),
+                        sourceHint: this.recognition.sourceHint,
+                        activeTab: this.activeTab,
+                    });
                 }
 
                 this.isListening = true;
-                console.log('▶️ toggleListeningForLang: calling recognition.start()', {
+                const isBackendEngine = this.useWhisperEffective || this.useGoogleEffective;
+                if (isBackendEngine && this.recognition && typeof this.recognition === 'object') {
+                    this.recognition.singleSegmentMode = !!this.whisperSendOnStopOnlyEffective;
+                    this.debugLog('toggleListeningForLang: singleSegmentMode set', {
+                        singleSegmentMode: this.recognition.singleSegmentMode,
+                        whisperSendOnStopOnlyEffective: this.whisperSendOnStopOnlyEffective,
+                    });
+                    console.log('⚙️ toggleListeningForLang: singleSegmentMode set', {
+                        ts: new Date().toISOString(),
+                        singleSegmentMode: this.recognition.singleSegmentMode,
+                        whisperSendOnStopOnlyEffective: this.whisperSendOnStopOnlyEffective,
+                    });
+                }
+
+                this.debugLog('toggleListeningForLang: calling recognition.start()', {
                     speaker,
                     langSetOnRecognition: this.recognition.lang,
                     currentMicLang: this.currentMicLang,
                     activeTab: this.activeTab,
+                    isBackendEngine,
+                    singleSegmentMode: isBackendEngine && this.recognition && typeof this.recognition === 'object' ? this.recognition.singleSegmentMode : undefined,
                 });
-                // Per i motori backend (Whisper + Gemini) rispettiamo la checkbox
-                // "invia audio solo quando spengo il microfono" usando singleSegmentMode
-                const isBackendEngine = this.useWhisperEffective || this.useGoogleEffective;
-                if (isBackendEngine && this.recognition && typeof this.recognition === 'object') {
-                    this.recognition.singleSegmentMode = !!this.whisperSendOnStopOnlyEffective;
-                }
+                console.log('▶️ toggleListeningForLang: calling recognition.start()', {
+                    ts: new Date().toISOString(),
+                    speaker,
+                    langSetOnRecognition: this.recognition.lang,
+                    currentMicLang: this.currentMicLang,
+                    activeTab: this.activeTab,
+                    isBackendEngine,
+                    singleSegmentMode: isBackendEngine && this.recognition && typeof this.recognition === 'object' ? this.recognition.singleSegmentMode : undefined,
+                });
                 this.recognition.start();
+                this.debugLog('toggleListeningForLang: recognition.start() called', {
+                    speaker,
+                });
+                console.log('✅ toggleListeningForLang: recognition.start() called', {
+                    ts: new Date().toISOString(),
+                    speaker,
+                });
             } catch (e) {
+                this.debugLog('toggleListeningForLang: ERROR calling recognition.start()', {
+                    error: String(e),
+                    errorName: e?.name,
+                    errorMessage: e?.message,
+                    speaker,
+                });
+                console.error('❌ toggleListeningForLang: ERROR calling recognition.start()', {
+                    ts: new Date().toISOString(),
+                    error: String(e),
+                    errorName: e?.name,
+                    errorMessage: e?.message,
+                    speaker,
+                    stack: e?.stack,
+                });
                 this.statusMessage = this.ui.statusMicStartError;
                 this.isListening = false;
                 this.activeSpeaker = null;
@@ -2230,6 +2664,20 @@ export default {
         },
 
         stopListeningInternal() {
+            this.debugLog('stopListeningInternal START', {
+                wasListening: this.isListening,
+                activeSpeaker: this.activeSpeaker,
+                activeTab: this.activeTab,
+                hasRecognition: !!this.recognition,
+            });
+            console.log('🛑 stopListeningInternal START', {
+                ts: new Date().toISOString(),
+                wasListening: this.isListening,
+                activeSpeaker: this.activeSpeaker,
+                activeTab: this.activeTab,
+                hasRecognition: !!this.recognition,
+            });
+
             this.isListening = false;
             this.activeSpeaker = null;
 
@@ -2244,6 +2692,13 @@ export default {
             ) {
                 const pending = (this.lastYoutubeFinalForManualStop || '').trim();
                 if (pending) {
+                    this.debugLog('stopListeningInternal: translating pending YouTube final', {
+                        pending,
+                    });
+                    console.log('📝 stopListeningInternal: translating pending YouTube final', {
+                        ts: new Date().toISOString(),
+                        pending,
+                    });
                     this.startTranslationStream(pending, {
                         commit: true,
                         mergeLast: false,
@@ -2254,19 +2709,83 @@ export default {
 
             if (this.recognition) {
                 try {
+                    this.debugLog('stopListeningInternal: calling recognition.stop()', {
+                        recognitionLang: this.recognition.lang,
+                    });
+                    console.log('🛑 stopListeningInternal: calling recognition.stop()', {
+                        ts: new Date().toISOString(),
+                        recognitionLang: this.recognition.lang,
+                    });
                     this.recognition.stop();
-                    this.recognition.abort && this.recognition.abort();
-                } catch { }
+                    if (this.recognition.abort) {
+                        this.recognition.abort();
+                    }
+                    this.debugLog('stopListeningInternal: recognition.stop() called successfully', {});
+                    console.log('✅ stopListeningInternal: recognition.stop() called successfully', {
+                        ts: new Date().toISOString(),
+                    });
+                } catch (err) {
+                    this.debugLog('stopListeningInternal: error stopping recognition', {
+                        error: String(err),
+                    });
+                    console.error('❌ stopListeningInternal: error stopping recognition', {
+                        ts: new Date().toISOString(),
+                        error: String(err),
+                    });
+                }
             }
+
+            this.debugLog('stopListeningInternal: DONE', {
+                isListening: this.isListening,
+                activeSpeaker: this.activeSpeaker,
+            });
+            console.log('✅ stopListeningInternal: DONE', {
+                ts: new Date().toISOString(),
+                isListening: this.isListening,
+                activeSpeaker: this.activeSpeaker,
+            });
         },
 
         startTranslationStream(textSegment, options = { commit: true, mergeLast: false, mergeIndex: null }) {
             const safeText = ((textSegment || '').trim()).toLowerCase();
-            if (!safeText) return;
+            if (!safeText) {
+                this.debugLog('startTranslationStream: empty text, skipping', {
+                    textSegment: textSegment?.substring(0, 50),
+                });
+                console.log('⚠️ startTranslationStream: empty text, skipping', {
+                    ts: new Date().toISOString(),
+                    textSegment: textSegment?.substring(0, 50),
+                });
+                return;
+            }
 
             const commit = options && typeof options.commit === 'boolean' ? options.commit : true;
             const mergeLast = options && typeof options.mergeLast === 'boolean' ? options.mergeLast : false;
             const mergeIndex = options && typeof options.mergeIndex === 'number' ? options.mergeIndex : null;
+
+            this.debugLog('startTranslationStream START', {
+                text: safeText.substring(0, 100),
+                commit,
+                mergeLast,
+                mergeIndex,
+                activeTab: this.activeTab,
+                isListening: this.isListening,
+                youtubeAutoPauseEnabled: this.youtubeAutoPauseEnabled,
+                currentTargetLang: this.currentTargetLang,
+                currentMicLang: this.currentMicLang,
+            });
+            console.log('📤 startTranslationStream START', {
+                ts: new Date().toISOString(),
+                text: safeText.substring(0, 100),
+                commit,
+                mergeLast,
+                mergeIndex,
+                activeTab: this.activeTab,
+                isListening: this.isListening,
+                youtubeAutoPauseEnabled: this.youtubeAutoPauseEnabled,
+                currentTargetLang: this.currentTargetLang,
+                currentMicLang: this.currentMicLang,
+            });
 
             // In modalità YouTube, se sembra una frase "vera" (non solo una parola)
             // mettiamo SUBITO in pausa il video, senza aspettare che parta il TTS.
@@ -2281,8 +2800,34 @@ export default {
                 // 1. Il microfono è spento (l'utente ha finito di parlare), OPPURE
                 // 2. È una frase finale completa con punteggiatura (non durante registrazione continua)
                 const shouldPause = shouldPauseForSentence && (!this.isListening || hasSentencePunct);
+                this.debugLog('startTranslationStream: YouTube pause check', {
+                    shouldPause,
+                    shouldPauseForSentence,
+                    isListening: this.isListening,
+                    hasSentencePunct,
+                    longEnough,
+                    wordsCount: words.length,
+                    textLength: safeText.length,
+                });
+                console.log('⏸️ startTranslationStream: YouTube pause check', {
+                    ts: new Date().toISOString(),
+                    shouldPause,
+                    shouldPauseForSentence,
+                    isListening: this.isListening,
+                    hasSentencePunct,
+                    longEnough,
+                    wordsCount: words.length,
+                    textLength: safeText.length,
+                });
                 if (shouldPause) {
+                    this.debugLog('startTranslationStream: pausing YouTube video', {
+                        text: safeText.substring(0, 50),
+                        isListening: this.isListening,
+                        hasSentencePunct,
+                        longEnough,
+                    });
                     console.log('⏸️ YouTube: metto in pausa video', {
+                        ts: new Date().toISOString(),
                         text: safeText.substring(0, 50),
                         isListening: this.isListening,
                         hasSentencePunct,
@@ -2292,24 +2837,32 @@ export default {
                 }
             }
 
-            this.debugLog('startTranslationStream', {
-                text: safeText,
-                commit,
-                mergeLast,
-                isMobileLowPower: this.isMobileLowPower,
-                mergeIndex,
-            });
-
             // Se è già attivo uno stream e questa è una richiesta finale (commit: true),
             // chiudiamo lo stream precedente per dare priorità alla frase completa
             if (this.currentStream) {
                 if (commit) {
+                    this.debugLog('startTranslationStream: closing previous stream', {
+                        hadStream: !!this.currentStream,
+                    });
+                    console.log('🔄 startTranslationStream: closing previous stream', {
+                        ts: new Date().toISOString(),
+                        hadStream: !!this.currentStream,
+                    });
                     try {
                         this.currentStream.close();
-                    } catch { }
+                    } catch (err) {
+                        this.debugLog('startTranslationStream: error closing previous stream', {
+                            error: String(err),
+                        });
+                        console.warn('⚠️ startTranslationStream: error closing previous stream', err);
+                    }
                     this.currentStream = null;
                 } else {
                     // Se è solo una preview (commit: false), ignora
+                    this.debugLog('startTranslationStream: preview request, ignoring (stream already active)', {});
+                    console.log('⏭️ startTranslationStream: preview request, ignoring (stream already active)', {
+                        ts: new Date().toISOString(),
+                    });
                     return;
                 }
             }
@@ -2320,6 +2873,19 @@ export default {
                 this.currentTargetLang = this.currentMicLang && this.currentMicLang.startsWith(this.langA.split('-')[0])
                     ? this.langB
                     : this.langA;
+                this.debugLog('startTranslationStream: auto-set currentTargetLang', {
+                    currentTargetLang: this.currentTargetLang,
+                    langA: this.langA,
+                    langB: this.langB,
+                    currentMicLang: this.currentMicLang,
+                });
+                console.log('🌐 startTranslationStream: auto-set currentTargetLang', {
+                    ts: new Date().toISOString(),
+                    currentTargetLang: this.currentTargetLang,
+                    langA: this.langA,
+                    langB: this.langB,
+                    currentMicLang: this.currentMicLang,
+                });
             }
 
             const targetLang = this.currentTargetLang || this.langB || 'en';
@@ -2327,6 +2893,13 @@ export default {
             // Genera thread_id se non esiste ancora
             if (!this.translationThreadId) {
                 this.translationThreadId = 'translation_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                this.debugLog('startTranslationStream: generated new translationThreadId', {
+                    translationThreadId: this.translationThreadId,
+                });
+                console.log('🆔 startTranslationStream: generated new translationThreadId', {
+                    ts: new Date().toISOString(),
+                    translationThreadId: this.translationThreadId,
+                });
             }
 
             const params = new URLSearchParams({
@@ -2338,21 +2911,62 @@ export default {
                 ts: String(Date.now()),
             });
 
-            console.log(`📤 Traduzione richiesta: "${safeText.substring(0, 50)}..." → target_lang: ${targetLang}, source_lang: ${this.currentMicLang}`);
-
             const origin = window.location.origin;
             const endpoint = `/api/chatbot/translator-stream?${params.toString()}`;
+
+            this.debugLog('startTranslationStream: creating EventSource', {
+                endpoint,
+                text: safeText.substring(0, 50),
+                targetLang,
+                sourceLang: this.currentMicLang,
+                threadId: this.translationThreadId,
+            });
+            console.log(`📤 Traduzione richiesta: "${safeText.substring(0, 50)}..." → target_lang: ${targetLang}, source_lang: ${this.currentMicLang}`, {
+                ts: new Date().toISOString(),
+                endpoint,
+                threadId: this.translationThreadId,
+            });
 
             try {
                 const es = new EventSource(`${origin}${endpoint}`);
                 this.currentStream = es;
                 let buffer = '';
 
+                this.debugLog('startTranslationStream: EventSource created', {
+                    readyState: es.readyState,
+                });
+                console.log('✅ startTranslationStream: EventSource created', {
+                    ts: new Date().toISOString(),
+                    readyState: es.readyState,
+                });
+
+                es.addEventListener('open', () => {
+                    this.debugLog('startTranslationStream: EventSource opened', {
+                        readyState: es.readyState,
+                    });
+                    console.log('✅ startTranslationStream: EventSource opened', {
+                        ts: new Date().toISOString(),
+                        readyState: es.readyState,
+                    });
+                });
+
                 es.addEventListener('message', (e) => {
                     try {
                         const data = JSON.parse(e.data);
                         if (data.token) {
                             buffer += data.token;
+
+                            this.debugLog('startTranslationStream: token received', {
+                                token: data.token,
+                                bufferLength: buffer.length,
+                                bufferPreview: buffer.substring(0, 50),
+                            });
+                            console.log('📥 startTranslationStream: token received', {
+                                ts: new Date().toISOString(),
+                                token: data.token,
+                                bufferLength: buffer.length,
+                                bufferPreview: buffer.substring(0, 50),
+                            });
 
                             // Su desktop in modalità "call": aggiorna in streaming token-per-token.
                             // In modalità YouTube o mobile low-power: nessuno streaming token-per-token,
@@ -2364,23 +2978,49 @@ export default {
                                 });
                             }
                         }
-                    } catch { }
+                    } catch (err) {
+                        this.debugLog('startTranslationStream: error parsing message', {
+                            error: String(err),
+                            data: e.data?.substring(0, 100),
+                        });
+                        console.error('❌ startTranslationStream: error parsing message', {
+                            ts: new Date().toISOString(),
+                            error: String(err),
+                            data: e.data?.substring(0, 100),
+                        });
+                    }
                 });
 
                 es.addEventListener('done', () => {
                     try {
                         es.close();
-                    } catch { }
-                    const segment = buffer.trim().toLowerCase();
-                    if (commit && segment) {
-                        this.debugLog('translationDone', {
-                            segment,
-                            commit,
-                            mergeLast,
-                            isMobileLowPower: this.isMobileLowPower,
-                            mergeIndex,
-                            segmentsCountBefore: (this.translationSegments && this.translationSegments.length) || 0,
+                    } catch (err) {
+                        this.debugLog('startTranslationStream: error closing EventSource on done', {
+                            error: String(err),
                         });
+                        console.warn('⚠️ startTranslationStream: error closing EventSource on done', err);
+                    }
+                    const segment = buffer.trim().toLowerCase();
+                    this.debugLog('startTranslationStream: done event', {
+                        segment: segment.substring(0, 100),
+                        commit,
+                        mergeLast,
+                        isMobileLowPower: this.isMobileLowPower,
+                        mergeIndex,
+                        segmentsCountBefore: (this.translationSegments && this.translationSegments.length) || 0,
+                        bufferLength: buffer.length,
+                    });
+                    console.log('✅ startTranslationStream: done event', {
+                        ts: new Date().toISOString(),
+                        segment: segment.substring(0, 100),
+                        commit,
+                        mergeLast,
+                        isMobileLowPower: this.isMobileLowPower,
+                        mergeIndex,
+                        segmentsCountBefore: (this.translationSegments && this.translationSegments.length) || 0,
+                        bufferLength: buffer.length,
+                    });
+                    if (commit && segment) {
                         // Quando una frase è conclusa:
                         // - se mergeIndex è un indice valido, aggiorniamo quella riga (caso mobile)
                         // - altrimenti, se mergeLast è true, aggiorniamo l'ultima riga
@@ -2395,18 +3035,52 @@ export default {
                                 1,
                                 `- ${segment}`
                             );
+                            this.debugLog('startTranslationStream: merged at index', {
+                                mergeIndex,
+                                segment: segment.substring(0, 50),
+                            });
+                            console.log('🔄 startTranslationStream: merged at index', {
+                                ts: new Date().toISOString(),
+                                mergeIndex,
+                                segment: segment.substring(0, 50),
+                            });
                         } else if (mergeLast && this.translationSegments && this.translationSegments.length > 0) {
                             this.translationSegments.splice(
                                 this.translationSegments.length - 1,
                                 1,
                                 `- ${segment}`
                             );
+                            this.debugLog('startTranslationStream: merged last', {
+                                segment: segment.substring(0, 50),
+                            });
+                            console.log('🔄 startTranslationStream: merged last', {
+                                ts: new Date().toISOString(),
+                                segment: segment.substring(0, 50),
+                            });
                         } else {
                             this.translationSegments.push(`- ${segment}`);
+                            this.debugLog('startTranslationStream: added new segment', {
+                                segment: segment.substring(0, 50),
+                                totalSegments: this.translationSegments.length,
+                            });
+                            console.log('➕ startTranslationStream: added new segment', {
+                                ts: new Date().toISOString(),
+                                segment: segment.substring(0, 50),
+                                totalSegments: this.translationSegments.length,
+                            });
                         }
 
                         // Se il doppiaggio è attivo nella tab corrente, metti in coda la traduzione per il TTS
                         if (this.readTranslationEnabledEffective) {
+                            this.debugLog('startTranslationStream: enqueueing for TTS', {
+                                segment: segment.substring(0, 50),
+                                targetLang,
+                            });
+                            console.log('🔊 startTranslationStream: enqueueing for TTS', {
+                                ts: new Date().toISOString(),
+                                segment: segment.substring(0, 50),
+                                targetLang,
+                            });
                             this.enqueueTranslationForTts(segment, targetLang);
                         }
 
@@ -2426,10 +3100,24 @@ export default {
                     });
                 });
 
-                es.addEventListener('error', () => {
+                es.addEventListener('error', (e) => {
+                    this.debugLog('startTranslationStream: EventSource error', {
+                        readyState: es.readyState,
+                        error: e?.type || 'unknown',
+                    });
+                    console.error('❌ startTranslationStream: EventSource error', {
+                        ts: new Date().toISOString(),
+                        readyState: es.readyState,
+                        error: e?.type || 'unknown',
+                    });
                     try {
                         es.close();
-                    } catch { }
+                    } catch (err) {
+                        this.debugLog('startTranslationStream: error closing EventSource on error', {
+                            error: String(err),
+                        });
+                        console.warn('⚠️ startTranslationStream: error closing EventSource on error', err);
+                    }
                     this.currentStream = null;
                 });
             } catch {
@@ -2458,9 +3146,27 @@ export default {
 
         enqueueTranslationForTts(text, langCode) {
             const safe = (text || '').trim();
-            if (!safe) return;
+            if (!safe) {
+                this.debugLog('enqueueTranslationForTts: empty text, skipping', {});
+                console.log('⚠️ enqueueTranslationForTts: empty text, skipping', {
+                    ts: new Date().toISOString(),
+                });
+                return;
+            }
 
             const locale = this.getLocaleForLangCode(langCode || this.currentTargetLang || this.langB || 'en');
+
+            this.debugLog('enqueueTranslationForTts: adding to queue', {
+                text: safe.substring(0, 50),
+                locale,
+                queueLengthBefore: this.ttsQueue.length,
+            });
+            console.log('🔊 enqueueTranslationForTts: adding to queue', {
+                ts: new Date().toISOString(),
+                text: safe.substring(0, 50),
+                locale,
+                queueLengthBefore: this.ttsQueue.length,
+            });
 
             this.ttsQueue.push({
                 text: safe,
@@ -2471,19 +3177,56 @@ export default {
         },
 
         async processTtsQueue() {
+            this.debugLog('processTtsQueue START', {
+                isTtsPlaying: this.isTtsPlaying,
+                queueLength: this.ttsQueue.length,
+                activeTab: this.activeTab,
+            });
+            console.log('🔊 processTtsQueue START', {
+                ts: new Date().toISOString(),
+                isTtsPlaying: this.isTtsPlaying,
+                queueLength: this.ttsQueue.length,
+                activeTab: this.activeTab,
+            });
+
             if (this.isTtsPlaying) {
+                this.debugLog('processTtsQueue: TTS already playing, skipping', {});
+                console.log('⏸️ processTtsQueue: TTS already playing, skipping', {
+                    ts: new Date().toISOString(),
+                });
                 return;
             }
 
             const next = this.ttsQueue.shift();
             if (!next) {
+                this.debugLog('processTtsQueue: queue empty, exiting', {});
+                console.log('✅ processTtsQueue: queue empty, exiting', {
+                    ts: new Date().toISOString(),
+                });
                 return;
             }
 
             this.isTtsPlaying = true;
+            this.debugLog('processTtsQueue: processing item', {
+                text: next.text.substring(0, 50),
+                locale: next.locale,
+                wasListening: this.isListening,
+                activeSpeaker: this.activeSpeaker,
+            });
+            console.log('🔊 processTtsQueue: processing item', {
+                ts: new Date().toISOString(),
+                text: next.text.substring(0, 50),
+                locale: next.locale,
+                wasListening: this.isListening,
+                activeSpeaker: this.activeSpeaker,
+            });
 
             // In modalità YouTube, mettiamo in pausa il video mentre parte il TTS
             if (this.activeTab === 'youtube') {
+                this.debugLog('processTtsQueue: pausing YouTube video for TTS', {});
+                console.log('⏸️ processTtsQueue: pausing YouTube video for TTS', {
+                    ts: new Date().toISOString(),
+                });
                 this.pauseYoutubeIfNeeded();
             }
 
@@ -2491,10 +3234,28 @@ export default {
             this.wasListeningBeforeTts = this.isListening;
             this.lastSpeakerBeforeTts = this.activeSpeaker;
             if (this.wasListeningBeforeTts) {
+                this.debugLog('processTtsQueue: stopping listening for TTS', {
+                    wasListening: this.wasListeningBeforeTts,
+                    lastSpeaker: this.lastSpeakerBeforeTts,
+                });
+                console.log('🛑 processTtsQueue: stopping listening for TTS', {
+                    ts: new Date().toISOString(),
+                    wasListening: this.wasListeningBeforeTts,
+                    lastSpeaker: this.lastSpeakerBeforeTts,
+                });
                 this.stopListeningInternal();
             }
 
             try {
+                this.debugLog('processTtsQueue: fetching TTS audio', {
+                    text: next.text.substring(0, 50),
+                    locale: next.locale,
+                });
+                console.log('📥 processTtsQueue: fetching TTS audio', {
+                    ts: new Date().toISOString(),
+                    text: next.text.substring(0, 50),
+                    locale: next.locale,
+                });
                 const res = await fetch('/api/tts', {
                     method: 'POST',
                     headers: {
@@ -2509,17 +3270,46 @@ export default {
                 });
 
                 if (!res.ok) {
+                    this.debugLog('processTtsQueue: TTS fetch failed', {
+                        status: res.status,
+                        statusText: res.statusText,
+                    });
+                    console.error('❌ processTtsQueue: TTS fetch failed', {
+                        ts: new Date().toISOString(),
+                        status: res.status,
+                        statusText: res.statusText,
+                    });
                     // Se fallisce, passa oltre senza bloccare la coda
                     this.isTtsPlaying = false;
                     this.processTtsQueue();
                     return;
                 }
 
+                this.debugLog('processTtsQueue: TTS fetch success, creating audio', {
+                    contentType: res.headers.get('content-type'),
+                });
+                console.log('✅ processTtsQueue: TTS fetch success, creating audio', {
+                    ts: new Date().toISOString(),
+                    contentType: res.headers.get('content-type'),
+                });
                 const blob = await res.blob();
                 const url = URL.createObjectURL(blob);
                 const audio = new Audio(url);
 
                 audio.onended = () => {
+                    this.debugLog('processTtsQueue: audio playback ended', {
+                        shouldResume: this.wasListeningBeforeTts,
+                        speaker: this.lastSpeakerBeforeTts,
+                        activeTab: this.activeTab,
+                        youtubeAutoResumeEnabled: this.youtubeAutoResumeEnabled,
+                    });
+                    console.log('✅ processTtsQueue: audio playback ended', {
+                        ts: new Date().toISOString(),
+                        shouldResume: this.wasListeningBeforeTts,
+                        speaker: this.lastSpeakerBeforeTts,
+                        activeTab: this.activeTab,
+                        youtubeAutoResumeEnabled: this.youtubeAutoResumeEnabled,
+                    });
                     URL.revokeObjectURL(url);
                     const shouldResume = this.wasListeningBeforeTts;
                     const speaker = this.lastSpeakerBeforeTts;
@@ -2529,16 +3319,38 @@ export default {
 
                     if (this.activeTab === 'youtube') {
                         if (this.youtubeAutoResumeEnabled) {
+                            this.debugLog('processTtsQueue: resuming YouTube listening', {});
+                            console.log('▶️ processTtsQueue: resuming YouTube listening', {
+                                ts: new Date().toISOString(),
+                            });
                             this.toggleListeningForLang('A');
                         }
                     } else if (shouldResume && speaker) {
+                        this.debugLog('processTtsQueue: resuming listening', {
+                            speaker,
+                        });
+                        console.log('▶️ processTtsQueue: resuming listening', {
+                            ts: new Date().toISOString(),
+                            speaker,
+                        });
                         this.toggleListeningForLang(speaker);
                     }
 
                     this.processTtsQueue();
                 };
 
-                audio.onerror = () => {
+                audio.onerror = (err) => {
+                    this.debugLog('processTtsQueue: audio playback error', {
+                        error: String(err),
+                        shouldResume: this.wasListeningBeforeTts,
+                        speaker: this.lastSpeakerBeforeTts,
+                    });
+                    console.error('❌ processTtsQueue: audio playback error', {
+                        ts: new Date().toISOString(),
+                        error: String(err),
+                        shouldResume: this.wasListeningBeforeTts,
+                        speaker: this.lastSpeakerBeforeTts,
+                    });
                     URL.revokeObjectURL(url);
                     const shouldResume = this.wasListeningBeforeTts;
                     const speaker = this.lastSpeakerBeforeTts;
@@ -2558,55 +3370,224 @@ export default {
                 };
 
                 try {
+                    this.debugLog('processTtsQueue: calling audio.play()', {});
+                    console.log('▶️ processTtsQueue: calling audio.play()', {
+                        ts: new Date().toISOString(),
+                    });
                     await audio.play();
-                } catch {
+                    this.debugLog('processTtsQueue: audio.play() success', {});
+                    console.log('✅ processTtsQueue: audio.play() success', {
+                        ts: new Date().toISOString(),
+                    });
+                } catch (err) {
+                    this.debugLog('processTtsQueue: audio.play() error', {
+                        error: String(err),
+                        errorName: err?.name,
+                        errorMessage: err?.message,
+                    });
+                    console.error('❌ processTtsQueue: audio.play() error', {
+                        ts: new Date().toISOString(),
+                        error: String(err),
+                        errorName: err?.name,
+                        errorMessage: err?.message,
+                        stack: err?.stack,
+                    });
                     URL.revokeObjectURL(url);
                     this.isTtsPlaying = false;
                     this.processTtsQueue();
                 }
-            } catch {
+            } catch (err) {
+                this.debugLog('processTtsQueue: ERROR', {
+                    error: String(err),
+                    errorName: err?.name,
+                    errorMessage: err?.message,
+                });
+                console.error('❌ processTtsQueue: ERROR', {
+                    ts: new Date().toISOString(),
+                    error: String(err),
+                    errorName: err?.name,
+                    errorMessage: err?.message,
+                    stack: err?.stack,
+                });
                 this.isTtsPlaying = false;
                 this.processTtsQueue();
             }
         },
 
         pauseYoutubeIfNeeded() {
+            this.debugLog('pauseYoutubeIfNeeded START', {
+                hasPlayer: !!this.youtubePlayer,
+                hasPauseVideo: !!(this.youtubePlayer && typeof this.youtubePlayer.pauseVideo === 'function'),
+                isYoutubePlayerReady: this.isYoutubePlayerReady,
+                activeTab: this.activeTab,
+                isListening: this.isListening,
+            });
+            console.log('⏸️ pauseYoutubeIfNeeded START', {
+                ts: new Date().toISOString(),
+                hasPlayer: !!this.youtubePlayer,
+                hasPauseVideo: !!(this.youtubePlayer && typeof this.youtubePlayer.pauseVideo === 'function'),
+                isYoutubePlayerReady: this.isYoutubePlayerReady,
+                activeTab: this.activeTab,
+                isListening: this.isListening,
+            });
             try {
                 if (this.youtubePlayer && typeof this.youtubePlayer.pauseVideo === 'function') {
+                    this.debugLog('pauseYoutubeIfNeeded: calling pauseVideo()', {});
+                    console.log('⏸️ pauseYoutubeIfNeeded: calling pauseVideo()', {
+                        ts: new Date().toISOString(),
+                    });
                     this.youtubePlayer.pauseVideo();
+                    this.debugLog('pauseYoutubeIfNeeded: pauseVideo() called successfully', {});
+                    console.log('✅ pauseYoutubeIfNeeded: pauseVideo() called successfully', {
+                        ts: new Date().toISOString(),
+                    });
+                } else {
+                    this.debugLog('pauseYoutubeIfNeeded: cannot pause (no player or no pauseVideo)', {
+                        hasPlayer: !!this.youtubePlayer,
+                        hasPauseVideo: !!(this.youtubePlayer && typeof this.youtubePlayer.pauseVideo === 'function'),
+                    });
+                    console.warn('⚠️ pauseYoutubeIfNeeded: cannot pause (no player or no pauseVideo)', {
+                        ts: new Date().toISOString(),
+                        hasPlayer: !!this.youtubePlayer,
+                        hasPauseVideo: !!(this.youtubePlayer && typeof this.youtubePlayer.pauseVideo === 'function'),
+                    });
                 }
-            } catch {
-                // ignora errori del player
+            } catch (err) {
+                this.debugLog('pauseYoutubeIfNeeded: ERROR', {
+                    error: String(err),
+                    errorName: err?.name,
+                    errorMessage: err?.message,
+                });
+                console.error('❌ pauseYoutubeIfNeeded: ERROR', {
+                    ts: new Date().toISOString(),
+                    error: String(err),
+                    errorName: err?.name,
+                    errorMessage: err?.message,
+                    stack: err?.stack,
+                });
             }
         },
 
         resumeYoutubeIfNeeded() {
+            this.debugLog('resumeYoutubeIfNeeded START', {
+                hasPlayer: !!this.youtubePlayer,
+                hasPlayVideo: !!(this.youtubePlayer && typeof this.youtubePlayer.playVideo === 'function'),
+                isYoutubePlayerReady: this.isYoutubePlayerReady,
+                activeTab: this.activeTab,
+            });
+            console.log('▶️ resumeYoutubeIfNeeded START', {
+                ts: new Date().toISOString(),
+                hasPlayer: !!this.youtubePlayer,
+                hasPlayVideo: !!(this.youtubePlayer && typeof this.youtubePlayer.playVideo === 'function'),
+                isYoutubePlayerReady: this.isYoutubePlayerReady,
+                activeTab: this.activeTab,
+            });
             try {
                 if (this.youtubePlayer && typeof this.youtubePlayer.playVideo === 'function') {
+                    this.debugLog('resumeYoutubeIfNeeded: calling playVideo()', {});
+                    console.log('▶️ resumeYoutubeIfNeeded: calling playVideo()', {
+                        ts: new Date().toISOString(),
+                    });
                     this.youtubePlayer.playVideo();
+                    this.debugLog('resumeYoutubeIfNeeded: playVideo() called successfully', {});
+                    console.log('✅ resumeYoutubeIfNeeded: playVideo() called successfully', {
+                        ts: new Date().toISOString(),
+                    });
+                } else {
+                    this.debugLog('resumeYoutubeIfNeeded: cannot play (no player or no playVideo)', {
+                        hasPlayer: !!this.youtubePlayer,
+                        hasPlayVideo: !!(this.youtubePlayer && typeof this.youtubePlayer.playVideo === 'function'),
+                    });
+                    console.warn('⚠️ resumeYoutubeIfNeeded: cannot play (no player or no playVideo)', {
+                        ts: new Date().toISOString(),
+                        hasPlayer: !!this.youtubePlayer,
+                        hasPlayVideo: !!(this.youtubePlayer && typeof this.youtubePlayer.playVideo === 'function'),
+                    });
                 }
-            } catch {
-                // ignora errori del player
+            } catch (err) {
+                this.debugLog('resumeYoutubeIfNeeded: ERROR', {
+                    error: String(err),
+                    errorName: err?.name,
+                    errorMessage: err?.message,
+                });
+                console.error('❌ resumeYoutubeIfNeeded: ERROR', {
+                    ts: new Date().toISOString(),
+                    error: String(err),
+                    errorName: err?.name,
+                    errorMessage: err?.message,
+                    stack: err?.stack,
+                });
             }
         },
 
         playYoutubeAfterMic() {
+            this.debugLog('playYoutubeAfterMic START', {
+                isYoutubePlayerReady: this.isYoutubePlayerReady,
+                hasPlayer: !!this.youtubePlayer,
+                hasPlayVideo: !!(this.youtubePlayer && typeof this.youtubePlayer.playVideo === 'function'),
+            });
+            console.log('▶️ playYoutubeAfterMic START', {
+                ts: new Date().toISOString(),
+                isYoutubePlayerReady: this.isYoutubePlayerReady,
+                hasPlayer: !!this.youtubePlayer,
+                hasPlayVideo: !!(this.youtubePlayer && typeof this.youtubePlayer.playVideo === 'function'),
+            });
             // Prova a far partire il video non appena il player è pronto.
             const tryPlay = () => {
                 try {
                     if (this.youtubePlayer && typeof this.youtubePlayer.playVideo === 'function') {
+                        this.debugLog('playYoutubeAfterMic: calling playVideo()', {});
+                        console.log('▶️ playYoutubeAfterMic: calling playVideo()', {
+                            ts: new Date().toISOString(),
+                        });
                         this.youtubePlayer.playVideo();
+                        this.debugLog('playYoutubeAfterMic: playVideo() called successfully', {});
+                        console.log('✅ playYoutubeAfterMic: playVideo() called successfully', {
+                            ts: new Date().toISOString(),
+                        });
+                    } else {
+                        this.debugLog('playYoutubeAfterMic: cannot play (no player or no playVideo)', {
+                            hasPlayer: !!this.youtubePlayer,
+                            hasPlayVideo: !!(this.youtubePlayer && typeof this.youtubePlayer.playVideo === 'function'),
+                        });
+                        console.warn('⚠️ playYoutubeAfterMic: cannot play (no player or no playVideo)', {
+                            ts: new Date().toISOString(),
+                            hasPlayer: !!this.youtubePlayer,
+                            hasPlayVideo: !!(this.youtubePlayer && typeof this.youtubePlayer.playVideo === 'function'),
+                        });
                     }
-                } catch {
-                    // se il browser blocca l'autoplay, l'utente può premere play manualmente
+                } catch (err) {
+                    this.debugLog('playYoutubeAfterMic: ERROR calling playVideo()', {
+                        error: String(err),
+                        errorName: err?.name,
+                        errorMessage: err?.message,
+                    });
+                    console.error('❌ playYoutubeAfterMic: ERROR calling playVideo()', {
+                        ts: new Date().toISOString(),
+                        error: String(err),
+                        errorName: err?.name,
+                        errorMessage: err?.message,
+                        stack: err?.stack,
+                    });
                 }
             };
 
             if (this.isYoutubePlayerReady) {
+                this.debugLog('playYoutubeAfterMic: player ready, trying play immediately', {});
+                console.log('✅ playYoutubeAfterMic: player ready, trying play immediately', {
+                    ts: new Date().toISOString(),
+                });
                 tryPlay();
                 return;
             }
 
+            this.debugLog('playYoutubeAfterMic: player not ready, starting polling', {
+                isYoutubePlayerReady: this.isYoutubePlayerReady,
+            });
+            console.log('⏳ playYoutubeAfterMic: player not ready, starting polling', {
+                ts: new Date().toISOString(),
+                isYoutubePlayerReady: this.isYoutubePlayerReady,
+            });
             // Polling leggero per qualche secondo finché il player non diventa pronto
             const start = Date.now();
             const maxMs = 5000;
@@ -2614,7 +3595,22 @@ export default {
                 if (this.isYoutubePlayerReady || Date.now() - start > maxMs) {
                     clearInterval(interval);
                     if (this.isYoutubePlayerReady) {
+                        this.debugLog('playYoutubeAfterMic: player ready after polling', {
+                            elapsedMs: Date.now() - start,
+                        });
+                        console.log('✅ playYoutubeAfterMic: player ready after polling', {
+                            ts: new Date().toISOString(),
+                            elapsedMs: Date.now() - start,
+                        });
                         tryPlay();
+                    } else {
+                        this.debugLog('playYoutubeAfterMic: polling timeout, player still not ready', {
+                            elapsedMs: Date.now() - start,
+                        });
+                        console.warn('⚠️ playYoutubeAfterMic: polling timeout, player still not ready', {
+                            ts: new Date().toISOString(),
+                            elapsedMs: Date.now() - start,
+                        });
                     }
                 }
             }, 200);
@@ -2919,15 +3915,51 @@ export default {
         },
 
         async initYoutubePlayer() {
+            this.debugLog('initYoutubePlayer START', {
+                youtubeVideoId: this.youtubeVideoId,
+                hasPlayer: !!this.youtubePlayer,
+                isYoutubePlayerReady: this.isYoutubePlayerReady,
+                hasYT: !!(window.YT && window.YT.Player),
+            });
+            console.log('🎬 initYoutubePlayer START', {
+                ts: new Date().toISOString(),
+                youtubeVideoId: this.youtubeVideoId,
+                hasPlayer: !!this.youtubePlayer,
+                isYoutubePlayerReady: this.isYoutubePlayerReady,
+                hasYT: !!(window.YT && window.YT.Player),
+            });
+
             if (!this.youtubeVideoId) {
+                this.debugLog('initYoutubePlayer: no videoId, skipping', {});
+                console.warn('⚠️ initYoutubePlayer: no videoId, skipping', {
+                    ts: new Date().toISOString(),
+                });
                 return;
             }
 
             // Se il player esiste già, aggiorna solo il video
             if (this.youtubePlayer && this.isYoutubePlayerReady) {
                 try {
+                    this.debugLog('initYoutubePlayer: reloading existing player with new videoId', {
+                        youtubeVideoId: this.youtubeVideoId,
+                    });
+                    console.log('🔄 initYoutubePlayer: reloading existing player with new videoId', {
+                        ts: new Date().toISOString(),
+                        youtubeVideoId: this.youtubeVideoId,
+                    });
                     this.youtubePlayer.loadVideoById(this.youtubeVideoId);
-                } catch {
+                    this.debugLog('initYoutubePlayer: loadVideoById called successfully', {});
+                    console.log('✅ initYoutubePlayer: loadVideoById called successfully', {
+                        ts: new Date().toISOString(),
+                    });
+                } catch (err) {
+                    this.debugLog('initYoutubePlayer: error loading video, recreating player', {
+                        error: String(err),
+                    });
+                    console.warn('⚠️ initYoutubePlayer: error loading video, recreating player', {
+                        ts: new Date().toISOString(),
+                        error: String(err),
+                    });
                     // fallback: ricrea il player
                     this.youtubePlayer = null;
                     this.isYoutubePlayerReady = false;
@@ -2935,11 +3967,24 @@ export default {
             }
 
             if (this.youtubePlayer) {
+                this.debugLog('initYoutubePlayer: player already exists, skipping creation', {});
+                console.log('✅ initYoutubePlayer: player already exists, skipping creation', {
+                    ts: new Date().toISOString(),
+                });
                 return;
             }
 
             const createPlayer = () => {
                 try {
+                    this.debugLog('initYoutubePlayer: creating new YT.Player', {
+                        youtubeVideoId: this.youtubeVideoId,
+                        hasRef: !!this.$refs.youtubePlayer,
+                    });
+                    console.log('🎬 initYoutubePlayer: creating new YT.Player', {
+                        ts: new Date().toISOString(),
+                        youtubeVideoId: this.youtubeVideoId,
+                        hasRef: !!this.$refs.youtubePlayer,
+                    });
                     this.youtubePlayer = new window.YT.Player(this.$refs.youtubePlayer, {
                         videoId: this.youtubeVideoId,
                         playerVars: {
@@ -2949,19 +3994,77 @@ export default {
                         events: {
                             onReady: () => {
                                 this.isYoutubePlayerReady = true;
+                                this.debugLog('initYoutubePlayer: onReady event fired', {
+                                    youtubeVideoId: this.youtubeVideoId,
+                                });
+                                console.log('✅ initYoutubePlayer: onReady event fired', {
+                                    ts: new Date().toISOString(),
+                                    youtubeVideoId: this.youtubeVideoId,
+                                });
+                            },
+                            onStateChange: (event) => {
+                                this.debugLog('initYoutubePlayer: onStateChange event', {
+                                    state: event.data,
+                                    stateNames: {
+                                        '-1': 'UNSTARTED',
+                                        '0': 'ENDED',
+                                        '1': 'PLAYING',
+                                        '2': 'PAUSED',
+                                        '3': 'BUFFERING',
+                                        '5': 'CUED',
+                                    },
+                                });
+                                console.log('📺 initYoutubePlayer: onStateChange event', {
+                                    ts: new Date().toISOString(),
+                                    state: event.data,
+                                    stateName: {
+                                        '-1': 'UNSTARTED',
+                                        '0': 'ENDED',
+                                        '1': 'PLAYING',
+                                        '2': 'PAUSED',
+                                        '3': 'BUFFERING',
+                                        '5': 'CUED',
+                                    }[String(event.data)] || 'UNKNOWN',
+                                });
                             },
                         },
                     });
-                } catch {
-                    // ignora errori di inizializzazione
+                    this.debugLog('initYoutubePlayer: YT.Player created successfully', {
+                        hasPlayer: !!this.youtubePlayer,
+                    });
+                    console.log('✅ initYoutubePlayer: YT.Player created successfully', {
+                        ts: new Date().toISOString(),
+                        hasPlayer: !!this.youtubePlayer,
+                    });
+                } catch (err) {
+                    this.debugLog('initYoutubePlayer: ERROR creating player', {
+                        error: String(err),
+                        errorName: err?.name,
+                        errorMessage: err?.message,
+                    });
+                    console.error('❌ initYoutubePlayer: ERROR creating player', {
+                        ts: new Date().toISOString(),
+                        error: String(err),
+                        errorName: err?.name,
+                        errorMessage: err?.message,
+                        stack: err?.stack,
+                    });
                 }
             };
 
             if (window.YT && window.YT.Player) {
+                this.debugLog('initYoutubePlayer: YT API already loaded, creating player', {});
+                console.log('✅ initYoutubePlayer: YT API already loaded, creating player', {
+                    ts: new Date().toISOString(),
+                });
                 createPlayer();
                 return;
             }
 
+            this.debugLog('initYoutubePlayer: YT API not loaded, loading script', {});
+            console.log('📥 initYoutubePlayer: YT API not loaded, loading script', {
+                ts: new Date().toISOString(),
+            });
             // Carica l'API iframe di YouTube se non è presente
             return new Promise((resolve) => {
                 const existing = document.getElementById('youtube-iframe-api');
@@ -2970,15 +4073,31 @@ export default {
                     tag.id = 'youtube-iframe-api';
                     tag.src = 'https://www.youtube.com/iframe_api';
                     document.body.appendChild(tag);
+                    this.debugLog('initYoutubePlayer: script tag added', {});
+                    console.log('📥 initYoutubePlayer: script tag added', {
+                        ts: new Date().toISOString(),
+                    });
+                } else {
+                    this.debugLog('initYoutubePlayer: script tag already exists', {});
+                    console.log('✅ initYoutubePlayer: script tag already exists', {
+                        ts: new Date().toISOString(),
+                    });
                 }
 
                 const previous = window.onYouTubeIframeAPIReady;
                 window.onYouTubeIframeAPIReady = () => {
+                    this.debugLog('initYoutubePlayer: onYouTubeIframeAPIReady callback fired', {});
+                    console.log('✅ initYoutubePlayer: onYouTubeIframeAPIReady callback fired', {
+                        ts: new Date().toISOString(),
+                    });
                     if (typeof previous === 'function') {
                         try {
                             previous();
-                        } catch {
-                            // ignore
+                        } catch (err) {
+                            this.debugLog('initYoutubePlayer: error calling previous callback', {
+                                error: String(err),
+                            });
+                            console.warn('⚠️ initYoutubePlayer: error calling previous callback', err);
                         }
                     }
                     createPlayer();
