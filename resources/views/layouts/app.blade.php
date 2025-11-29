@@ -94,6 +94,7 @@ In your html page, add the snippet and call gtag_report_conversion when someone 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
 
     <!-- Scripts & Styles -->
+    @viteReactRefresh
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
     @filamentStyles

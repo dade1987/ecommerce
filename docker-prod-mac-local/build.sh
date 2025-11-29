@@ -6,7 +6,7 @@
 set -e
 
 # Configurazione
-IMAGE_NAME="avatar-3d-v1"
+IMAGE_NAME="avatar-3d-v1-local"
 IMAGE_TAG="${1:-latest}"
 
 # Usa Dockerfile con Playwright se --playwright è specificato

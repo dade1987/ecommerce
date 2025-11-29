@@ -40,7 +40,10 @@
             @endif
         @endforeach
 
-       
+        {{-- Vite React (separate entry point to avoid Alpine/Livewire conflicts) --}}
+        @viteReactRefresh
+        @vite(['resources/css/app.css', 'resources/js/app-react.js'])
+
         {{ \Filament\Support\Facades\FilamentView::renderHook('filament-fabricator::head.end') }}
     </head>
 

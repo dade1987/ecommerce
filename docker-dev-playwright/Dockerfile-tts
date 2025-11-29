@@ -1,0 +1,26 @@
+# =============================================================================
+# Dockerfile TTS Service - Azure Speech with Visemes
+# Container separato per sviluppo locale
+# =============================================================================
+
+FROM node:22-alpine
+
+WORKDIR /app
+
+# Copia package.json per TTS service
+COPY src/Modules/Avatar3DReact/scripts/package.json ./
+
+# Installa dipendenze
+RUN npm install
+
+# Copia script TTS
+COPY src/Modules/Avatar3DReact/scripts/ ./
+
+# Crea directory per audio output (montata come volume)
+RUN mkdir -p /app/audio
+
+# Porta per il servizio HTTP
+EXPOSE 3001
+
+# Avvia il server TTS
+CMD ["node", "server.js"]

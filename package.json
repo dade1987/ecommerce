@@ -16,6 +16,7 @@
         "@tailwindcss/typography": "^0.5.13",
         "@tiptap/extension-color": "^2.23.0",
         "@tiptap/extension-text-style": "^2.23.0",
+        "@vitejs/plugin-react": "^4.2.0",
         "@vitejs/plugin-vue": "^4.6.2",
         "alpinejs": "^3.4.2",
         "autoprefixer": "^10.4.19",
@@ -33,7 +34,18 @@
     },
     "dependencies": {
         "@alpinejs/focus": "^3.13.0",
+        "@react-three/drei": "^9.117.0",
+        "@react-three/fiber": "^8.17.0",
         "frappe-gantt": "^1.0.3",
-        "playwright": "^1.56.1"
+        "leva": "^0.10.1",
+        "lodash": "^4.17.21",
+        "microsoft-cognitiveservices-speech-sdk": "^1.42.0",
+        "playwright": "^1.56.1",
+        "react": "^18.3.1",
+        "react-dom": "^18.3.1",
+        "react-speech-recognition": "^3.10.0",
+        "react-toastify": "^10.0.6",
+        "regenerator-runtime": "^0.14.1",
+        "three": "^0.170.0"
     }
 }

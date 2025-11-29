@@ -1,0 +1,13 @@
+{
+  "name": "Posa Iniziale - braccia aperte",
+  "spine01": { "x": 0, "y": 8, "z": 0 },
+  "spine02": { "x": 6, "y": -9, "z": 0 },
+  "leftRibs": { "x": 132, "y": -180, "z": 19 },
+  "rightRibs": { "x": -56, "y": 6, "z": 173 },
+  "leftClavicle": { "x": 0, "y": 0, "z": -112 },
+  "rightClavicle": { "x": 0, "y": 0, "z": 116 },
+  "leftUpperArm": { "x": 0, "y": 0, "z": -55 },
+  "rightUpperArm": { "x": 0, "y": 0, "z": 52 },
+  "leftForeArm": { "x": 0, "y": 0, "z": 9 },
+  "rightForeArm": { "x": 0, "y": 0, "z": -3 }
+}

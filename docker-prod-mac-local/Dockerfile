@@ -95,8 +95,8 @@ RUN apk add --no-cache \
     && apk del autoconf g++ make \
     && rm -rf /var/cache/apk/*
 
-# Installa bash
-RUN apk add --no-cache bash
+# Installa bash e Node.js (per Azure TTS con Visemi)
+RUN apk add --no-cache bash nodejs npm
 
 # Crea directory necessarie
 RUN mkdir -p /var/www/html \
@@ -106,10 +106,10 @@ RUN mkdir -p /var/www/html \
     && chown -R www-data:www-data /var/www
 
 # Copia configurazioni
-COPY docker-prod/php.ini /usr/local/etc/php/conf.d/zz-custom.ini
-COPY docker-prod/nginx.conf /etc/nginx/nginx.conf
-COPY docker-prod/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-COPY docker-prod/www.conf /usr/local/etc/php-fpm.d/www.conf
+COPY docker-prod-mac-local/php.ini /usr/local/etc/php/conf.d/zz-custom.ini
+COPY docker-prod-mac-local/nginx.conf /etc/nginx/nginx.conf
+COPY docker-prod-mac-local/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY docker-prod-mac-local/www.conf /usr/local/etc/php-fpm.d/www.conf
 
 # Copia codice applicazione
 WORKDIR /var/www/html
@@ -123,11 +123,21 @@ COPY --from=assets-builder /app/public/build ./public/build
 # Copia tutto il codice sorgente
 COPY --chown=www-data:www-data . .
 
+# Installa dipendenze npm per TTS script (Azure Speech SDK)
+RUN cd /var/www/html/src/Modules/Avatar3DReact/scripts \
+    && npm init -y \
+    && npm install microsoft-cognitiveservices-speech-sdk \
+    && chown -R www-data:www-data /var/www/html/src/Modules/Avatar3DReact/scripts
+
+# Crea directory per audio output
+RUN mkdir -p /var/www/html/public/avatar3d/audio \
+    && chown -R www-data:www-data /var/www/html/public/avatar3d
+
 # Rimuovi file non necessari in produzione
 RUN rm -rf \
     docker-dev-playwright \
     docker-prod \
-    node_modules \
+    docker-prod-mac-local \
     tests \
     .git \
     .env.example \
@@ -135,8 +145,6 @@ RUN rm -rf \
     vite.config.js \
     tailwind.config.js \
     postcss.config.js \
-    package.json \
-    package-lock.json \
     README.md \
     config/debugbar.php \
     bootstrap/cache/packages.php \
@@ -160,7 +168,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost/health || exit 1
 
 # Entrypoint
-COPY docker-prod/entrypoint.sh /entrypoint.sh
+COPY docker-prod-mac-local/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 ENTRYPOINT ["/entrypoint.sh"]

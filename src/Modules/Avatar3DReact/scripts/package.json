@@ -1,0 +1,14 @@
+{
+  "name": "avatar3d-tts-service",
+  "version": "1.0.0",
+  "description": "Azure TTS Service with Viseme support for Avatar 3D",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "tts": "node tts.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "microsoft-cognitiveservices-speech-sdk": "^1.34.0"
+  }
+}

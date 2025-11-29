@@ -24,6 +24,7 @@ return [
         'namespace' => 'App\\Filament\\Fabricator\\PageBlocks',
         'path' => app_path('Filament/Fabricator/PageBlocks'),
         'register' => [
+            \Modules\Avatar3DReact\Filament\PageBlocks\Avatar3DReact::class,
         ],
     ],
 

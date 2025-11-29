@@ -56,6 +56,26 @@ services:
     networks:
       - avatar-3d-v1
 
+  tts:
+    build:
+      context: ..
+      dockerfile: docker-dev-playwright/Dockerfile-tts
+    container_name: tts_avatar-3d-v1-dev
+    ports:
+      - "3001:3001"
+    volumes:
+      - ../public/avatar3d/audio:/app/audio
+      - ../src/Modules/Avatar3DReact/scripts:/app/scripts:ro
+    environment:
+      - AZURE_SPEECH_KEY=${AZURE_SPEECH_KEY}
+      - AZURE_SPEECH_REGION=${AZURE_SPEECH_REGION:-italynorth}
+      - AZURE_DEFAULT_VOICE=${AZURE_DEFAULT_VOICE:-it-IT-ElsaNeural}
+      - AUDIO_DIR=/app/audio
+      - PORT=3001
+    networks:
+      - avatar-3d-v1
+    restart: unless-stopped
+
   phpmyadmin:
     image: phpmyadmin
     container_name: phpmyadmin_avatar-3d-v1-dev

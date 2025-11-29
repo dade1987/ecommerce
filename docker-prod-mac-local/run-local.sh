@@ -5,8 +5,9 @@
 
 set -e
 
-CONTAINER_NAME="avatar-3d-v1-test"
+CONTAINER_NAME="avatar-3d-v1-local-test"
 IMAGE_TAG="latest"
+IMAGE_BASE="avatar-3d-v1-local"
 NETWORK="docker-dev-playwright_avatar-3d-v1"
 PORT="8081"
 ENV_FILE="$(dirname "$0")/../.env.prod.local"
@@ -22,9 +23,9 @@ for arg in "$@"; do
 done
 
 if [ "$USE_PLAYWRIGHT" = true ]; then
-    IMAGE_NAME="avatar-3d-v1:${IMAGE_TAG}-playwright"
+    IMAGE_NAME="${IMAGE_BASE}:${IMAGE_TAG}-playwright"
 else
-    IMAGE_NAME="avatar-3d-v1:${IMAGE_TAG}"
+    IMAGE_NAME="${IMAGE_BASE}:${IMAGE_TAG}"
 fi
 
 # Verifica che il file env esista

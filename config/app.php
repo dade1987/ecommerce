@@ -171,10 +171,13 @@ return [
         App\Providers\Filament\AdminPanelProvider::class,
         App\Providers\RouteServiceProvider::class,
         //App\Providers\FolioServiceProvider::class,
+        App\Providers\CartServiceProvider::class,
+
         /*
          * Module Service Providers...
          */
         Modules\WebScraper\Providers\WebScraperServiceProvider::class,
+        Modules\Avatar3DReact\Providers\Avatar3DReactServiceProvider::class,
         //Modules\GeminiSpeech\Providers\GeminiSpeechServiceProvider::class,
     ])->toArray(),
 
@@ -192,6 +195,7 @@ return [
     'aliases' => Facade::defaultAliases()->merge([
         // 'Example' => App\Facades\Example::class,
         'Cart'=> Cart::class,
+        'WebScraper' => Modules\WebScraper\Facades\WebScraper::class,
     ])->toArray(),
 
 ];
