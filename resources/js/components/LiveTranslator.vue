@@ -178,7 +178,7 @@
                 <div class="mt-4 space-y-6">
                     <!-- Righe principali: originale, traduzione, suggerimenti affiancati -->
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
-                        <div class="flex flex-col gap-2">
+                        <div class="flex flex-col gap-2" v-if="!isMobileLowPower">
                             <div class="flex items-center justify-between">
                                 <span class="text-base md:text-lg font-semibold text-slate-100">
                                     {{ ui.originalTitle }}
@@ -310,7 +310,7 @@
                     </div>
 
                     <!-- CV spostato sotto -->
-                    <div class="border-t border-slate-700 pt-4 space-y-3">
+                    <div class="border-t border-slate-700 pt-4 space-y-3" v-if="!isMobileLowPower">
                         <div>
                             <h2 class="text-sm font-semibold text-slate-100">
                                 {{ ui.cvSectionTitle }}
@@ -620,7 +620,7 @@ export default {
             readTranslationEnabledCall: false,
             readTranslationEnabledYoutube: true,
             // Auto-pausa basata sul silenzio (sia per modalità call che YouTube)
-            callAutoPauseEnabled: false,
+            callAutoPauseEnabled: true,
             youtubeAutoPauseEnabled: true,
             youtubeAutoResumeEnabled: true,
             // Durata (ms) di silenzio che chiude un segmento dei motori backend (Whisper / Google)
