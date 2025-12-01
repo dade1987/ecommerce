@@ -98,17 +98,19 @@
                             class="h-3.5 w-3.5 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
                         <span>{{ ui.dubbingLabel }}</span>
                     </label>
-                    <div class="flex items-center gap-2 text-[11px] mt-1">
-                        <label class="flex items-center gap-1 cursor-pointer select-none">
-                            <input type="checkbox" v-model="callAutoPauseEnabled"
-                                class="h-3 w-3 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
-                            <span>{{ ui.youtubeAutoPauseLabel }}</span>
-                        </label>
-                        <div class="flex items-center gap-1">
-                            <input type="number" min="200" max="5000" step="100" v-model.number="whisperSilenceMs"
-                                class="w-16 bg-slate-900 border border-slate-700 rounded px-1 py-0.5 text-[11px] text-slate-100 focus:outline-none focus:ring-1 focus:ring-emerald-500" />
-                            <span class="text-[10px] text-slate-400">ms</span>
+                    <div class="flex flex-col items-center gap-1 text-[11px] mt-1 w-full px-4">
+                        <div class="flex items-center justify-between w-full">
+                            <label class="flex items-center gap-1 cursor-pointer select-none">
+                                <input type="checkbox" v-model="callAutoPauseEnabled"
+                                    class="h-3 w-3 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
+                                <span>{{ ui.youtubeAutoPauseLabel }}</span>
+                            </label>
+                            <span class="text-[10px] text-slate-400">
+                                {{ whisperSilenceMs }} ms
+                            </span>
                         </div>
+                        <input type="range" min="200" max="3000" step="100" v-model.number="whisperSilenceMs"
+                            class="w-full accent-emerald-500" />
                     </div>
                 </div>
 
@@ -369,17 +371,19 @@
                             class="h-3.5 w-3.5 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
                         <span>{{ ui.dubbingLabel }}</span>
                     </label>
-                    <div class="flex items-center gap-2 text-[11px] mt-1">
-                        <label class="flex items-center gap-1 cursor-pointer select-none">
-                            <input type="checkbox" v-model="youtubeAutoPauseEnabled"
-                                class="h-3 w-3 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
-                            <span>{{ ui.youtubeAutoPauseLabel }}</span>
-                        </label>
-                        <div class="flex items-center gap-1">
-                            <input type="number" min="200" max="5000" step="100" v-model.number="whisperSilenceMs"
-                                class="w-16 bg-slate-900 border border-slate-700 rounded px-1 py-0.5 text-[11px] text-slate-100 focus:outline-none focus:ring-1 focus:ring-emerald-500" />
-                            <span class="text-[10px] text-slate-400">ms</span>
+                    <div class="flex flex-col items-center gap-1 text-[11px] mt-1 w-full px-4">
+                        <div class="flex items-center justify-between w-full">
+                            <label class="flex items-center gap-1 cursor-pointer select-none">
+                                <input type="checkbox" v-model="youtubeAutoPauseEnabled"
+                                    class="h-3 w-3 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
+                                <span>{{ ui.youtubeAutoPauseLabel }}</span>
+                            </label>
+                            <span class="text-[10px] text-slate-400">
+                                {{ whisperSilenceMs }} ms
+                            </span>
                         </div>
+                        <input type="range" min="200" max="3000" step="100" v-model.number="whisperSilenceMs"
+                            class="w-full accent-emerald-500" />
                     </div>
                 </div>
 
@@ -627,6 +631,13 @@ export default {
             wasListeningBeforeTts: false,
             lastSpeakerBeforeTts: null,
             translationThreadId: null,
+
+            // Speaker da riattivare automaticamente dopo una pausa auto-rilevata
+            // (solo modalità call e solo quando il TTS è disattivato).
+            pendingAutoResumeSpeaker: null,
+            // Speaker da riattivare automaticamente dopo la lettura TTS
+            // in modalità call quando l'auto-pausa ha spento il microfono.
+            pendingAutoResumeSpeakerAfterTts: null,
 
             // Modalità low-power per mobile (usata solo per ottimizzare la UI,
             // la logica di traduzione ora è uguale a desktop)
@@ -1902,6 +1913,41 @@ export default {
                     } else {
                         // Nessun messaggio di stato
                     }
+
+                    // In modalità "call" con auto-pausa attiva e TTS disattivato:
+                    // se la pausa è stata causata dal VAD (onAutoPause), riaccendi
+                    // automaticamente il microfono sullo stesso speaker.
+                    const shouldAutoResumeCall =
+                        isBackendEngine &&
+                        this.activeTab === 'call' &&
+                        this.callAutoPauseEnabled &&
+                        !this.readTranslationEnabledCall &&
+                        !!this.pendingAutoResumeSpeaker;
+
+                    if (shouldAutoResumeCall) {
+                        const speaker = this.pendingAutoResumeSpeaker;
+                        this.pendingAutoResumeSpeaker = null;
+
+                        this.debugLog('WebSpeech onend: auto-resuming mic after VAD pause', {
+                            speaker,
+                        });
+                        console.log('▶️ WebSpeech onend: auto-resuming mic after VAD pause', {
+                            ts: new Date().toISOString(),
+                            speaker,
+                        });
+
+                        try {
+                            this.toggleListeningForLang(speaker);
+                        } catch (err) {
+                            this.debugLog('WebSpeech onend: error auto-resuming mic', {
+                                error: String(err),
+                            });
+                            console.error('❌ WebSpeech onend: error auto-resuming mic', {
+                                ts: new Date().toISOString(),
+                                error: String(err),
+                            });
+                        }
+                    }
                 };
 
                 this.recognition.onresult = (event) => {
@@ -2097,6 +2143,13 @@ export default {
                                         commit: true,
                                         mergeLast: false,
                                     });
+
+                                    // In modalità YouTube, se il doppiaggio è disattivato,
+                                    // dopo aver inviato l'audio per la trascrizione possiamo
+                                    // riprendere subito il video.
+                                    if (this.activeTab === 'youtube' && !this.readTranslationEnabledYoutube) {
+                                        this.resumeYoutubeIfNeeded();
+                                    }
                                 }
                             } else {
                                 // INTERIM solo su desktop / non-low-power
@@ -2539,9 +2592,24 @@ export default {
                                     if (!self.isListening) {
                                         return;
                                     }
+
+                                    const speakerBefore = self.activeSpeaker;
+                                    const tabBefore = self.activeTab;
+
+                                    // In modalità call distinguiamo due casi:
+                                    // - TTS disattivato → auto-riaccendi subito il mic dopo lo stop (gestito in onend)
+                                    // - TTS attivo      → riaccendi il mic solo dopo la lettura TTS
+                                    if (tabBefore === 'call') {
+                                        if (!self.readTranslationEnabledCall) {
+                                            self.pendingAutoResumeSpeaker = speakerBefore;
+                                        } else {
+                                            self.pendingAutoResumeSpeakerAfterTts = speakerBefore;
+                                        }
+                                    }
+
                                     self.debugLog('Whisper onAutoPause: auto-stopping listening due to silence', {
-                                        activeTab: self.activeTab,
-                                        activeSpeaker: self.activeSpeaker,
+                                        activeTab: tabBefore,
+                                        activeSpeaker: speakerBefore,
                                         silenceMs,
                                     });
                                     self.stopListeningInternal();
@@ -3324,6 +3392,18 @@ export default {
                             });
                             this.toggleListeningForLang('A');
                         }
+                    } else if (this.activeTab === 'call' && this.pendingAutoResumeSpeakerAfterTts) {
+                        const resumeSpeaker = this.pendingAutoResumeSpeakerAfterTts;
+                        this.pendingAutoResumeSpeakerAfterTts = null;
+
+                        this.debugLog('processTtsQueue: resuming CALL listening after TTS (auto-pause)', {
+                            speaker: resumeSpeaker,
+                        });
+                        console.log('▶️ processTtsQueue: resuming CALL listening after TTS (auto-pause)', {
+                            ts: new Date().toISOString(),
+                            speaker: resumeSpeaker,
+                        });
+                        this.toggleListeningForLang(resumeSpeaker);
                     } else if (shouldResume && speaker) {
                         this.debugLog('processTtsQueue: resuming listening', {
                             speaker,

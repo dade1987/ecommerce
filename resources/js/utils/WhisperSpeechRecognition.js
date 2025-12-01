@@ -413,8 +413,11 @@ export default class WhisperSpeechRecognition {
                         // Caso 2: modalità single-segment → non chiudere il recorder qui.
                         // Se è stata registrata una lunga pausa e il chiamante ha fornito
                         // una callback onAutoPause(), notifichiamolo una sola volta.
+                        // Richiediamo anche che ci sia stata VOCE reale (_segmentHasVoice)
+                        // prima della pausa, così non scatta mai su segmenti completamente vuoti.
                         if (!this._autoPauseFired &&
                             typeof this.onAutoPause === 'function' &&
+                            this._segmentHasVoice &&
                             silentFor >= this._silenceMs) {
                             this._autoPauseFired = true;
                             try {
