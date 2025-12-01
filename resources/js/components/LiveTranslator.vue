@@ -410,8 +410,26 @@
                             {{ ui.youtubePlayPauseHint }}
                         </div>
 
-                        <!-- In modalità desktop, il microfono segue play/pause del player YouTube.
-                             Su mobile, il controllo è manuale tramite la tab "call". -->
+                        <!-- Pulsante microfono per modalità YouTube SOLO su mobile/low-power.
+                             Su desktop il microfono segue automaticamente play/pause del player. -->
+                        <div class="mt-4" v-if="isMobileLowPower">
+                            <button type="button" @click="toggleListeningForLang('A')"
+                                :disabled="!youtubeLangSource || !youtubeLangTarget" class="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold border transition
+                                    focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900"
+                                :class="isListening
+                                    ? 'bg-emerald-600 text-white border-emerald-400 shadow-lg shadow-emerald-500/30'
+                                    : 'bg-slate-700 text-slate-100 border-slate-500 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed'">
+                                <span
+                                    class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-black/30 border border-slate-500">
+                                    <span class="inline-block w-1.5 h-3 rounded-full"
+                                        :class="isListening ? 'bg-red-400 animate-pulse' : 'bg-slate-300'">
+                                    </span>
+                                </span>
+                                <span>
+                                    {{ isListening ? ui.youtubeMicAActive : ui.youtubeMicAHelp }}
+                                </span>
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Colonna video + pannelli di traduzione riutilizzati -->
