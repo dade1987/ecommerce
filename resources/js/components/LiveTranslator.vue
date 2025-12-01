@@ -40,8 +40,8 @@
                     </button>
 
                     <button type="button"
-                        class="relative px-4 py-2 rounded-lg font-semibold transition-all duration-150 flex items-center gap-2"
-                        :class="activeTab === 'youtube'
+                        class="relative px-4 py-2 rounded-lg font-semibold transition-all duration-150 flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+                        :disabled="isYoutubeTabDisabled" :class="activeTab === 'youtube'
                             ? 'bg-emerald-500/10 text-emerald-200 shadow-[0_0_0_1px_rgba(16,185,129,0.6)]'
                             : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/80'"
                         @click="setActiveTab('youtube')">
@@ -93,34 +93,6 @@
                 </div>
 
                 <div class="flex flex-col items-center gap-1 text-slate-300">
-                    <div class="flex items-center justify-center gap-2 text-[13px]">
-                        <input id="useGoogleCall" type="checkbox" v-model="useGoogleCall"
-                            @change="onGoogleRecognitionModeChange('call')"
-                            class="h-3.5 w-3.5 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
-                        <label for="useGoogleCall" class="cursor-pointer select-none">
-                            {{ ui.googleCloudLabel }}
-                        </label>
-                    </div>
-
-                    <div class="flex items-center justify-center gap-2 text-[13px] mt-1">
-                        <input id="useWhisper" type="checkbox" v-model="useWhisperCall"
-                            @change="onRecognitionModeChange('call')"
-                            class="h-3.5 w-3.5 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
-                        <label for="useWhisper" class="cursor-pointer select-none">
-                            {{ ui.whisperLabel }}
-                        </label>
-                    </div>
-
-                    <!-- Checkbox: rilevamento automatico pause / invia solo su stop (Whisper + Gemini) -->
-                    <div v-if="useWhisperCall || useGoogleCall"
-                        class="flex items-center justify-center gap-2 text-[11px] text-slate-300">
-                        <input id="whisperSingleSegmentCall" type="checkbox" v-model="whisperSendOnStopOnlyCall"
-                            class="h-3 w-3 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
-                        <label for="whisperSingleSegmentCall" class="cursor-pointer select-none">
-                            {{ ui.whisperSingleSegmentLabel }}
-                        </label>
-                    </div>
-
                     <label class="flex items-center gap-2 text-[13px] cursor-pointer select-none">
                         <input type="checkbox" v-model="readTranslationEnabledCall"
                             class="h-3.5 w-3.5 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
@@ -380,34 +352,7 @@
 
                 <!-- Controllo modalità riconoscimento (Gemini / Whisper / browser) anche per YouTube -->
                 <div class="flex flex-col items-center gap-1 text-slate-300">
-                    <template v-if="!isMobileLowPower">
-                        <div class="flex items-center justify-center gap-2 text-[13px]">
-                            <input id="useGoogleYoutube" type="checkbox" v-model="useGoogleYoutube"
-                                @change="onGoogleRecognitionModeChange('youtube')"
-                                class="h-3.5 w-3.5 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
-                            <label for="useGoogleYoutube" class="cursor-pointer select-none">
-                                {{ ui.googleCloudLabel }}
-                            </label>
-                        </div>
-                        <div class="flex items-center justify-center gap-2 text-[13px] mt-1">
-                            <input id="useWhisperYoutube" type="checkbox" v-model="useWhisperYoutube"
-                                @change="onRecognitionModeChange('youtube')"
-                                class="h-3.5 w-3.5 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
-                            <label for="useWhisperYoutube" class="cursor-pointer select-none">
-                                {{ ui.whisperLabel }}
-                            </label>
-                        </div>
-                        <!-- Checkbox: rilevamento automatico pause / invia solo su stop (Whisper + Gemini) -->
-                        <div v-if="useWhisperYoutube || useGoogleYoutube"
-                            class="flex items-center justify-center gap-2 text-[11px] text-slate-300">
-                            <input id="whisperSingleSegment" type="checkbox" v-model="whisperSendOnStopOnlyYoutube"
-                                class="h-3 w-3 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
-                            <label for="whisperSingleSegment" class="cursor-pointer select-none">
-                                {{ ui.whisperSingleSegmentLabel }}
-                            </label>
-                        </div>
-                    </template>
-                    <label class="flex items-center gap-2 text-[13px] cursor-pointer select-none mt-2">
+                    <label class="flex items-center gap-2 text-[13px] cursor-pointer select-none">
                         <input type="checkbox" v-model="readTranslationEnabledYoutube"
                             class="h-3.5 w-3.5 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
                         <span>{{ ui.dubbingLabel }}</span>
@@ -459,25 +404,14 @@
                             </div>
                         </div>
 
-                        <!-- Pulsante microfono per modalità YouTube (controlla anche il video con delay) -->
-                        <div class="mt-4">
-                            <button type="button" @click="toggleListeningForLang('A')"
-                                :disabled="!youtubeLangSource || !youtubeLangTarget" class="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold border transition
-                                    focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900"
-                                :class="isListening
-                                    ? 'bg-emerald-600 text-white border-emerald-400 shadow-lg shadow-emerald-500/30'
-                                    : 'bg-slate-700 text-slate-100 border-slate-500 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed'">
-                                <span
-                                    class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-black/30 border border-slate-500">
-                                    <span class="inline-block w-1.5 h-3 rounded-full"
-                                        :class="isListening ? 'bg-red-400 animate-pulse' : 'bg-slate-300'">
-                                    </span>
-                                </span>
-                                <span>
-                                    {{ isListening ? ui.youtubeMicAActive : ui.youtubeMicAHelp }}
-                                </span>
-                            </button>
+                        <!-- Hint desktop: usare PLAY per ascoltare e PAUSA per tradurre -->
+                        <div v-if="!isMobileLowPower"
+                            class="mt-1 px-3 py-2 rounded-lg border border-emerald-500/70 bg-emerald-900/40 text-[11px] md:text-xs text-emerald-100 font-semibold">
+                            {{ ui.youtubePlayPauseHint }}
                         </div>
+
+                        <!-- In modalità desktop, il microfono segue play/pause del player YouTube.
+                             Su mobile, il controllo è manuale tramite la tab "call". -->
                     </div>
 
                     <!-- Colonna video + pannelli di traduzione riutilizzati -->
@@ -581,7 +515,6 @@
 
 <script>
 import WhisperSpeechRecognition from '../utils/WhisperSpeechRecognition';
-import GoogleSpeechRecognition from '../utils/GoogleSpeechRecognition';
 import { Network } from 'vis-network/standalone';
 import 'vis-network/styles/vis-network.css';
 
@@ -634,19 +567,6 @@ export default {
             currentMicLang: '',
             currentTargetLang: '',
             activeSpeaker: null, // 'A' o 'B' - indica chi sta parlando
-
-            // Modalità Whisper per tab: indipendenti
-            useWhisperCall: false,
-            useWhisperYoutube: false,
-
-            // Modalità Google/Gemini per tab: indipendenti
-            // YouTube: nessun motore backend selezionato di default (usa WebSpeech se disponibile)
-            useGoogleCall: false,
-            useGoogleYoutube: false,
-
-            // Modalità "invia audio solo quando spengo il microfono" per Whisper, per tab
-            whisperSendOnStopOnlyCall: true,
-            whisperSendOnStopOnlyYoutube: true,
 
             isChromeWithWebSpeech: true,
 
@@ -731,7 +651,7 @@ export default {
                     subtitle: 'Parla in qualsiasi lingua: vedrai il testo originale e la traduzione live.',
                     langALabel: 'Lingua A',
                     langBLabel: 'Lingua B',
-                    whisperLabel: 'Usa Whisper (OpenAI)',
+                    whisperLabel: 'Usa il motore avanzato (cloud)',
                     whisperForcedNote: '',
                     whisperSingleSegmentLabel: 'Invia l’audio solo quando spengo il microfono (meno chiamate, frasi più complete)',
                     googleCloudLabel: 'Usa Gemini (compatibile con tutti i browser)',
@@ -812,13 +732,14 @@ export default {
                     youtubeStatusTranslationRequested: 'Traduzione richiesta',
                     youtubeStatusReadingTranslation: 'Lettura traduzione',
                     downloadBackendAudioLabel: 'Scarica audio inviato al riconoscimento vocale',
+                    youtubePlayPauseHint: 'FAI PLAY per ascoltare il video, metti in PAUSA per tradurre la frase appena detta.',
                 },
                 en: {
                     title: 'PolyGlide – the virtual interpreter that lets you talk to anyone',
                     subtitle: 'Speak in any language: you will see the original text and the live translation.',
                     langALabel: 'Language A',
                     langBLabel: 'Language B',
-                    whisperLabel: 'Use Whisper (OpenAI)',
+                    whisperLabel: 'Use the advanced engine (cloud)',
                     whisperForcedNote: '',
                     whisperSingleSegmentLabel: 'Send audio only when I stop the microphone (fewer calls, more complete sentences)',
                     googleCloudLabel: 'Use Gemini (compatible with all browsers)',
@@ -899,13 +820,14 @@ export default {
                     youtubeStatusTranslationRequested: 'Translation requested',
                     youtubeStatusReadingTranslation: 'Reading translation',
                     downloadBackendAudioLabel: 'Download audio sent to speech recognition',
+                    youtubePlayPauseHint: 'Press PLAY to listen to the video, press PAUSE to translate the last spoken sentence.',
                 },
                 es: {
                     title: 'PolyGlide – el intérprete virtual que te permite hablar con cualquiera',
                     subtitle: 'Habla en cualquier idioma: verás el texto original y la traducción en directo.',
                     langALabel: 'Idioma A',
                     langBLabel: 'Idioma B',
-                    whisperLabel: 'Usar Whisper (OpenAI) en lugar del reconocimiento de voz del navegador',
+                    whisperLabel: 'Usar el motor avanzado (cloud) en lugar del reconocimiento de voz del navegador',
                     whisperForcedNote: 'forzado: no estás en Chrome',
                     dubbingLabel: 'Leer la traducción en voz alta (doblaje)',
                     originalTitle: 'Texto original',
@@ -942,7 +864,7 @@ export default {
                     subtitle: 'Parle dans n’importe quelle langue : tu verras le texte original et la traduction en direct.',
                     langALabel: 'Langue A',
                     langBLabel: 'Langue B',
-                    whisperLabel: 'Utiliser Whisper (OpenAI) au lieu de la reconnaissance vocale du navigateur',
+                    whisperLabel: 'Utiliser le moteur avancé (cloud) au lieu de la reconnaissance vocale du navigateur',
                     whisperForcedNote: 'forcé : tu n’es pas sur Chrome',
                     dubbingLabel: 'Lire la traduction à voix haute (doublage)',
                     originalTitle: 'Texte original',
@@ -979,7 +901,7 @@ export default {
                     subtitle: 'Sprich in jeder Sprache: Du siehst den Originaltext und die Live-Übersetzung.',
                     langALabel: 'Sprache A',
                     langBLabel: 'Sprache B',
-                    whisperLabel: 'Whisper (OpenAI) statt Spracherkennung des Browsers verwenden',
+                    whisperLabel: 'Erweiterten Cloud‑Dienst statt Spracherkennung des Browsers verwenden',
                     whisperForcedNote: 'erzwungen: du verwendest nicht Chrome',
                     dubbingLabel: 'Übersetzung vorlesen (Synchronisation)',
                     originalTitle: 'Originaltext',
@@ -1016,7 +938,7 @@ export default {
                     subtitle: 'Fala em qualquer idioma: vais ver o texto original e a tradução em tempo real.',
                     langALabel: 'Idioma A',
                     langBLabel: 'Idioma B',
-                    whisperLabel: 'Usar Whisper (OpenAI) em vez do reconhecimento de voz do navegador',
+                    whisperLabel: 'Usar o motor avançado (cloud) em vez do reconhecimento de voz do navegador',
                     whisperForcedNote: 'forçado: não estás a usar o Chrome',
                     dubbingLabel: 'Ler a tradução em voz alta (dobragem)',
                     originalTitle: 'Texto original',
@@ -1038,7 +960,7 @@ export default {
                     subtitle: 'Spreek in elke taal: je ziet de originele tekst en de livevertaling.',
                     langALabel: 'Taal A',
                     langBLabel: 'Taal B',
-                    whisperLabel: 'Whisper (OpenAI) gebruiken in plaats van de spraakherkenning van de browser',
+                    whisperLabel: 'De geavanceerde cloud‑engine gebruiken in plaats van de spraakherkenning van de browser',
                     whisperForcedNote: 'afgedwongen: je gebruikt geen Chrome',
                     dubbingLabel: 'Vertaling hardop voorlezen (nasynchronisatie)',
                     originalTitle: 'Originele tekst',
@@ -1054,7 +976,7 @@ export default {
                     subtitle: 'Tala på vilket språk du vill: du ser originaltexten och översättningen i realtid.',
                     langALabel: 'Språk A',
                     langBLabel: 'Språk B',
-                    whisperLabel: 'Använd Whisper (OpenAI) istället för webbläsarens röstigenkänning',
+                    whisperLabel: 'Använd den avancerade moln‑motorn i stället för webbläsarens röstigenkänning',
                     whisperForcedNote: 'tvingat: du använder inte Chrome',
                     dubbingLabel: 'Läs upp översättningen (dubbning)',
                     originalTitle: 'Originaltext',
@@ -1070,7 +992,7 @@ export default {
                     subtitle: 'Snakk på hvilket som helst språk: du ser originalteksten og oversettelsen i sanntid.',
                     langALabel: 'Språk A',
                     langBLabel: 'Språk B',
-                    whisperLabel: 'Bruk Whisper (OpenAI) i stedet for nettleserens talegjenkjenning',
+                    whisperLabel: 'Bruk den avanserte sky‑motoren i stedet for nettleserens talegjenkjenning',
                     whisperForcedNote: 'tvunget: du bruker ikke Chrome',
                     dubbingLabel: 'Les opp oversettelsen (dubbing)',
                     originalTitle: 'Originaltekst',
@@ -1086,7 +1008,7 @@ export default {
                     subtitle: 'Tal på hvilket som helst sprog: du ser originalteksten og live-oversættelsen.',
                     langALabel: 'Sprog A',
                     langBLabel: 'Sprog B',
-                    whisperLabel: 'Brug Whisper (OpenAI) i stedet for browserens stemmegenkendelse',
+                    whisperLabel: 'Brug den avancerede cloud‑motor i stedet for browserens stemmegenkendelse',
                     whisperForcedNote: 'tvunget: du bruger ikke Chrome',
                     dubbingLabel: 'Læs oversættelsen højt (dubbing)',
                     originalTitle: 'Originaltekst',
@@ -1102,7 +1024,7 @@ export default {
                     subtitle: 'Puhu millä tahansa kielellä: näet alkuperäisen tekstin ja reaaliaikaisen käännöksen.',
                     langALabel: 'Kieli A',
                     langBLabel: 'Kieli B',
-                    whisperLabel: 'Käytä Whisperiä (OpenAI) selaimen puheentunnistuksen sijaan',
+                    whisperLabel: 'Käytä kehittynyttä pilvipalvelua selaimen puheentunnistuksen sijaan',
                     whisperForcedNote: 'pakotettu: et käytä Chromea',
                     dubbingLabel: 'Lue käännös ääneen (dubbaus)',
                     originalTitle: 'Alkuperäinen teksti',
@@ -1118,7 +1040,7 @@ export default {
                     subtitle: 'Mów w dowolnym języku: zobaczysz tekst oryginalny i tłumaczenie na żywo.',
                     langALabel: 'Język A',
                     langBLabel: 'Język B',
-                    whisperLabel: 'Użyj Whisper (OpenAI) zamiast rozpoznawania mowy przeglądarki',
+                    whisperLabel: 'Użyj zaawansowanego silnika w chmurze zamiast rozpoznawania mowy przeglądarki',
                     whisperForcedNote: 'wymuszone: nie korzystasz z Chrome',
                     dubbingLabel: 'Odczytaj tłumaczenie na głos (dubbing)',
                     originalTitle: 'Tekst oryginalny',
@@ -1134,7 +1056,7 @@ export default {
                     subtitle: 'Mluv jakýmkoliv jazykem: uvidíš původní text a překlad v reálném čase.',
                     langALabel: 'Jazyk A',
                     langBLabel: 'Jazyk B',
-                    whisperLabel: 'Použít Whisper (OpenAI) místo rozpoznávání řeči prohlížeče',
+                    whisperLabel: 'Použít pokročilý cloudový modul místo rozpoznávání řeči prohlížeče',
                     whisperForcedNote: 'vynuceno: nepoužíváš Chrome',
                     dubbingLabel: 'Přečíst překlad nahlas (dubbing)',
                     originalTitle: 'Původní text',
@@ -1150,7 +1072,7 @@ export default {
                     subtitle: 'Hovor v akomkoľvek jazyku: uvidíš pôvodný text a preklad v reálnom čase.',
                     langALabel: 'Jazyk A',
                     langBLabel: 'Jazyk B',
-                    whisperLabel: 'Použiť Whisper (OpenAI) namiesto rozpoznávania reči v prehliadači',
+                    whisperLabel: 'Použiť pokročilý cloudový modul namiesto rozpoznávania reči v prehliadači',
                     whisperForcedNote: 'vynútené: nepoužívaš Chrome',
                     dubbingLabel: 'Prečítať preklad nahlas (dubbing)',
                     originalTitle: 'Pôvodný text',
@@ -1166,7 +1088,7 @@ export default {
                     subtitle: 'Beszélj bármilyen nyelven: látni fogod az eredeti szöveget és az élő fordítást.',
                     langALabel: 'A nyelv',
                     langBLabel: 'B nyelv',
-                    whisperLabel: 'Használd a Whisper-t (OpenAI) a böngésző beszédfelismerése helyett',
+                    whisperLabel: 'Használd a fejlett felhőalapú motort a böngésző beszédfelismerése helyett',
                     whisperForcedNote: 'kényszerítve: nem Chrome-ot használsz',
                     dubbingLabel: 'Fordítás felolvasása (szinkron)',
                     originalTitle: 'Eredeti szöveg',
@@ -1182,7 +1104,7 @@ export default {
                     subtitle: 'Vorbește în orice limbă: vei vedea textul original și traducerea în timp real.',
                     langALabel: 'Limba A',
                     langBLabel: 'Limba B',
-                    whisperLabel: 'Folosește Whisper (OpenAI) în locul recunoașterii vocale din browser',
+                    whisperLabel: 'Folosește motorul avansat din cloud în locul recunoașterii vocale din browser',
                     whisperForcedNote: 'forțat: nu folosești Chrome',
                     dubbingLabel: 'Citește traducerea cu voce tare (dublaj)',
                     originalTitle: 'Text original',
@@ -1198,7 +1120,7 @@ export default {
                     subtitle: 'Говори на всеки език: ще виждаш оригиналния текст и превода в реално време.',
                     langALabel: 'Език A',
                     langBLabel: 'Език B',
-                    whisperLabel: 'Използвай Whisper (OpenAI) вместо разпознаването на реч в браузъра',
+                    whisperLabel: 'Използвай разширения облачен модул вместо разпознаването на реч в браузъра',
                     whisperForcedNote: 'принудително: не използваш Chrome',
                     dubbingLabel: 'Прочитане на превода на глас (дублиране)',
                     originalTitle: 'Оригинален текст',
@@ -1214,7 +1136,7 @@ export default {
                     subtitle: 'Μίλησε σε οποιαδήποτε γλώσσα: θα βλέπεις το αρχικό κείμενο και τη ζωντανή μετάφραση.',
                     langALabel: 'Γλώσσα A',
                     langBLabel: 'Γλώσσα B',
-                    whisperLabel: 'Χρήση του Whisper (OpenAI) αντί για την αναγνώριση ομιλίας του browser',
+                    whisperLabel: 'Χρήση της προηγμένης μηχανής cloud αντί για την αναγνώριση ομιλίας του browser',
                     whisperForcedNote: 'υποχρεωτικά: δεν χρησιμοποιείς Chrome',
                     dubbingLabel: 'Ανάγνωση της μετάφρασης (dubbing)',
                     originalTitle: 'Αρχικό κείμενο',
@@ -1230,7 +1152,7 @@ export default {
                     subtitle: 'Говори будь-якою мовою: ти бачитимеш оригінальний текст і переклад у реальному часі.',
                     langALabel: 'Мова A',
                     langBLabel: 'Мова B',
-                    whisperLabel: 'Використовувати Whisper (OpenAI) замість розпізнавання мовлення браузера',
+                    whisperLabel: 'Використовувати розширений хмарний модуль замість розпізнавання мовлення браузера',
                     whisperForcedNote: 'примусово: ти не використовуєш Chrome',
                     dubbingLabel: 'Читати переклад уголос (дубляж)',
                     originalTitle: 'Оригінальний текст',
@@ -1246,7 +1168,7 @@ export default {
                     subtitle: 'Говори на любом языке: ты увидишь оригинальный текст и перевод в реальном времени.',
                     langALabel: 'Язык A',
                     langBLabel: 'Язык B',
-                    whisperLabel: 'Использовать Whisper (OpenAI) вместо распознавания речи браузером',
+                    whisperLabel: 'Использовать продвинутый облачный модуль вместо распознавания речи браузером',
                     whisperForcedNote: 'принудительно: ты не используешь Chrome',
                     dubbingLabel: 'Зачитать перевод вслух (дубляж)',
                     originalTitle: 'Исходный текст',
@@ -1262,7 +1184,7 @@ export default {
                     subtitle: 'Herhangi bir dilde konuş: orijinal metni ve canlı çeviriyi göreceksin.',
                     langALabel: 'Dil A',
                     langBLabel: 'Dil B',
-                    whisperLabel: 'Tarayıcının ses tanıması yerine Whisper (OpenAI) kullan',
+                    whisperLabel: 'Tarayıcının ses tanıması yerine gelişmiş bulut motorunu kullan',
                     whisperForcedNote: 'zorunlu: Chrome kullanmıyorsun',
                     dubbingLabel: 'Çeviriyi sesli oku (dublaj)',
                     originalTitle: 'Orijinal metin',
@@ -1278,7 +1200,7 @@ export default {
                     subtitle: 'تحدّث بأي لغة: سترى النص الأصلي والترجمة مباشرة.',
                     langALabel: 'اللغة أ',
                     langBLabel: 'اللغة ب',
-                    whisperLabel: 'استخدم Whisper (OpenAI) بدلاً من التعرف على الصوت في المتصفح',
+                    whisperLabel: 'استخدم المحرك السحابي المتقدم بدلاً من أداة التعرف على الصوت في المتصفح',
                     whisperForcedNote: 'إجباري: أنت لا تستخدم كروم',
                     dubbingLabel: 'قراءة الترجمة بصوت عالٍ (دبلجة)',
                     originalTitle: 'النص الأصلي',
@@ -1294,7 +1216,7 @@ export default {
                     subtitle: 'דבר בכל שפה: תראה את הטקסט המקורי ואת התרגום בזמן אמת.',
                     langALabel: 'שפה A',
                     langBLabel: 'שפה B',
-                    whisperLabel: 'השתמש ב‑Whisper (OpenAI) במקום זיהוי הדיבור של הדפדפן',
+                    whisperLabel: 'השתמש במנוע ענן מתקדם במקום זיהוי הדיבור של הדפדפן',
                     whisperForcedNote: 'חובה: אינך משתמש ב‑Chrome',
                     dubbingLabel: 'קריאת התרגום בקול (דיבוב)',
                     originalTitle: 'טקסט מקורי',
@@ -1310,7 +1232,7 @@ export default {
                     subtitle: 'किसी भी भाषा में बोलें: आप मूल पाठ और लाइव अनुवाद देखेंगे।',
                     langALabel: 'भाषा A',
                     langBLabel: 'भाषा B',
-                    whisperLabel: 'ब्राउज़र की स्पीच रिकग्निशन की जगह Whisper (OpenAI) का उपयोग करें',
+                    whisperLabel: 'ब्राउज़र की स्पीच रिकग्निशन की जगह उन्नत क्लाउड इंजन का उपयोग करें',
                     whisperForcedNote: 'अनिवार्य: आप Chrome का उपयोग नहीं कर रहे हैं',
                     dubbingLabel: 'अनुवाद को ज़ोर से पढ़ें (डबिंग)',
                     originalTitle: 'मूल पाठ',
@@ -1326,7 +1248,7 @@ export default {
                     subtitle: '用任何语言说话：你会看到原文和实时翻译。',
                     langALabel: '语言 A',
                     langBLabel: '语言 B',
-                    whisperLabel: '使用 Whisper（OpenAI）替代浏览器自带的语音识别',
+                    whisperLabel: '使用高级云端引擎替代浏览器自带的语音识别',
                     whisperForcedNote: '已强制启用：当前浏览器不是 Chrome',
                     dubbingLabel: '朗读译文（配音）',
                     originalTitle: '原文',
@@ -1342,7 +1264,7 @@ export default {
                     subtitle: 'どんな言語でも話せます。元のテキストとリアルタイム翻訳が表示されます。',
                     langALabel: '言語 A',
                     langBLabel: '言語 B',
-                    whisperLabel: 'ブラウザの音声認識の代わりに Whisper (OpenAI) を使用する',
+                    whisperLabel: 'ブラウザの音声認識の代わりに高度なクラウドエンジンを使用する',
                     whisperForcedNote: '強制: Chrome 以外のブラウザを使用中です',
                     dubbingLabel: '翻訳を音声で読み上げる（吹き替え）',
                     originalTitle: '元のテキスト',
@@ -1358,7 +1280,7 @@ export default {
                     subtitle: '어떤 언어로 말해도 원문과 실시간 번역을 볼 수 있습니다.',
                     langALabel: '언어 A',
                     langBLabel: '언어 B',
-                    whisperLabel: '브라우저 음성 인식 대신 Whisper(OpenAI) 사용',
+                    whisperLabel: '브라우저 음성 인식 대신 고급 클라우드 엔진 사용',
                     whisperForcedNote: '강제: Chrome 브라우저가 아님',
                     dubbingLabel: '번역 내용을 소리 내어 읽기 (더빙)',
                     originalTitle: '원문',
@@ -1374,7 +1296,7 @@ export default {
                     subtitle: 'Berbicaralah dalam bahasa apa pun: kamu akan melihat teks asli dan terjemahan langsung.',
                     langALabel: 'Bahasa A',
                     langBLabel: 'Bahasa B',
-                    whisperLabel: 'Gunakan Whisper (OpenAI) sebagai pengganti pengenalan suara browser',
+                    whisperLabel: 'Gunakan mesin cloud tingkat lanjut sebagai pengganti pengenalan suara browser',
                     whisperForcedNote: 'dipaksa: kamu tidak menggunakan Chrome',
                     dubbingLabel: 'Bacakan terjemahan (dubbing)',
                     originalTitle: 'Teks asli',
@@ -1390,7 +1312,7 @@ export default {
                     subtitle: 'Bercakap dalam apa‑apa bahasa: anda akan melihat teks asal dan terjemahan secara langsung.',
                     langALabel: 'Bahasa A',
                     langBLabel: 'Bahasa B',
-                    whisperLabel: 'Guna Whisper (OpenAI) menggantikan pengecaman suara pelayar',
+                    whisperLabel: 'Guna enjin awan lanjutan menggantikan pengecaman suara pelayar',
                     whisperForcedNote: 'dipaksa: anda tidak menggunakan Chrome',
                     dubbingLabel: 'Baca terjemahan dengan kuat (dubbing)',
                     originalTitle: 'Teks asal',
@@ -1406,7 +1328,7 @@ export default {
                     subtitle: 'พูดได้ทุกภาษา: คุณจะเห็นข้อความต้นฉบับและคำแปลแบบเรียลไทม์',
                     langALabel: 'ภาษา A',
                     langBLabel: 'ภาษา B',
-                    whisperLabel: 'ใช้ Whisper (OpenAI) แทนระบบรู้จำเสียงพูดของเบราว์เซอร์',
+                    whisperLabel: 'ใช้เอนจินคลาวด์ขั้นสูงแทนระบบรู้จำเสียงพูดของเบราว์เซอร์',
                     whisperForcedNote: 'ถูกบังคับใช้: คุณไม่ได้ใช้ Chrome',
                     dubbingLabel: 'อ่านคำแปลออกเสียง (พากย์เสียง)',
                     originalTitle: 'ข้อความต้นฉบับ',
@@ -1422,7 +1344,7 @@ export default {
                     subtitle: 'Hãy nói bất kỳ ngôn ngữ nào: bạn sẽ thấy văn bản gốc và bản dịch theo thời gian thực.',
                     langALabel: 'Ngôn ngữ A',
                     langBLabel: 'Ngôn ngữ B',
-                    whisperLabel: 'Sử dụng Whisper (OpenAI) thay cho nhận dạng giọng nói của trình duyệt',
+                    whisperLabel: 'Sử dụng engine đám mây nâng cao thay cho nhận dạng giọng nói của trình duyệt',
                     whisperForcedNote: 'bắt buộc: bạn không dùng Chrome',
                     dubbingLabel: 'Đọc to bản dịch (lồng tiếng)',
                     originalTitle: 'Văn bản gốc',
@@ -1441,17 +1363,23 @@ export default {
         },
         // Flag effettivo Whisper in base alla tab attiva
         useWhisperEffective() {
-            return this.activeTab === 'youtube' ? this.useWhisperYoutube : this.useWhisperCall;
+            // Tab "call": sempre Whisper.
+            // Tab "youtube": Whisper solo su desktop, WebSpeech su mobile low-power.
+            if (this.activeTab === 'youtube' && this.isMobileLowPower) {
+                return false;
+            }
+            return true;
         },
         // Flag effettivo Google Speech in base alla tab attiva
         useGoogleEffective() {
-            return this.activeTab === 'youtube' ? this.useGoogleYoutube : this.useGoogleCall;
+            // Gemini/Google non è più utilizzato.
+            return false;
         },
         // Modalità "invia audio solo quando spengo il microfono" effettiva per Whisper
         whisperSendOnStopOnlyEffective() {
-            return this.activeTab === 'youtube'
-                ? this.whisperSendOnStopOnlyYoutube
-                : this.whisperSendOnStopOnlyCall;
+            // Con Whisper usiamo sempre la modalità "single segment":
+            // invia l'audio al backend quando si spegne il microfono.
+            return true;
         },
         // Doppiaggio effettivo in base alla tab
         readTranslationEnabledEffective() {
@@ -1504,6 +1432,11 @@ export default {
             }
 
             return this.ui.youtubeStatusPaused;
+        },
+        isYoutubeTabDisabled() {
+            // Su mobile/low-power la tab YouTube è disponibile solo se il browser
+            // espone la Web Speech API; altrimenti la disabilitiamo del tutto.
+            return this.isMobileLowPower && !this.isChromeWithWebSpeech;
         },
     },
     watch: {
@@ -1619,20 +1552,17 @@ export default {
         },
 
         setActiveTab(tab) {
-            this.activeTab = tab;
-            // Su mobile, nella tab YouTube disabilitiamo completamente Gemini/Whisper:
-            // resta solo WebSpeech del browser (se disponibile).
-            if (tab === 'youtube' && this.isMobileLowPower) {
-                this.useGoogleYoutube = false;
-                this.useWhisperYoutube = false;
+            // Se la tab YouTube è disabilitata (mobile senza WebSpeech), non permettere il cambio tab.
+            if (tab === 'youtube' && this.isYoutubeTabDisabled) {
+                this.statusMessage = 'Riconoscimento vocale non disponibile in questo browser.';
+                return;
+            }
 
-                if (!this.isChromeWithWebSpeech) {
-                    // Nessun WebSpeech disponibile: la modalità YouTube non è utilizzabile.
-                    this.statusMessage = 'Riconoscimento vocale non disponibile in questo browser.';
-                } else {
-                    // WebSpeech attivo: ripristina messaggio standard browser mode.
-                    this.statusMessage = this.ui.statusBrowserModeOn;
-                }
+            this.activeTab = tab;
+
+            if (tab === 'call') {
+                // Nella tab "call" usiamo sempre Whisper.
+                this.statusMessage = '';
             }
         },
 
@@ -1726,36 +1656,8 @@ export default {
                     uaSnippet: ua.slice(0, 160),
                     isChromeWithWebSpeech: this.isChromeWithWebSpeech,
                 });
-                if (this.isChromeWithWebSpeech) {
-                    // Chrome con WebSpeech disponibile:
-                    //  - default: WebSpeech nativo per tab "call" (nessun motore backend attivo)
-                    //  - YouTube: nessun motore backend selezionato di default
-                    //  - autoRestart attivo per mantenere il comportamento "streaming" del browser sulla tab "call"
-                    this.useGoogleCall = false;
-                    this.useGoogleYoutube = false;
-                    this.useWhisperCall = false;
-                    this.useWhisperYoutube = false;
-                    this.autoRestart = true;
-                    this.statusMessage = this.ui.statusBrowserModeOn;
-                } else {
-                    // Altri browser (senza WebSpeech affidabile):
-                    //  - prima scelta: Gemini (Google) sulla tab "call"
-                    //  - seconda scelta: Whisper (attivabile manualmente)
-                    //  - YouTube: nessun motore backend selezionato di default
-                    this.useGoogleCall = true;
-                    this.useGoogleYoutube = false;
-                    this.useWhisperCall = false;
-                    this.useWhisperYoutube = false;
-                    this.autoRestart = false;
-                }
             } catch {
                 this.isChromeWithWebSpeech = false;
-                // In caso di errore conservativo: usa Gemini come fallback principale (solo tab "call").
-                this.useGoogleCall = true;
-                this.useGoogleYoutube = false;
-                this.useWhisperCall = false;
-                this.useWhisperYoutube = false;
-                this.autoRestart = false;
             }
         },
 
@@ -1763,9 +1665,10 @@ export default {
             try {
                 let RecClass = null;
 
-                if (this.useGoogleEffective) {
-                    RecClass = GoogleSpeechRecognition;
-                } else if (this.useWhisperEffective) {
+                // Engine selection:
+                // - Tab "call": sempre Whisper
+                // - Tab "youtube": mobile → WebSpeech del browser, desktop → Whisper
+                if (this.useWhisperEffective) {
                     RecClass = WhisperSpeechRecognition;
                 } else {
                     RecClass = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -1783,7 +1686,7 @@ export default {
                 this.recognition.lang = detectedLang;
 
                 // Configurazione base
-                const isBackendEngine = this.useWhisperEffective || this.useGoogleEffective;
+                const isBackendEngine = this.useWhisperEffective;
                 this.recognition.maxAlternatives = 1;
 
                 if (isBackendEngine) {
@@ -1802,7 +1705,7 @@ export default {
                     }
                 }
 
-                const engine = this.useGoogleEffective ? 'gemini' : (this.useWhisperEffective ? 'whisper' : 'webspeech');
+                const engine = this.useWhisperEffective ? 'cloud_engine' : 'webspeech';
                 this.debugLog('WebSpeech init', {
                     engine,
                     lang: detectedLang,
@@ -1822,14 +1725,9 @@ export default {
                     interimResults: !isBackendEngine,
                     maxAlternatives: 1,
                     useWhisper: this.useWhisperEffective,
-                    useGoogle: this.useGoogleEffective,
                     isChrome: this.isChromeWithWebSpeech,
                     activeTab: this.activeTab,
                     isMobileLowPower: this.isMobileLowPower,
-                    useGoogleCall: this.useGoogleCall,
-                    useGoogleYoutube: this.useGoogleYoutube,
-                    useWhisperCall: this.useWhisperCall,
-                    useWhisperYoutube: this.useWhisperYoutube,
                 });
 
                 this.recognition.onstart = () => {
@@ -1894,7 +1792,7 @@ export default {
                     this.webSpeechDebugSeq += 1;
                     this.lastWebSpeechEventAt = Date.now();
 
-                    const isBackendEngine = this.useWhisperEffective || this.useGoogleEffective;
+                    const isBackendEngine = this.useWhisperEffective;
                     const singleSegmentMode = isBackendEngine && this.recognition && typeof this.recognition === 'object'
                         ? this.recognition.singleSegmentMode
                         : false;
@@ -1910,8 +1808,7 @@ export default {
                         this.activeTab === 'call' &&
                         this.isListening &&
                         this.autoRestart &&
-                        !this.useWhisperEffective &&
-                        !this.useGoogleEffective;
+                        !this.useWhisperEffective;
 
                     this.debugLog('WebSpeech onend', {
                         isListening: this.isListening,
@@ -1973,8 +1870,8 @@ export default {
                         const resultTimestamp = Date.now();
                         this.lastWebSpeechEventAt = resultTimestamp;
 
-                        const engine = this.useGoogleEffective ? 'gemini' : (this.useWhisperEffective ? 'whisper' : 'webspeech');
-                        const isBackendEngine = this.useWhisperEffective || this.useGoogleEffective;
+                        const engine = this.useWhisperEffective ? 'cloud_engine' : 'webspeech';
+                        const isBackendEngine = this.useWhisperEffective;
                         const singleSegmentMode = isBackendEngine && this.recognition && typeof this.recognition === 'object'
                             ? this.recognition.singleSegmentMode
                             : false;
@@ -2560,7 +2457,7 @@ export default {
                 }
 
                 this.isListening = true;
-                const isBackendEngine = this.useWhisperEffective || this.useGoogleEffective;
+                const isBackendEngine = this.useWhisperEffective;
                 if (isBackendEngine && this.recognition && typeof this.recognition === 'object') {
                     let singleSegment = !!this.whisperSendOnStopOnlyEffective;
                     if (this.isMobileLowPower) {
@@ -2706,7 +2603,7 @@ export default {
 
             if (this.recognition) {
                 try {
-                    const isBackendEngine = this.useWhisperEffective || this.useGoogleEffective;
+                    const isBackendEngine = this.useWhisperEffective;
                     const singleSegmentMode = isBackendEngine && this.recognition && typeof this.recognition === 'object'
                         ? this.recognition.singleSegmentMode
                         : false;
@@ -3825,89 +3722,6 @@ export default {
             this.statusMessage = '';
         },
 
-        onRecognitionModeChange(tab) {
-            // Su mobile, nella tab YouTube Gemini/Whisper non sono disponibili:
-            // forziamo sempre WebSpeech e ignoriamo i toggle.
-            if (tab === 'youtube' && this.isMobileLowPower) {
-                this.useWhisperYoutube = false;
-                this.useGoogleYoutube = false;
-
-                if (!this.isChromeWithWebSpeech) {
-                    this.statusMessage = 'Riconoscimento vocale non disponibile in questo browser.';
-                } else {
-                    this.statusMessage = this.ui.statusBrowserModeOn;
-                }
-                return;
-            }
-
-            // Quando si cambia modalità, fermiamo eventuale ascolto in corso
-            if (this.isListening) {
-                this.stopListeningInternal();
-            }
-            this.recognition = null;
-
-            const useWhisperForTab = tab === 'youtube' ? this.useWhisperYoutube : this.useWhisperCall;
-
-            if (useWhisperForTab) {
-                // In modalità Whisper evitiamo auto-restart lato componente
-                this.autoRestart = false;
-                this.statusMessage = this.ui.statusWhisperModeOn;
-
-                // Se abiliti Whisper per una tab, spegni l'eventuale Google/Gemini sulla stessa tab
-                if (tab === 'youtube') {
-                    this.useGoogleYoutube = false;
-                } else {
-                    this.useGoogleCall = false;
-                }
-            } else {
-                // Whisper disattivato per questa tab: se sei su Chrome e non hai nessun motore backend
-                // attivo, torniamo a WebSpeech nativo con autoRestart attivo; altrimenti restiamo
-                // in modalità backend (Gemini) senza autoRestart.
-                const hasGoogleForTab = tab === 'youtube' ? this.useGoogleYoutube : this.useGoogleCall;
-
-                if (this.isChromeWithWebSpeech && !hasGoogleForTab) {
-                    this.autoRestart = true;
-                    this.statusMessage = this.ui.statusBrowserModeOn;
-                } else {
-                    this.autoRestart = false;
-                    this.statusMessage = '';
-                }
-            }
-        },
-
-        onGoogleRecognitionModeChange(tab) {
-            // Su mobile, nella tab YouTube Gemini/Whisper non sono disponibili:
-            // forziamo sempre WebSpeech e ignoriamo i toggle.
-            if (tab === 'youtube' && this.isMobileLowPower) {
-                this.useGoogleYoutube = false;
-                this.useWhisperYoutube = false;
-
-                if (!this.isChromeWithWebSpeech) {
-                    this.statusMessage = 'Riconoscimento vocale non disponibile in questo browser.';
-                } else {
-                    this.statusMessage = this.ui.statusBrowserModeOn;
-                }
-                return;
-            }
-
-            // Motori mutuamente esclusivi: se abiliti Google, spegni Whisper per la stessa tab.
-            if (tab === 'youtube') {
-                if (this.useGoogleYoutube) {
-                    this.useWhisperYoutube = false;
-                }
-            } else {
-                if (this.useGoogleCall) {
-                    this.useWhisperCall = false;
-                }
-            }
-
-            // Qualsiasi cambio motore: stoppa eventuale ascolto in corso e resetta il recognition
-            if (this.isListening) {
-                this.stopListeningInternal();
-            }
-            this.recognition = null;
-        },
-
         // --- Modalità Traduttore Video Youtube ---
         extractYoutubeVideoId(url) {
             try {
@@ -4108,6 +3922,22 @@ export default {
                                         '5': 'CUED',
                                     }[String(event.data)] || 'UNKNOWN',
                                 });
+
+                                // Solo su desktop / non-mobile facciamo seguire il microfono
+                                // allo stato di riproduzione del player YouTube.
+                                if (!this.isMobileLowPower && this.activeTab === 'youtube') {
+                                    if (event.data === 1) {
+                                        // PLAYING → accendi microfono sulla lingua sorgente (A)
+                                        if (!this.isListening) {
+                                            this.toggleListeningForLang('A');
+                                        }
+                                    } else if (event.data === 2 || event.data === 0) {
+                                        // PAUSED o ENDED → spegni microfono
+                                        if (this.isListening) {
+                                            this.stopListeningInternal();
+                                        }
+                                    }
+                                }
                             },
                         },
                     });
