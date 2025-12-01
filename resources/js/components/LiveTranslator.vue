@@ -98,6 +98,18 @@
                             class="h-3.5 w-3.5 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
                         <span>{{ ui.dubbingLabel }}</span>
                     </label>
+                    <div class="flex items-center gap-2 text-[11px] mt-1">
+                        <label class="flex items-center gap-1 cursor-pointer select-none">
+                            <input type="checkbox" v-model="callAutoPauseEnabled"
+                                class="h-3 w-3 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
+                            <span>{{ ui.youtubeAutoPauseLabel }}</span>
+                        </label>
+                        <div class="flex items-center gap-1">
+                            <input type="number" min="200" max="5000" step="100" v-model.number="whisperSilenceMs"
+                                class="w-16 bg-slate-900 border border-slate-700 rounded px-1 py-0.5 text-[11px] text-slate-100 focus:outline-none focus:ring-1 focus:ring-emerald-500" />
+                            <span class="text-[10px] text-slate-400">ms</span>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -357,6 +369,18 @@
                             class="h-3.5 w-3.5 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
                         <span>{{ ui.dubbingLabel }}</span>
                     </label>
+                    <div class="flex items-center gap-2 text-[11px] mt-1">
+                        <label class="flex items-center gap-1 cursor-pointer select-none">
+                            <input type="checkbox" v-model="youtubeAutoPauseEnabled"
+                                class="h-3 w-3 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
+                            <span>{{ ui.youtubeAutoPauseLabel }}</span>
+                        </label>
+                        <div class="flex items-center gap-1">
+                            <input type="number" min="200" max="5000" step="100" v-model.number="whisperSilenceMs"
+                                class="w-16 bg-slate-900 border border-slate-700 rounded px-1 py-0.5 text-[11px] text-slate-100 focus:outline-none focus:ring-1 focus:ring-emerald-500" />
+                            <span class="text-[10px] text-slate-400">ms</span>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -591,6 +615,13 @@ export default {
             // Doppiaggio (TTS) indipendente per tab
             readTranslationEnabledCall: false,
             readTranslationEnabledYoutube: true,
+            // Auto-pausa basata sul silenzio (sia per modalità call che YouTube)
+            callAutoPauseEnabled: false,
+            youtubeAutoPauseEnabled: true,
+            youtubeAutoResumeEnabled: true,
+            // Durata (ms) di silenzio che chiude un segmento dei motori backend (Whisper / Google)
+            // e fa scattare l'auto-pausa quando abilitata.
+            whisperSilenceMs: 800,
             ttsQueue: [],
             isTtsPlaying: false,
             wasListeningBeforeTts: false,
@@ -1395,8 +1426,11 @@ export default {
         },
         // Modalità "invia audio solo quando spengo il microfono" effettiva per Whisper
         whisperSendOnStopOnlyEffective() {
-            // Con Whisper usiamo sempre la modalità "single segment":
-            // invia l'audio al backend quando si spegne il microfono.
+            // Manteniamo il comportamento originale di Whisper:
+            // registrazione single-segment e invio dell'audio solo quando
+            // si spegne esplicitamente il microfono (stopListeningInternal).
+            // L'auto-pausa basata sul silenzio simula semplicemente il click
+            // sul bottone di pausa, senza cambiare questo flusso.
             return true;
         },
         // Doppiaggio effettivo in base alla tab
@@ -2477,21 +2511,65 @@ export default {
                 this.isListening = true;
                 const isBackendEngine = this.useWhisperEffective;
                 if (isBackendEngine && this.recognition && typeof this.recognition === 'object') {
-                    let singleSegment = !!this.whisperSendOnStopOnlyEffective;
-                    if (this.isMobileLowPower) {
-                        singleSegment = true;
+                    // Manteniamo sempre la modalità single-segment:
+                    // il backend riceve l'audio solo quando si spegne esplicitamente il microfono.
+                    this.recognition.singleSegmentMode = !!this.whisperSendOnStopOnlyEffective;
+
+                    // Propaga al wrapper anche la soglia di silenzio (in ms) configurata a livello di UI.
+                    let silenceMs = 800;
+                    if (typeof this.whisperSilenceMs === 'number' && this.whisperSilenceMs > 0) {
+                        silenceMs = this.whisperSilenceMs;
                     }
-                    this.recognition.singleSegmentMode = singleSegment;
-                    this.debugLog('toggleListeningForLang: singleSegmentMode set', {
+                    if (Object.prototype.hasOwnProperty.call(this.recognition, '_silenceMs')) {
+                        this.recognition._silenceMs = silenceMs;
+                    }
+
+                    // Configura la callback di auto-pausa basata sul silenzio: simula il click
+                    // sul bottone pausa (stopListeningInternal) senza cambiare il flusso:
+                    // lo stop esplicito del mic è sempre ciò che scatena la trascrizione.
+                    if ('onAutoPause' in this.recognition) {
+                        const self = this;
+                        const tab = this.activeTab;
+                        const callEnabled = this.callAutoPauseEnabled;
+                        const ytEnabled = this.youtubeAutoPauseEnabled;
+
+                        if ((tab === 'call' && callEnabled) || (tab === 'youtube' && ytEnabled)) {
+                            this.recognition.onAutoPause = function () {
+                                try {
+                                    if (!self.isListening) {
+                                        return;
+                                    }
+                                    self.debugLog('Whisper onAutoPause: auto-stopping listening due to silence', {
+                                        activeTab: self.activeTab,
+                                        activeSpeaker: self.activeSpeaker,
+                                        silenceMs,
+                                    });
+                                    self.stopListeningInternal();
+                                } catch {
+                                    // ignora errori nel layer superiore
+                                }
+                            };
+                        } else {
+                            this.recognition.onAutoPause = null;
+                        }
+                    }
+
+                    this.debugLog('toggleListeningForLang: singleSegmentMode/silenceMs/onAutoPause set', {
                         singleSegmentMode: this.recognition.singleSegmentMode,
                         whisperSendOnStopOnlyEffective: this.whisperSendOnStopOnlyEffective,
                         isMobileLowPower: this.isMobileLowPower,
+                        silenceMs,
+                        callAutoPauseEnabled: this.callAutoPauseEnabled,
+                        youtubeAutoPauseEnabled: this.youtubeAutoPauseEnabled,
                     });
-                    console.log('⚙️ toggleListeningForLang: singleSegmentMode set', {
+                    console.log('⚙️ toggleListeningForLang: singleSegmentMode/silenceMs/onAutoPause set', {
                         ts: new Date().toISOString(),
                         singleSegmentMode: this.recognition.singleSegmentMode,
                         whisperSendOnStopOnlyEffective: this.whisperSendOnStopOnlyEffective,
                         isMobileLowPower: this.isMobileLowPower,
+                        silenceMs,
+                        callAutoPauseEnabled: this.callAutoPauseEnabled,
+                        youtubeAutoPauseEnabled: this.youtubeAutoPauseEnabled,
                     });
                 }
 

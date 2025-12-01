@@ -31,9 +31,10 @@ export default class WhisperSpeechRecognition {
         this._resultIndex = 0;
         this._chunks = [];
         // Parametri per segmentare in base al silenzio
-        this._silenceMs = 800; // quanto tempo di silenzio per chiudere il segmento
+        this._silenceMs = 800; // quanto tempo di silenzio per chiudere il segmento o triggerare auto-pausa
         this._maxSegmentMs = 6000; // sicurezza: durata massima di un singolo segmento
-        this._silenceThreshold = 0.02; // soglia RMS approssimativa per considerare "voce"
+        // Soglia RMS per considerare "voce": leggermente più alta per ignorare rumore di fondo leggero.
+        this._silenceThreshold = 0.05;
 
         this._audioContext = null;
         this._analyser = null;
@@ -42,6 +43,12 @@ export default class WhisperSpeechRecognition {
         this._segmentStartedAt = 0;
         this._lastNonSilentAt = 0;
         this._segmentHasVoice = false;
+
+        // Callback opzionale usata dal chiamante per auto-pausa basata sul silenzio.
+        // Non viene usata internamente per fermare la registrazione: serve solo a
+        // notificare il layer superiore che è stata rilevata una lunga pausa.
+        this.onAutoPause = null;
+        this._autoPauseFired = false;
 
         // Se true, registriamo un unico segmento e inviamo tutto a Whisper
         // solo quando viene chiamato stop(). Utile, ad esempio, per la
@@ -323,6 +330,7 @@ export default class WhisperSpeechRecognition {
         this._segmentStartedAt = now;
         this._lastNonSilentAt = now;
         this._segmentHasVoice = false;
+        this._autoPauseFired = false;
 
         this._recorder.ondataavailable = (event) => {
             if (!event.data || event.data.size === 0) {
@@ -358,9 +366,12 @@ export default class WhisperSpeechRecognition {
 
         this._recorder.start();
 
-        // Avvia un loop che controlla il volume e chiude il segmento quando c'è silenzio,
-        // ma solo se non siamo in modalità "single segment".
-        if (!this.singleSegmentMode && this._analyser && this._volumeArray) {
+        // Avvia un loop che controlla il volume:
+        // - in modalità multi-segmento: chiude il segmento quando c'è silenzio (_silenceMs)
+        // - in modalità single-segment: non chiude il segmento, ma può invocare onAutoPause()
+        //   per permettere al chiamante di fermare il microfono mantenendo il flusso originale
+        //   (lo stop esplicito lancia la trascrizione).
+        if (this._analyser && this._volumeArray) {
             const checkVolume = () => {
                 if (!this._isRecording || !this._analyser || !this._volumeArray) {
                     this._volumeCheckRaf = null;
@@ -386,14 +397,32 @@ export default class WhisperSpeechRecognition {
                 const silentFor = nowTs - this._lastNonSilentAt;
 
                 if (this._recorder && this._recorder.state === 'recording') {
-                    if (silentFor >= this._silenceMs || elapsedSegment >= this._maxSegmentMs) {
-                        try {
-                            this._recorder.stop();
-                        } catch {
-                            // ignore
+                    // Caso 1: modalità multi-segmento → chiudi il segmento quando c'è silenzio
+                    // o si supera la durata massima.
+                    if (!this.singleSegmentMode) {
+                        if (silentFor >= this._silenceMs || elapsedSegment >= this._maxSegmentMs) {
+                            try {
+                                this._recorder.stop();
+                            } catch {
+                                // ignore
+                            }
+                            this._volumeCheckRaf = null;
+                            return;
                         }
-                        this._volumeCheckRaf = null;
-                        return;
+                    } else if (this.singleSegmentMode) {
+                        // Caso 2: modalità single-segment → non chiudere il recorder qui.
+                        // Se è stata registrata una lunga pausa e il chiamante ha fornito
+                        // una callback onAutoPause(), notifichiamolo una sola volta.
+                        if (!this._autoPauseFired &&
+                            typeof this.onAutoPause === 'function' &&
+                            silentFor >= this._silenceMs) {
+                            this._autoPauseFired = true;
+                            try {
+                                this.onAutoPause();
+                            } catch {
+                                // ignora errori nella callback dell'utente
+                            }
+                        }
                     }
                 }
 
