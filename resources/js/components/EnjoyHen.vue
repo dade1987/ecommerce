@@ -28,7 +28,7 @@
       <!-- Main Content -->
       <div class="flex-1 flex items-center justify-center p-4 overflow-y-auto">
         <div :class="['w-full', isWebComponent ? 'max-w-full' : 'max-w-2xl']">
-          <!-- Video Avatar -->
+          <!-- Video Avatar / Text Chat -->
           <div :class="[
             'relative mb-6 rounded-lg overflow-hidden pointer-events-auto',
             isWebComponent ? 'bg-transparent border-none' : 'bg-black border border-slate-700'
@@ -38,106 +38,158 @@
               class="absolute top-3 right-3 z-30 w-8 h-8 rounded-full bg-black/70 text-white flex items-center justify-center border border-white/40">
               ✕
             </button>
-
-            <video id="heygenVideo" class="w-full h-auto rounded-lg" autoplay playsinline controls>
-            </video>
-
-            <!-- Modal Trascrizione Email -->
-            <div id="emailTranscriptModalHen"
-              class="hidden absolute inset-0 flex items-center justify-center z-30 rounded-lg bg-black/60 backdrop-blur-sm">
+            <!-- SNIPPET: se snippetTextMode è attivo mostro solo la chat testuale -->
+            <template v-if="isWebComponent && snippetTextMode">
               <div
-                class="w-full max-w-lg mx-4 bg-[#0b1220] border border-slate-700 rounded-xl shadow-2xl overflow-hidden">
-                <div class="px-4 py-3 border-b border-slate-700 bg-black/50 flex items-center justify-between">
-                  <div class="text-slate-100 font-semibold text-base">Invia trascrizione via email</div>
-                  <button id="sendTranscriptCancelHen"
-                    class="text-slate-300 hover:text-white px-2 py-1 rounded-md hover:bg-slate-700/60">✕</button>
-                </div>
-                <div class="p-4 space-y-3">
-                  <label class="block text-slate-300 text-sm">Indirizzo email destinatario</label>
-                  <input id="emailTranscriptInputHen" type="email" placeholder="nome@esempio.com"
-                    class="w-full px-3 py-2 bg-[#111827] text-white border border-slate-700 rounded-md placeholder-slate-400 focus:border-indigo-500 focus:outline-none" />
-                  <div id="emailTranscriptStatusHen" class="text-xs text-slate-400 min-h-[1rem]"></div>
-                </div>
-                <div class="px-4 py-3 border-t border-slate-700 bg-black/50 flex items-center justify-end gap-2">
-                  <button id="sendTranscriptCancel2Hen"
-                    class="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-md transition-colors text-sm">Annulla</button>
-                  <button id="sendTranscriptConfirmHen"
-                    class="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors text-sm font-semibold">Invia</button>
-                </div>
-              </div>
-            </div>
-
-            <!-- Fumetto di pensiero -->
-            <div id="thinkingBubble"
-              class="hidden absolute top-4 left-1/2 transform -translate-x-1/2 bg-white rounded-lg px-4 py-2 shadow-lg border border-gray-300 z-10">
-              <div class="text-gray-700 text-sm font-medium">
-                💭 Sto pensando...
-              </div>
-              <div class="absolute bottom-0 left-1/2 transform translate-y-full -translate-x-1/2">
-                <div class="w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-white"></div>
-              </div>
-            </div>
-
-            <!-- Status Badge -->
-            <div id="videoAvatarStatus"
-              class="absolute top-4 right-4 px-3 py-1 bg-slate-900/80 backdrop-blur text-slate-200 text-xs font-medium rounded-full border border-slate-700">
-              Inizializzazione...
-            </div>
-
-            <!-- Loading Overlay -->
-            <div id="loadingOverlay"
-              class="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center rounded-lg z-20">
-              <div class="flex flex-col items-center gap-4">
-                <div class="relative w-12 h-12">
-                  <div
-                    class="absolute inset-0 bg-gradient-to-r from-indigo-600 to-emerald-600 rounded-full animate-spin"
-                    style="border-radius: 50%; -webkit-mask-image: radial-gradient(circle 10px at center, transparent 100%, black 100%); mask-image: radial-gradient(circle 10px at center, transparent 100%, black 100%);">
+                class="flex flex-col w-full h-full rounded-3xl bg-slate-900/95 backdrop-blur border border-slate-700/80 shadow-2xl">
+                <!-- Header -->
+                <div class="flex items-center justify-between px-4 py-3 border-b border-slate-800">
+                  <div class="text-[11px] uppercase tracking-wide text-slate-400">
+                    Assistente digitale
                   </div>
-                  <div class="absolute inset-2 bg-black rounded-full flex items-center justify-center">
-                    <div class="w-2 h-2 bg-gradient-to-r from-indigo-400 to-emerald-400 rounded-full animate-pulse">
+                  <button @click="closeSnippetTextMode"
+                    class="w-7 h-7 rounded-full bg-slate-800/80 text-slate-200 flex items-center justify-center text-xs border border-slate-600/70">
+                    ✕
+                  </button>
+                </div>
+
+                <!-- Messages -->
+                <div id="henTextMessages"
+                  class="flex-1 overflow-y-auto px-4 py-3 space-y-2 text-sm scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
+                  <div v-if="snippetMessages.length === 0" class="text-xs text-slate-400">
+                    Scrivi un messaggio per iniziare la conversazione con l’assistente.
+                  </div>
+                  <div v-for="(m, idx) in snippetMessages" :key="idx" :class="[
+                    'max-w-[90%] px-3 py-2 rounded-2xl',
+                    m.role === 'user'
+                      ? 'ml-auto bg-emerald-600 text-white'
+                      : 'mr-auto bg-slate-800 text-slate-100'
+                  ]">
+                    <div class="text-[10px] opacity-70 mb-0.5">
+                      {{ m.role === 'user' ? 'Tu' : 'Assistente' }}
+                    </div>
+                    <div class="whitespace-pre-line">
+                      {{ m.content }}
                     </div>
                   </div>
                 </div>
-                <div class="text-white text-sm font-medium">Connessione in corso...</div>
-              </div>
-            </div>
 
-            <!-- Inizio Chat Button Overlay -->
-            <div id="startChatContainer"
-              class="hidden absolute inset-0 flex items-center justify-center z-25 rounded-lg bg-black/40 backdrop-blur-sm">
-              <button id="startChatBtn"
-                class="px-8 py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition-colors text-lg shadow-lg hover:shadow-xl transform hover:scale-105">
-                🎤 Inizia Chat
-              </button>
-            </div>
-
-            <!-- Debug Overlay (mostrato con ?debug=1) -->
-            <div id="debugOverlay" class="hidden absolute left-1/2 -translate-x-1/2 top-3 z-10 w-full max-w-2xl px-3"
-              style="pointer-events: auto">
-              <div class="bg-black/70 backdrop-blur-sm border border-slate-600 rounded-md overflow-hidden shadow-lg">
-                <div
-                  class="flex items-center justify-between px-3 py-2 border-b border-slate-700 bg-black/60 sticky top-0">
-                  <div class="text-slate-200 text-xs font-semibold">Debug</div>
+                <!-- Input -->
+                <div class="px-4 py-3 border-t border-slate-800">
                   <div class="flex items-center gap-2">
-                    <button id="debugCopy"
-                      class="text-[11px] px-2 py-1 bg-slate-700/70 hover:bg-slate-600 text-white rounded">
-                      Copia
-                    </button>
-                    <button id="debugClear"
-                      class="text-[11px] px-2 py-1 bg-slate-700/70 hover:bg-slate-600 text-white rounded">
-                      Pulisci
-                    </button>
-                    <button id="debugClose"
-                      class="text-[11px] px-2 py-1 bg-slate-700/70 hover:bg-slate-600 text-white rounded">
-                      Chiudi
+                    <input id="henSnippetInput" v-model="snippetInput" type="text" placeholder="Scrivi qui..."
+                      class="flex-1 bg-slate-800/80 text-slate-100 text-sm outline-none border border-slate-700/80 rounded-full px-3 py-2 placeholder-slate-400" />
+                    <button @click="sendSnippetInput"
+                      class="w-9 h-9 rounded-full bg-emerald-600/90 text-white flex items-center justify-center text-sm shadow border border-emerald-400/80">
+                      📤
                     </button>
                   </div>
                 </div>
-                <div class="max-h-[50vh] overflow-auto p-2 text-[11px] font-mono text-slate-200 leading-relaxed">
-                  <div id="debugContent" class="space-y-1"></div>
+              </div>
+            </template>
+
+            <!-- DEFAULT: video HeyGen e overlay vari -->
+            <template v-else>
+              <video id="heygenVideo" class="w-full h-auto rounded-lg" autoplay playsinline controls>
+              </video>
+
+              <!-- Modal Trascrizione Email -->
+              <div id="emailTranscriptModalHen"
+                class="hidden absolute inset-0 flex items-center justify-center z-30 rounded-lg bg-black/60 backdrop-blur-sm">
+                <div
+                  class="w-full max-w-lg mx-4 bg-[#0b1220] border border-slate-700 rounded-xl shadow-2xl overflow-hidden">
+                  <div class="px-4 py-3 border-b border-slate-700 bg-black/50 flex items-center justify-between">
+                    <div class="text-slate-100 font-semibold text-base">Invia trascrizione via email</div>
+                    <button id="sendTranscriptCancelHen"
+                      class="text-slate-300 hover:text-white px-2 py-1 rounded-md hover:bg-slate-700/60">✕</button>
+                  </div>
+                  <div class="p-4 space-y-3">
+                    <label class="block text-slate-300 text-sm">Indirizzo email destinatario</label>
+                    <input id="emailTranscriptInputHen" type="email" placeholder="nome@esempio.com"
+                      class="w-full px-3 py-2 bg-[#111827] text-white border border-slate-700 rounded-md placeholder-slate-400 focus:border-indigo-500 focus:outline-none" />
+                    <div id="emailTranscriptStatusHen" class="text-xs text-slate-400 min-h-[1rem]"></div>
+                  </div>
+                  <div class="px-4 py-3 border-t border-slate-700 bg-black/50 flex items-center justify-end gap-2">
+                    <button id="sendTranscriptCancel2Hen"
+                      class="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-md transition-colors text-sm">Annulla</button>
+                    <button id="sendTranscriptConfirmHen"
+                      class="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors text-sm font-semibold">Invia</button>
+                  </div>
                 </div>
               </div>
-            </div>
+
+              <!-- Fumetto di pensiero -->
+              <div id="thinkingBubble"
+                class="hidden absolute top-4 left-1/2 transform -translate-x-1/2 bg-white rounded-lg px-4 py-2 shadow-lg border border-gray-300 z-10">
+                <div class="text-gray-700 text-sm font-medium">
+                  💭 Sto pensando...
+                </div>
+                <div class="absolute bottom-0 left-1/2 transform translate-y-full -translate-x-1/2">
+                  <div class="w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-white"></div>
+                </div>
+              </div>
+
+              <!-- Status Badge -->
+              <div id="videoAvatarStatus"
+                class="absolute top-4 right-4 px-3 py-1 bg-slate-900/80 backdrop-blur text-slate-200 text-xs font-medium rounded-full border border-slate-700">
+                Inizializzazione...
+              </div>
+
+              <!-- Loading Overlay -->
+              <div id="loadingOverlay"
+                class="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center rounded-lg z-20">
+                <div class="flex flex-col items-center gap-4">
+                  <div class="relative w-12 h-12">
+                    <div
+                      class="absolute inset-0 bg-gradient-to-r from-indigo-600 to-emerald-600 rounded-full animate-spin"
+                      style="border-radius: 50%; -webkit-mask-image: radial-gradient(circle 10px at center, transparent 100%, black 100%); mask-image: radial-gradient(circle 10px at center, transparent 100%, black 100%);">
+                    </div>
+                    <div class="absolute inset-2 bg-black rounded-full flex items-center justify-center">
+                      <div class="w-2 h-2 bg-gradient-to-r from-indigo-400 to-emerald-400 rounded-full animate-pulse">
+                      </div>
+                    </div>
+                  </div>
+                  <div class="text-white text-sm font-medium">Connessione in corso...</div>
+                </div>
+              </div>
+
+              <!-- Inizio Chat Button Overlay -->
+              <div id="startChatContainer"
+                class="hidden absolute inset-0 flex items-center justify-center z-25 rounded-lg bg-black/40 backdrop-blur-sm">
+                <button id="startChatBtn"
+                  class="px-8 py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition-colors text-lg shadow-lg hover:shadow-xl transform hover:scale-105">
+                  🎤 Inizia Chat
+                </button>
+              </div>
+
+              <!-- Debug Overlay (mostrato con ?debug=1) -->
+              <div id="debugOverlay" class="hidden absolute left-1/2 -translate-x-1/2 top-3 z-10 w-full max-w-2xl px-3"
+                style="pointer-events: auto">
+                <div class="bg-black/70 backdrop-blur-sm border border-slate-600 rounded-md overflow-hidden shadow-lg">
+                  <div
+                    class="flex items-center justify-between px-3 py-2 border-b border-slate-700 bg-black/60 sticky top-0">
+                    <div class="text-slate-200 text-xs font-semibold">Debug</div>
+                    <div class="flex items-center gap-2">
+                      <button id="debugCopy"
+                        class="text-[11px] px-2 py-1 bg-slate-700/70 hover:bg-slate-600 text-white rounded">
+                        Copia
+                      </button>
+                      <button id="debugClear"
+                        class="text-[11px] px-2 py-1 bg-slate-700/70 hover:bg-slate-600 text-white rounded">
+                        Pulisci
+                      </button>
+                      <button id="debugClose"
+                        class="text-[11px] px-2 py-1 bg-slate-700/70 hover:bg-slate-600 text-white rounded">
+                        Chiudi
+                      </button>
+                    </div>
+                  </div>
+                  <div class="max-h-[50vh] overflow-auto p-2 text-[11px] font-mono text-slate-200 leading-relaxed">
+                    <div id="debugContent" class="space-y-1"></div>
+                  </div>
+                </div>
+              </div>
+            </template>
           </div>
 
           <!-- Listening Badge -->
@@ -202,56 +254,6 @@
       </button>
     </div>
 
-    <!-- Floating text chat panel (snippet mode) -->
-    <div v-if="isWebComponent && widgetOpen && snippetTextMode"
-      class="fixed z-[9998] top-24 right-4 w-[360px] max-w-[90vw] h-[70vh] pointer-events-auto">
-      <div
-        class="flex flex-col w-full h-full rounded-3xl bg-slate-900/95 backdrop-blur border border-slate-700/80 shadow-2xl">
-        <!-- Header -->
-        <div class="flex items-center justify-between px-4 py-3 border-b border-slate-800">
-          <div class="text-[11px] uppercase tracking-wide text-slate-400">
-            Assistente digitale
-          </div>
-          <button @click="snippetTextMode = false"
-            class="w-7 h-7 rounded-full bg-slate-800/80 text-slate-200 flex items-center justify-center text-xs border border-slate-600/70">
-            ✕
-          </button>
-        </div>
-
-        <!-- Messages -->
-        <div id="henTextMessages"
-          class="flex-1 overflow-y-auto px-4 py-3 space-y-2 text-sm scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
-          <div v-if="snippetMessages.length === 0" class="text-xs text-slate-400">
-            Scrivi un messaggio per iniziare la conversazione con l’assistente.
-          </div>
-          <div v-for="(m, idx) in snippetMessages" :key="idx" :class="[
-            'max-w-[90%] px-3 py-2 rounded-2xl',
-            m.role === 'user'
-              ? 'ml-auto bg-emerald-600 text-white'
-              : 'mr-auto bg-slate-800 text-slate-100'
-          ]">
-            <div class="text-[10px] opacity-70 mb-0.5">
-              {{ m.role === 'user' ? 'Tu' : 'Assistente' }}
-            </div>
-            <div class="whitespace-pre-line">
-              {{ m.content }}
-            </div>
-          </div>
-        </div>
-
-        <!-- Input -->
-        <div class="px-4 py-3 border-t border-slate-800">
-          <div class="flex items-center gap-2">
-            <input id="henSnippetInput" v-model="snippetInput" type="text" placeholder="Scrivi qui..."
-              class="flex-1 bg-slate-800/80 text-slate-100 text-sm outline-none border border-slate-700/80 rounded-full px-3 py-2 placeholder-slate-400" />
-            <button @click="sendSnippetInput"
-              class="w-9 h-9 rounded-full bg-emerald-600/90 text-white flex items-center justify-center text-sm shadow border border-emerald-400/80">
-              📤
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
 
     <!-- Floating options menu (snippet mode) -->
     <div v-if="isWebComponent && widgetOpen && snippetMenuOpen" id="henOptionsPanel"
@@ -333,6 +335,7 @@ export default defineComponent({
       snippetMessages: [],
       snippetMessagesOn: true,
       snippetAudioOn: true,
+      introPlayed: false,
       uuid: null,
       heygenAvatar: "",
       heygenVoice: "",
@@ -395,9 +398,12 @@ export default defineComponent({
           this.loadingOverlay.classList.remove("hidden");
         }
         this.ensureHeyGenSession().then(() => {
-          const intro =
-            "Ciao, sono il tuo assistente virtuale Enjoy Talk 3D. Posso aiutarti a trovare informazioni sui servizi, sugli orari e sui contatti, guidarti nella prenotazione di appuntamenti e rispondere alle domande frequenti.";
-          this.heygenSendRepeat(intro);
+          if (!this.introPlayed) {
+            const intro =
+              "Ciao, sono il tuo assistente virtuale Enjoy Talk 3D. Posso aiutarti a trovare informazioni sui servizi, sugli orari e sui contatti, guidarti nella prenotazione di appuntamenti e rispondere alle domande frequenti.";
+            this.heygenSendRepeat(intro);
+            this.introPlayed = true;
+          }
         });
       } catch { }
     },
@@ -418,8 +424,21 @@ export default defineComponent({
 
     onSnippetTextClick() {
       try {
-        this.snippetTextMode = !this.snippetTextMode;
-        if (this.snippetTextMode) {
+        const nowEnabled = !this.snippetTextMode;
+        this.snippetTextMode = nowEnabled;
+
+        // Quando entro in modalità testuale, metto in pausa e muto il video
+        try {
+          if (nowEnabled && this.heygenVideo) {
+            this.heygenVideo.muted = true;
+            this.heygenVideo.pause?.();
+          } else if (!nowEnabled && this.heygenVideo) {
+            this.heygenVideo.muted = !this.snippetAudioOn;
+            this.heygenVideo.play?.().catch(() => { });
+          }
+        } catch { }
+
+        if (nowEnabled) {
           this.$nextTick &&
             this.$nextTick(() => {
               try {
@@ -438,6 +457,15 @@ export default defineComponent({
     toggleTextInterface() {
       try {
         this.snippetTextMode = true;
+
+        // Metti in pausa e muto il video in modalità testuale
+        try {
+          if (this.heygenVideo) {
+            this.heygenVideo.muted = true;
+            this.heygenVideo.pause?.();
+          }
+        } catch { }
+
         this.$nextTick &&
           this.$nextTick(() => {
             try {
@@ -460,7 +488,23 @@ export default defineComponent({
       this.snippetAudioOn = !this.snippetAudioOn;
       try {
         if (this.heygenVideo) {
+          // In modalità testuale il video resta sempre muto
+          if (!this.snippetTextMode) {
+            this.heygenVideo.muted = !this.snippetAudioOn;
+          } else {
+            this.heygenVideo.muted = true;
+          }
+        }
+      } catch { }
+    },
+
+    closeSnippetTextMode() {
+      try {
+        this.snippetTextMode = false;
+        // Ripristina il video (rispettando il toggle audio)
+        if (this.heygenVideo) {
           this.heygenVideo.muted = !this.snippetAudioOn;
+          this.heygenVideo.play?.().catch(() => { });
         }
       } catch { }
     },
