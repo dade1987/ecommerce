@@ -95,25 +95,28 @@ class AiDashboard extends Page implements HasForms
                 ->count(),
         ];
 
-        // Serie temporale: messaggi per giorno nel range selezionato
-        $rawPerDay = Quoter::selectRaw('DATE(created_at) as d, COUNT(*) as c')
+        // Serie temporale: messaggi per ORA nel range selezionato
+        // Usiamo un bucket per ogni ora (es. 2025-12-02 18:00:00) e poi riempiamo tutte le ore del range.
+        $rawPerHour = Quoter::selectRaw('DATE_FORMAT(created_at, "%Y-%m-%d %H:00:00") as h, COUNT(*) as c')
             ->whereIn('thread_id', $threadIds)
             ->whereBetween('created_at', [$start, $end])
-            ->groupBy('d')
-            ->orderBy('d')
-            ->pluck('c', 'd')
+            ->groupBy('h')
+            ->orderBy('h')
+            ->pluck('c', 'h')
             ->all();
 
-        $messagesPerDay = [];
-        $days = $start->diffInDays($end) + 1;
-        for ($i = 0; $i < $days; $i++) {
-            $d = $start->copy()->addDays($i)->format('Y-m-d');
-            $messagesPerDay[] = [
-                'date' => $d,
-                'count' => $rawPerDay[$d] ?? 0,
+        $messagesPerHour = [];
+        $hours = $start->diffInHours($end) + 1;
+        for ($i = 0; $i < $hours; $i++) {
+            $dt = $start->copy()->addHours($i);
+            $key = $dt->format('Y-m-d H:00:00');
+            $messagesPerHour[] = [
+                'label' => $dt->format('d/m H:i'),
+                'count' => $rawPerHour[$key] ?? 0,
             ];
         }
-        $this->messagesPerDay = $messagesPerDay;
+        // Per retrocompatibilità col template Blade teniamo il nome $messagesPerDay
+        $this->messagesPerDay = $messagesPerHour;
 
         // Distribuzione thread per team (prime 5 squadre) nel range selezionato
         $this->threadsPerTeam = $threadsInRange
