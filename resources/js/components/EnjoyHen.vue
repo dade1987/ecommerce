@@ -38,54 +38,119 @@
               class="absolute top-3 right-3 z-30 w-8 h-8 rounded-full bg-black/70 text-white flex items-center justify-center border border-white/40">
               ✕
             </button>
-            <!-- SNIPPET: se snippetTextMode è attivo mostro solo la chat testuale -->
-            <template v-if="isWebComponent && snippetTextMode">
+            <!-- SNIPPET OVERLAY: modalità testo / impostazioni / privacy nella stessa posizione -->
+            <template v-if="isWebComponent && (snippetTextMode || showSettingsPanel || showPrivacyPanel)">
               <div
                 class="flex flex-col w-full h-full rounded-3xl bg-slate-900/95 backdrop-blur border border-slate-700/80 shadow-2xl">
                 <!-- Header -->
                 <div class="flex items-center justify-between px-4 py-3 border-b border-slate-800">
                   <div class="text-[11px] uppercase tracking-wide text-slate-400">
-                    Assistente digitale
+                    <span v-if="snippetTextMode">Assistente digitale</span>
+                    <span v-else-if="showSettingsPanel">Impostazioni</span>
+                    <span v-else-if="showPrivacyPanel">Privacy</span>
                   </div>
-                  <button @click="closeSnippetTextMode"
+                  <button v-if="snippetTextMode" @click="closeSnippetTextMode"
+                    class="w-7 h-7 rounded-full bg-slate-800/80 text-slate-200 flex items-center justify-center text-xs border border-slate-600/70">
+                    ✕
+                  </button>
+                  <button v-else-if="showSettingsPanel" @click="closeSettingsPanel"
+                    class="w-7 h-7 rounded-full bg-slate-800/80 text-slate-200 flex items-center justify-center text-xs border border-slate-600/70">
+                    ✕
+                  </button>
+                  <button v-else-if="showPrivacyPanel" @click="closePrivacyPanel"
                     class="w-7 h-7 rounded-full bg-slate-800/80 text-slate-200 flex items-center justify-center text-xs border border-slate-600/70">
                     ✕
                   </button>
                 </div>
 
-                <!-- Messages -->
-                <div id="henTextMessages"
-                  class="flex-1 max-h-[260px] min-h-[200px] overflow-y-auto px-4 py-3 space-y-2 text-sm scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
-                  <div v-if="snippetMessages.length === 0" class="text-xs text-slate-400">
-                    Scrivi un messaggio per iniziare la conversazione con l’assistente.
-                  </div>
-                  <div v-for="(m, idx) in snippetMessages" :key="idx" :class="[
-                    'max-w-[90%] px-3 py-2 rounded-2xl',
-                    m.role === 'user'
-                      ? 'ml-auto bg-emerald-600 text-white'
-                      : 'mr-auto bg-slate-800 text-slate-100'
-                  ]">
-                    <div class="text-[10px] opacity-70 mb-0.5">
-                      {{ m.role === 'user' ? 'Tu' : 'Assistente' }}
+                <!-- Corpo: chat testuale -->
+                <template v-if="snippetTextMode">
+                  <div id="henTextMessages"
+                    class="flex-1 max-h-[260px] min-h-[200px] overflow-y-auto px-4 py-3 space-y-2 text-sm scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
+                    <div v-if="snippetMessages.length === 0" class="text-xs text-slate-400">
+                      Scrivi un messaggio per iniziare la conversazione con l’assistente.
                     </div>
-                    <div class="whitespace-pre-line">
-                      {{ m.content }}
+                    <div v-for="(m, idx) in snippetMessages" :key="idx" :class="[
+                      'max-w-[90%] px-3 py-2 rounded-2xl',
+                      m.role === 'user'
+                        ? 'ml-auto bg-emerald-600 text-white'
+                        : 'mr-auto bg-slate-800 text-slate-100'
+                    ]">
+                      <div class="text-[10px] opacity-70 mb-0.5">
+                        {{ m.role === 'user' ? 'Tu' : 'Assistente' }}
+                      </div>
+                      <div class="whitespace-pre-line">
+                        {{ m.content }}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <!-- Input -->
-                <div class="px-4 py-3 border-t border-slate-800">
-                  <div class="flex items-center gap-2">
-                    <input id="henSnippetInput" v-model="snippetInput" type="text" placeholder="Scrivi qui..."
-                      @keyup.enter.prevent="sendSnippetInput"
-                      class="flex-1 bg-slate-800/80 text-slate-100 text-sm outline-none border border-slate-700/80 rounded-full px-3 py-2 placeholder-slate-400" />
-                    <button @click="sendSnippetInput"
-                      class="w-9 h-9 rounded-full bg-emerald-600/90 text-white flex items-center justify-center text-sm shadow border border-emerald-400/80">
-                      📤
-                    </button>
+                  <div class="px-4 py-3 border-t border-slate-800">
+                    <div class="flex items-center gap-2">
+                      <input id="henSnippetInput" v-model="snippetInput" type="text" placeholder="Scrivi qui..."
+                        @keyup.enter.prevent="sendSnippetInput"
+                        class="flex-1 bg-slate-800/80 text-slate-100 text-sm outline-none border border-slate-700/80 rounded-full px-3 py-2 placeholder-slate-400" />
+                      <button @click="sendSnippetInput"
+                        class="w-9 h-9 rounded-full bg-emerald-600/90 text-white flex items-center justify-center text-sm shadow border border-emerald-400/80">
+                        📤
+                      </button>
+                    </div>
                   </div>
-                </div>
+                </template>
+
+                <!-- Corpo: impostazioni -->
+                <template v-else-if="showSettingsPanel">
+                  <div class="flex-1 overflow-y-auto px-4 py-4 space-y-5 text-sm">
+                    <div>
+                      <div class="text-[11px] font-semibold text-slate-400 mb-2">SUONI</div>
+                      <div class="space-y-2">
+                        <label class="flex items-center justify-between text-xs">
+                          <span>Suoni notifiche</span>
+                          <button @click="snippetAudioOn = !snippetAudioOn"
+                            class="relative inline-flex h-5 w-9 items-center rounded-full"
+                            :class="snippetAudioOn ? 'bg-emerald-500' : 'bg-slate-600'">
+                            <span class="sr-only">Toggle audio</span>
+                            <span
+                              class="inline-block h-4 w-4 transform bg-white rounded-full shadow transition-transform"
+                              :class="snippetAudioOn ? 'translate-x-4' : 'translate-x-0'"></span>
+                          </button>
+                        </label>
+                      </div>
+                    </div>
+
+                    <div>
+                      <div class="text-[11px] font-semibold text-slate-400 mb-2">ASPETTO</div>
+                      <label class="flex items-center justify-between text-xs">
+                        <span>Testo grande</span>
+                        <button @click="/* placeholder futuro */ 0"
+                          class="relative inline-flex h-5 w-9 items-center rounded-full bg-slate-600">
+                          <span class="sr-only">Toggle font size</span>
+                          <span
+                            class="inline-block h-4 w-4 transform bg-white rounded-full shadow translate-x-0"></span>
+                        </button>
+                      </label>
+                    </div>
+                  </div>
+                </template>
+
+                <!-- Corpo: privacy -->
+                <template v-else-if="showPrivacyPanel">
+                  <div class="flex-1 px-4 py-4 flex flex-col justify-between text-sm">
+                    <div>
+                      <p class="text-slate-200 mb-3">
+                        Qui puoi consultare l'informativa sulla privacy e sui cookie del sito del Comune.
+                      </p>
+                      <button @click="openPrivacy"
+                        class="mt-2 inline-flex items-center justify-between w-full px-3 py-2 rounded-lg bg-slate-800/70 hover:bg-slate-700 text-sm">
+                        <span>Privacy policy</span>
+                        <span class="px-3 py-1 text-xs rounded-full bg-emerald-600 text-white">APRI</span>
+                      </button>
+                    </div>
+                    <div class="text-[11px] text-slate-500 mt-4">
+                      Gestito da EnjoyHen AI
+                    </div>
+                  </div>
+                </template>
               </div>
             </template>
 
@@ -240,7 +305,7 @@
       class="fixed z-[9999] bottom-4 right-4 flex items-center gap-2 pointer-events-auto">
       <!-- Menu button -->
       <button id="henMenuBtn" @click="toggleSnippetMenu"
-        class="w-11 h-11 rounded-full bg-slate-900/80 backdrop-blur text-white flex items-center justify-center shadow-lg border border-slate-600/70">
+        class="w-11 h-11 rounded-full bg-slate-900/60 backdrop-blur text-white/90 flex items-center justify-center shadow-lg border border-slate-500/60">
         ⋯
       </button>
       <!-- Mic button -->
@@ -298,85 +363,7 @@
       </div>
     </div>
 
-    <!-- Settings panel (snippet mode) -->
-    <div v-if="isWebComponent && widgetOpen && showSettingsPanel"
-      class="fixed z-[9999] top-24 right-4 w-[360px] max-w-[90vw] h-[70vh] pointer-events-auto">
-      <div
-        class="flex flex-col h-full rounded-2xl bg-slate-900/95 backdrop-blur text-slate-100 shadow-2xl border border-slate-700/80">
-        <div class="flex items-center justify-between px-4 py-3 border-b border-slate-800">
-          <div class="text-xs font-semibold uppercase tracking-wide text-slate-400">
-            IMPOSTAZIONI
-          </div>
-          <button @click="showSettingsPanel = false"
-            class="w-8 h-8 rounded-full bg-slate-800/80 text-white flex items-center justify-center">
-            ✕
-          </button>
-        </div>
-
-        <div class="flex-1 overflow-y-auto px-4 py-4 space-y-5 text-sm">
-          <div>
-            <div class="text-[11px] font-semibold text-slate-400 mb-2">SUONI</div>
-            <div class="space-y-2">
-              <label class="flex items-center justify-between text-xs">
-                <span>Suoni notifiche</span>
-                <button @click="snippetAudioOn = !snippetAudioOn"
-                  class="relative inline-flex h-5 w-9 items-center rounded-full"
-                  :class="snippetAudioOn ? 'bg-emerald-500' : 'bg-slate-600'">
-                  <span class="sr-only">Toggle audio</span>
-                  <span class="inline-block h-4 w-4 transform bg-white rounded-full shadow transition-transform"
-                    :class="snippetAudioOn ? 'translate-x-4' : 'translate-x-0'"></span>
-                </button>
-              </label>
-            </div>
-          </div>
-
-          <div>
-            <div class="text-[11px] font-semibold text-slate-400 mb-2">ASPETTO</div>
-            <label class="flex items-center justify-between text-xs">
-              <span>Testo grande</span>
-              <button @click="/* placeholder futuro */ 0"
-                class="relative inline-flex h-5 w-9 items-center rounded-full bg-slate-600">
-                <span class="sr-only">Toggle font size</span>
-                <span class="inline-block h-4 w-4 transform bg-white rounded-full shadow translate-x-0"></span>
-              </button>
-            </label>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Privacy / Info panel (snippet mode) -->
-    <div v-if="isWebComponent && widgetOpen && showPrivacyPanel"
-      class="fixed z-[9999] top-24 right-4 w-[360px] max-w-[90vw] h-[70vh] pointer-events-auto">
-      <div
-        class="flex flex-col h-full rounded-2xl bg-slate-900/95 backdrop-blur text-slate-100 shadow-2xl border border-slate-700/80">
-        <div class="flex items-center justify-between px-4 py-3 border-b border-slate-800">
-          <div class="text-xs font-semibold uppercase tracking-wide text-slate-400">
-            PRIVACY
-          </div>
-          <button @click="showPrivacyPanel = false"
-            class="w-8 h-8 rounded-full bg-slate-800/80 text-white flex items-center justify-center">
-            ✕
-          </button>
-        </div>
-
-        <div class="flex-1 px-4 py-4 flex flex-col justify-between text-sm">
-          <div>
-            <p class="text-slate-200 mb-3">
-              Qui puoi consultare l'informativa sulla privacy e sui cookie del sito del Comune.
-            </p>
-            <button @click="openPrivacy"
-              class="mt-2 inline-flex items-center justify-between w-full px-3 py-2 rounded-lg bg-slate-800/70 hover:bg-slate-700 text-sm">
-              <span>Privacy policy</span>
-              <span class="px-3 py-1 text-xs rounded-full bg-emerald-600 text-white">APRI</span>
-            </button>
-          </div>
-          <div class="text-[11px] text-slate-500 mt-4">
-            Gestito da EnjoyHen AI
-          </div>
-        </div>
-      </div>
-    </div>
+    <!-- Settings / Privacy panels sono ora renderizzati dentro il riquadro principale sopra il video -->
   </div>
 </template>
 
@@ -640,17 +627,60 @@ export default defineComponent({
     },
 
     openSettings() {
-      // apre il pannello impostazioni sopra l'avatar / chat
+      // apre il pannello impostazioni sopra l'avatar / chat, nella stessa posizione della modalità testo
       this.snippetMenuOpen = false;
       this.showPrivacyPanel = false;
+      this.snippetTextMode = false;
       this.showSettingsPanel = true;
+      // Come in modalità testo, spengo temporaneamente il video/avatar
+      try {
+        if (this.heygenVideo) {
+          this.heygenVideo.muted = true;
+          this.heygenVideo.pause?.();
+        }
+      } catch { }
+    },
+
+    closeSettingsPanel() {
+      try {
+        this.showSettingsPanel = false;
+        // Al ritorno all'avatar riaggancio il video come negli altri flussi
+        if (this.resumeAvatarVideo && this.$nextTick) {
+          this.$nextTick(() => {
+            try {
+              this.resumeAvatarVideo();
+            } catch { }
+          });
+        }
+      } catch { }
     },
 
     openPrivacyPanel() {
-      // apre il pannello con le informazioni sulla privacy
+      // apre il pannello con le informazioni sulla privacy nella stessa posizione della modalità testo
       this.snippetMenuOpen = false;
       this.showSettingsPanel = false;
+      this.snippetTextMode = false;
       this.showPrivacyPanel = true;
+      // Come in modalità testo, spengo temporaneamente il video/avatar
+      try {
+        if (this.heygenVideo) {
+          this.heygenVideo.muted = true;
+          this.heygenVideo.pause?.();
+        }
+      } catch { }
+    },
+
+    closePrivacyPanel() {
+      try {
+        this.showPrivacyPanel = false;
+        if (this.resumeAvatarVideo && this.$nextTick) {
+          this.$nextTick(() => {
+            try {
+              this.resumeAvatarVideo();
+            } catch { }
+          });
+        }
+      } catch { }
     },
 
     toggleSnippetMenu() {
