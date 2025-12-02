@@ -38,8 +38,9 @@
               class="absolute top-3 right-3 z-30 w-8 h-8 rounded-full bg-black/70 text-white flex items-center justify-center border border-white/40">
               ✕
             </button>
-            <!-- SNIPPET OVERLAY: modalità testo / impostazioni / privacy nella stessa posizione -->
-            <template v-if="isWebComponent && (snippetTextMode || showSettingsPanel || showPrivacyPanel)">
+            <!-- SNIPPET OVERLAY: modalità testo / impostazioni / privacy / email nella stessa posizione -->
+            <template
+              v-if="isWebComponent && (snippetTextMode || showSettingsPanel || showPrivacyPanel || showEmailPanel)">
               <div
                 class="flex flex-col w-full h-full rounded-3xl bg-slate-900/95 backdrop-blur border border-slate-700/80 shadow-2xl">
                 <!-- Header -->
@@ -48,6 +49,7 @@
                     <span v-if="snippetTextMode">Assistente digitale</span>
                     <span v-else-if="showSettingsPanel">Impostazioni</span>
                     <span v-else-if="showPrivacyPanel">Privacy</span>
+                    <span v-else-if="showEmailPanel">Invia trascrizione</span>
                   </div>
                   <button v-if="snippetTextMode" @click="closeSnippetTextMode"
                     class="w-7 h-7 rounded-full bg-slate-800/80 text-slate-200 flex items-center justify-center text-xs border border-slate-600/70">
@@ -58,6 +60,10 @@
                     ✕
                   </button>
                   <button v-else-if="showPrivacyPanel" @click="closePrivacyPanel"
+                    class="w-7 h-7 rounded-full bg-slate-800/80 text-slate-200 flex items-center justify-center text-xs border border-slate-600/70">
+                    ✕
+                  </button>
+                  <button v-else-if="showEmailPanel" @click="closeEmailPanel"
                     class="w-7 h-7 rounded-full bg-slate-800/80 text-slate-200 flex items-center justify-center text-xs border border-slate-600/70">
                     ✕
                   </button>
@@ -151,6 +157,29 @@
                     </div>
                   </div>
                 </template>
+
+                <!-- Corpo: email transcript -->
+                <template v-else-if="showEmailPanel">
+                  <div class="flex-1 px-4 py-4 flex flex-col justify-between text-sm">
+                    <div class="space-y-4">
+                      <div>
+                        <label class="block text-slate-300 text-sm mb-2">Indirizzo email destinatario</label>
+                        <input id="henEmailTranscriptInput" v-model="emailTranscriptInput" type="email"
+                          placeholder="nome@esempio.com" @keyup.enter.prevent="sendTranscriptEmail"
+                          class="w-full px-3 py-2 bg-slate-800/80 text-slate-100 text-sm outline-none border border-slate-700/80 rounded-lg placeholder-slate-400 focus:border-indigo-500" />
+                        <div id="henEmailTranscriptStatus" class="text-xs text-slate-400 min-h-[1rem] mt-2">
+                          {{ emailTranscriptStatus }}
+                        </div>
+                      </div>
+                    </div>
+                    <div class="flex items-center gap-2 pt-4 border-t border-slate-800">
+                      <button @click="sendTranscriptEmail"
+                        class="flex-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors text-sm font-semibold">
+                        Invia
+                      </button>
+                    </div>
+                  </div>
+                </template>
               </div>
             </template>
 
@@ -159,30 +188,6 @@
               <video id="heygenVideo" class="w-full h-auto rounded-lg" autoplay playsinline controls>
               </video>
 
-              <!-- Modal Trascrizione Email -->
-              <div id="emailTranscriptModalHen"
-                class="hidden absolute inset-0 flex items-center justify-center z-30 rounded-lg bg-black/60 backdrop-blur-sm">
-                <div
-                  class="w-full max-w-lg mx-4 bg-[#0b1220] border border-slate-700 rounded-xl shadow-2xl overflow-hidden">
-                  <div class="px-4 py-3 border-b border-slate-700 bg-black/50 flex items-center justify-between">
-                    <div class="text-slate-100 font-semibold text-base">Invia trascrizione via email</div>
-                    <button id="sendTranscriptCancelHen"
-                      class="text-slate-300 hover:text-white px-2 py-1 rounded-md hover:bg-slate-700/60">✕</button>
-                  </div>
-                  <div class="p-4 space-y-3">
-                    <label class="block text-slate-300 text-sm">Indirizzo email destinatario</label>
-                    <input id="emailTranscriptInputHen" type="email" placeholder="nome@esempio.com"
-                      class="w-full px-3 py-2 bg-[#111827] text-white border border-slate-700 rounded-md placeholder-slate-400 focus:border-indigo-500 focus:outline-none" />
-                    <div id="emailTranscriptStatusHen" class="text-xs text-slate-400 min-h-[1rem]"></div>
-                  </div>
-                  <div class="px-4 py-3 border-t border-slate-700 bg-black/50 flex items-center justify-end gap-2">
-                    <button id="sendTranscriptCancel2Hen"
-                      class="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-md transition-colors text-sm">Annulla</button>
-                    <button id="sendTranscriptConfirmHen"
-                      class="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors text-sm font-semibold">Invia</button>
-                  </div>
-                </div>
-              </div>
 
               <!-- Fumetto di pensiero -->
               <div id="thinkingBubble"
@@ -369,6 +374,30 @@
     </div>
 
     <!-- Settings / Privacy panels sono ora renderizzati dentro il riquadro principale sopra il video -->
+
+    <!-- Modal Trascrizione Email (fuori dal container video, sempre accessibile) -->
+    <div id="emailTranscriptModalHen"
+      class="hidden fixed inset-0 flex items-center justify-center z-[10000] bg-black/60 backdrop-blur-sm pointer-events-auto">
+      <div class="w-full max-w-lg mx-4 bg-[#0b1220] border border-slate-700 rounded-xl shadow-2xl overflow-hidden">
+        <div class="px-4 py-3 border-b border-slate-700 bg-black/50 flex items-center justify-between">
+          <div class="text-slate-100 font-semibold text-base">Invia trascrizione via email</div>
+          <button id="sendTranscriptCancelHen"
+            class="text-slate-300 hover:text-white px-2 py-1 rounded-md hover:bg-slate-700/60">✕</button>
+        </div>
+        <div class="p-4 space-y-3">
+          <label class="block text-slate-300 text-sm">Indirizzo email destinatario</label>
+          <input id="emailTranscriptInputHen" type="email" placeholder="nome@esempio.com"
+            class="w-full px-3 py-2 bg-[#111827] text-white border border-slate-700 rounded-md placeholder-slate-400 focus:border-indigo-500 focus:outline-none" />
+          <div id="emailTranscriptStatusHen" class="text-xs text-slate-400 min-h-[1rem]"></div>
+        </div>
+        <div class="px-4 py-3 border-t border-slate-700 bg-black/50 flex items-center justify-end gap-2">
+          <button id="sendTranscriptCancel2Hen"
+            class="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-md transition-colors text-sm">Annulla</button>
+          <button id="sendTranscriptConfirmHen"
+            class="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors text-sm font-semibold">Invia</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -412,6 +441,9 @@ export default defineComponent({
       introPlayed: false,
       showSettingsPanel: false,
       showPrivacyPanel: false,
+      showEmailPanel: false,
+      emailTranscriptInput: "",
+      emailTranscriptStatus: "",
       uuid: null,
       heygenAvatar: "",
       heygenVoice: "",
@@ -885,46 +917,129 @@ export default defineComponent({
 
     openTranscriptModal() {
       try {
-        if (this.emailTranscriptStatusHen) this.emailTranscriptStatusHen.textContent = "";
-        if (this.emailTranscriptInputHen) this.emailTranscriptInputHen.value = "";
-        if (this.emailTranscriptModalHen) this.emailTranscriptModalHen.classList.remove("hidden");
+        const isSnippet = import.meta.env.VITE_IS_WEB_COMPONENT || false;
+        if (isSnippet) {
+          // In modalità webcomponent, usa il pannello come gli altri
+          this.showEmailPanel = true;
+          this.snippetMenuOpen = false;
+          this.showSettingsPanel = false;
+          this.showPrivacyPanel = false;
+          this.snippetTextMode = false;
+          this.emailTranscriptInput = "";
+          this.emailTranscriptStatus = "";
+          // Spegni temporaneamente il video come negli altri pannelli
+          try {
+            if (this.heygenVideo) {
+              this.heygenVideo.muted = true;
+              this.heygenVideo.pause?.();
+            }
+          } catch { }
+        } else {
+          // In modalità full layout, usa il modal originale
+          if (this.emailTranscriptStatusHen) this.emailTranscriptStatusHen.textContent = "";
+          if (this.emailTranscriptInputHen) this.emailTranscriptInputHen.value = "";
+          if (this.emailTranscriptModalHen) this.emailTranscriptModalHen.classList.remove("hidden");
+        }
       } catch { }
     },
 
     closeTranscriptModal() {
       try {
-        if (this.emailTranscriptModalHen) this.emailTranscriptModalHen.classList.add("hidden");
+        const isSnippet = import.meta.env.VITE_IS_WEB_COMPONENT || false;
+        if (isSnippet) {
+          this.showEmailPanel = false;
+          // Al ritorno all'avatar riaggancio il video come negli altri flussi
+          if (this.resumeAvatarVideo && this.$nextTick) {
+            this.$nextTick(() => {
+              try {
+                this.resumeAvatarVideo();
+              } catch { }
+            });
+          }
+        } else {
+          if (this.emailTranscriptModalHen) this.emailTranscriptModalHen.classList.add("hidden");
+        }
+      } catch { }
+    },
+
+    closeEmailPanel() {
+      try {
+        this.showEmailPanel = false;
+        if (this.resumeAvatarVideo && this.$nextTick) {
+          this.$nextTick(() => {
+            try {
+              this.resumeAvatarVideo();
+            } catch { }
+          });
+        }
       } catch { }
     },
 
     async sendTranscriptEmail() {
       try {
-        const email = (this.emailTranscriptInputHen?.value || "").trim();
+        const isSnippet = import.meta.env.VITE_IS_WEB_COMPONENT || false;
+        const email = isSnippet
+          ? (this.emailTranscriptInput || "").trim()
+          : (this.emailTranscriptInputHen?.value || "").trim();
+
         if (!email) {
-          if (this.emailTranscriptStatusHen) this.emailTranscriptStatusHen.textContent = "Inserisci un'email valida.";
+          if (isSnippet) {
+            this.emailTranscriptStatus = "Inserisci un'email valida.";
+          } else if (this.emailTranscriptStatusHen) {
+            this.emailTranscriptStatusHen.textContent = "Inserisci un'email valida.";
+          }
           return;
         }
+
         const tid = this.threadId;
         if (!tid) {
-          if (this.emailTranscriptStatusHen) this.emailTranscriptStatusHen.textContent = "Nessun thread disponibile.";
+          if (isSnippet) {
+            this.emailTranscriptStatus = "Nessun thread disponibile.";
+          } else if (this.emailTranscriptStatusHen) {
+            this.emailTranscriptStatusHen.textContent = "Nessun thread disponibile.";
+          }
           return;
         }
-        if (this.emailTranscriptStatusHen) this.emailTranscriptStatusHen.textContent = "Invio in corso...";
+
+        if (isSnippet) {
+          this.emailTranscriptStatus = "Invio in corso...";
+        } else if (this.emailTranscriptStatusHen) {
+          this.emailTranscriptStatusHen.textContent = "Invio in corso...";
+        }
+
         const res = await fetch("/api/chatbot/email-transcript", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email, thread_id: tid }),
         });
+
         const js = await res.json().catch(() => ({}));
         if (!res.ok || js.ok !== true) {
-          if (this.emailTranscriptStatusHen)
-            this.emailTranscriptStatusHen.textContent = js.error || "Errore nell'invio dell'email.";
+          const errorMsg = js.error || "Errore nell'invio dell'email.";
+          if (isSnippet) {
+            this.emailTranscriptStatus = errorMsg;
+          } else if (this.emailTranscriptStatusHen) {
+            this.emailTranscriptStatusHen.textContent = errorMsg;
+          }
           return;
         }
-        if (this.emailTranscriptStatusHen) this.emailTranscriptStatusHen.textContent = "✓ Trascrizione inviata con successo.";
+
+        const successMsg = "✓ Trascrizione inviata con successo.";
+        if (isSnippet) {
+          this.emailTranscriptStatus = successMsg;
+        } else if (this.emailTranscriptStatusHen) {
+          this.emailTranscriptStatusHen.textContent = successMsg;
+        }
+
         setTimeout(() => this.closeTranscriptModal(), 900);
       } catch {
-        if (this.emailTranscriptStatusHen) this.emailTranscriptStatusHen.textContent = "Errore imprevisto durante l'invio.";
+        const errorMsg = "Errore imprevisto durante l'invio.";
+        const isSnippet = import.meta.env.VITE_IS_WEB_COMPONENT || false;
+        if (isSnippet) {
+          this.emailTranscriptStatus = errorMsg;
+        } else if (this.emailTranscriptStatusHen) {
+          this.emailTranscriptStatusHen.textContent = errorMsg;
+        }
       }
     },
 
