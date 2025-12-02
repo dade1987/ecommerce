@@ -115,7 +115,7 @@ class AiDashboard extends Page implements HasForms
                 'count' => $rawPerHour[$key] ?? 0,
             ];
         }
-        // Per retrocompatibilità col template Blade teniamo il nome $messagesPerDay
+        // Manteniamo il nome $messagesPerDay per compatibilità con il Blade
         $this->messagesPerDay = $messagesPerHour;
 
         // Distribuzione thread per team (prime 5 squadre) nel range selezionato

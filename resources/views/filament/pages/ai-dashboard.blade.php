@@ -1,23 +1,19 @@
 <x-filament-panels::page>
     <div class="space-y-6">
-        {{-- HERO + KPI CARDS + FILTRO DATA --}}
-        <div
-            class="grid grid-cols-1 gap-4 lg:grid-cols-4 bg-gradient-to-r from-slate-900 via-slate-800 to-emerald-900 rounded-2xl p-6 shadow-xl border border-slate-700">
-            <div class="col-span-1 lg:col-span-2 flex flex-col justify-between">
-                <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                    <div>
-                        <h2 class="text-2xl font-semibold text-white">Dashboard AI Conversazioni</h2>
-                        <p class="mt-1 text-sm text-slate-300">
-                            Panoramica in tempo reale delle chat gestite da <span class="font-semibold">EnjoyHen AI</span> sui
-                            siti dei clienti.
-                        </p>
-                    </div>
-                    <div
-                        class="inline-flex items-end gap-4 px-4 py-3 bg-white/10 backdrop-blur-sm rounded-xl shadow border border-slate-500/60">
-                        {{ $this->form }}
-                    </div>
+        {{-- HERO + FILTER ALLINEATI --}}
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-stretch">
+            {{-- HERO + KPI CARDS --}}
+            <div
+                class="flex-1 grid grid-cols-1 gap-4 lg:grid-cols-4 bg-gradient-to-r from-slate-900 via-slate-800 to-emerald-900 rounded-2xl p-6 shadow-xl border border-slate-700">
+                <div class="col-span-1 lg:col-span-2 flex flex-col justify-between">
+                <div>
+                    <h2 class="text-2xl font-semibold text-white">Dashboard AI Conversazioni</h2>
+                    <p class="mt-1 text-sm text-slate-300">
+                        Panoramica in tempo reale delle chat gestite da <span class="font-semibold">EnjoyHen AI</span> sui
+                        siti dei clienti.
+                    </p>
                 </div>
-                <div class="mt-4 flex flex-wrap gap-4 text-sm text-slate-200">
+                    <div class="mt-4 flex flex-wrap gap-4 text-sm text-slate-200">
                     <div>
                         <div class="text-xs uppercase tracking-wide text-slate-400">Thread totali</div>
                         <div class="mt-1 text-2xl font-bold">
@@ -42,11 +38,12 @@
                             {{ number_format($threadStats['unique_ips'] ?? 0) }}
                         </div>
                     </div>
+                    </div>
                 </div>
             </div>
 
-            <div
-                class="col-span-1 lg:col-span-2 grid grid-cols-2 gap-4 text-sm text-slate-100 place-content-between">
+                <div
+                    class="col-span-1 lg:col-span-2 grid grid-cols-2 gap-4 text-sm text-slate-100 place-content-between">
                 <div class="flex items-center justify-between bg-slate-900/40 rounded-xl px-4 py-3 border border-slate-700/80">
                     <div>
                         <div class="text-xs uppercase tracking-wide text-slate-400">Widget EnjoyHen</div>
@@ -73,6 +70,15 @@
                     <div class="flex items-center justify-center w-10 h-10 rounded-full bg-sky-600/80 text-white">
                         <x-heroicon-o-sparkles class="w-5 h-5" />
                     </div>
+                </div>
+                </div>
+            </div>
+
+            {{-- FILTRO DATA / RANGE (allineato a destra della hero card) --}}
+            <div class="w-full lg:w-auto flex justify-end">
+                <div
+                    class="inline-flex items-end gap-4 px-4 py-3 bg-white dark:bg-slate-900 rounded-xl shadow border border-slate-200/80 dark:border-slate-700/80">
+                    {{ $this->form }}
                 </div>
             </div>
         </div>
@@ -195,7 +201,7 @@
                             Volume messaggi per ora (intervallo selezionato)
                         </h3>
                         <p class="text-xs text-slate-500">
-                            Ogni barra rappresenta i messaggi salvati in <code>quoters</code> in quella specifica ora.
+                            Ogni barra rappresenta i messaggi salvati in <code>quoters</code>.
                         </p>
                     </div>
                 </div>
@@ -205,7 +211,9 @@
                 <div class="mt-4 h-48 flex items-end gap-3">
                     @foreach ($messagesPerDay as $day)
                         @php
-                            $h = ($day['count'] / $maxMessages) * 100;
+                            $h = $day['count'] > 0
+                                ? max(8, ($day['count'] / $maxMessages) * 100)
+                                : 2;
                         @endphp
                         <div class="flex flex-col items-center justify-end flex-1 group">
                             <div class="w-full bg-slate-100 dark:bg-slate-800 rounded-t-lg overflow-hidden">
