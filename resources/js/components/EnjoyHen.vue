@@ -1239,6 +1239,8 @@ export default defineComponent({
         return;
       }
 
+      const isSnippet = import.meta.env.VITE_IS_WEB_COMPONENT || false;
+
       const params = new URLSearchParams({
         message,
         team: this.teamSlugLocal,
