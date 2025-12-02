@@ -91,12 +91,15 @@ class NeuronWebsiteStreamController extends Controller
                     return;
                 }
 
-                // Scrapa i siti web del team
+                // Scrapa i siti web del team (fallback tradizionale)
+                // L'agent può usare il tool searchSite per ricerche specifiche con RAG
                 $websites = $team->websites ?? [];
                 $normalizedWebsites = empty($websites) || ! is_array($websites) ? [] : $this->normalizeWebsites($websites);
                 $websiteContent = '';
 
                 if (! empty($normalizedWebsites)) {
+                    // Fallback tradizionale: scraping solo se necessario per contesto generale
+                    // Per ricerche specifiche, l'agent userà il tool searchSite che usa RAG
                     $websiteContent = $scraperService->scrapeTeamWebsites($normalizedWebsites, (string) $team->id) ?? '';
                 }
 
