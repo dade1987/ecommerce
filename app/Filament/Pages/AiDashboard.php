@@ -39,6 +39,8 @@ class AiDashboard extends Page implements HasForms
 
     public ?string $endDate = null;
 
+    public ?string $selectedThreadId = null;
+
     public function mount(): void
     {
         $this->startDate = now()->subDays(6)->format('Y-m-d');
@@ -74,15 +76,23 @@ class AiDashboard extends Page implements HasForms
         }
 
         $threadQuery = Thread::whereBetween('created_at', [$start, $end]);
-        $messageQuery = Quoter::whereBetween('created_at', [$start, $end]);
-
         $totalThreads = $threadQuery->count();
-        $totalMessages = $messageQuery->count();
+
+        // Ottieni i thread_id dei thread nel periodo
+        $threadIds = $threadQuery->pluck('thread_id');
+
+        // Conta solo i messaggi creati nel periodo che appartengono ai thread nel periodo
+        $totalMessages = Quoter::whereIn('thread_id', $threadIds)
+            ->whereBetween('created_at', [$start, $end])
+            ->count();
+
+        // Calcola la media corretta: solo messaggi dei thread nel periodo creati nel periodo
+        $avgMessagesPerThread = $totalThreads > 0 ? round($totalMessages / $totalThreads, 1) : 0;
 
         $this->threadStats = [
             'total_threads' => $totalThreads,
             'threads_last_7_days' => $totalThreads,
-            'avg_messages_per_thread' => $totalThreads > 0 ? round($totalMessages / $totalThreads, 1) : 0,
+            'avg_messages_per_thread' => $avgMessagesPerThread,
             'unique_ips' => $threadQuery->whereNotNull('ip_address')->distinct('ip_address')->count('ip_address'),
         ];
 
@@ -127,5 +137,22 @@ class AiDashboard extends Page implements HasForms
             ->each(function (Thread $thread): void {
                 $thread->view_url = ThreadResource::getUrl('view', ['record' => $thread]);
             });
+    }
+
+    public function openConversationModal(string $threadId): void
+    {
+        $this->selectedThreadId = $threadId;
+        $this->dispatch('open-modal', id: 'conversation-modal');
+    }
+
+    public function getConversationMessagesProperty()
+    {
+        if (!$this->selectedThreadId) {
+            return collect();
+        }
+
+        return Quoter::where('thread_id', $this->selectedThreadId)
+            ->orderBy('created_at', 'asc')
+            ->get();
     }
 }
