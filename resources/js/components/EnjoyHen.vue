@@ -1,152 +1,233 @@
 <template>
   <div ref="rootEl" id="enjoyHenRoot"
-    :class="['flex flex-col', !isWebComponent && 'min-h-[100dvh] max-h-[100dvh]', 'w-full bg-[#0f172a] overflow-hidden']">
-    <!-- Header -->
-    <div class="px-4 py-4 border-b border-slate-700" v-if="!isWebComponent">
-      <div class="mx-auto w-full max-w-2xl flex items-center gap-3">
-        <img id="teamLogo" :src="teamLogo" alt="EnjoyHen"
-          class="w-10 h-10 rounded-full object-cover border border-slate-600" />
-        <h1 class="font-sans text-2xl text-white">EnjoyHen AI</h1>
+    :class="['flex flex-col', !isWebComponent && 'min-h-[100dvh] max-h-[100dvh]', isWebComponent ? 'bg-transparent' : 'w-full bg-[#0f172a] overflow-hidden']">
+
+    <!-- Floating launcher bubble (snippet mode) -->
+    <button v-if="isWebComponent && !widgetOpen" id="henLauncherBtn"
+      class="fixed z-[9999] bottom-4 right-4 w-14 h-14 rounded-full bg-emerald-600 text-white shadow-lg border border-white/40 flex items-center justify-center"
+      @click="widgetOpen = true">
+      💬
+    </button>
+
+    <!-- Widget content -->
+    <div v-show="!isWebComponent || widgetOpen" class="flex flex-col flex-1">
+      <!-- Header -->
+      <div class="px-4 py-4 border-b border-slate-700" v-if="!isWebComponent">
+        <div class="mx-auto w-full max-w-2xl flex items-center gap-3">
+          <img id="teamLogo" :src="teamLogo" alt="EnjoyHen"
+            class="w-10 h-10 rounded-full object-cover border border-slate-600" />
+          <h1 class="font-sans text-2xl text-white">EnjoyHen AI</h1>
+        </div>
       </div>
-    </div>
 
-    <!-- Main Content -->
-    <div class="flex-1 flex items-center justify-center p-4 overflow-y-auto">
-      <div class="w-full max-w-2xl">
-        <!-- Video Avatar -->
-        <div class="relative mb-6 rounded-lg overflow-hidden bg-black border border-slate-700">
-          <video id="heygenVideo" class="w-full h-auto rounded-lg" autoplay playsinline controls>
-          </video>
-
-          <!-- Modal Trascrizione Email -->
-          <div id="emailTranscriptModalHen"
-            class="hidden absolute inset-0 flex items-center justify-center z-30 rounded-lg bg-black/60 backdrop-blur-sm">
-            <div
-              class="w-full max-w-lg mx-4 bg-[#0b1220] border border-slate-700 rounded-xl shadow-2xl overflow-hidden">
-              <div class="px-4 py-3 border-b border-slate-700 bg-black/50 flex items-center justify-between">
-                <div class="text-slate-100 font-semibold text-base">Invia trascrizione via email</div>
-                <button id="sendTranscriptCancelHen"
-                  class="text-slate-300 hover:text-white px-2 py-1 rounded-md hover:bg-slate-700/60">✕</button>
-              </div>
-              <div class="p-4 space-y-3">
-                <label class="block text-slate-300 text-sm">Indirizzo email destinatario</label>
-                <input id="emailTranscriptInputHen" type="email" placeholder="nome@esempio.com"
-                  class="w-full px-3 py-2 bg-[#111827] text-white border border-slate-700 rounded-md placeholder-slate-400 focus:border-indigo-500 focus:outline-none" />
-                <div id="emailTranscriptStatusHen" class="text-xs text-slate-400 min-h-[1rem]"></div>
-              </div>
-              <div class="px-4 py-3 border-t border-slate-700 bg-black/50 flex items-center justify-end gap-2">
-                <button id="sendTranscriptCancel2Hen"
-                  class="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-md transition-colors text-sm">Annulla</button>
-                <button id="sendTranscriptConfirmHen"
-                  class="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors text-sm font-semibold">Invia</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Fumetto di pensiero -->
-          <div id="thinkingBubble"
-            class="hidden absolute top-4 left-1/2 transform -translate-x-1/2 bg-white rounded-lg px-4 py-2 shadow-lg border border-gray-300 z-10">
-            <div class="text-gray-700 text-sm font-medium">
-              💭 Sto pensando...
-            </div>
-            <div class="absolute bottom-0 left-1/2 transform translate-y-full -translate-x-1/2">
-              <div class="w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-white"></div>
-            </div>
-          </div>
-
-          <!-- Status Badge -->
-          <div id="videoAvatarStatus"
-            class="absolute top-4 right-4 px-3 py-1 bg-slate-900/80 backdrop-blur text-slate-200 text-xs font-medium rounded-full border border-slate-700">
-            Inizializzazione...
-          </div>
-
-          <!-- Loading Overlay -->
-          <div id="loadingOverlay"
-            class="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center rounded-lg z-20">
-            <div class="flex flex-col items-center gap-4">
-              <div class="relative w-12 h-12">
-                <div class="absolute inset-0 bg-gradient-to-r from-indigo-600 to-emerald-600 rounded-full animate-spin"
-                  style="border-radius: 50%; -webkit-mask-image: radial-gradient(circle 10px at center, transparent 100%, black 100%); mask-image: radial-gradient(circle 10px at center, transparent 100%, black 100%);">
-                </div>
-                <div class="absolute inset-2 bg-black rounded-full flex items-center justify-center">
-                  <div class="w-2 h-2 bg-gradient-to-r from-indigo-400 to-emerald-400 rounded-full animate-pulse"></div>
-                </div>
-              </div>
-              <div class="text-white text-sm font-medium">Connessione in corso...</div>
-            </div>
-          </div>
-
-          <!-- Inizio Chat Button Overlay -->
-          <div id="startChatContainer"
-            class="hidden absolute inset-0 flex items-center justify-center z-25 rounded-lg bg-black/40 backdrop-blur-sm">
-            <button id="startChatBtn"
-              class="px-8 py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition-colors text-lg shadow-lg hover:shadow-xl transform hover:scale-105">
-              🎤 Inizia Chat
+      <!-- Main Content -->
+      <div class="flex-1 flex items-center justify-center p-4 overflow-y-auto">
+        <div class="w-full max-w-2xl">
+          <!-- Video Avatar -->
+          <div
+            :class="['relative mb-6 rounded-lg overflow-hidden', isWebComponent ? 'bg-transparent border-none' : 'bg-black border border-slate-700']">
+            <!-- Close button (snippet mode) -->
+            <button v-if="isWebComponent" id="henCloseBtn" @click="closeWidget"
+              class="absolute top-3 right-3 z-30 w-8 h-8 rounded-full bg-black/70 text-white flex items-center justify-center border border-white/40">
+              ✕
             </button>
-          </div>
 
-          <!-- Debug Overlay (mostrato con ?debug=1) -->
-          <div id="debugOverlay" class="hidden absolute left-1/2 -translate-x-1/2 top-3 z-10 w-full max-w-2xl px-3"
-            style="pointer-events: auto">
-            <div class="bg-black/70 backdrop-blur-sm border border-slate-600 rounded-md overflow-hidden shadow-lg">
+            <video id="heygenVideo" class="w-full h-auto rounded-lg" autoplay playsinline controls>
+            </video>
+
+            <!-- Modal Trascrizione Email -->
+            <div id="emailTranscriptModalHen"
+              class="hidden absolute inset-0 flex items-center justify-center z-30 rounded-lg bg-black/60 backdrop-blur-sm">
               <div
-                class="flex items-center justify-between px-3 py-2 border-b border-slate-700 bg-black/60 sticky top-0">
-                <div class="text-slate-200 text-xs font-semibold">Debug</div>
-                <div class="flex items-center gap-2">
-                  <button id="debugCopy"
-                    class="text-[11px] px-2 py-1 bg-slate-700/70 hover:bg-slate-600 text-white rounded">
-                    Copia
-                  </button>
-                  <button id="debugClear"
-                    class="text-[11px] px-2 py-1 bg-slate-700/70 hover:bg-slate-600 text-white rounded">
-                    Pulisci
-                  </button>
-                  <button id="debugClose"
-                    class="text-[11px] px-2 py-1 bg-slate-700/70 hover:bg-slate-600 text-white rounded">
-                    Chiudi
-                  </button>
+                class="w-full max-w-lg mx-4 bg-[#0b1220] border border-slate-700 rounded-xl shadow-2xl overflow-hidden">
+                <div class="px-4 py-3 border-b border-slate-700 bg-black/50 flex items-center justify-between">
+                  <div class="text-slate-100 font-semibold text-base">Invia trascrizione via email</div>
+                  <button id="sendTranscriptCancelHen"
+                    class="text-slate-300 hover:text-white px-2 py-1 rounded-md hover:bg-slate-700/60">✕</button>
+                </div>
+                <div class="p-4 space-y-3">
+                  <label class="block text-slate-300 text-sm">Indirizzo email destinatario</label>
+                  <input id="emailTranscriptInputHen" type="email" placeholder="nome@esempio.com"
+                    class="w-full px-3 py-2 bg-[#111827] text-white border border-slate-700 rounded-md placeholder-slate-400 focus:border-indigo-500 focus:outline-none" />
+                  <div id="emailTranscriptStatusHen" class="text-xs text-slate-400 min-h-[1rem]"></div>
+                </div>
+                <div class="px-4 py-3 border-t border-slate-700 bg-black/50 flex items-center justify-end gap-2">
+                  <button id="sendTranscriptCancel2Hen"
+                    class="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-md transition-colors text-sm">Annulla</button>
+                  <button id="sendTranscriptConfirmHen"
+                    class="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors text-sm font-semibold">Invia</button>
                 </div>
               </div>
-              <div class="max-h-[50vh] overflow-auto p-2 text-[11px] font-mono text-slate-200 leading-relaxed">
-                <div id="debugContent" class="space-y-1"></div>
+            </div>
+
+            <!-- Fumetto di pensiero -->
+            <div id="thinkingBubble"
+              class="hidden absolute top-4 left-1/2 transform -translate-x-1/2 bg-white rounded-lg px-4 py-2 shadow-lg border border-gray-300 z-10">
+              <div class="text-gray-700 text-sm font-medium">
+                💭 Sto pensando...
+              </div>
+              <div class="absolute bottom-0 left-1/2 transform translate-y-full -translate-x-1/2">
+                <div class="w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-white"></div>
+              </div>
+            </div>
+
+            <!-- Status Badge -->
+            <div id="videoAvatarStatus"
+              class="absolute top-4 right-4 px-3 py-1 bg-slate-900/80 backdrop-blur text-slate-200 text-xs font-medium rounded-full border border-slate-700">
+              Inizializzazione...
+            </div>
+
+            <!-- Loading Overlay -->
+            <div id="loadingOverlay"
+              class="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center rounded-lg z-20">
+              <div class="flex flex-col items-center gap-4">
+                <div class="relative w-12 h-12">
+                  <div
+                    class="absolute inset-0 bg-gradient-to-r from-indigo-600 to-emerald-600 rounded-full animate-spin"
+                    style="border-radius: 50%; -webkit-mask-image: radial-gradient(circle 10px at center, transparent 100%, black 100%); mask-image: radial-gradient(circle 10px at center, transparent 100%, black 100%);">
+                  </div>
+                  <div class="absolute inset-2 bg-black rounded-full flex items-center justify-center">
+                    <div class="w-2 h-2 bg-gradient-to-r from-indigo-400 to-emerald-400 rounded-full animate-pulse">
+                    </div>
+                  </div>
+                </div>
+                <div class="text-white text-sm font-medium">Connessione in corso...</div>
+              </div>
+            </div>
+
+            <!-- Inizio Chat Button Overlay -->
+            <div id="startChatContainer"
+              class="hidden absolute inset-0 flex items-center justify-center z-25 rounded-lg bg-black/40 backdrop-blur-sm">
+              <button id="startChatBtn"
+                class="px-8 py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition-colors text-lg shadow-lg hover:shadow-xl transform hover:scale-105">
+                🎤 Inizia Chat
+              </button>
+            </div>
+
+            <!-- Debug Overlay (mostrato con ?debug=1) -->
+            <div id="debugOverlay" class="hidden absolute left-1/2 -translate-x-1/2 top-3 z-10 w-full max-w-2xl px-3"
+              style="pointer-events: auto">
+              <div class="bg-black/70 backdrop-blur-sm border border-slate-600 rounded-md overflow-hidden shadow-lg">
+                <div
+                  class="flex items-center justify-between px-3 py-2 border-b border-slate-700 bg-black/60 sticky top-0">
+                  <div class="text-slate-200 text-xs font-semibold">Debug</div>
+                  <div class="flex items-center gap-2">
+                    <button id="debugCopy"
+                      class="text-[11px] px-2 py-1 bg-slate-700/70 hover:bg-slate-600 text-white rounded">
+                      Copia
+                    </button>
+                    <button id="debugClear"
+                      class="text-[11px] px-2 py-1 bg-slate-700/70 hover:bg-slate-600 text-white rounded">
+                      Pulisci
+                    </button>
+                    <button id="debugClose"
+                      class="text-[11px] px-2 py-1 bg-slate-700/70 hover:bg-slate-600 text-white rounded">
+                      Chiudi
+                    </button>
+                  </div>
+                </div>
+                <div class="max-h-[50vh] overflow-auto p-2 text-[11px] font-mono text-slate-200 leading-relaxed">
+                  <div id="debugContent" class="space-y-1"></div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <!-- Listening Badge -->
-        <div id="listeningBadge"
-          class="hidden px-3 py-2 bg-rose-600/90 text-white text-sm font-semibold rounded-md shadow animate-pulse text-center mb-4">
-          🎤 Ascolto...
+          <!-- Listening Badge -->
+          <div id="listeningBadge"
+            class="hidden px-3 py-2 bg-rose-600/90 text-white text-sm font-semibold rounded-md shadow animate-pulse text-center mb-4">
+            🎤 Ascolto...
+          </div>
+        </div>
+      </div>
+
+      <!-- Input Controls Bar (full layout only) -->
+      <div v-if="!isWebComponent" id="controlsBar"
+        class="bottom-0 left-0 w-full border-t border-slate-700 bg-[#0f172a] z-20 pb-[env(safe-area-inset-bottom)]">
+        <div class="px-3 py-3 sm:px-4 sm:py-4">
+          <div class="mx-auto w-full max-w-2xl">
+            <div class="flex flex-wrap w-full gap-2 items-center min-w-0">
+              <input id="textInput" type="text" placeholder="Scrivi il tuo messaggio..."
+                class="flex-1 min-w-0 px-3 py-3 bg-slate-700 text-white border border-slate-600 rounded-lg placeholder-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 text-sm sm:text-base" />
+              <button id="sendBtn"
+                class="px-3 py-3 sm:px-4 sm:py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors whitespace-nowrap text-sm sm:text-base font-medium">
+                📤
+              </button>
+              <button id="micBtn"
+                class="px-3 py-3 sm:px-4 sm:py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-lg transition-colors whitespace-nowrap text-sm sm:text-base font-medium">
+                🎤
+              </button>
+              <button id="emailTranscriptBtnHen"
+                class="px-3 py-3 sm:px-4 sm:py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors whitespace-nowrap text-sm sm:text-base font-medium">
+                📧 Trascrizione
+              </button>
+            </div>
+
+            <!-- Feedback -->
+            <div id="feedbackMsg" class="text-sm text-slate-400 text-center min-h-5 mt-2"></div>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Input Controls Bar -->
-    <div id="controlsBar"
-      class="bottom-0 left-0 w-full border-t border-slate-700 bg-[#0f172a] z-20 pb-[env(safe-area-inset-bottom)]">
-      <div class="px-3 py-3 sm:px-4 sm:py-4">
-        <div class="mx-auto w-full max-w-2xl">
-          <div class="flex flex-wrap w-full gap-2 items-center min-w-0">
-            <input id="textInput" type="text" placeholder="Scrivi il tuo messaggio..."
-              class="flex-1 min-w-0 px-3 py-3 bg-slate-700 text-white border border-slate-600 rounded-lg placeholder-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 text-sm sm:text-base" />
-            <button id="sendBtn"
-              class="px-3 py-3 sm:px-4 sm:py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors whitespace-nowrap text-sm sm:text-base font-medium">
-              📤
-            </button>
-            <button id="micBtn"
-              class="px-3 py-3 sm:px-4 sm:py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-lg transition-colors whitespace-nowrap text-sm sm:text-base font-medium">
-              🎤
-            </button>
-            <button id="emailTranscriptBtnHen"
-              class="px-3 py-3 sm:px-4 sm:py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors whitespace-nowrap text-sm sm:text-base font-medium">
-              📧 Trascrizione
-            </button>
-          </div>
+    <!-- Floating controls bar (snippet mode) -->
+    <div v-if="isWebComponent && widgetOpen" id="henFloatingControls"
+      class="fixed z-[9999] bottom-4 right-4 flex items-center gap-2">
+      <!-- Menu button -->
+      <button id="henMenuBtn" @click="snippetMenuOpen = !snippetMenuOpen"
+        class="w-11 h-11 rounded-full bg-slate-900/95 text-white flex items-center justify-center shadow-lg border border-slate-600">
+        ⋯
+      </button>
+      <!-- Mic button -->
+      <button id="henMicFloatingBtn" @click="onSnippetMicClick"
+        class="w-11 h-11 rounded-full bg-rose-600 text-white flex items-center justify-center shadow-lg border border-rose-500">
+        🎤
+      </button>
+      <!-- Keyboard button -->
+      <button id="henKeyboardBtn" @click="onSnippetTextClick"
+        class="w-11 h-11 rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-lg border border-indigo-500">
+        ⌨️
+      </button>
+    </div>
 
-          <!-- Feedback -->
-          <div id="feedbackMsg" class="text-sm text-slate-400 text-center min-h-5 mt-2"></div>
-        </div>
+    <!-- Floating options menu (snippet mode) -->
+    <div v-if="isWebComponent && widgetOpen && snippetMenuOpen" id="henOptionsPanel"
+      class="fixed z-[9999] bottom-24 right-4 w-72 rounded-2xl bg-slate-900/95 text-slate-100 shadow-2xl border border-slate-700">
+      <div class="px-4 py-3 border-b border-slate-800 text-[11px] font-semibold text-slate-400">
+        AZIONI
+      </div>
+      <div class="px-4 py-2 space-y-2 text-sm">
+        <button @click="toggleTextInterface"
+          class="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-slate-800/70 hover:bg-slate-700">
+          <span>Interfaccia testuale</span>
+        </button>
+        <button @click="toggleMessages"
+          class="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-slate-800/70 hover:bg-slate-700">
+          <span>Messaggi</span>
+          <span
+            :class="['px-2 py-0.5 text-[11px] rounded-full', snippetMessagesOn ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white']">
+            {{ snippetMessagesOn ? 'ON' : 'OFF' }}
+          </span>
+        </button>
+        <button @click="toggleAudio"
+          class="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-slate-800/70 hover:bg-slate-700">
+          <span>Audio</span>
+          <span
+            :class="['px-2 py-0.5 text-[11px] rounded-full', snippetAudioOn ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white']">
+            {{ snippetAudioOn ? 'ON' : 'OFF' }}
+          </span>
+        </button>
+      </div>
+      <div class="px-4 py-3 border-t border-slate-800 text-[11px] font-semibold text-slate-400">
+        ALTRO
+      </div>
+      <div class="px-4 py-2 space-y-2 text-sm">
+        <button @click="openSettings" class="w-full text-left px-3 py-2 rounded-lg bg-slate-800/70 hover:bg-slate-700">
+          Impostazioni
+        </button>
+        <button @click="openPrivacy" class="w-full text-left px-3 py-2 rounded-lg bg-slate-800/70 hover:bg-slate-700">
+          Informazioni / Privacy
+        </button>
       </div>
     </div>
   </div>
@@ -182,6 +263,10 @@ export default defineComponent({
   data() {
     return {
       // Variabili locali (non props)
+      widgetOpen: true,
+      snippetMenuOpen: false,
+      snippetMessagesOn: true,
+      snippetAudioOn: true,
       uuid: null,
       heygenAvatar: "",
       heygenVoice: "",
@@ -218,6 +303,9 @@ export default defineComponent({
   mounted() {
     try {
       console.log("[EnjoyHen] ✓ mounted(), isWebComponent:", import.meta.env.VITE_IS_WEB_COMPONENT);
+      if (import.meta.env.VITE_IS_WEB_COMPONENT) {
+        this.widgetOpen = false;
+      }
       this.rootEl = this.$el || document.getElementById("enjoyHenRoot");
       console.log("[EnjoyHen] rootEl found:", !!this.rootEl);
       this.initComponent();
@@ -232,6 +320,70 @@ export default defineComponent({
     } catch { }
   },
   methods: {
+    closeWidget() {
+      try {
+        this.widgetOpen = false;
+        this.snippetMenuOpen = false;
+      } catch { }
+    },
+
+    onSnippetMicClick() {
+      try {
+        if (this.micBtn) {
+          this.micBtn.click();
+        } else {
+          const btn = document.getElementById("micBtn");
+          if (btn) btn.click();
+        }
+      } catch { }
+    },
+
+    onSnippetTextClick() {
+      try {
+        if (this.textInput) {
+          this.textInput.focus();
+        } else {
+          const input = document.getElementById("textInput");
+          if (input) input.focus();
+        }
+      } catch { }
+    },
+
+    toggleTextInterface() {
+      try {
+        const input = this.textInput || document.getElementById("textInput");
+        if (input) input.focus();
+      } catch { }
+      this.snippetMenuOpen = false;
+    },
+
+    toggleMessages() {
+      this.snippetMessagesOn = !this.snippetMessagesOn;
+      // Hook funzionale da definire in seguito (es. mostra/nascondi balloon di messaggi)
+    },
+
+    toggleAudio() {
+      this.snippetAudioOn = !this.snippetAudioOn;
+      try {
+        if (this.heygenVideo) {
+          this.heygenVideo.muted = !this.snippetAudioOn;
+        }
+      } catch { }
+    },
+
+    openSettings() {
+      // Placeholder: in futuro potremo aprire un pannello impostazioni dettagliato
+      this.snippetMenuOpen = false;
+    },
+
+    openPrivacy() {
+      this.snippetMenuOpen = false;
+      try {
+        const url = "/privacy-policy";
+        window.open(url, "_blank");
+      } catch { }
+    },
+
     initComponent() {
       console.log("[EnjoyHen] initComponent() start");
 
