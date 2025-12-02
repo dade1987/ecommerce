@@ -1007,7 +1007,9 @@ export default defineComponent({
           this.emailTranscriptStatusHen.textContent = "Invio in corso...";
         }
 
-        const res = await fetch("/api/chatbot/email-transcript", {
+        const webComponentOrigin = window.__ENJOY_HEN_ORIGIN__ || window.location.origin;
+        const endpoint = `/api/chatbot/email-transcript`;
+        const res = await fetch(`${webComponentOrigin}${endpoint}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email, thread_id: tid }),
