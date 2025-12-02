@@ -12,6 +12,8 @@ use Modules\WebScraper\Services\IntelligentCrawlerService;
 use Modules\WebScraper\Services\SitemapService;
 use Modules\WebScraper\Services\SearchFormService;
 use Modules\WebScraper\Services\HybridSearchService;
+use Modules\WebScraper\Services\ClientSiteQaService;
+use Modules\WebScraper\Services\SearchIndexService;
 use Modules\WebScraper\Console\Commands\ClearExpiredCache;
 use Modules\WebScraper\Console\Commands\IndexSiteCommand;
 use Modules\WebScraper\Console\Commands\RagSearchCommand;
@@ -48,6 +50,8 @@ class WebScraperServiceProvider extends ServiceProvider
         $this->app->singleton(SitemapService::class);
         $this->app->singleton(SearchFormService::class);
         $this->app->singleton(IntelligentCrawlerService::class);
+        $this->app->singleton(ClientSiteQaService::class);
+        $this->app->singleton(SearchIndexService::class);
         $this->app->singleton(HybridSearchService::class);
 
         // Register facade accessor

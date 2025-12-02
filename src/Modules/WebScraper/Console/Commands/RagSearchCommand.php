@@ -6,6 +6,7 @@ use Illuminate\Console\Command;
 use Modules\WebScraper\Services\ClientSiteQaService;
 use Modules\WebScraper\Services\SiteIndexerService;
 use Illuminate\Support\Facades\Log;
+use App\Models\WebsiteSearch;
 
 class RagSearchCommand extends Command
 {
@@ -114,6 +115,26 @@ class RagSearchCommand extends Command
             $this->newLine();
             $this->info('✨ Search completed!');
             $this->info("⚡ Method: {$result['method']}");
+
+            // Salva la ricerca nel database WebsiteSearch
+            try {
+                \App\Models\WebsiteSearch::create([
+                    'website' => $url,
+                    'query' => $query,
+                    'team_id' => null, // Comando CLI, nessun team associato
+                    'locale' => 'it',
+                    'response' => $result['answer'] ?? null,
+                    'content_length' => strlen($result['answer'] ?? ''),
+                    'from_cache' => true, // RAG search usa contenuto indicizzato (cache)
+                ]);
+            } catch (\Throwable $e) {
+                $this->warn('Failed to save WebsiteSearch: ' . $e->getMessage());
+                Log::error('RagSearchCommand: Failed to save WebsiteSearch', [
+                    'error' => $e->getMessage(),
+                    'url' => $url,
+                    'query' => $query,
+                ]);
+            }
 
             return 0;
 
