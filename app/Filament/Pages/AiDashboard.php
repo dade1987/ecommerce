@@ -73,61 +73,49 @@ class AiDashboard extends Page implements HasForms
             [$start, $end] = [$end->copy()->startOfDay(), $start->copy()->endOfDay()];
         }
 
-        // Threads nel periodo selezionato (solo quelli registrati nella nuova tabella threads)
-        $threadsInRange = Thread::whereBetween('created_at', [$start, $end])->get();
-        $threadIds = $threadsInRange->pluck('thread_id');
+        $threadQuery = Thread::whereBetween('created_at', [$start, $end]);
+        $messageQuery = Quoter::whereBetween('created_at', [$start, $end]);
 
-        $totalThreads = $threadsInRange->count();
-
-        // Messaggi conteggiati SOLO se appartengono a uno dei thread del periodo selezionato.
-        // In questo modo ignoriamo vecchi record Quoter "orfani" o generati da sistemi legacy/token.
-        $totalMessages = Quoter::whereIn('thread_id', $threadIds)
-            ->whereBetween('created_at', [$start, $end])
-            ->count();
+        $totalThreads = $threadQuery->count();
+        $totalMessages = $messageQuery->count();
 
         $this->threadStats = [
             'total_threads' => $totalThreads,
             'threads_last_7_days' => $totalThreads,
-            'avg_messages_per_thread' => $totalThreads > 0 ? round($totalMessages / max($totalThreads, 1), 1) : 0,
-            'unique_ips' => $threadsInRange
-                ->whereNotNull('ip_address')
-                ->unique('ip_address')
-                ->count(),
+            'avg_messages_per_thread' => $totalThreads > 0 ? round($totalMessages / $totalThreads, 1) : 0,
+            'unique_ips' => $threadQuery->whereNotNull('ip_address')->distinct('ip_address')->count('ip_address'),
         ];
 
-        // Serie temporale: messaggi per ORA nel range selezionato
-        // Usiamo un bucket per ogni ora (es. 2025-12-02 18:00:00) e poi riempiamo tutte le ore del range.
-        $rawPerHour = Quoter::selectRaw('DATE_FORMAT(created_at, "%Y-%m-%d %H:00:00") as h, COUNT(*) as c')
-            ->whereIn('thread_id', $threadIds)
+        // Serie temporale: messaggi per giorno nel range selezionato
+        $rawPerDay = Quoter::selectRaw('DATE(created_at) as d, COUNT(*) as c')
             ->whereBetween('created_at', [$start, $end])
-            ->groupBy('h')
-            ->orderBy('h')
-            ->pluck('c', 'h')
+            ->groupBy('d')
+            ->orderBy('d')
+            ->pluck('c', 'd')
             ->all();
 
-        $messagesPerHour = [];
-        $hours = $start->diffInHours($end) + 1;
-        for ($i = 0; $i < $hours; $i++) {
-            $dt = $start->copy()->addHours($i);
-            $key = $dt->format('Y-m-d H:00:00');
-            $messagesPerHour[] = [
-                'label' => $dt->format('d/m H:i'),
-                'count' => $rawPerHour[$key] ?? 0,
+        $messagesPerDay = [];
+        $days = $start->diffInDays($end) + 1;
+        for ($i = 0; $i < $days; $i++) {
+            $d = $start->copy()->addDays($i)->format('Y-m-d');
+            $messagesPerDay[] = [
+                'date' => $d,
+                'count' => $rawPerDay[$d] ?? 0,
             ];
         }
-        // Manteniamo il nome $messagesPerDay per compatibilità con il Blade
-        $this->messagesPerDay = $messagesPerHour;
+        $this->messagesPerDay = $messagesPerDay;
 
         // Distribuzione thread per team (prime 5 squadre) nel range selezionato
-        $this->threadsPerTeam = $threadsInRange
-            ->groupBy(fn (Thread $t) => $t->team_slug ?: 'n/d')
-            ->map(fn ($group, $team) => [
-                'team' => $team,
-                'total' => $group->count(),
+        $this->threadsPerTeam = Thread::selectRaw('COALESCE(team_slug, "n/d") as team, COUNT(*) as total')
+            ->whereBetween('created_at', [$start, $end])
+            ->groupBy('team')
+            ->orderByDesc('total')
+            ->limit(5)
+            ->get()
+            ->map(fn ($row) => [
+                'team' => $row->team,
+                'total' => $row->total,
             ])
-            ->sortByDesc('total')
-            ->values()
-            ->take(5)
             ->all();
 
         // Ultimi thread per tabella "Active Threads" nel range selezionato
