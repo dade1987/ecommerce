@@ -10,6 +10,7 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\Quoter;
 use App\Models\Team;
+use App\Models\Thread;
 use GuzzleHttp\Client;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -56,6 +57,12 @@ class ChatbotController extends Controller
             $threadId = $thread->getData()->thread_id;
             Log::info('handleChat: Creato nuovo thread', ['thread_id' => $threadId]);
         }
+
+        // Registra i metadati del thread (solo alla prima inizializzazione)
+        Thread::captureFromRequest($threadId, $request, [
+            'team_slug' => $teamSlug,
+            'activity_uuid' => $activityUuid,
+        ]);
 
         Log::info('handleChat: Messaggio utente ricevuto', [
             'message'   => $userInput,

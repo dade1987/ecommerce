@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Quoter;
 use App\Models\Team;
+use App\Models\Thread;
 use App\Neuron\WebsiteAssistantAgent;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -48,6 +49,12 @@ class NeuronWebsiteStreamController extends Controller
             };
 
             $streamThreadId = (string) (request()->query('thread_id') ?: str()->uuid());
+
+            // Registra i metadati del thread (solo alla prima inizializzazione)
+            Thread::captureFromRequest($streamThreadId, request(), [
+                'team_slug' => $teamSlug,
+                'activity_uuid' => $activityUuid,
+            ]);
 
             Log::info('NeuronWebsiteStreamController.stream START', [
                 'thread_id' => $streamThreadId,

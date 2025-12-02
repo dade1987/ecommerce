@@ -10,6 +10,7 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\Quoter;
 use App\Models\Team;
+use App\Models\Thread;
 use App\Services\EmbeddingCacheService;
 use App\Services\WebsiteScraperService;
 use Illuminate\Http\Request;
@@ -111,6 +112,12 @@ class RealtimeChatWebsiteController extends Controller
             };
 
             $streamThreadId = (string) (request()->query('thread_id') ?: str()->uuid());
+
+            // Registra i metadati del thread (solo alla prima inizializzazione)
+            Thread::captureFromRequest($streamThreadId, request(), [
+                'team_slug' => $teamSlug,
+                'activity_uuid' => $activityUuid,
+            ]);
 
             // LOG: quale thread stiamo usando e se è nuovo o ricevuto dal client
             Log::info('RealtimeChatWebsiteController.websiteStream START', [

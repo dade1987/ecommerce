@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Quoter;
+use App\Models\Thread;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Log;
@@ -20,12 +21,15 @@ class QuoterController extends Controller
         $this->client = OpenAI::client($apiKey);
     }
 
-    public function createThread()
+    public function createThread(Request $request)
     {
         $minutes = 60; // Durata del cookie in minuti
         $thread = $this->client->threads()->create([]);
 
         Log::info('thread id '.$thread->id);
+
+        // Registra i metadati del thread (solo alla prima inizializzazione)
+        Thread::captureFromRequest($thread->id, $request);
 
         return response('Thread_id cookie impostato')->cookie(
             'thread_id',
