@@ -396,7 +396,7 @@ export default defineComponent({
         }
         this.ensureHeyGenSession().then(() => {
           const intro =
-            "Ciao, sono l'assistente digitale del Comune. Posso aiutarti a trovare informazioni sui servizi, sugli orari e sui contatti, guidarti nella prenotazione di appuntamenti e rispondere alle domande frequenti.";
+            "Ciao, sono il tuo assistente virtuale Enjoy Talk 3D. Posso aiutarti a trovare informazioni sui servizi, sugli orari e sui contatti, guidarti nella prenotazione di appuntamenti e rispondere alle domande frequenti.";
           this.heygenSendRepeat(intro);
         });
       } catch { }
