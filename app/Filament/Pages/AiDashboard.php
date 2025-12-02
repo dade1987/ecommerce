@@ -73,21 +73,31 @@ class AiDashboard extends Page implements HasForms
             [$start, $end] = [$end->copy()->startOfDay(), $start->copy()->endOfDay()];
         }
 
-        $threadQuery = Thread::whereBetween('created_at', [$start, $end]);
-        $messageQuery = Quoter::whereBetween('created_at', [$start, $end]);
+        // Threads nel periodo selezionato (solo quelli registrati nella nuova tabella threads)
+        $threadsInRange = Thread::whereBetween('created_at', [$start, $end])->get();
+        $threadIds = $threadsInRange->pluck('thread_id');
 
-        $totalThreads = $threadQuery->count();
-        $totalMessages = $messageQuery->count();
+        $totalThreads = $threadsInRange->count();
+
+        // Messaggi conteggiati SOLO se appartengono a uno dei thread del periodo selezionato.
+        // In questo modo ignoriamo vecchi record Quoter "orfani" o generati da sistemi legacy/token.
+        $totalMessages = Quoter::whereIn('thread_id', $threadIds)
+            ->whereBetween('created_at', [$start, $end])
+            ->count();
 
         $this->threadStats = [
             'total_threads' => $totalThreads,
             'threads_last_7_days' => $totalThreads,
-            'avg_messages_per_thread' => $totalThreads > 0 ? round($totalMessages / $totalThreads, 1) : 0,
-            'unique_ips' => $threadQuery->whereNotNull('ip_address')->distinct('ip_address')->count('ip_address'),
+            'avg_messages_per_thread' => $totalThreads > 0 ? round($totalMessages / max($totalThreads, 1), 1) : 0,
+            'unique_ips' => $threadsInRange
+                ->whereNotNull('ip_address')
+                ->unique('ip_address')
+                ->count(),
         ];
 
         // Serie temporale: messaggi per giorno nel range selezionato
         $rawPerDay = Quoter::selectRaw('DATE(created_at) as d, COUNT(*) as c')
+            ->whereIn('thread_id', $threadIds)
             ->whereBetween('created_at', [$start, $end])
             ->groupBy('d')
             ->orderBy('d')
@@ -106,16 +116,15 @@ class AiDashboard extends Page implements HasForms
         $this->messagesPerDay = $messagesPerDay;
 
         // Distribuzione thread per team (prime 5 squadre) nel range selezionato
-        $this->threadsPerTeam = Thread::selectRaw('COALESCE(team_slug, "n/d") as team, COUNT(*) as total')
-            ->whereBetween('created_at', [$start, $end])
-            ->groupBy('team')
-            ->orderByDesc('total')
-            ->limit(5)
-            ->get()
-            ->map(fn ($row) => [
-                'team' => $row->team,
-                'total' => $row->total,
+        $this->threadsPerTeam = $threadsInRange
+            ->groupBy(fn (Thread $t) => $t->team_slug ?: 'n/d')
+            ->map(fn ($group, $team) => [
+                'team' => $team,
+                'total' => $group->count(),
             ])
+            ->sortByDesc('total')
+            ->values()
+            ->take(5)
             ->all();
 
         // Ultimi thread per tabella "Active Threads" nel range selezionato
