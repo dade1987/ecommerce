@@ -4,23 +4,22 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
+use App\Models\Event;
+use App\Models\Faq;
+use App\Models\Order;
+use App\Models\Product;
 use App\Models\Quoter;
 use App\Models\Team;
-use App\Models\Product;
-use App\Models\Event;
-use App\Models\Order;
-use App\Models\Faq;
+use App\Models\Thread;
 use GuzzleHttp\Client;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-use Modules\WebScraper\Facades\WebScraper;
-use Modules\WebScraper\Services\AiAnalyzerService;
-use Modules\WebScraper\Services\SearchResultCacheService;
 use OpenAI;
 use OpenAI\Client as OpenAIClient;
 use function Safe\json_decode;
 use function Safe\json_encode;
 use function Safe\preg_replace;
+use function Safe\preg_split;
 
 class ChatbotController extends Controller
 {
@@ -49,9 +48,8 @@ class ChatbotController extends Controller
         $threadId = $request->input('thread_id');
         $userInput = $request->input('message');
         $teamSlug = $request->input('team');
-        $activityUuid = $request->input('uuid');  // UUID identificativo dell'attività
+        $activityUuid = $request->input('uuid');  // UUID identificativo dell’attività
         $locale = $request->input('locale', 'it'); // Default to Italian
-        $promptType = $request->input('prompt_type', 'business'); // 'business' o 'chat_libera'
 
         // Se non viene passato un thread_id, ne crea uno nuovo
         if (! $threadId) {
@@ -59,6 +57,12 @@ class ChatbotController extends Controller
             $threadId = $thread->getData()->thread_id;
             Log::info('handleChat: Creato nuovo thread', ['thread_id' => $threadId]);
         }
+
+        // Registra i metadati del thread (solo alla prima inizializzazione)
+        Thread::captureFromRequest($threadId, $request, [
+            'team_slug' => $teamSlug,
+            'activity_uuid' => $activityUuid,
+        ]);
 
         Log::info('handleChat: Messaggio utente ricevuto', [
             'message'   => $userInput,
@@ -116,17 +120,14 @@ class ChatbotController extends Controller
             ]);
         }
 
-        // Determina quale prompt usare in base al tipo
-        $instructionKey = $promptType === 'chat_libera' ? 'instructions_chat_libera' : 'instructions';
-
         // Crea e gestisci il run con i vari tool disponibili
         $run = $this->client->threads()->runs()->create(
             threadId: $threadId,
             parameters: [
-                'assistant_id' => config('openapi.assistant_id'),
-                'instructions' => trans("chatbot_prompts.{$instructionKey}", ['locale' => $locale], $locale),
+                'assistant_id' => 'asst_34SA8ZkwlHiiXxNufoZYddn0',
+                'instructions' => trans('chatbot_prompts.instructions', ['locale' => $locale], $locale),
                 'model'  => 'gpt-4o',
-                'tools'  => $promptType === 'chat_libera' ? [] : [
+                'tools'  => [
                     [
                         'type'     => 'function',
                         'function' => [
@@ -262,7 +263,7 @@ class ChatbotController extends Controller
                             ],
                         ],
                     ],
-                    // FUNZIONE per "Che cosa può fare l'AI per la mia attività?"
+                    // FUNZIONE per "Che cosa può fare l’AI per la mia attività?"
                     [
                         'type'     => 'function',
                         'function' => [
@@ -274,73 +275,9 @@ class ChatbotController extends Controller
                                     'user_uuid' => [
                                         'type' => 'string',
                                         'description' => 'UUID che identifica univocamente l\'attività del cliente.',
-                                    ]
+                                    ],
                                 ],
                                 'required' => ['user_uuid'],
-                            ],
-                        ],
-                    ],
-                    // FUNZIONE per scraping di URL specifico con query personalizzata
-                    [
-                        'type'     => 'function',
-                        'function' => [
-                            'name'        => 'scrapeUrl',
-                            'description' => 'Estrae TUTTE le informazioni da una SINGOLA pagina web specifica. Usa SEMPRE questa funzione quando:
-- L\'utente fornisce un URL specifico di una pagina prodotto (es: Amazon, eBay, e-commerce con /dp/, /product/, /item/)
-- L\'URL NON è una homepage ma una pagina interna specifica
-- L\'utente chiede "caratteristiche", "dettagli", "specifiche", "descrizione" di UN prodotto/articolo specifico
-Questa funzione analizza in profondità UNA SOLA pagina e estrae tutto il suo contenuto.',
-                            'parameters'  => [
-                                'type'       => 'object',
-                                'properties' => [
-                                    'url' => [
-                                        'type' => 'string',
-                                        'description' => 'L\'URL completo della pagina specifica da analizzare (es: https://www.amazon.it/prodotto/dp/B07MW4D7LG/)',
-                                    ],
-                                    'query' => [
-                                        'type' => 'string',
-                                        'description' => 'Cosa estrarre dalla pagina (es: "tutte le caratteristiche del prodotto", "prezzo e descrizione", "specifiche tecniche")',
-                                    ]
-                                ],
-                                'required' => ['url', 'query'],
-                            ],
-                        ],
-                    ],
-                    // FUNZIONE per ricerca multi-pagina attraverso tutto il sito
-                    [
-                        'type'     => 'function',
-                        'function' => [
-                            'name'        => 'searchSite',
-                            'description' => 'Cerca informazioni attraverso MULTIPLE pagine di un sito web. Usa questa funzione quando:
-- L\'utente fornisce ESPLICITAMENTE un URL specifico (es: "cerca nel sito https://example.com", "trova servizi su https://isofin.it")
-- L\'utente dice "cerca nel sito web [URL]" - SEMPRE usa quell\'URL esatto, NON il sito del consumer corrente
-- L\'utente chiede di cercare qualcosa in "tutto il sito", "nelle pagine del sito"
-- Serve esplorare più pagine per trovare informazioni distribuite
-
-IMPORTANTE: Se l\'utente specifica un URL esplicito nel prompt, usa SEMPRE quell\'URL nel parametro "url", NON usare il sito del consumer corrente.
-ESEMPI:
-- "cerca nel sito https://isofin.it i servizi" → usa url="https://isofin.it"
-- "trova prodotti su https://example.com" → usa url="https://example.com"
-- "cerca informazioni nel mio sito" → NON usare questa funzione, usa scrapeSite invece
-
-NON usare per singole pagine prodotto o URL specifici di una pagina.',
-                            'parameters'  => [
-                                'type'       => 'object',
-                                'properties' => [
-                                    'url' => [
-                                        'type' => 'string',
-                                        'description' => 'L\'URL del sito web da esplorare (homepage o URL di partenza)',
-                                    ],
-                                    'query' => [
-                                        'type' => 'string',
-                                        'description' => 'Cosa cercare attraverso le pagine del sito (es: "trova tutti i prezzi dei prodotti", "cerca informazioni sui servizi", "trova tutte le pagine di contatto")',
-                                    ],
-                                    'max_pages' => [
-                                        'type' => 'integer',
-                                        'description' => 'Numero massimo di pagine da analizzare (default: 10)',
-                                    ]
-                                ],
-                                'required' => ['url', 'query'],
                             ],
                         ],
                     ],
@@ -381,49 +318,6 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
                         case 'scrapeSite':
                             $output = $this->scrapeSite($activityUuid);
                             break;
-                        case 'scrapeUrl':
-                            $output = $this->scrapeUrl($arguments['url'] ?? '', $arguments['query'] ?? '');
-                            break;
-                        case 'searchSite':
-                            // Use new RAG-powered search (tries indexed content first, falls back to scraping)
-                            $scraper = app(\Modules\WebScraper\Services\WebScraperService::class);
-                            $ragResult = $scraper->searchWithRag(
-                                $arguments['url'] ?? '',
-                                $arguments['query'] ?? '',
-                                [
-                                    'max_pages' => $arguments['max_pages'] ?? 10,
-                                    'ttl_days' => 30,
-                                    'top_k' => 5,
-                                    'min_similarity' => 0.7,
-                                ]
-                            );
-
-                            // Format output for OpenAI
-                            if ($ragResult['success']) {
-                                $output = [
-                                    'url' => $arguments['url'] ?? '',
-                                    'query' => $arguments['query'] ?? '',
-                                    'analysis' => $ragResult['answer'],
-                                    'method' => $ragResult['method'],
-                                    'sources' => $ragResult['sources'],
-                                ];
-
-                                // Add method-specific metadata
-                                if ($ragResult['method'] === 'rag') {
-                                    $output['chunks_found'] = $ragResult['chunks_found'];
-                                } elseif ($ragResult['method'] === 'scraping_with_indexing') {
-                                    $output['pages_visited'] = $ragResult['pages_visited'];
-                                    $output['indexed_for_future'] = true;
-                                }
-                            } else {
-                                $output = [
-                                    'url' => $arguments['url'] ?? '',
-                                    'query' => $arguments['query'] ?? '',
-                                    'analysis' => $ragResult['answer'] ?? 'Nessuna informazione trovata.',
-                                    'error' => $ragResult['error'] ?? null,
-                                ];
-                            }
-                            break;
                         case 'fallback':
                             $output = ['message' => trans('chatbot_prompts.fallback_message', [], $locale)];
                             break;
@@ -431,7 +325,7 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
 
                     $toolOutputs[] = [
                         'tool_call_id' => $toolCall->id,
-                        'output'       => \json_encode($output, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_IGNORE),
+                        'output'       => json_encode($output),
                     ];
                 }
 
@@ -450,7 +344,6 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
             Log::info('handleChat: Polling run status', ['status' => $run->status, 'runId' => $run->id]);
         }
 
-
         if ($run->status === 'completed') {
             $messages = $this->client->threads()->messages()->list($threadId)->data;
             $content = $messages[0]->content[0]->text->value ?? 'Nessuna risposta trovata.';
@@ -468,10 +361,10 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
             return response()->json([
                 'message'     => $formattedContent,
                 'thread_id'   => $threadId,
-                'product_ids' => $productIds ?? [],
             ]);
         } else {
-             Log::error('handleChat: Run did not complete successfully.', ['status' => $run->status, 'run_data' => $run->toArray()]);
+            Log::error('handleChat: Run did not complete successfully.', ['status' => $run->status, 'run_data' => $run->toArray()]);
+
             return response()->json(['error' => "The AI assistant could not process the request. Status: {$run->status}"], 500);
         }
     }
@@ -506,16 +399,17 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
         $team = Team::where('slug', $teamSlug)->firstOrFail();
         $query = Product::where('team_id', $team->id);
 
-        if (!empty($productNames)) {
+        if (! empty($productNames)) {
             $query->where(function ($q) use ($productNames) {
                 foreach ($productNames as $name) {
-                    $q->orWhere('name', 'like', '%' . $name . '%');
+                    $q->orWhere('name', 'like', '%'.$name.'%');
                 }
             });
         }
 
         $products = $query->get()->toArray();
         Log::info('fetchProductData: Dati prodotti e servizi finali', ['products' => $products]);
+
         return $products;
     }
 
@@ -524,6 +418,7 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
         Log::info('fetchAddressData: Inizio recupero dati indirizzo', ['teamSlug' => $teamSlug]);
         $team = Team::where('slug', $teamSlug)->firstOrFail();
         Log::info('fetchAddressData: Dati indirizzo ricevuti', ['addressData' => $team->toArray()]);
+
         return $team->toArray();
     }
 
@@ -538,6 +433,7 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
             ->get(['starts_at', 'ends_at', 'name', 'featured_image_id', 'description'])
             ->toArray();
         Log::info('fetchAvailableTimes: Orari disponibili ricevuti', ['availableTimes' => $events]);
+
         return $events;
     }
 
@@ -557,7 +453,7 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
         $order->phone = $userPhone;
         $order->save();
 
-        if (!empty($productIds)) {
+        if (! empty($productIds)) {
             $order->products()->attach($productIds);
         }
 
@@ -566,6 +462,7 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
             'message'  => trans('chatbot_prompts.order_created_successfully', [], $locale),
         ];
         Log::info('createOrder: Ordine creato', ['orderData' => $orderData]);
+
         return $orderData;
     }
 
@@ -576,7 +473,7 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
             'userEmail' => $userEmail,
             'userName'  => $userName,
             'teamSlug'  => $teamSlug,
-            'uuid'      => $activityUuid
+            'uuid'      => $activityUuid,
         ]);
 
         // Aggiorna il modello Customer con l'UUID dell'attività
@@ -589,7 +486,7 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
                 $customer->save();
             } else {
                 // Se non esiste un cliente con questo UUID, potresti volerlo creare
-                 Customer::create([
+                Customer::create([
                     'uuid' => $activityUuid,
                     'phone' => $userPhone,
                     'email' => $userEmail,
@@ -598,15 +495,14 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
                 ]);
             }
         } else {
-             // Gestisci il caso in cui non c'è UUID
-             Customer::create([
+            // Gestisci il caso in cui non c'è UUID
+            Customer::create([
                 'phone' => $userPhone,
                 'email' => $userEmail,
                 'name' => $userName,
                 'team_id' => Team::where('slug', $teamSlug)->first()->id,
             ]);
         }
-
 
         // Messaggio di conferma in base alla lingua
         return trans('chatbot_prompts.user_data_submitted', [], $locale);
@@ -621,6 +517,7 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
             ->get(['question', 'answer'])
             ->toArray();
         Log::info('fetchFAQs: FAQ ricevute', ['faqData' => $faqs]);
+
         return $faqs;
     }
 
@@ -633,12 +530,12 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
         try {
             Log::info('findFaqAnswer: Avvio ricerca FAQ', ['teamSlug' => $teamSlug, 'query' => $query]);
 
-            if (!$teamSlug || !$query || trim($query) === '') {
+            if (! $teamSlug || ! $query || trim($query) === '') {
                 return null;
             }
 
             $team = Team::where('slug', $teamSlug)->first();
-            if (!$team) {
+            if (! $team) {
                 return null;
             }
 
@@ -699,13 +596,16 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
             $threshold = $useEmbeddings ? $semanticThreshold : $lexicalThreshold;
             if ($best && $bestScore >= $threshold) {
                 Log::info('findFaqAnswer: FAQ selezionata con score', ['score' => $bestScore, 'threshold' => $threshold, 'question' => $best->question]);
+
                 return $best->only(['question', 'answer']);
             }
 
             Log::info('findFaqAnswer: Nessuna FAQ supera la soglia', ['bestScore' => $bestScore, 'threshold' => $threshold]);
+
             return null;
         } catch (\Throwable $e) {
             Log::error('findFaqAnswer: Errore inatteso durante la ricerca FAQ', ['error' => $e->getMessage()]);
+
             return null;
         }
     }
@@ -734,6 +634,7 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
 
         // Ponderazione semplice: penalizza match deboli, premia copertura
         $score = 0.5 * $jaccard + 0.5 * $containment;
+
         return max(0.0, min(1.0, $score));
     }
 
@@ -753,17 +654,18 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
                 $filtered[] = $tok;
             }
         }
+
         return $filtered;
     }
 
     private function getItalianStopwords(): array
     {
         return [
-            'a','ad','al','allo','alla','ai','agli','alle','anche','avere','da','dal','dallo','dalla','dai','dagli','dalle','dei','degli','delle','del','dell','dello','della',
-            'di','e','ed','che','chi','con','col','coi','come','dove','dunque','era','erano','essere','faccio','fai','fa','fanno','fate','fatto','fui','fu','furono','gli','il','lo','la','i','le',
-            'in','nel','nello','nella','nei','negli','nelle','ma','mi','mia','mie','miei','mio','ne','non','o','od','per','perché','più','poi','quale','quali','qual','quanta','quanto','quanti','quante',
-            'quasi','questo','questa','questi','queste','quello','quella','quelli','quelle','se','sei','si','sì','sia','siamo','siete','sono','su','sul','sullo','sulla','sui','sugli','sulle','tra','fra',
-            'tu','tua','tue','tuo','tutti','tutte','tutto','un','uno','una','uno','va','vai','vado','vanno','voi','vostro','vostra','vostri','vostre','io','loro','noi','voi','dite','sono','buongiorno'
+            'a', 'ad', 'al', 'allo', 'alla', 'ai', 'agli', 'alle', 'anche', 'avere', 'da', 'dal', 'dallo', 'dalla', 'dai', 'dagli', 'dalle', 'dei', 'degli', 'delle', 'del', 'dell', 'dello', 'della',
+            'di', 'e', 'ed', 'che', 'chi', 'con', 'col', 'coi', 'come', 'dove', 'dunque', 'era', 'erano', 'essere', 'faccio', 'fai', 'fa', 'fanno', 'fate', 'fatto', 'fui', 'fu', 'furono', 'gli', 'il', 'lo', 'la', 'i', 'le',
+            'in', 'nel', 'nello', 'nella', 'nei', 'negli', 'nelle', 'ma', 'mi', 'mia', 'mie', 'miei', 'mio', 'ne', 'non', 'o', 'od', 'per', 'perché', 'più', 'poi', 'quale', 'quali', 'qual', 'quanta', 'quanto', 'quanti', 'quante',
+            'quasi', 'questo', 'questa', 'questi', 'queste', 'quello', 'quella', 'quelli', 'quelle', 'se', 'sei', 'si', 'sì', 'sia', 'siamo', 'siete', 'sono', 'su', 'sul', 'sullo', 'sulla', 'sui', 'sugli', 'sulle', 'tra', 'fra',
+            'tu', 'tua', 'tue', 'tuo', 'tutti', 'tutte', 'tutto', 'un', 'uno', 'una', 'uno', 'va', 'vai', 'vado', 'vanno', 'voi', 'vostro', 'vostra', 'vostri', 'vostre', 'io', 'loro', 'noi', 'voi', 'dite', 'sono', 'buongiorno',
         ];
     }
 
@@ -773,7 +675,7 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
     private function tryEmbeddingSimilarity(string $textA, string $textB): ?float
     {
         try {
-            if (!$this->client) {
+            if (! $this->client) {
                 return null;
             }
             // Model embedding moderno
@@ -783,19 +685,23 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
             ]);
             $vecA = $resp->data[0]->embedding ?? null;
             $vecB = $resp->data[1]->embedding ?? null;
-            if (!$vecA || !$vecB) {
+            if (! $vecA || ! $vecB) {
                 return null;
             }
+
             return $this->cosineSimilarity($vecA, $vecB);
         } catch (\Throwable $e) {
             Log::warning('tryEmbeddingSimilarity: fallback per errore embeddings', ['error' => $e->getMessage()]);
+
             return null;
         }
     }
 
     private function cosineSimilarity(array $a, array $b): float
     {
-        $dot = 0.0; $normA = 0.0; $normB = 0.0;
+        $dot = 0.0;
+        $normA = 0.0;
+        $normB = 0.0;
         $len = min(count($a), count($b));
         for ($i = 0; $i < $len; $i++) {
             $dot += $a[$i] * $b[$i];
@@ -805,475 +711,84 @@ NON usare per singole pagine prodotto o URL specifici di una pagina.',
         if ($normA <= 0.0 || $normB <= 0.0) {
             return 0.0;
         }
+
         return $dot / (sqrt($normA) * sqrt($normB));
     }
 
     /**
-     * Scrape website with intelligent parsing + AI analysis on how AI can help the business.
-     * Uses WebScraper module for improved content extraction.
+     * Scrape (ma estrai solo testo) + analisi con GPT su come l'AI può aiutare l'attività.
      */
     private function scrapeSite(?string $userUuid)
     {
         Log::info('scrapeSite: Inizio recupero Customer da uuid', ['userUuid' => $userUuid]);
 
-        if (!$userUuid) {
+        if (! $userUuid) {
             return ['error' => "Nessun UUID fornito per l'utente/attività."];
         }
 
         $customer = Customer::where('uuid', $userUuid)->first();
-        if (!$customer) {
+        if (! $customer) {
             Log::warning('scrapeSite: Nessun customer trovato', ['userUuid' => $userUuid]);
+
             return ['error' => 'Nessun cliente trovato per l\'UUID fornito.'];
         }
 
-        if (!$customer->website) {
+        if (! $customer->website) {
             Log::warning('scrapeSite: Nessun sito web associato a questo customer', ['userUuid' => $userUuid]);
+
             return ['error' => 'Nessun sito web specificato per questo utente.'];
         }
 
+        // 1) Scarica il contenuto dal sito
         try {
-            // Step 1: Scrape the website with intelligent parsing
-            $scrapedData = WebScraper::scrape($customer->website);
-
-            if (isset($scrapedData['error'])) {
-                Log::error('scrapeSite: Errore nello scraping', ['error' => $scrapedData['error']]);
-                return ['error' => 'Impossibile recuperare il contenuto del sito.'];
-            }
-
-            // Step 2: Perform AI analysis on the scraped content
-            $analyzer = app(AiAnalyzerService::class);
-            $analysis = $analyzer->analyzeBusinessInfo($scrapedData);
-
-            if (isset($analysis['error'])) {
-                Log::error('scrapeSite: Errore durante l\'analisi AI', ['error' => $analysis['error']]);
-                return ['error' => 'Impossibile generare un riepilogo. Errore AI.'];
-            }
-
-            Log::info('scrapeSite: Scraping e analisi completati', [
-                'url' => $customer->website,
-                'content_length' => strlen($scrapedData['content']['main']),
-                'tokens_used' => $analysis['usage']['total_tokens'] ?? 0,
-            ]);
-
-            // Return data in the same format as before for compatibility
-            return [
-                'site_content' => $scrapedData['content']['main'],
-                'ai_analysis' => $analysis['analysis'],
-                'metadata' => $scrapedData['metadata'],
-            ];
-
+            $client = new Client();
+            $response = $client->get($customer->website);
+            $html = $response->getBody()->getContents();
         } catch (\Exception $e) {
-            Log::error('scrapeSite: Errore imprevisto', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-            return ['error' => 'Si è verificato un errore durante l\'elaborazione.'];
-        }
-    }
+            Log::error('scrapeSite: Errore nello scraping', ['error' => $e->getMessage()]);
 
-    /**
-     * Scrape a specific URL with custom query for targeted information extraction.
-     * Example: "Ottieni informazioni da questo url https://example.com trova i prezzi"
-     */
-    private function scrapeUrl(string $url, string $query): array
-    {
-        if (empty($url)) {
-            return ['error' => 'URL non fornito.'];
+            return ['error' => 'Impossibile recuperare il contenuto del sito.'];
         }
 
-        if (empty($query)) {
-            return ['error' => 'Query di ricerca non fornita.'];
-        }
+        // 2) Estrai il contenuto testuale (rimuovendo i tag HTML)
+        $dom = new \DOMDocument();
+        @$dom->loadHTML($html);
+        $body = $dom->getElementsByTagName('body')->item(0);
+        $plainText = strip_tags($dom->saveHTML($body));
 
-        // Validazione URL per prevenire SSRF
-        if (!filter_var($url, FILTER_VALIDATE_URL)) {
-            return ['error' => 'Formato URL non valido.'];
-        }
-
-        $parsedUrl = parse_url($url);
-
-        // Permetti solo HTTP/HTTPS
-        if (!isset($parsedUrl['scheme']) || !in_array($parsedUrl['scheme'], ['http', 'https'])) {
-            return ['error' => 'Solo protocolli HTTP e HTTPS sono consentiti.'];
-        }
-
-        // Blocca IP privati e localhost per prevenire SSRF
-        $host = $parsedUrl['host'] ?? '';
-        $ip = gethostbyname($host);
-
-        // Verifica se l'IP è privato o riservato
-        if ($ip !== $host) { // gethostbyname ha risolto l'IP
-            if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
-                return ['error' => 'Accesso a indirizzi IP privati o riservati non consentito.'];
-            }
-        }
-
-        // Blocca esplicitamente localhost e varianti
-        $blockedHosts = ['localhost', '127.0.0.1', '0.0.0.0', '::1'];
-        if (in_array(strtolower($host), $blockedHosts)) {
-            return ['error' => 'Accesso a localhost non consentito.'];
-        }
-
-        // Limita lunghezza query
-        if (strlen($query) > 500) {
-            $query = substr($query, 0, 500);
-        }
-
+        // 3) Chiamata a GPT con il testo "pulito"
         try {
-            // Check if this is a specific product page (Amazon, eBay, etc.)
-            $isProductPage = $this->isProductPage($url);
+            Log::info('scrapeSite: Invio richiesta a GPT con testo pulito.');
 
-            if ($isProductPage) {
-                // For product pages, scrape the ENTIRE page directly (no keyword search)
-                Log::info('scrapeUrl: Detected product page, scraping entire content', ['url' => $url]);
-
-                $scraper = app(\Modules\WebScraper\Services\WebScraperService::class);
-                $scrapedData = $scraper->scrape($url, ['query' => $query]);
-
-                if (isset($scrapedData['error'])) {
-                    return ['error' => $scrapedData['error']];
-                }
-
-                // Perform AI analysis on the FULL page content
-                $analyzer = app(\Modules\WebScraper\Services\AiAnalyzerService::class);
-                $analysis = $analyzer->extractCustomInfo($scrapedData, $query);
-
-                if (isset($analysis['error'])) {
-                    Log::error('scrapeUrl: Errore durante l\'analisi AI', [
-                        'url' => $url,
-                        'query' => $query,
-                        'error' => $analysis['error'],
-                    ]);
-                    return ['error' => 'Impossibile analizzare il contenuto: ' . $analysis['error']];
-                }
-
-                Log::info('scrapeUrl: Analisi AI completata (product page)', [
-                    'url' => $url,
-                    'query' => $query,
-                    'tokens_used' => $analysis['usage']['total_tokens'] ?? 0,
-                ]);
-
-                return [
-                    'url' => $url,
-                    'query' => $query,
-                    'analysis' => $analysis['analysis'],
-                    'pages_found' => 1,
-                    'pages_visited' => 1,
-                    'results' => [
-                        [
-                            'url' => $url,
-                            'title' => $scrapedData['metadata']['title'] ?? 'Product Page',
-                            'relevance' => 1.0,
-                        ]
+            $analysisResponse = $this->client->chat()->create([
+                'model'    => 'gpt-4o',
+                'messages' => [
+                    [
+                        'role'    => 'system',
+                        'content' => 'Sei un AI Assistant specializzato in consulenza aziendale, marketing e automazione dei processi.',
                     ],
-                ];
-            }
-
-            // For non-product pages, use intelligent search with keywords AND CACHING
-            Log::info('scrapeUrl: Using intelligent search with caching', ['url' => $url, 'query' => $query]);
-
-            $cacheService = app(SearchResultCacheService::class);
-            $cachedResults = $cacheService->getCachedOrSearch($url, $query, 3); // max depth 3
-            $results_count = is_array($cachedResults['results']) ? count($cachedResults['results']) : $cachedResults['results'];
-
-            // Check if results come from cache
-            if ($cachedResults['from_cache'] ?? false) {
-                Log::info('scrapeUrl: Returning cached results', [
-                    'url' => $url,
-                    'query' => $query,
-                    'results_count' =>$results_count,
-                    'cached_at' => $cachedResults['cached_at'] ?? null,
-                ]);
-
-                // If we have a reformulated summary from cache, use it directly
-                if (isset($cachedResults['reformulated_summary'])) {
-                    return [
-                        'url' => $url,
-                        'query' => $query,
-                        'analysis' => $cachedResults['reformulated_summary'],
-                        'pages_found' => $results_count,
-                        'pages_visited' => $cachedResults['pages_visited'],
-                        'results' => $cachedResults['results'],
-                        'from_cache' => true,
-                        'cached_at' => $cachedResults['cached_at'],
-                    ];
-                }
-            }
-
-            // Use fresh or cached search results
-            $searchResults = [
-                'results' => $cachedResults['results'],
-                'pages_visited' => $cachedResults['pages_visited'],
-                'query' => $cachedResults['query'],
-            ];
-
-            if (empty($searchResults['results'])) {
-                Log::warning('scrapeUrl: Nessun risultato trovato', [
-                    'url' => $url,
-                    'query' => $query,
-                    'pages_visited' => $searchResults['pages_visited'] ?? 0,
-                ]);
-                return ['error' => 'Non ho trovato informazioni rilevanti per la query richiesta.'];
-            }
-
-            Log::info('scrapeUrl: Ricerca intelligente completata', [
-                'url' => $url,
-                'query' => $query,
-                'results_found' => $results_count,
-                'pages_visited' => $searchResults['pages_visited'],
+                    [
+                        'role'    => 'user',
+                        'content' => "Ecco il testo estratto dal sito:\n\n{$plainText}\n\n".
+                                     "In base a questi contenuti, descrivi in modo conciso come l'AI può aiutare questa attività ".
+                                     'a migliorare processi, marketing, vendite o altri aspetti rilevanti.',
+                    ],
+                ],
+                'temperature' => 0.7,
             ]);
 
-            // Aggregate all found results
-            $aggregatedContent = '';
-            foreach ($searchResults['results'] as $result) {
-                $aggregatedContent .= "\n\n=== {$result['title']} ({$result['url']}) ===\n";
-                $aggregatedContent .= $result['content_excerpt'];
-            }
-
-            // Perform AI analysis on aggregated results
-            $analyzer = app(\Modules\WebScraper\Services\AiAnalyzerService::class);
-            $mockScrapedData = [
-                'url' => $url,
-                'content' => ['main' => $aggregatedContent],
-                'metadata' => ['title' => 'Risultati aggregati'],
-            ];
-
-            $analysis = $analyzer->extractCustomInfo($mockScrapedData, $query);
-
-            if (isset($analysis['error'])) {
-                Log::error('scrapeUrl: Errore durante l\'analisi AI', [
-                    'url' => $url,
-                    'query' => $query,
-                    'error' => $analysis['error'],
-                ]);
-                return ['error' => 'Impossibile analizzare il contenuto: ' . $analysis['error']];
-            }
-
-            Log::info('scrapeUrl: Analisi AI completata', [
-                'url' => $url,
-                'query' => $query,
-                'tokens_used' => $analysis['usage']['total_tokens'] ?? 0,
-            ]);
-
-            // Return structured data
-            return [
-                'url' => $url,
-                'query' => $query,
-                'analysis' => $analysis['analysis'],
-                'pages_found' => $results_count,
-                'pages_visited' => $searchResults['pages_visited'],
-                'results' => $searchResults['results'],
-            ];
-
+            $aiAnalysis = $analysisResponse->choices[0]->message->content ?? 'Nessuna analisi disponibile.';
         } catch (\Exception $e) {
-            Log::error('scrapeUrl: Errore imprevisto', [
-                'url' => $url,
-                'query' => $query,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-            return ['error' => 'Si è verificato un errore durante l\'elaborazione: ' . $e->getMessage()];
-        }
-    }
+            Log::error('scrapeSite: Errore durante la chiamata GPT.', ['error' => $e->getMessage()]);
 
-    /**
-     * Search through multiple pages of a website for specific information.
-     * Uses intelligent menu-guided crawling with AI assistance + result caching.
-     * Example: "Cerca nel sito https://example.com i prezzi e i servizi"
-     */
-    private function searchSite(string $url, string $query, int $maxPages = 10): array
-    {
-        Log::info('searchSite: Inizio ricerca intelligente con caching', [
-            'url' => $url,
-            'query' => $query,
-            'max_depth' => 3,
-        ]);
-
-        if (empty($url)) {
-            return ['error' => 'URL non fornito.'];
+            return ['error' => 'Impossibile generare un riepilogo. Errore GPT.'];
         }
 
-        if (empty($query)) {
-            return ['error' => 'Query di ricerca non fornita.'];
-        }
-
-        try {
-            // Use SearchResultCacheService for intelligent caching
-            $cacheService = app(SearchResultCacheService::class);
-            $cachedResults = $cacheService->getCachedOrSearch($url, $query, 3); // max depth 3
-
-            $results_count = is_array($cachedResults['results']) ? count($cachedResults['results']) : $cachedResults['results'];
-            // If results come from cache, return reformulated response immediately
-            if ($cachedResults['from_cache'] ?? false) {
-                Log::info('searchSite: Returning cached results', [
-                    'url' => $url,
-                    'query' => $query,
-                    //'results_count' => count($cachedResults['results']),
-                    'results_count' => $results_count,
-                    'cached_at' => $cachedResults['cached_at'] ?? null,
-                ]);
-
-                // If we have a reformulated summary, use it
-                if (isset($cachedResults['reformulated_summary'])) {
-                    return [
-                        'url' => $url,
-                        'query' => $query,
-                        'pages_visited' => $cachedResults['pages_visited'],
-                        'results_found' => $results_count,
-                        'analysis' => $cachedResults['reformulated_summary'],
-                        'from_cache' => true,
-                        'cached_at' => $cachedResults['cached_at'],
-                    ];
-                }
-
-                // Fallback if reformulation failed
-                $foundPages = [];
-                foreach ($cachedResults['results'] as $result) {
-                    $foundPages[] = [
-                        'url' => $result['url'],
-                        'title' => $result['title'],
-                    ];
-                }
-
-                return [
-                    'url' => $url,
-                    'query' => $query,
-                    'pages_visited' => $cachedResults['pages_visited'],
-                    'results_found' => $results_count,
-                    'analysis' => 'Risultati trovati: ' . implode(', ', array_column($foundPages, 'title')),
-                    'found_pages' => $foundPages,
-                    'from_cache' => true,
-                ];
-            }
-
-            // Fresh search results - need to scrape pages and do AI analysis
-            $searchResults = $cachedResults;
-
-            if (empty($searchResults['results'])) {
-                Log::warning('searchSite: Nessun risultato trovato', ['url' => $url, 'query' => $query]);
-                return [
-                    'url' => $url,
-                    'query' => $query,
-                    'pages_visited' => $searchResults['pages_visited'],
-                    'analysis' => 'Non sono state trovate informazioni specifiche su "' . $query . '" nelle pagine visitate.',
-                ];
-            }
-
-            // Scrape each found URL to get fresh, complete content
-            $foundPages = [];
-            $aggregatedData = [];
-            $scraper = app(\Modules\WebScraper\Services\WebScraperService::class);
-
-            Log::info('searchSite: Scraping individual pages', ['urls_count' => count($searchResults['results'])]);
-
-            foreach ($searchResults['results'] as $result) {
-                $foundPages[] = [
-                    'url' => $result['url'],
-                    'title' => $result['title'],
-                    'depth' => $result['depth'] ?? 0,
-                ];
-
-                // Scrape the full page (will use cache if available, or fetch and cache if not)
-                // Pass query to determine if footer content is needed
-                $scrapedData = $scraper->scrape($result['url'], ['query' => $query]);
-
-                if (!isset($scrapedData['error'])) {
-                    // Add full scraped data for AI analysis
-                    $aggregatedData[] = $scrapedData;
-                }
-            }
-
-            Log::info('searchSite: Pages scraped for AI analysis', ['pages_count' => count($aggregatedData)]);
-
-            // Use AI to analyze and summarize all found results
-            $analyzer = app(AiAnalyzerService::class);
-            $analysis = $analyzer->searchMultiplePages($aggregatedData, $query);
-            $aiAnalysisText = $analysis['analysis'] ?? 'Analisi completata';
-
-            Log::info('searchSite: Ricerca completata', [
-                'url' => $url,
-                'query' => $query,
-                'pages_visited' => $searchResults['pages_visited'],
-                'results_found' => count($searchResults['results']),
-            ]);
-
-            // Update cache with AI analysis
-            // Note: getCachedOrSearch already cached the raw results, now we update with AI analysis
-            $cacheService->cacheResults($url, $query, $searchResults['results'], $searchResults['pages_visited'], $aiAnalysisText);
-
-            // Return structured data
-            return [
-                'url' => $url,
-                'query' => $query,
-                'pages_visited' => $searchResults['pages_visited'],
-                'results_found' => count($searchResults['results']),
-                'analysis' => $aiAnalysisText,
-                'found_pages' => $foundPages,
-                'from_cache' => false,
-            ];
-
-        } catch (\Exception $e) {
-            Log::error('searchSite: Errore imprevisto', [
-                'url' => $url,
-                'query' => $query,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-            return ['error' => 'Si è verificato un errore durante la ricerca: ' . $e->getMessage()];
-        }
-    }
-
-    /**
-     * Detect if a URL is a specific product page (Amazon, eBay, Shopify, etc.)
-     * Returns true for product pages, false for homepages and category pages
-     */
-    private function isProductPage(string $url): bool
-    {
-        // Product page URL patterns for common e-commerce sites
-        $productPatterns = [
-            // Amazon product pages (with /dp/ or /product/)
-            '/amazon\.[a-z.]+\/(dp|product|gp\/product)\/[A-Z0-9]{10}/i',
-
-            // eBay item pages
-            '/ebay\.[a-z.]+\/itm\//i',
-
-            // Shopify product pages (common pattern /products/)
-            '/\/products\/[^\/]+\/?$/i',
-
-            // Generic e-commerce product patterns
-            '/\/(item|prodotto|articolo|product)\/[^\/]+/i',
-
-            // Woocommerce and similar (common pattern /product/)
-            '/\/product\/[^\/]+\/?$/i',
-
-            // Magento (common pattern /[product-name].html)
-            '/\/[a-z0-9-]+\.html$/i',
+        // Restituiamo i dati della function: testo e analisi GPT
+        return [
+            'site_content' => mb_substr($plainText, 0, 4000).'...',
+            'ai_analysis'  => $aiAnalysis,
         ];
-
-        foreach ($productPatterns as $pattern) {
-            if (preg_match($pattern, $url)) {
-                return true;
-            }
-        }
-
-        // Check if it's a homepage or category page (return false for these)
-        $nonProductPatterns = [
-            // Homepage patterns
-            '/^https?:\/\/[^\/]+\/?$/i',
-            '/^https?:\/\/[^\/]+\/index\.(html|php)$/i',
-
-            // Category/collection pages
-            '/\/(category|categories|collection|collections|c)\//i',
-        ];
-
-        foreach ($nonProductPatterns as $pattern) {
-            if (preg_match($pattern, $url)) {
-                return false;
-            }
-        }
-
-        // Default: assume non-product page for safety
-        return false;
     }
 
     private function formatResponseContent($content)

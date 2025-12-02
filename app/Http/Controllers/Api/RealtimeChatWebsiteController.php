@@ -10,12 +10,18 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\Quoter;
 use App\Models\Team;
+use App\Models\Thread;
 use App\Services\EmbeddingCacheService;
 use App\Services\WebsiteScraperService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use OpenAI;
 use OpenAI\Client as OpenAIClient;
+use function Safe\json_decode;
+use function Safe\json_encode;
+use function Safe\ob_flush;
+use function Safe\preg_replace;
+use function Safe\preg_split;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -28,9 +34,13 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class RealtimeChatWebsiteController extends Controller
 {
     public OpenAIClient $client;
+
     private ?Team $cachedTeam = null;
+
     private ?string $cachedTeamSlug = null;
+
     private ?EmbeddingCacheService $embeddingService = null;
+
     private ?WebsiteScraperService $scraperService = null;
 
     public function __construct()
@@ -96,26 +106,33 @@ class RealtimeChatWebsiteController extends Controller
         $response = new StreamedResponse(function () use ($userInput, $teamSlug, $locale, $activityUuid) {
             $flush = function (array $payload, string $event = 'message') {
                 echo "event: {$event}\n";
-                echo 'data: ' . json_encode($payload, JSON_UNESCAPED_UNICODE) . "\n\n";
+                echo 'data: '.json_encode($payload, JSON_UNESCAPED_UNICODE)."\n\n";
                 @ob_flush();
                 @flush();
             };
 
             $streamThreadId = (string) (request()->query('thread_id') ?: str()->uuid());
-            
+
+            // Registra i metadati del thread (solo alla prima inizializzazione)
+            Thread::captureFromRequest($streamThreadId, request(), [
+                'team_slug' => $teamSlug,
+                'activity_uuid' => $activityUuid,
+            ]);
+
             // LOG: quale thread stiamo usando e se è nuovo o ricevuto dal client
             Log::info('RealtimeChatWebsiteController.websiteStream START', [
                 'thread_id' => $streamThreadId,
                 'received_thread_id' => request()->query('thread_id'),
-                'is_new' => !request()->query('thread_id'),
+                'is_new' => ! request()->query('thread_id'),
                 'team_slug' => $teamSlug,
             ]);
-            
+
             $flush(['token' => json_encode(['thread_id' => $streamThreadId])]);
             $flush(['status' => 'started']);
 
             if (trim($userInput) === '') {
                 $flush(['token' => ''], 'done');
+
                 return;
             }
 
@@ -127,9 +144,10 @@ class RealtimeChatWebsiteController extends Controller
                 ]);
 
                 $team = $this->getTeamCached($teamSlug);
-                if (!$team) {
+                if (! $team) {
                     $flush(['error' => 'Team non trovato'], 'error');
                     $flush(['token' => ''], 'done');
+
                     return;
                 }
 
@@ -145,6 +163,7 @@ class RealtimeChatWebsiteController extends Controller
                     ]);
 
                     $flush(['token' => ''], 'done');
+
                     return;
                 }
 
@@ -161,9 +180,9 @@ class RealtimeChatWebsiteController extends Controller
                 if (! $useAssistants) {
                     // MODALITÀ CHAT COMPLETIONS: Scrapa i siti web del team
                     $websites = $team->websites ?? [];
-                    $normalizedWebsites = empty($websites) || !is_array($websites) ? [] : $this->normalizeWebsites($websites);
+                    $normalizedWebsites = empty($websites) || ! is_array($websites) ? [] : $this->normalizeWebsites($websites);
                     $websiteContent = '';
-                    if (!empty($normalizedWebsites)) {
+                    if (! empty($normalizedWebsites)) {
                         $websiteContent = $this->scraperService->scrapeTeamWebsites($normalizedWebsites, (string) $team->id) ?? '';
                     }
 
@@ -204,20 +223,20 @@ class RealtimeChatWebsiteController extends Controller
 
                         // Scrapa i siti web per il contesto
                         $websites = $team->websites ?? [];
-                        $normalizedWebsites = empty($websites) || !is_array($websites) ? [] : $this->normalizeWebsites($websites);
+                        $normalizedWebsites = empty($websites) || ! is_array($websites) ? [] : $this->normalizeWebsites($websites);
                         $websiteContent = '';
-                        if (!empty($normalizedWebsites)) {
+                        if (! empty($normalizedWebsites)) {
                             $websiteContent = $this->scraperService->scrapeTeamWebsites($normalizedWebsites, (string) $team->id) ?? '';
                         }
 
                         // Taglia il contenuto se troppo lungo
                         if (strlen($websiteContent) > 12000) {
-                            $websiteContent = mb_substr($websiteContent, 0, 12000) . "\n...[contenuto troncato]";
+                            $websiteContent = mb_substr($websiteContent, 0, 12000)."\n...[contenuto troncato]";
                         }
 
                         // Costruisci system prompt con website content
                         $systemPrompt = (string) trans('enjoywork3d_prompts.instructions', ['locale' => $locale], $locale);
-                        if (!empty($websiteContent)) {
+                        if (! empty($websiteContent)) {
                             $systemPrompt .= "\n\nPRIORITA': Contenuto dai siti web aziendali:\n\n{$websiteContent}";
                         }
 
@@ -225,17 +244,17 @@ class RealtimeChatWebsiteController extends Controller
                         $run = $this->client->threads()->runs()->create(
                             threadId: $assistantThreadId,
                             parameters: [
-                                'assistant_id' => config('openapi.assistant_id'),
+                                'assistant_id' => 'asst_34SA8ZkwlHiiXxNufoZYddn0',
                                 'instructions' => $systemPrompt,
                                 'model'  => 'gpt-4o',
                                 'tools'  => [
-                                    [ 'type' => 'function', 'function' => [ 'name' => 'getProductInfo', 'description' => 'Recupera informazioni sui prodotti, servizi, attività del menu tramite i loro nomi.', 'parameters' => [ 'type' => 'object', 'properties' => [ 'product_names' => [ 'type' => 'array', 'items' => ['type' => 'string'], 'description' => 'Nomi dei prodotti, servizi, attività da recuperare.' ] ], 'required' => [] ] ] ],
-                                    [ 'type' => 'function', 'function' => [ 'name' => 'getAddressInfo', 'description' => 'Recupera informazioni sull\'indirizzo dell\'azienda, compreso indirizzo e numero di telefono.', 'parameters' => [ 'type' => 'object', 'properties' => [ 'team_slug' => [ 'type' => 'string', 'description' => 'Slug del team per recuperare l\'indirizzo.' ] ], 'required' => ['team_slug'] ] ] ],
-                                    [ 'type' => 'function', 'function' => [ 'name' => 'getAvailableTimes', 'description' => 'Recupera gli orari disponibili per un appuntamento.', 'parameters' => [ 'type' => 'object', 'properties' => [ 'team_slug' => [ 'type' => 'string', 'description' => 'Slug del team per recuperare gli orari disponibili.' ] ], 'required' => ['team_slug'] ] ] ],
-                                    [ 'type' => 'function', 'function' => [ 'name' => 'createOrder', 'description' => 'Crea un ordine con i dati forniti.', 'parameters' => [ 'type' => 'object', 'properties' => [ 'user_phone' => [ 'type' => 'string', 'description' => 'Numero di telefono dell\'utente per la prenotazione.' ], 'delivery_date' => [ 'type' => 'string', 'description' => 'Data di consegna dell\'ordine, includendo ora, minuti e secondi di inizio.' ], 'product_ids' => [ 'type' => 'array', 'items' => ['type' => 'integer'], 'description' => 'ID dei prodotti, servizi, attività da includere nell\'ordine.' ] ], 'required' => ['user_phone','delivery_date','product_ids'] ] ] ],
-                                    [ 'type' => 'function', 'function' => [ 'name' => 'submitUserData', 'description' => 'Registra i dati anagrafici dell\'utente e risponde ringraziando. Dati trattati in conformità al GDPR.', 'parameters' => [ 'type' => 'object', 'properties' => [ 'user_phone' => [ 'type' => 'string', 'description' => 'Numero di telefono dell\'utente' ], 'user_email' => [ 'type' => 'string', 'description' => 'Email dell\'utente' ], 'user_name' => [ 'type' => 'string', 'description' => 'Nome dell\'utente' ] ], 'required' => ['user_phone','user_email','user_name'] ] ] ],
-                                    [ 'type' => 'function', 'function' => [ 'name' => 'getFAQs', 'description' => 'Recupera le domande frequenti (FAQ) dal sistema in base a una query.', 'parameters' => [ 'type' => 'object', 'properties' => [ 'team_slug' => [ 'type' => 'string', 'description' => 'Slug del team per recuperare le FAQ.' ], 'query' => [ 'type' => 'string', 'description' => 'Query per cercare nelle FAQ.' ] ], 'required' => ['team_slug','query'] ] ] ],
-                                    [ 'type' => 'function', 'function' => [ 'name' => 'fallback', 'description' => 'Risponde a domande non inerenti al contesto con il messaggio predefinito.', 'parameters' => [ 'type' => 'object', 'properties' => new \stdClass() ] ] ],
+                                    ['type' => 'function', 'function' => ['name' => 'getProductInfo', 'description' => 'Recupera informazioni sui prodotti, servizi, attività del menu tramite i loro nomi.', 'parameters' => ['type' => 'object', 'properties' => ['product_names' => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'Nomi dei prodotti, servizi, attività da recuperare.']], 'required' => []]]],
+                                    ['type' => 'function', 'function' => ['name' => 'getAddressInfo', 'description' => 'Recupera informazioni sull\'indirizzo dell\'azienda, compreso indirizzo e numero di telefono.', 'parameters' => ['type' => 'object', 'properties' => ['team_slug' => ['type' => 'string', 'description' => 'Slug del team per recuperare l\'indirizzo.']], 'required' => ['team_slug']]]],
+                                    ['type' => 'function', 'function' => ['name' => 'getAvailableTimes', 'description' => 'Recupera gli orari disponibili per un appuntamento.', 'parameters' => ['type' => 'object', 'properties' => ['team_slug' => ['type' => 'string', 'description' => 'Slug del team per recuperare gli orari disponibili.']], 'required' => ['team_slug']]]],
+                                    ['type' => 'function', 'function' => ['name' => 'createOrder', 'description' => 'Crea un ordine con i dati forniti.', 'parameters' => ['type' => 'object', 'properties' => ['user_phone' => ['type' => 'string', 'description' => 'Numero di telefono dell\'utente per la prenotazione.'], 'delivery_date' => ['type' => 'string', 'description' => 'Data di consegna dell\'ordine, includendo ora, minuti e secondi di inizio.'], 'product_ids' => ['type' => 'array', 'items' => ['type' => 'integer'], 'description' => 'ID dei prodotti, servizi, attività da includere nell\'ordine.']], 'required' => ['user_phone', 'delivery_date', 'product_ids']]]],
+                                    ['type' => 'function', 'function' => ['name' => 'submitUserData', 'description' => 'Registra i dati anagrafici dell\'utente e risponde ringraziando. Dati trattati in conformità al GDPR.', 'parameters' => ['type' => 'object', 'properties' => ['user_phone' => ['type' => 'string', 'description' => 'Numero di telefono dell\'utente'], 'user_email' => ['type' => 'string', 'description' => 'Email dell\'utente'], 'user_name' => ['type' => 'string', 'description' => 'Nome dell\'utente']], 'required' => ['user_phone', 'user_email', 'user_name']]]],
+                                    ['type' => 'function', 'function' => ['name' => 'getFAQs', 'description' => 'Recupera le domande frequenti (FAQ) dal sistema in base a una query.', 'parameters' => ['type' => 'object', 'properties' => ['team_slug' => ['type' => 'string', 'description' => 'Slug del team per recuperare le FAQ.'], 'query' => ['type' => 'string', 'description' => 'Query per cercare nelle FAQ.']], 'required' => ['team_slug', 'query']]]],
+                                    ['type' => 'function', 'function' => ['name' => 'fallback', 'description' => 'Risponde a domande non inerenti al contesto con il messaggio predefinito.', 'parameters' => ['type' => 'object', 'properties' => new \stdClass()]]],
                                 ],
                             ]
                         );
@@ -291,7 +310,7 @@ class RealtimeChatWebsiteController extends Controller
                                 $run = $this->client->threads()->runs()->submitToolOutputs(
                                     threadId: $assistantThreadId,
                                     runId: $run->id,
-                                    parameters: [ 'tool_outputs' => $toolOutputs ]
+                                    parameters: ['tool_outputs' => $toolOutputs]
                                 );
                                 $pollDelayMs = 100;
                             }
@@ -331,7 +350,7 @@ class RealtimeChatWebsiteController extends Controller
                     'trace' => $e->getTraceAsString(),
                     'thread_id' => $streamThreadId,
                 ]);
-                $flush(['error' => 'Errore durante l\'analisi: ' . $e->getMessage()], 'error');
+                $flush(['error' => 'Errore durante l\'analisi: '.$e->getMessage()], 'error');
                 $flush(['token' => ''], 'done');
             }
         });
@@ -360,17 +379,17 @@ class RealtimeChatWebsiteController extends Controller
             // Taglia il contenuto se troppo lungo
             $maxContentLength = 12000;
             if (strlen($websiteContent) > $maxContentLength) {
-                $websiteContent = mb_substr($websiteContent, 0, $maxContentLength) . "\n...[contenuto troncato]";
+                $websiteContent = mb_substr($websiteContent, 0, $maxContentLength)."\n...[contenuto troncato]";
             }
 
             // Costruisci system prompt con website content
             $systemPrompt = (string) trans('enjoywork3d_prompts.instructions', ['locale' => $locale], $locale);
-            
-            if (!empty($websiteContent)) {
+
+            if (! empty($websiteContent)) {
                 $systemPrompt .= "\n\nPRIORITA': Contenuto dai siti web aziendali:\n\n{$websiteContent}";
             }
 
-            if (!empty($context)) {
+            if (! empty($context)) {
                 $systemPrompt .= "\n\nContesto aggiuntivo per il team {$teamSlug}:\n{$context}";
             }
 
@@ -381,45 +400,46 @@ class RealtimeChatWebsiteController extends Controller
                 ->limit(12)
                 ->get(['id', 'role', 'content', 'created_at'])
                 ->reverse();  // Riinverte per ordine cronologico crescente
-            
+
             Log::info('RealtimeChatWebsiteController.analyzeAndStreamResponse history', [
                 'thread_id' => $streamThreadId,
                 'history_count' => $historyRecords->count(),
                 'history_roles' => $historyRecords->pluck('role')->toArray(),
-                'history_preview' => $historyRecords->map(fn($r) => [
+                'history_preview' => $historyRecords->map(fn ($r) => [
                     'role' => $r->role,
                     'created_at' => $r->created_at,
                     'content' => mb_substr($r->content, 0, 100),
                 ])->toArray(),
             ]);
-            
+
             $historyMessages = [];
             if ($historyRecords->count() > 0) {
                 $records = $historyRecords->toArray();
-                
+
                 // Rimuovi TUTTI i record che hanno role='user' e content uguale al messaggio attuale
                 // (potrebbe esserci il messaggio appena inserito)
-                $records = array_filter($records, function($r) use ($userInput) {
+                $records = array_filter($records, function ($r) use ($userInput) {
                     $isUserMsg = ($r['role'] ?? '') === 'user';
-                    $isSameContent = (string)($r['content'] ?? '') === (string)$userInput;
-                    return !($isUserMsg && $isSameContent);
+                    $isSameContent = (string) ($r['content'] ?? '') === (string) $userInput;
+
+                    return ! ($isUserMsg && $isSameContent);
                 });
-                
+
                 // Riordina dopo il filter
                 $records = array_values($records);
-                
+
                 foreach ($records as $r) {
                     $role = ($r['role'] ?? '') === 'chatbot' ? 'assistant' : 'user';
-                    $content = (string)($r['content'] ?? '');
+                    $content = (string) ($r['content'] ?? '');
                     if ($content !== '') {
                         // Passa il content pulito senza timestamp a GPT
                         $historyMessages[] = [
                             'role' => $role,
-                            'content' => $content
+                            'content' => $content,
                         ];
                     }
                 }
-                
+
                 Log::info('RealtimeChatWebsiteController.analyzeAndStreamResponse history filtered', [
                     'thread_id' => $streamThreadId,
                     'history_before_filter' => $historyRecords->count(),
@@ -430,7 +450,7 @@ class RealtimeChatWebsiteController extends Controller
             $messages = [
                 ['role' => 'system', 'content' => $systemPrompt],
             ];
-            if (!empty($historyMessages)) {
+            if (! empty($historyMessages)) {
                 $messages = array_merge($messages, $historyMessages);
             }
             $messages[] = ['role' => 'system', 'content' => "Parametri tool fissi:\nteam_slug={$teamSlug}"];
@@ -449,7 +469,7 @@ class RealtimeChatWebsiteController extends Controller
                                 'product_names' => [
                                     'type' => 'array',
                                     'items' => ['type' => 'string'],
-                                    'description' => 'Nomi dei prodotti, servizi, attività da recuperare.'
+                                    'description' => 'Nomi dei prodotti, servizi, attività da recuperare.',
                                 ],
                             ],
                             'required' => [],
@@ -464,7 +484,7 @@ class RealtimeChatWebsiteController extends Controller
                         'parameters' => [
                             'type' => 'object',
                             'properties' => [
-                                'team_slug' => [ 'type' => 'string', 'description' => "Slug del team per recuperare l'indirizzo." ],
+                                'team_slug' => ['type' => 'string', 'description' => "Slug del team per recuperare l'indirizzo."],
                             ],
                             'required' => ['team_slug'],
                         ],
@@ -477,7 +497,7 @@ class RealtimeChatWebsiteController extends Controller
                         'description' => 'Recupera gli orari disponibili per un appuntamento.',
                         'parameters' => [
                             'type' => 'object',
-                            'properties' => [ 'team_slug' => [ 'type' => 'string', 'description' => 'Slug del team per recuperare gli orari disponibili.' ] ],
+                            'properties' => ['team_slug' => ['type' => 'string', 'description' => 'Slug del team per recuperare gli orari disponibili.']],
                             'required' => ['team_slug'],
                         ],
                     ],
@@ -490,11 +510,11 @@ class RealtimeChatWebsiteController extends Controller
                         'parameters' => [
                             'type' => 'object',
                             'properties' => [
-                                'user_phone' => [ 'type' => 'string', 'description' => "Numero di telefono dell'utente per la prenotazione." ],
-                                'delivery_date' => [ 'type' => 'string', 'description' => "Data di consegna dell'ordine, includendo ora, minuti e secondi di inizio." ],
-                                'product_ids' => [ 'type' => 'array', 'items' => ['type' => 'integer'], 'description' => "ID dei prodotti, servizi, attività da includere nell'ordine." ],
+                                'user_phone' => ['type' => 'string', 'description' => "Numero di telefono dell'utente per la prenotazione."],
+                                'delivery_date' => ['type' => 'string', 'description' => "Data di consegna dell'ordine, includendo ora, minuti e secondi di inizio."],
+                                'product_ids' => ['type' => 'array', 'items' => ['type' => 'integer'], 'description' => "ID dei prodotti, servizi, attività da includere nell'ordine."],
                             ],
-                            'required' => ['user_phone','delivery_date','product_ids'],
+                            'required' => ['user_phone', 'delivery_date', 'product_ids'],
                         ],
                     ],
                 ],
@@ -506,11 +526,11 @@ class RealtimeChatWebsiteController extends Controller
                         'parameters' => [
                             'type' => 'object',
                             'properties' => [
-                                'user_phone' => [ 'type' => 'string' ],
-                                'user_email' => [ 'type' => 'string' ],
-                                'user_name'  => [ 'type' => 'string' ],
+                                'user_phone' => ['type' => 'string'],
+                                'user_email' => ['type' => 'string'],
+                                'user_name'  => ['type' => 'string'],
                             ],
-                            'required' => ['user_phone','user_email','user_name'],
+                            'required' => ['user_phone', 'user_email', 'user_name'],
                         ],
                     ],
                 ],
@@ -521,8 +541,8 @@ class RealtimeChatWebsiteController extends Controller
                         'description' => 'Recupera le domande frequenti (FAQ) dal sistema in base a una query.',
                         'parameters' => [
                             'type' => 'object',
-                            'properties' => [ 'team_slug' => [ 'type' => 'string' ], 'query' => [ 'type' => 'string' ] ],
-                            'required' => ['team_slug','query'],
+                            'properties' => ['team_slug' => ['type' => 'string'], 'query' => ['type' => 'string']],
+                            'required' => ['team_slug', 'query'],
                         ],
                     ],
                 ],
@@ -533,7 +553,7 @@ class RealtimeChatWebsiteController extends Controller
                         'description' => 'Risponde a domande non inerenti al contesto con il messaggio predefinito.',
                         'parameters' => [
                             'type' => 'object',
-                            'properties' => new \stdClass()
+                            'properties' => new \stdClass(),
                         ],
                     ],
                 ],
@@ -553,7 +573,9 @@ class RealtimeChatWebsiteController extends Controller
 
             foreach ($stream as $response) {
                 $delta = $response->choices[0]->delta ?? null;
-                if ($delta === null) { continue; }
+                if ($delta === null) {
+                    continue;
+                }
 
                 // Token di testo
                 $piece = $delta->content ?? null;
@@ -570,7 +592,7 @@ class RealtimeChatWebsiteController extends Controller
                         $fn = $tc->function->name ?? null;
                         $argsPart = $tc->function->arguments ?? '';
                         if ($id && $fn !== null) {
-                            if (!isset($capturedToolCalls[$id])) {
+                            if (! isset($capturedToolCalls[$id])) {
                                 $capturedToolCalls[$id] = ['id' => $id, 'name' => $fn, 'arguments' => ''];
                             }
                             $capturedToolCalls[$id]['arguments'] .= $argsPart;
@@ -580,14 +602,14 @@ class RealtimeChatWebsiteController extends Controller
             }
 
             // Se sono state richieste tool calls, esegui e poi prosegui con un secondo streaming
-            if (!empty($capturedToolCalls)) {
+            if (! empty($capturedToolCalls)) {
                 $assistantToolMessage = [
                     'role' => 'assistant',
-                    'tool_calls' => array_values(array_map(function($c){
+                    'tool_calls' => array_values(array_map(function ($c) {
                         return [
                             'id' => $c['id'],
                             'type' => 'function',
-                            'function' => [ 'name' => $c['name'], 'arguments' => $c['arguments'] ],
+                            'function' => ['name' => $c['name'], 'arguments' => $c['arguments']],
                         ];
                     }, $capturedToolCalls)),
                 ];
@@ -596,14 +618,14 @@ class RealtimeChatWebsiteController extends Controller
                 foreach ($capturedToolCalls as $call) {
                     $args = json_decode($call['arguments'] ?? '{}', true) ?: [];
                     $out = '';
-                    
+
                     // LOG: Cosa stiamo ricevendo da GPT
                     Log::info('RealtimeChatWebsiteController.toolCall executed', [
                         'thread_id' => $streamThreadId,
                         'tool_name' => $call['name'],
                         'arguments' => $args,
                     ]);
-                    
+
                     switch ($call['name']) {
                         case 'getProductInfo':
                             $out = $this->fetchProductData($args['product_names'] ?? [], $teamSlug);
@@ -658,6 +680,7 @@ class RealtimeChatWebsiteController extends Controller
                     'content'   => $finalOut,
                 ]);
                 $flush(['token' => ''], 'done');
+
                 return;
             }
 
@@ -674,7 +697,7 @@ class RealtimeChatWebsiteController extends Controller
             Log::error('RealtimeChatWebsiteController.analyzeAndStreamResponse', [
                 'error' => $e->getMessage(),
             ]);
-            $flush(['error' => 'Errore nell\'analisi GPT: ' . $e->getMessage()], 'error');
+            $flush(['error' => 'Errore nell\'analisi GPT: '.$e->getMessage()], 'error');
             $flush(['token' => ''], 'done');
         }
     }
@@ -683,7 +706,9 @@ class RealtimeChatWebsiteController extends Controller
     {
         $words = preg_split('/(\s+)/u', $text, -1, PREG_SPLIT_DELIM_CAPTURE);
         foreach ($words as $w) {
-            if ($w === '') { continue; }
+            if ($w === '') {
+                continue;
+            }
             $flusher(['token' => $w]);
             usleep(28_000);
         }
@@ -693,28 +718,31 @@ class RealtimeChatWebsiteController extends Controller
     {
         try {
             $team = $this->getTeamCached($teamSlug);
-            if (! $team) return '';
+            if (! $team) {
+                return '';
+            }
 
             // FAQ pertinenti
             $faq = $this->findFaqAnswer($teamSlug, $userInput);
             $faqText = $faq ? ("FAQ pertinente:\nQ: ".$faq['question']."\nA: ".$faq['answer']) : '';
 
             // Indirizzo/contatti
-            $addressText = "Azienda: ".$team->name."\nIndirizzo: ".($team->address ?? '')."\nTelefono: ".($team->phone ?? '');
+            $addressText = 'Azienda: '.$team->name."\nIndirizzo: ".($team->address ?? '')."\nTelefono: ".($team->phone ?? '');
 
             // Prodotti/servizi candidati
             $products = Product::where('team_id', $team->id)
-                ->where(function($q) use ($userInput) {
+                ->where(function ($q) use ($userInput) {
                     $q->where('name', 'like', '%'.$userInput.'%')
                       ->orWhere('description', 'like', '%'.$userInput.'%');
                 })
-                ->limit(5)->get(['name','price','description'])->toArray();
+                ->limit(5)->get(['name', 'price', 'description'])->toArray();
             $prodText = '';
-            if (!empty($products)) {
-                $lines = collect($products)->map(function($p){
+            if (! empty($products)) {
+                $lines = collect($products)->map(function ($p) {
                     $name = $p['name'] ?? '';
                     $price = $p['price'] ?? '';
                     $desc = mb_substr($p['description'] ?? '', 0, 120);
+
                     return $name.' - '.$price."\n".$desc;
                 })->implode("\n\n");
                 $prodText = "Prodotti/Servizi correlati:\n".$lines;
@@ -723,6 +751,7 @@ class RealtimeChatWebsiteController extends Controller
             return trim($addressText."\n\n".$faqText."\n\n".$prodText);
         } catch (\Throwable $e) {
             Log::warning('buildContextForMessage error', ['error' => $e->getMessage()]);
+
             return '';
         }
     }
@@ -730,12 +759,12 @@ class RealtimeChatWebsiteController extends Controller
     private function findFaqAnswer(?string $teamSlug, ?string $query): ?array
     {
         try {
-            if (!$teamSlug || !$query || trim($query) === '') {
+            if (! $teamSlug || ! $query || trim($query) === '') {
                 return null;
             }
 
             $team = $this->getTeamCached($teamSlug);
-            if (!$team) {
+            if (! $team) {
                 return null;
             }
 
@@ -768,23 +797,29 @@ class RealtimeChatWebsiteController extends Controller
                 return null;
             }
 
-            $best = null; $bestScore = -1.0;
+            $best = null;
+            $bestScore = -1.0;
             foreach ($candidates as $faq) {
                 $q = (string) $faq->question;
                 $a = (string) $faq->answer;
                 $scoreQuestion = $useEmbeddings ? ($this->tryEmbeddingSimilarity($query, $q) ?? $this->computeLexicalSimilarity($query, $q)) : $this->computeLexicalSimilarity($query, $q);
-                $scoreAnswer   = $useEmbeddings ? ($this->tryEmbeddingSimilarity($query, $a) ?? $this->computeLexicalSimilarity($query, $a)) : $this->computeLexicalSimilarity($query, $a);
+                $scoreAnswer = $useEmbeddings ? ($this->tryEmbeddingSimilarity($query, $a) ?? $this->computeLexicalSimilarity($query, $a)) : $this->computeLexicalSimilarity($query, $a);
                 $score = max($scoreQuestion * 0.7 + $scoreAnswer * 0.3, $scoreQuestion);
-                if ($score > $bestScore) { $bestScore = $score; $best = $faq; }
+                if ($score > $bestScore) {
+                    $bestScore = $score;
+                    $best = $faq;
+                }
             }
 
             $threshold = $useEmbeddings ? $semanticThreshold : $lexicalThreshold;
             if ($best && $bestScore >= $threshold) {
                 return $best->only(['question', 'answer']);
             }
+
             return null;
         } catch (\Throwable $e) {
             Log::error('RealtimeChatWebsiteController.findFaqAnswer error', ['error' => $e->getMessage()]);
+
             return null;
         }
     }
@@ -793,13 +828,17 @@ class RealtimeChatWebsiteController extends Controller
     {
         $tokensA = $this->tokenizeAndFilter($textA);
         $tokensB = $this->tokenizeAndFilter($textB);
-        if (empty($tokensA) || empty($tokensB)) { return 0.0; }
-        $setA = array_unique($tokensA); $setB = array_unique($tokensB);
+        if (empty($tokensA) || empty($tokensB)) {
+            return 0.0;
+        }
+        $setA = array_unique($tokensA);
+        $setB = array_unique($tokensB);
         $intersection = array_values(array_intersect($setA, $setB));
         $union = array_values(array_unique(array_merge($setA, $setB)));
         $jaccard = count($union) > 0 ? count($intersection) / count($union) : 0.0;
         $containment = min(count($setA), count($setB)) > 0 ? count($intersection) / min(count($setA), count($setB)) : 0.0;
         $score = 0.5 * $jaccard + 0.5 * $containment;
+
         return max(0.0, min(1.0, $score));
     }
 
@@ -811,32 +850,39 @@ class RealtimeChatWebsiteController extends Controller
         $stopwords = $this->getItalianStopwords();
         $filtered = [];
         foreach ($parts as $tok) {
-            if ($tok === '' || in_array($tok, $stopwords, true)) { continue; }
-            if (mb_strlen($tok) >= 4) { $filtered[] = $tok; }
+            if ($tok === '' || in_array($tok, $stopwords, true)) {
+                continue;
+            }
+            if (mb_strlen($tok) >= 4) {
+                $filtered[] = $tok;
+            }
         }
+
         return $filtered;
     }
 
     private function getItalianStopwords(): array
     {
         return [
-            'a','ad','al','allo','alla','ai','agli','alle','anche','avere','da','dal','dallo','dalla','dai','dagli','dalle','dei','degli','delle','del','dell','dello','della',
-            'di','e','ed','che','chi','con','col','coi','come','dove','dunque','era','erano','essere','faccio','fai','fa','fanno','fate','fatto','fui','fu','furono','gli','il','lo','la','i','le',
-            'in','nel','nello','nella','nei','negli','nelle','ma','mi','mia','mie','miei','mio','ne','non','o','od','per','perché','più','poi','quale','quali','qual','quanta','quanto','quanti','quante',
-            'quasi','questo','questa','questi','queste','quello','quella','quelli','quelle','se','sei','si','sì','sia','siamo','siete','sono','su','sul','sullo','sulla','sui','sugli','sulle','tra','fra',
-            'tu','tua','tue','tuo','tutti','tutte','tutto','un','uno','una','uno','va','vai','vado','vanno','voi','vostro','vostra','vostri','vostre','io','loro','noi','voi','dite','sono','buongiorno'
+            'a', 'ad', 'al', 'allo', 'alla', 'ai', 'agli', 'alle', 'anche', 'avere', 'da', 'dal', 'dallo', 'dalla', 'dai', 'dagli', 'dalle', 'dei', 'degli', 'delle', 'del', 'dell', 'dello', 'della',
+            'di', 'e', 'ed', 'che', 'chi', 'con', 'col', 'coi', 'come', 'dove', 'dunque', 'era', 'erano', 'essere', 'faccio', 'fai', 'fa', 'fanno', 'fate', 'fatto', 'fui', 'fu', 'furono', 'gli', 'il', 'lo', 'la', 'i', 'le',
+            'in', 'nel', 'nello', 'nella', 'nei', 'negli', 'nelle', 'ma', 'mi', 'mia', 'mie', 'miei', 'mio', 'ne', 'non', 'o', 'od', 'per', 'perché', 'più', 'poi', 'quale', 'quali', 'qual', 'quanta', 'quanto', 'quanti', 'quante',
+            'quasi', 'questo', 'questa', 'questi', 'queste', 'quello', 'quella', 'quelli', 'quelle', 'se', 'sei', 'si', 'sì', 'sia', 'siamo', 'siete', 'sono', 'su', 'sul', 'sullo', 'sulla', 'sui', 'sugli', 'sulle', 'tra', 'fra',
+            'tu', 'tua', 'tue', 'tuo', 'tutti', 'tutte', 'tutto', 'un', 'uno', 'una', 'uno', 'va', 'vai', 'vado', 'vanno', 'voi', 'vostro', 'vostra', 'vostri', 'vostre', 'io', 'loro', 'noi', 'voi', 'dite', 'sono', 'buongiorno',
         ];
     }
 
     private function tryEmbeddingSimilarity(string $textA, string $textB): ?float
     {
         try {
-            if (!$this->embeddingService) {
+            if (! $this->embeddingService) {
                 return null;
             }
+
             return $this->embeddingService->textSimilarity($textA, $textB);
         } catch (\Throwable $e) {
             Log::warning('RealtimeChatWebsiteController.tryEmbeddingSimilarity fallback', ['error' => $e->getMessage()]);
+
             return null;
         }
     }
@@ -847,32 +893,35 @@ class RealtimeChatWebsiteController extends Controller
     {
         Log::info('fetchProductData', ['productNames' => $productNames, 'teamSlug' => $teamSlug]);
         $team = $this->getTeamCached($teamSlug);
-        if (!$team) {
+        if (! $team) {
             return [];
         }
         $query = Product::where('team_id', $team->id);
-        if (!empty($productNames)) {
+        if (! empty($productNames)) {
             $query->where(function ($q) use ($productNames) {
                 foreach ($productNames as $name) {
                     $q->orWhere('name', 'like', '%'.$name.'%');
                 }
             });
         }
+
         return $query->get()->toArray();
     }
 
     private function fetchAddressData($teamSlug)
     {
         $team = $this->getTeamCached($teamSlug);
+
         return $team ? $team->toArray() : [];
     }
 
     private function fetchAvailableTimes($teamSlug)
     {
         $team = $this->getTeamCached($teamSlug);
-        if (!$team) {
+        if (! $team) {
             return [];
         }
+
         return Event::where('team_id', $team->id)
             ->where('name', 'Disponibile')
             ->where('starts_at', '>=', now())
@@ -891,23 +940,25 @@ class RealtimeChatWebsiteController extends Controller
         ]);
 
         $team = $this->getTeamCached($teamSlug);
-        if (!$team) {
+        if (! $team) {
             Log::error('createOrder: Team not found', ['team_slug' => $teamSlug]);
+
             return ['error' => 'Team non trovato'];
         }
 
         // Validazione: verifica che almeno phone e date siano presenti
-        if (!$userPhone || !$deliveryDate) {
+        if (! $userPhone || ! $deliveryDate) {
             Log::warning('createOrder: Missing required fields', [
                 'phone' => $userPhone,
                 'delivery_date' => $deliveryDate,
             ]);
+
             return [
                 'error' => 'Mancano informazioni necessarie per l\'ordine: numero di telefono e data di consegna obbligatori.',
                 'received' => [
                     'phone' => $userPhone,
                     'delivery_date' => $deliveryDate,
-                    'product_ids_count' => count((array)$productIds),
+                    'product_ids_count' => count((array) $productIds),
                 ],
             ];
         }
@@ -924,7 +975,7 @@ class RealtimeChatWebsiteController extends Controller
                 'team_id' => $team->id,
             ]);
 
-            if (!empty($productIds)) {
+            if (! empty($productIds)) {
                 $order->products()->attach($productIds);
                 Log::info('createOrder: Products attached', [
                     'order_id' => $order->id,
@@ -938,7 +989,7 @@ class RealtimeChatWebsiteController extends Controller
                 'details' => [
                     'phone' => $userPhone,
                     'delivery_date' => $deliveryDate,
-                    'products' => count((array)$productIds),
+                    'products' => count((array) $productIds),
                 ],
             ];
         } catch (\Throwable $e) {
@@ -946,8 +997,9 @@ class RealtimeChatWebsiteController extends Controller
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
+
             return [
-                'error' => 'Errore durante la creazione dell\'ordine: ' . $e->getMessage(),
+                'error' => 'Errore durante la creazione dell\'ordine: '.$e->getMessage(),
             ];
         }
     }
@@ -963,12 +1015,13 @@ class RealtimeChatWebsiteController extends Controller
         ]);
 
         // Validazione
-        if (!$userPhone || !$userEmail || !$userName) {
+        if (! $userPhone || ! $userEmail || ! $userName) {
             Log::warning('submitUserData: Missing required fields', [
                 'phone' => $userPhone,
                 'email' => $userEmail,
                 'name' => $userName,
             ]);
+
             return [
                 'error' => 'Mancano informazioni anagrafiche: nome, email e telefono obbligatori.',
                 'received' => [
@@ -992,8 +1045,9 @@ class RealtimeChatWebsiteController extends Controller
                     ]);
                 } else {
                     $team = $this->getTeamCached($teamSlug);
-                    if (!$team) {
+                    if (! $team) {
                         Log::error('submitUserData: Team not found', ['team_slug' => $teamSlug]);
+
                         return ['error' => 'Team non trovato'];
                     }
                     $customer = Customer::create([
@@ -1009,8 +1063,9 @@ class RealtimeChatWebsiteController extends Controller
                 }
             } else {
                 $team = $this->getTeamCached($teamSlug);
-                if (!$team) {
+                if (! $team) {
                     Log::error('submitUserData: Team not found', ['team_slug' => $teamSlug]);
+
                     return ['error' => 'Team non trovato'];
                 }
                 $customer = Customer::create([
@@ -1034,8 +1089,9 @@ class RealtimeChatWebsiteController extends Controller
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
+
             return [
-                'error' => 'Errore durante il salvataggio dei dati: ' . $e->getMessage(),
+                'error' => 'Errore durante il salvataggio dei dati: '.$e->getMessage(),
             ];
         }
     }
@@ -1043,7 +1099,7 @@ class RealtimeChatWebsiteController extends Controller
     private function fetchFAQs($teamSlug, $query)
     {
         $team = $this->getTeamCached($teamSlug);
-        if (!$team) {
+        if (! $team) {
             return [];
         }
         try {
@@ -1060,24 +1116,37 @@ class RealtimeChatWebsiteController extends Controller
                 ->get(['question', 'answer'])
                 ->toArray();
         }
+
         return $faqs;
     }
 
     private function normalizeToolArgs($args, string $functionName): array
     {
-        if (!is_array($args)) {
+        if (! is_array($args)) {
             return [];
         }
 
         $normalized = [];
         foreach ($args as $key => $value) {
             $k = $key;
-            if ($k === 'userPhone') { $k = 'user_phone'; }
-            if ($k === 'userEmail') { $k = 'user_email'; }
-            if ($k === 'userName')  { $k = 'user_name'; }
-            if ($k === 'deliveryDate') { $k = 'delivery_date'; }
-            if ($k === 'productIds') { $k = 'product_ids'; }
-            if ($k === 'teamSlug') { $k = 'team_slug'; }
+            if ($k === 'userPhone') {
+                $k = 'user_phone';
+            }
+            if ($k === 'userEmail') {
+                $k = 'user_email';
+            }
+            if ($k === 'userName') {
+                $k = 'user_name';
+            }
+            if ($k === 'deliveryDate') {
+                $k = 'delivery_date';
+            }
+            if ($k === 'productIds') {
+                $k = 'product_ids';
+            }
+            if ($k === 'teamSlug') {
+                $k = 'team_slug';
+            }
             $normalized[$k] = $value;
         }
 
@@ -1094,7 +1163,7 @@ class RealtimeChatWebsiteController extends Controller
         }
 
         if ($functionName === 'submitUserData' || $functionName === null) {
-            foreach (['user_phone','user_email','user_name'] as $k) {
+            foreach (['user_phone', 'user_email', 'user_name'] as $k) {
                 if (isset($normalized[$k])) {
                     $normalized[$k] = (string) $normalized[$k];
                 }

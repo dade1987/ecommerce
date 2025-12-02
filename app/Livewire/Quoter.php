@@ -3,6 +3,7 @@
 namespace App\Livewire;
 
 use App\Models\Quoter as ModelQuoter;
+use App\Models\Thread;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Livewire\Component;
@@ -47,6 +48,9 @@ class Quoter extends Component
         Log::info('thread id '.$thread->id);
 
         $this->thread_id = $thread->id;
+
+        // Registra i metadati del thread (solo alla prima inizializzazione)
+        Thread::captureFromRequest($this->thread_id, request());
     }
 
     public function generateQuote()

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Quoter;
+use App\Models\Thread;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Log;
@@ -20,10 +21,15 @@ class QuoterController extends Controller
         $this->client = OpenAI::client($apiKey);
     }
 
-    public function createThread()
+    public function createThread(Request $request)
     {
         $minutes = 60; // Durata del cookie in minuti
         $thread = $this->client->threads()->create([]);
+
+        Log::info('thread id '.$thread->id);
+
+        // Registra i metadati del thread (solo alla prima inizializzazione)
+        Thread::captureFromRequest($thread->id, $request);
 
         return response('Thread_id cookie impostato')->cookie(
             'thread_id',
@@ -34,25 +40,17 @@ class QuoterController extends Controller
 
     public function uploadFile(Request $request)
     {
-        // Validazione file upload
-        $validated = $request->validate([
-            'file' => 'required|file|max:10240|mimes:pdf,doc,docx,jpg,jpeg,png,txt,csv,xlsx',
-            'message' => 'nullable|string|max:1000',
-            'locale' => 'nullable|string|in:it,en',
-        ]);
-
         $threadId = $request->cookie('thread_id');
-        if (!$threadId) {
-            return response()->json(['error' => 'Thread ID mancante'], 400);
-        }
-
-        $locale = $validated['locale'] ?? 'it';
+        $userMessage = $request->input('message');
+        $locale = $request->input('locale', 'it');
         App::setLocale($locale);
+
+        Log::info('thread id '.$threadId);
 
         // Verifica se è stato caricato un file
         if ($request->hasFile('file')) {
             $file = $request->file('file');
-            $path = $file->store('uploads', 'local'); // Salva in storage locale, non pubblico
+            $path = $file->store('uploads', 'public'); // Salva il file e ottieni la path
 
             // Carica il file utilizzando la path
             $response = $this->client->files()->upload([
@@ -71,7 +69,7 @@ class QuoterController extends Controller
             $run = $this->client->threads()->runs()->create(
                 threadId: $threadId,
                 parameters: [
-                    'assistant_id' => config('openapi.assistant_id'),
+                    'assistant_id' => 'asst_34SA8ZkwlHiiXxNufoZYddn0',
                 ]
             );
 
@@ -93,19 +91,12 @@ class QuoterController extends Controller
 
     public function sendMessage(Request $request)
     {
-        $validated = $request->validate([
-            'message' => 'required|string|max:2000',
-            'locale' => 'nullable|string|in:it,en',
-        ]);
-
         $threadId = $request->cookie('thread_id');
-        if (!$threadId) {
-            return response()->json(['error' => 'Thread ID mancante'], 400);
-        }
-
-        $userMessage = $validated['message'];
-        $locale = $validated['locale'] ?? 'it';
+        $userMessage = $request->input('message');
+        $locale = $request->input('locale', 'it');
         App::setLocale($locale);
+
+        Log::info('thread id '.$threadId);
 
         $content = $this->generateContentBasedOnMessage($userMessage);
 
@@ -119,7 +110,7 @@ class QuoterController extends Controller
         $run = $this->client->threads()->runs()->create(
             threadId: $threadId,
             parameters: [
-                'assistant_id' => config('openapi.assistant_id'),
+                'assistant_id' => 'asst_34SA8ZkwlHiiXxNufoZYddn0',
                 'instructions' => __('quoter.assistant_instructions'),
                 'tools' => [
                     [
@@ -156,24 +147,16 @@ class QuoterController extends Controller
 
     private function retrieveRunResult($threadId, $runId)
     {
-        $maxAttempts = 60; // Timeout dopo 60 secondi
-        $attempts = 0;
-
-        while ($attempts < $maxAttempts) {
+        while (true) {
             $run = $this->client->threads()->runs()->retrieve($threadId, $runId);
+
+            Log::info(var_export($run, true));
 
             if ($run->status === 'completed') {
                 return $run;
             }
 
-            if ($run->status === 'failed' || $run->status === 'cancelled') {
-                throw new \Exception('Run failed or cancelled');
-            }
-
-            $attempts++;
-            sleep(1);
+            sleep(1); // Attende un secondo prima di fare un'altra richiesta
         }
-
-        throw new \Exception('Run timeout exceeded');
     }
 }

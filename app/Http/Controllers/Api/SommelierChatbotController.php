@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Quoter;
+use App\Models\Thread;
 use GuzzleHttp\Client;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -51,6 +52,9 @@ class SommelierChatbotController extends Controller
             $threadId = $thread->getData()->thread_id;
             Log::info('handleChat: Nuovo thread creato', ['thread_id' => $threadId]);
         }
+
+        // Registra i metadati del thread (solo alla prima inizializzazione)
+        Thread::captureFromRequest($threadId, $request);
 
         Log::info('handleChat: Messaggio utente ricevuto', [
             'message' => $userInput,
