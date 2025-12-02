@@ -174,7 +174,7 @@ return [
         /*
          * Module Service Providers...
          */
-        //Modules\WebScraper\Providers\WebScraperServiceProvider::class,
+        Modules\WebScraper\Providers\WebScraperServiceProvider::class,
         Modules\GeminiSpeech\Providers\GeminiSpeechServiceProvider::class,
     ])->toArray(),
 
