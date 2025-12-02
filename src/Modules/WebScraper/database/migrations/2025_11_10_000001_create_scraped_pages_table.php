@@ -16,6 +16,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (Schema::connection($this->connection)->hasTable('scraped_pages')) {
+            return;
+        }
+
         Schema::connection($this->connection)->create('scraped_pages', function (Blueprint $table) {
             $table->id();
             $table->string('url', 2048);
