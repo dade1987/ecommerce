@@ -493,6 +493,14 @@ export default defineComponent({
             this.heygenVideo.muted = true;
           }
         } catch { }
+
+        // Solo nel caso di chiusura del widget (X in alto a destra) distruggo la sessione HeyGen,
+        // così alla riapertura verrà eseguito di nuovo create_token / streaming.new.
+        try {
+          if (this.cleanup) {
+            this.cleanup();
+          }
+        } catch { }
       } catch { }
     },
 
@@ -1647,6 +1655,19 @@ export default defineComponent({
         } catch { }
         this.heygenVideo.srcObject = null;
       }
+
+      // Dopo la chiusura esplicita (es. X del widget o beforeUnmount) la sessione
+      // non deve più risultare "started", altrimenti ensureHeyGenSession non rifà create_token/streaming.new.
+      try {
+        if (this.heygen) {
+          this.heygen.started = false;
+          this.heygen.connecting = false;
+          this.heygen.sessionInfo = null;
+          this.heygen.mediaStream = null;
+          this.heygen.sessionToken = null;
+          this.heygen.room = null;
+        }
+      } catch { }
     },
 
     loadLiveKit() {
