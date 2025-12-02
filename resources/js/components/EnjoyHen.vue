@@ -239,7 +239,7 @@
     <div v-if="isWebComponent && widgetOpen" id="henFloatingControls"
       class="fixed z-[9999] bottom-4 right-4 flex items-center gap-2 pointer-events-auto">
       <!-- Menu button -->
-      <button id="henMenuBtn" @click="snippetMenuOpen = !snippetMenuOpen"
+      <button id="henMenuBtn" @click="toggleSnippetMenu"
         class="w-11 h-11 rounded-full bg-slate-900/80 backdrop-blur text-white flex items-center justify-center shadow-lg border border-slate-600/70">
         ⋯
       </button>
@@ -525,12 +525,13 @@ export default defineComponent({
           if (nowEnabled && this.heygenVideo) {
             this.heygenVideo.muted = true;
             this.heygenVideo.pause?.();
-          } else if (!nowEnabled && this.heygenVideo) {
-            // rientro in modalità avatar: il video resta fermo fino alla prossima risposta
-            this.heygenVideo.pause?.();
-            this.heygenVideo.muted = !this.snippetAudioOn;
           }
         } catch { }
+
+        // Quando rientro in modalità avatar mi assicuro che il video/avatar sia di nuovo collegato
+        if (!nowEnabled && this.resumeAvatarVideo) {
+          this.resumeAvatarVideo();
+        }
 
         if (nowEnabled) {
           this.$nextTick &&
@@ -552,14 +553,11 @@ export default defineComponent({
       try {
         // Se sono già in modalità testo, torno alla modalità avatar
         if (this.snippetTextMode) {
-          // esco dalla modalità testo ma NON riavvio subito HeyGen
           this.snippetTextMode = false;
-          try {
-            if (this.heygenVideo) {
-              this.heygenVideo.pause?.();
-              this.heygenVideo.muted = !this.snippetAudioOn;
-            }
-          } catch { }
+          // al rientro in modalità avatar mi assicuro che il video/avatar sia collegato
+          if (this.resumeAvatarVideo) {
+            this.resumeAvatarVideo();
+          }
         } else {
           this.snippetTextMode = true;
 
@@ -607,14 +605,11 @@ export default defineComponent({
     closeSnippetTextMode() {
       try {
         this.snippetTextMode = false;
-        // Quando si esce dalla modalità testo NON rilanciamo automaticamente HeyGen.
-        // L'avatar video resta fermo e muto fino a quando non ci sarà una nuova risposta da leggere.
-        try {
-          if (this.heygenVideo) {
-            this.heygenVideo.pause?.();
-            this.heygenVideo.muted = true;
-          }
-        } catch { }
+        // Quando si esce dalla modalità testo torniamo alla modalità avatar
+        // assicurandoci che il video/avatar sia collegato e visibile.
+        if (this.resumeAvatarVideo) {
+          this.resumeAvatarVideo();
+        }
       } catch { }
     },
 
@@ -645,6 +640,14 @@ export default defineComponent({
       this.showPrivacyPanel = true;
     },
 
+    toggleSnippetMenu() {
+      this.snippetMenuOpen = !this.snippetMenuOpen;
+      if (this.snippetMenuOpen) {
+        this.showSettingsPanel = false;
+        this.showPrivacyPanel = false;
+      }
+    },
+
     openPrivacy() {
       try {
         const url = "/privacy-policy";
@@ -661,6 +664,48 @@ export default defineComponent({
             : document.getElementById("henTextMessages");
         if (container) {
           container.scrollTop = container.scrollHeight;
+        }
+      } catch { }
+    },
+
+    refreshHeygenVideoRef() {
+      try {
+        const root = this.rootEl || this.$el || document;
+        this.heygenVideo =
+          root && root.querySelector
+            ? root.querySelector("#heygenVideo")
+            : document.getElementById("heygenVideo");
+      } catch { }
+    },
+
+    resumeAvatarVideo() {
+      try {
+        this.refreshHeygenVideoRef();
+
+        // Se esiste già una sessione HeyGen attiva, riaggancio lo stream al nuovo elemento <video>
+        if (
+          this.heygen &&
+          this.heygen.started &&
+          this.heygen.mediaStream &&
+          this.heygenVideo
+        ) {
+          try {
+            this.heygenVideo.srcObject = this.heygen.mediaStream;
+            this.heygenVideo.muted = !this.snippetAudioOn;
+            this.heygenVideo.play?.();
+          } catch { }
+          if (this.loadingOverlay) {
+            this.loadingOverlay.classList.add("hidden");
+          }
+          return;
+        }
+
+        // Se non c'è ancora una sessione attiva, avvio (o ri-avvio) la connessione HeyGen
+        if (this.loadingOverlay) {
+          this.loadingOverlay.classList.remove("hidden");
+        }
+        if (this.ensureHeyGenSession) {
+          this.ensureHeyGenSession();
         }
       } catch { }
     },
