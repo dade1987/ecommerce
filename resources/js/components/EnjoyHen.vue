@@ -308,6 +308,11 @@
         class="w-11 h-11 rounded-full bg-slate-900/60 backdrop-blur text-white/90 flex items-center justify-center shadow-lg border border-slate-500/60">
         ⋯
       </button>
+      <!-- Email transcript button -->
+      <button id="henEmailTranscriptFloatingBtn" @click="openTranscriptModal"
+        class="w-11 h-11 rounded-full bg-emerald-600/90 backdrop-blur text-white flex items-center justify-center shadow-lg border border-emerald-400/80">
+        📧
+      </button>
       <!-- Mic button -->
       <button id="henMicFloatingBtn" @click="onSnippetMicClick"
         class="w-11 h-11 rounded-full bg-rose-600/90 backdrop-blur text-white flex items-center justify-center shadow-lg border border-rose-400/80">
