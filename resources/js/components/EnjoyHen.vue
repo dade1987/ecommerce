@@ -1,6 +1,9 @@
 <template>
-  <div ref="rootEl" id="enjoyHenRoot"
-    :class="['flex flex-col', !isWebComponent && 'min-h-[100dvh] max-h-[100dvh]', isWebComponent ? 'bg-transparent' : 'w-full bg-[#0f172a] overflow-hidden']">
+  <div ref="rootEl" id="enjoyHenRoot" :class="[
+    'flex flex-col',
+    !isWebComponent && 'min-h-[100dvh] max-h-[100dvh]',
+    isWebComponent ? 'bg-transparent' : 'w-full bg-[#0f172a] overflow-hidden'
+  ]">
 
     <!-- Floating launcher bubble (snippet mode) -->
     <button v-if="isWebComponent && !widgetOpen" id="henLauncherBtn"
@@ -10,7 +13,9 @@
     </button>
 
     <!-- Widget content -->
-    <div v-show="!isWebComponent || widgetOpen" class="flex flex-col flex-1">
+    <div v-show="!isWebComponent || widgetOpen" :class="isWebComponent
+      ? 'fixed z-[9998] bottom-24 right-4 w-[320px] max-w-[90vw] pointer-events-none'
+      : 'flex flex-col flex-1'">
       <!-- Header -->
       <div class="px-4 py-4 border-b border-slate-700" v-if="!isWebComponent">
         <div class="mx-auto w-full max-w-2xl flex items-center gap-3">
@@ -22,10 +27,12 @@
 
       <!-- Main Content -->
       <div class="flex-1 flex items-center justify-center p-4 overflow-y-auto">
-        <div class="w-full max-w-2xl">
+        <div :class="['w-full', isWebComponent ? 'max-w-full' : 'max-w-2xl']">
           <!-- Video Avatar -->
-          <div
-            :class="['relative mb-6 rounded-lg overflow-hidden', isWebComponent ? 'bg-transparent border-none' : 'bg-black border border-slate-700']">
+          <div :class="[
+            'relative mb-6 rounded-lg overflow-hidden pointer-events-auto',
+            isWebComponent ? 'bg-transparent border-none' : 'bg-black border border-slate-700'
+          ]">
             <!-- Close button (snippet mode) -->
             <button v-if="isWebComponent" id="henCloseBtn" @click="closeWidget"
               class="absolute top-3 right-3 z-30 w-8 h-8 rounded-full bg-black/70 text-white flex items-center justify-center border border-white/40">
@@ -141,7 +148,7 @@
         </div>
       </div>
 
-      <!-- Input Controls Bar (full layout only) -->
+      <!-- Input Controls Bar (full layout only, non-snippet) -->
       <div v-if="!isWebComponent" id="controlsBar"
         class="bottom-0 left-0 w-full border-t border-slate-700 bg-[#0f172a] z-20 pb-[env(safe-area-inset-bottom)]">
         <div class="px-3 py-3 sm:px-4 sm:py-4">
@@ -172,27 +179,27 @@
 
     <!-- Floating controls bar (snippet mode) -->
     <div v-if="isWebComponent && widgetOpen" id="henFloatingControls"
-      class="fixed z-[9999] bottom-4 right-4 flex items-center gap-2">
+      class="fixed z-[9999] bottom-4 right-4 flex items-center gap-2 pointer-events-auto">
       <!-- Menu button -->
       <button id="henMenuBtn" @click="snippetMenuOpen = !snippetMenuOpen"
-        class="w-11 h-11 rounded-full bg-slate-900/95 text-white flex items-center justify-center shadow-lg border border-slate-600">
+        class="w-11 h-11 rounded-full bg-slate-900/80 backdrop-blur text-white flex items-center justify-center shadow-lg border border-slate-600/70">
         ⋯
       </button>
       <!-- Mic button -->
       <button id="henMicFloatingBtn" @click="onSnippetMicClick"
-        class="w-11 h-11 rounded-full bg-rose-600 text-white flex items-center justify-center shadow-lg border border-rose-500">
+        class="w-11 h-11 rounded-full bg-rose-600/90 backdrop-blur text-white flex items-center justify-center shadow-lg border border-rose-400/80">
         🎤
       </button>
       <!-- Keyboard button -->
       <button id="henKeyboardBtn" @click="onSnippetTextClick"
-        class="w-11 h-11 rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-lg border border-indigo-500">
+        class="w-11 h-11 rounded-full bg-indigo-600/90 backdrop-blur text-white flex items-center justify-center shadow-lg border border-indigo-400/80">
         ⌨️
       </button>
     </div>
 
     <!-- Floating options menu (snippet mode) -->
     <div v-if="isWebComponent && widgetOpen && snippetMenuOpen" id="henOptionsPanel"
-      class="fixed z-[9999] bottom-24 right-4 w-72 rounded-2xl bg-slate-900/95 text-slate-100 shadow-2xl border border-slate-700">
+      class="fixed z-[9999] bottom-28 right-4 w-72 rounded-2xl bg-slate-900/90 backdrop-blur text-slate-100 shadow-2xl border border-slate-700/80 pointer-events-auto">
       <div class="px-4 py-3 border-b border-slate-800 text-[11px] font-semibold text-slate-400">
         AZIONI
       </div>
@@ -329,22 +336,15 @@ export default defineComponent({
 
     onSnippetMicClick() {
       try {
-        if (this.micBtn) {
-          this.micBtn.click();
-        } else {
-          const btn = document.getElementById("micBtn");
-          if (btn) btn.click();
-        }
+        this.onMicClick();
       } catch { }
     },
 
     onSnippetTextClick() {
       try {
-        if (this.textInput) {
-          this.textInput.focus();
-        } else {
-          const input = document.getElementById("textInput");
-          if (input) input.focus();
+        const msg = window.prompt("Scrivi il tuo messaggio");
+        if (msg && msg.trim()) {
+          this.startStream(msg.trim());
         }
       } catch { }
     },
