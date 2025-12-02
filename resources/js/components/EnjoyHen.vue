@@ -520,14 +520,15 @@ export default defineComponent({
         const nowEnabled = !this.snippetTextMode;
         this.snippetTextMode = nowEnabled;
 
-        // Quando entro in modalità testuale, metto in pausa e muto il video
+        // In modalità testo il video deve essere "spento": niente streaming/audio
         try {
           if (nowEnabled && this.heygenVideo) {
             this.heygenVideo.muted = true;
             this.heygenVideo.pause?.();
           } else if (!nowEnabled && this.heygenVideo) {
+            // rientro in modalità avatar: il video resta fermo fino alla prossima risposta
+            this.heygenVideo.pause?.();
             this.heygenVideo.muted = !this.snippetAudioOn;
-            this.heygenVideo.play?.().catch(() => { });
           }
         } catch { }
 
@@ -551,11 +552,18 @@ export default defineComponent({
       try {
         // Se sono già in modalità testo, torno alla modalità avatar
         if (this.snippetTextMode) {
-          this.closeSnippetTextMode();
+          // esco dalla modalità testo ma NON riavvio subito HeyGen
+          this.snippetTextMode = false;
+          try {
+            if (this.heygenVideo) {
+              this.heygenVideo.pause?.();
+              this.heygenVideo.muted = !this.snippetAudioOn;
+            }
+          } catch { }
         } else {
           this.snippetTextMode = true;
 
-          // Metti in pausa e muto il video in modalità testuale
+          // In modalità testo il video deve essere "spento": niente streaming/audio
           try {
             if (this.heygenVideo) {
               this.heygenVideo.muted = true;
@@ -599,11 +607,14 @@ export default defineComponent({
     closeSnippetTextMode() {
       try {
         this.snippetTextMode = false;
-        // Ripristina il video (rispettando il toggle audio)
-        if (this.heygenVideo) {
-          this.heygenVideo.muted = !this.snippetAudioOn;
-          this.heygenVideo.play?.().catch(() => { });
-        }
+        // Quando si esce dalla modalità testo NON rilanciamo automaticamente HeyGen.
+        // L'avatar video resta fermo e muto fino a quando non ci sarà una nuova risposta da leggere.
+        try {
+          if (this.heygenVideo) {
+            this.heygenVideo.pause?.();
+            this.heygenVideo.muted = true;
+          }
+        } catch { }
       } catch { }
     },
 
@@ -638,6 +649,19 @@ export default defineComponent({
       try {
         const url = "/privacy-policy";
         window.open(url, "_blank");
+      } catch { }
+    },
+
+    scrollSnippetMessagesToBottom() {
+      try {
+        const root = this.rootEl || this.$el || document;
+        const container =
+          root && root.querySelector
+            ? root.querySelector("#henTextMessages")
+            : document.getElementById("henTextMessages");
+        if (container) {
+          container.scrollTop = container.scrollHeight;
+        }
       } catch { }
     },
 
@@ -1198,10 +1222,6 @@ export default defineComponent({
 
       try {
         console.log("[EnjoyHen] onSend() starting stream");
-        const isSnippet = import.meta.env.VITE_IS_WEB_COMPONENT || false;
-        if (isSnippet) {
-          this.snippetMessages.push({ role: "user", content: message });
-        }
         await this.startStream(message);
       } catch (e) {
         console.error("Error starting stream:", e);
@@ -1217,11 +1237,6 @@ export default defineComponent({
       if (!message || message.trim() === "") {
         console.warn("[EnjoyHen] startStream() empty message, returning");
         return;
-      }
-
-      const isSnippet = import.meta.env.VITE_IS_WEB_COMPONENT || false;
-      if (isSnippet) {
-        this.snippetMessages.push({ role: "user", content: message.trim() });
       }
 
       const params = new URLSearchParams({
