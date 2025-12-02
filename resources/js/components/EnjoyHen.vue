@@ -1234,6 +1234,15 @@ export default defineComponent({
                 return;
               }
 
+              // Quando invio un messaggio registrato con il microfono,
+              // mostro all'utente il testo inviato, come per i messaggi da tastiera.
+              try {
+                const isSnippet = import.meta.env.VITE_IS_WEB_COMPONENT || false;
+                if (isSnippet && this.snippetMessagesOn) {
+                  this.snippetMessages.push({ role: "user", content: safe });
+                }
+              } catch { }
+
               this.startStream(safe);
             }
           } catch (err) {
@@ -1316,6 +1325,10 @@ export default defineComponent({
 
       try {
         console.log("[EnjoyHen] onSend() starting stream");
+        const isSnippet = import.meta.env.VITE_IS_WEB_COMPONENT || false;
+        if (isSnippet && this.snippetMessagesOn) {
+          this.snippetMessages.push({ role: "user", content: message });
+        }
         await this.startStream(message);
       } catch (e) {
         console.error("Error starting stream:", e);
