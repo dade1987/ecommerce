@@ -671,10 +671,16 @@ export default defineComponent({
     refreshHeygenVideoRef() {
       try {
         const root = this.rootEl || this.$el || document;
-        this.heygenVideo =
+        const pick = (id) =>
           root && root.querySelector
-            ? root.querySelector("#heygenVideo")
-            : document.getElementById("heygenVideo");
+            ? root.querySelector("#" + id)
+            : document.getElementById(id);
+
+        // Elementi dell'avatar che possono essere ricreati dal v-if
+        this.heygenVideo = pick("heygenVideo");
+        this.loadingOverlay = pick("loadingOverlay");
+        this.videoAvatarStatus = pick("videoAvatarStatus");
+        this.feedbackMsg = pick("feedbackMsg");
       } catch { }
     },
 
