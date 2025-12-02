@@ -7,8 +7,8 @@
 
     <!-- Floating launcher bubble (snippet mode) -->
     <button v-if="isWebComponent && !widgetOpen" id="henLauncherBtn"
-      class="fixed z-[9999] bottom-4 right-4 w-14 h-14 rounded-full bg-emerald-600 text-white shadow-lg border border-white/40 flex items-center justify-center"
-      @click="widgetOpen = true">
+      class="fixed z-[9999] bottom-4 right-4 w-14 h-14 rounded-full bg-emerald-600/90 backdrop-blur text-white shadow-lg border border-emerald-300/80 flex items-center justify-center"
+      @click="onLauncherClick">
       💬
     </button>
 
@@ -145,6 +145,11 @@
             class="hidden px-3 py-2 bg-rose-600/90 text-white text-sm font-semibold rounded-md shadow animate-pulse text-center mb-4">
             🎤 Ascolto...
           </div>
+          <!-- Thinking Badge -->
+          <div id="thinkingBadgeHen"
+            class="hidden px-3 py-2 bg-indigo-600/90 text-white text-sm font-semibold rounded-md shadow animate-pulse text-center mb-4">
+            💭 Sto pensando...
+          </div>
         </div>
       </div>
 
@@ -195,6 +200,57 @@
         class="w-11 h-11 rounded-full bg-indigo-600/90 backdrop-blur text-white flex items-center justify-center shadow-lg border border-indigo-400/80">
         ⌨️
       </button>
+    </div>
+
+    <!-- Floating text chat panel (snippet mode) -->
+    <div v-if="isWebComponent && widgetOpen && snippetTextMode"
+      class="fixed z-[9998] top-24 right-4 w-[360px] max-w-[90vw] h-[70vh] pointer-events-auto">
+      <div
+        class="flex flex-col w-full h-full rounded-3xl bg-slate-900/95 backdrop-blur border border-slate-700/80 shadow-2xl">
+        <!-- Header -->
+        <div class="flex items-center justify-between px-4 py-3 border-b border-slate-800">
+          <div class="text-[11px] uppercase tracking-wide text-slate-400">
+            Assistente digitale
+          </div>
+          <button @click="snippetTextMode = false"
+            class="w-7 h-7 rounded-full bg-slate-800/80 text-slate-200 flex items-center justify-center text-xs border border-slate-600/70">
+            ✕
+          </button>
+        </div>
+
+        <!-- Messages -->
+        <div id="henTextMessages"
+          class="flex-1 overflow-y-auto px-4 py-3 space-y-2 text-sm scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
+          <div v-if="snippetMessages.length === 0" class="text-xs text-slate-400">
+            Scrivi un messaggio per iniziare la conversazione con l’assistente.
+          </div>
+          <div v-for="(m, idx) in snippetMessages" :key="idx" :class="[
+            'max-w-[90%] px-3 py-2 rounded-2xl',
+            m.role === 'user'
+              ? 'ml-auto bg-emerald-600 text-white'
+              : 'mr-auto bg-slate-800 text-slate-100'
+          ]">
+            <div class="text-[10px] opacity-70 mb-0.5">
+              {{ m.role === 'user' ? 'Tu' : 'Assistente' }}
+            </div>
+            <div class="whitespace-pre-line">
+              {{ m.content }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Input -->
+        <div class="px-4 py-3 border-t border-slate-800">
+          <div class="flex items-center gap-2">
+            <input id="henSnippetInput" v-model="snippetInput" type="text" placeholder="Scrivi qui..."
+              class="flex-1 bg-slate-800/80 text-slate-100 text-sm outline-none border border-slate-700/80 rounded-full px-3 py-2 placeholder-slate-400" />
+            <button @click="sendSnippetInput"
+              class="w-9 h-9 rounded-full bg-emerald-600/90 text-white flex items-center justify-center text-sm shadow border border-emerald-400/80">
+              📤
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Floating options menu (snippet mode) -->
@@ -272,6 +328,9 @@ export default defineComponent({
       // Variabili locali (non props)
       widgetOpen: true,
       snippetMenuOpen: false,
+      snippetTextMode: false,
+      snippetInput: "",
+      snippetMessages: [],
       snippetMessagesOn: true,
       snippetAudioOn: true,
       uuid: null,
@@ -327,10 +386,27 @@ export default defineComponent({
     } catch { }
   },
   methods: {
+    onLauncherClick() {
+      try {
+        this.widgetOpen = true;
+        this.snippetMenuOpen = false;
+        this.snippetTextMode = false;
+        if (this.loadingOverlay) {
+          this.loadingOverlay.classList.remove("hidden");
+        }
+        this.ensureHeyGenSession().then(() => {
+          const intro =
+            "Ciao, sono l'assistente digitale del Comune. Posso aiutarti a trovare informazioni sui servizi, sugli orari e sui contatti, guidarti nella prenotazione di appuntamenti e rispondere alle domande frequenti.";
+          this.heygenSendRepeat(intro);
+        });
+      } catch { }
+    },
+
     closeWidget() {
       try {
         this.widgetOpen = false;
         this.snippetMenuOpen = false;
+        this.snippetTextMode = false;
       } catch { }
     },
 
@@ -342,17 +418,35 @@ export default defineComponent({
 
     onSnippetTextClick() {
       try {
-        const msg = window.prompt("Scrivi il tuo messaggio");
-        if (msg && msg.trim()) {
-          this.startStream(msg.trim());
+        this.snippetTextMode = !this.snippetTextMode;
+        if (this.snippetTextMode) {
+          this.$nextTick &&
+            this.$nextTick(() => {
+              try {
+                const input =
+                  this.$el.querySelector &&
+                  this.$el.querySelector("#henSnippetInput");
+                if (input) {
+                  input.focus();
+                }
+              } catch { }
+            });
         }
       } catch { }
     },
 
     toggleTextInterface() {
       try {
-        const input = this.textInput || document.getElementById("textInput");
-        if (input) input.focus();
+        this.snippetTextMode = true;
+        this.$nextTick &&
+          this.$nextTick(() => {
+            try {
+              const input =
+                this.$el.querySelector &&
+                this.$el.querySelector("#henSnippetInput");
+              if (input) input.focus();
+            } catch { }
+          });
       } catch { }
       this.snippetMenuOpen = false;
     },
@@ -368,6 +462,19 @@ export default defineComponent({
         if (this.heygenVideo) {
           this.heygenVideo.muted = !this.snippetAudioOn;
         }
+      } catch { }
+    },
+
+    sendSnippetInput() {
+      try {
+        const msg = (this.snippetInput || "").trim();
+        if (!msg) return;
+        const isSnippet = import.meta.env.VITE_IS_WEB_COMPONENT || false;
+        if (isSnippet) {
+          this.snippetMessages.push({ role: "user", content: msg });
+        }
+        this.startStream(msg);
+        this.snippetInput = "";
       } catch { }
     },
 
@@ -419,6 +526,7 @@ export default defineComponent({
       this.emailTranscriptCancelHen = $("sendTranscriptCancelHen");
       this.emailTranscriptCancel2Hen = $("sendTranscriptCancel2Hen");
       this.emailTranscriptConfirmHen = $("sendTranscriptConfirmHen");
+      this.thinkingBadgeHen = $("thinkingBadgeHen");
 
       console.log("[EnjoyHen] initComponent() DOM elements found:", {
         heygenVideo: !!this.heygenVideo,
@@ -485,7 +593,12 @@ export default defineComponent({
       this.teamSlugLocal = teamSlug;
 
       this.setupEventListeners();
-      this.showStartChatButton();
+      const isSnippet = import.meta.env.VITE_IS_WEB_COMPONENT || false;
+      if (!isSnippet) {
+        this.showStartChatButton();
+      } else if (this.loadingOverlay) {
+        this.loadingOverlay.classList.add("hidden");
+      }
       console.log("[EnjoyHen] initComponent() complete");
     },
 
@@ -935,6 +1048,10 @@ export default defineComponent({
 
       try {
         console.log("[EnjoyHen] onSend() starting stream");
+        const isSnippet = import.meta.env.VITE_IS_WEB_COMPONENT || false;
+        if (isSnippet) {
+          this.snippetMessages.push({ role: "user", content: message });
+        }
         await this.startStream(message);
       } catch (e) {
         console.error("Error starting stream:", e);
@@ -950,6 +1067,11 @@ export default defineComponent({
       if (!message || message.trim() === "") {
         console.warn("[EnjoyHen] startStream() empty message, returning");
         return;
+      }
+
+      const isSnippet = import.meta.env.VITE_IS_WEB_COMPONENT || false;
+      if (isSnippet) {
+        this.snippetMessages.push({ role: "user", content: message.trim() });
       }
 
       const params = new URLSearchParams({
@@ -973,8 +1095,12 @@ export default defineComponent({
 
       try {
         const thinkingBubble = document.getElementById("thinkingBubble");
+        const thinkingBadge = this.thinkingBadgeHen || document.getElementById("thinkingBadgeHen");
         if (thinkingBubble) {
           thinkingBubble.classList.remove("hidden");
+        }
+        if (thinkingBadge) {
+          thinkingBadge.classList.remove("hidden");
         }
 
         console.log("[EnjoyHen] startStream() creating EventSource");
@@ -1020,12 +1146,18 @@ export default defineComponent({
           if (thinkingBubble) {
             thinkingBubble.classList.add("hidden");
           }
+          if (thinkingBadge) {
+            thinkingBadge.classList.add("hidden");
+          }
 
           const text = this.stripHtml(collected).trim();
           console.log("[EnjoyHen] Processed text:", { text: text.substring(0, 100) });
           if (text) {
             console.log("[EnjoyHen] sending to heygenSendRepeat");
             this.heygenSendRepeat(text);
+            if (isSnippet) {
+              this.snippetMessages.push({ role: "assistant", content: text });
+            }
           }
           this.setFeedback("");
         });
@@ -1037,6 +1169,9 @@ export default defineComponent({
           } catch { }
           if (thinkingBubble) {
             thinkingBubble.classList.add("hidden");
+          }
+          if (thinkingBadge) {
+            thinkingBadge.classList.add("hidden");
           }
           this.setFeedback("❌ Errore di connessione");
         });
