@@ -528,9 +528,14 @@ export default defineComponent({
           }
         } catch { }
 
-        // Quando rientro in modalità avatar mi assicuro che il video/avatar sia di nuovo collegato
-        if (!nowEnabled && this.resumeAvatarVideo) {
-          this.resumeAvatarVideo();
+        // Quando rientro in modalità avatar mi assicuro che il video/avatar sia di nuovo collegato,
+        // ma solo dopo che il DOM ha ricreato il blocco <video> (v-if).
+        if (!nowEnabled && this.resumeAvatarVideo && this.$nextTick) {
+          this.$nextTick(() => {
+            try {
+              this.resumeAvatarVideo();
+            } catch { }
+          });
         }
 
         if (nowEnabled) {
@@ -555,8 +560,12 @@ export default defineComponent({
         if (this.snippetTextMode) {
           this.snippetTextMode = false;
           // al rientro in modalità avatar mi assicuro che il video/avatar sia collegato
-          if (this.resumeAvatarVideo) {
-            this.resumeAvatarVideo();
+          if (this.resumeAvatarVideo && this.$nextTick) {
+            this.$nextTick(() => {
+              try {
+                this.resumeAvatarVideo();
+              } catch { }
+            });
           }
         } else {
           this.snippetTextMode = true;
@@ -606,9 +615,13 @@ export default defineComponent({
       try {
         this.snippetTextMode = false;
         // Quando si esce dalla modalità testo torniamo alla modalità avatar
-        // assicurandoci che il video/avatar sia collegato e visibile.
-        if (this.resumeAvatarVideo) {
-          this.resumeAvatarVideo();
+        // assicurandoci che il video/avatar sia collegato e visibile, dopo l'update del DOM.
+        if (this.resumeAvatarVideo && this.$nextTick) {
+          this.$nextTick(() => {
+            try {
+              this.resumeAvatarVideo();
+            } catch { }
+          });
         }
       } catch { }
     },
