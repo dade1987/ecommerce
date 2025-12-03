@@ -449,6 +449,7 @@ export default defineComponent({
       heygenVoice: "",
       threadId: null,
       teamSlugLocal: null,
+      avatar: null,
       heygenVideo: null,
       textInput: null,
       sendBtn: null,
@@ -1264,22 +1265,11 @@ export default defineComponent({
         return;
       }
 
-      // Se l'avatar sta parlando, interrompiamo subito la riproduzione
-      // così l'utente non parla sopra la risposta.
+      // Se l'avatar sta parlando, inviamo il comando ufficiale di interrupt
+      // così smette di parlare mentre l'utente inizia a parlare al microfono.
       try {
-        // Silenzia immediatamente il video locale
-        if (this.heygenVideo) {
-          try {
-            this.heygenVideo.pause?.();
-          } catch { }
-          this.heygenVideo.muted = true;
-        }
-      } catch { }
-      try {
-        // Chiudi la sessione corrente così HeyGen smette di parlare lato server.
-        // La prossima risposta ricreerà la sessione tramite ensureHeyGenSession().
-        if (this.cleanup) {
-          this.cleanup();
+        if (this.avatar && typeof this.avatar.interrupt === "function") {
+          this.avatar.interrupt();
         }
       } catch { }
 
@@ -1738,6 +1728,27 @@ export default defineComponent({
         }
 
         this.heygen.started = true;
+        // Wrapper semplice per i comandi avatar.* via LiveKit data,
+        // in particolare avatar.interrupt documentato nei Command Events.
+        this.avatar = {
+          interrupt: () => {
+            try {
+              if (
+                this.heygen &&
+                this.heygen.room &&
+                this.heygen.room.localParticipant &&
+                typeof this.heygen.room.localParticipant.publishData === "function"
+              ) {
+                const payload = JSON.stringify({
+                  event: "avatar.interrupt",
+                });
+                this.heygen.room.localParticipant.publishData(payload);
+              }
+            } catch (e) {
+              console.error("avatar.interrupt failed", e);
+            }
+          },
+        };
         this.setStatus("Connesso");
         this.loadingOverlay.classList.add("hidden");
       } catch (e) {
