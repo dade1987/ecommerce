@@ -6,6 +6,7 @@ use App\Filament\Resources\ThreadResource;
 use App\Models\Quoter;
 use App\Models\Thread;
 use Carbon\Carbon;
+use Illuminate\Contracts\Support\Htmlable;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
@@ -22,6 +23,12 @@ class AiDashboard extends Page implements HasForms
     protected static ?int $navigationSort = 1;
 
     protected static string $view = 'filament.pages.ai-dashboard';
+
+    public function getHeading(): string | Htmlable
+    {
+        // Restituiamo stringa vuota così l'header della page non viene renderizzato
+        return '';
+    }
 
     /** @var array<string, mixed> */
     public array $threadStats = [];
