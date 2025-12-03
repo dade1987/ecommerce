@@ -45,6 +45,18 @@
                 <div id="chatMessages" class="flex-1 overflow-auto p-3 space-y-3">
                 </div>
               </div>
+              <!-- Input chat testuale snippet (come Hen) -->
+              <div v-if="isWebComponent && snippetTextMode" class="px-1 pb-3 pt-2">
+                <div class="flex items-center gap-2">
+                  <input id="talkSnippetInput" v-model="snippetInput" type="text" placeholder="Scrivi qui..."
+                    @keyup.enter.prevent="sendSnippetInput"
+                    class="flex-1 bg-slate-800/80 text-slate-100 text-sm outline-none border border-slate-700/80 rounded-full px-3 py-2 placeholder-slate-400" />
+                  <button @click="sendSnippetInput"
+                    class="w-9 h-9 rounded-full bg-emerald-600/90 text-white flex items-center justify-center text-sm shadow border border-emerald-400/80">
+                    📤
+                  </button>
+                </div>
+              </div>
             </div>
 
             <!-- Fumetto di pensiero -->
@@ -226,8 +238,8 @@
         class="w-11 h-11 rounded-full bg-emerald-600/90 backdrop-blur text-white flex items-center justify-center shadow-lg border border-emerald-400/80">
         📧
       </button>
-      <!-- Mic button (snippet) -->
-      <button id="talkMicFloatingBtn" @click="onMicClick"
+      <!-- Mic button (snippet) - riusa l'handler globale di micBtn -->
+      <button id="micBtn"
         class="w-11 h-11 rounded-full bg-rose-600/90 backdrop-blur text-white flex items-center justify-center shadow-lg border border-rose-400/80">
         🎤
       </button>
@@ -318,6 +330,7 @@ export default defineComponent({
       snippetTextMode: false,
       snippetMessagesOn: true,
       snippetAudioOn: true,
+      snippetInput: "",
     };
   },
   mounted() {
@@ -517,6 +530,19 @@ export default defineComponent({
             }
           } catch { }
         }
+      } catch { }
+    },
+    sendSnippetInput() {
+      try {
+        const msg = (this.snippetInput || "").trim();
+        if (!msg) return;
+        const isSnippet = import.meta.env.VITE_IS_WEB_COMPONENT || false;
+        if (!isSnippet) return;
+        // In modalità snippet la chat testuale usa lo stesso flusso di startStream()
+        try {
+          this.startStream && this.startStream(msg);
+        } catch { }
+        this.snippetInput = "";
       } catch { }
     },
     openSnippetEmailModal() {
