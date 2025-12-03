@@ -1,10 +1,9 @@
 <template>
-  <div ref="rootEl" id="enjoyTalkRoot"
-    :class="[
-      'flex flex-col',
-      !isWebComponent && 'min-h-[100dvh]',
-      isWebComponent ? 'bg-transparent' : 'w-full bg-[#0f172a] pb-[96px] sm:pb-0'
-    ]">
+  <div ref="rootEl" id="enjoyTalkRoot" :class="[
+    'flex flex-col',
+    !isWebComponent && 'min-h-[100dvh]',
+    isWebComponent ? 'bg-transparent' : 'w-full bg-[#0f172a] pb-[96px] sm:pb-0'
+  ]">
 
     <!-- Floating launcher bubble (snippet mode) -->
     <button v-if="isWebComponent && !widgetOpen" id="talkLauncherBtn"
@@ -13,8 +12,12 @@
       💬
     </button>
 
-    <!-- Contenuto principale: visibile sempre in layout full, solo se widget aperto in modalità snippet -->
-    <div v-show="!isWebComponent || widgetOpen" :class="['flex flex-col w-full', !isWebComponent && 'flex-1']">
+    <!-- Contenuto principale: full layout oppure widget snippet fisso in basso a destra -->
+    <div v-show="!isWebComponent || widgetOpen" :class="isWebComponent
+      ? 'fixed z-[9998] bottom-24 right-4 w-[320px] max-w-[90vw] pointer-events-none'
+      : 'flex flex-col flex-1 w-full'">
+
+      <!-- Header solo in layout full -->
       <div class="px-4 py-4" v-if="!isWebComponent">
         <div class="mx-auto w-full max-w-[520px] flex items-center gap-3">
           <img id="teamLogo" :src="teamLogo" alt="EnjoyTalk 3D"
@@ -24,136 +27,154 @@
       </div>
 
       <!-- Canvas Avatar 3D -->
-      <div class="flex-1 flex items-center justify-center p-4">
-        <div class="relative w-full">
-        <div class="mx-auto w-full max-w-[520px] px-3 sm:px-0">
-          <div id="avatarStage"
-            class="bg-[#111827] border border-slate-700 rounded-md overflow-hidden w-full h-auto max-h-[calc(100dvh-220px)] aspect-[3/4]">
-          </div>
-          <!-- Chat Panel (solo testo) -->
-          <div id="chatPanel"
-            class="hidden bg-[#111827] border border-slate-700 rounded-md overflow-hidden w-full h-auto max-h-[calc(100dvh-220px)] aspect-[3/4] flex flex-col">
-            <div id="chatMessages" class="flex-1 overflow-auto p-3 space-y-3">
+      <div class="flex-1 flex items-center justify-center p-4 overflow-y-auto">
+        <div :class="['w-full', isWebComponent ? 'max-w-full' : 'max-w-[520px]']">
+          <div :class="[
+            'relative rounded-md overflow-hidden pointer-events-auto',
+            isWebComponent ? 'bg-transparent border-none' : 'bg-[#111827] border border-slate-700'
+          ]">
+            <div class="mx-auto w-full px-3 sm:px-0">
+              <div id="avatarStage" :class="[
+                'rounded-md overflow-hidden w-full h-auto max-h-[calc(100dvh-220px)] aspect-[3/4]',
+                isWebComponent ? 'bg-transparent border-none' : ''
+              ]">
+              </div>
+              <!-- Chat Panel (solo testo) -->
+              <div id="chatPanel"
+                class="hidden bg-[#111827] border border-slate-700 rounded-md overflow-hidden w-full h-auto max-h-[calc(100dvh-220px)] aspect-[3/4] flex flex-col">
+                <div id="chatMessages" class="flex-1 overflow-auto p-3 space-y-3">
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
 
-          <!-- Fumetto di pensiero -->
-          <div id="thinkingBubble"
-            class="hidden absolute top-4 left-1/2 transform -translate-x-1/2 bg-white rounded-lg px-4 py-2 shadow-lg border border-gray-300">
-            <div class="text-gray-700 text-sm font-medium">
-              💭 Sto pensando...
-            </div>
-            <div class="absolute bottom-0 left-1/2 transform translate-y-full -translate-x-1/2">
-              <div class="w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-white"></div>
-            </div>
-          </div>
-        <!-- Badge ascolto microfono -->
-        <div id="listeningBadge"
-          class="hidden absolute top-4 left-4 bg-rose-600/90 text-white text-xs font-semibold px-2.5 py-1 rounded-md shadow animate-pulse">
-          🎤 Ascolto...
-        </div>
-        <!-- Loading Overlay -->
-        <div id="loadingOverlay"
-          class="hidden absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-30 rounded-md">
-          <div class="flex flex-col items-center gap-6">
-            <!-- Spinner animato migliorato -->
-            <div class="relative w-16 h-16">
-              <div class="absolute inset-0 bg-gradient-to-r from-indigo-600 to-emerald-600 rounded-full animate-spin"
-                style="border-radius: 50%; -webkit-mask-image: radial-gradient(circle 10px at center, transparent 100%, black 100%); mask-image: radial-gradient(circle 10px at center, transparent 100%, black 100%);">
+            <!-- Fumetto di pensiero -->
+            <div id="thinkingBubble"
+              class="hidden absolute top-4 left-1/2 transform -translate-x-1/2 bg-white rounded-lg px-4 py-2 shadow-lg border border-gray-300">
+              <div class="text-gray-700 text-sm font-medium">
+                💭 Sto pensando...
               </div>
-              <div class="absolute inset-2 bg-black rounded-full flex items-center justify-center">
-                <div class="w-2 h-2 bg-gradient-to-r from-indigo-400 to-emerald-400 rounded-full animate-pulse"></div>
+              <div class="absolute bottom-0 left-1/2 transform translate-y-full -translate-x-1/2">
+                <div class="w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-white"></div>
               </div>
             </div>
-            <!-- Testo e barra di progresso -->
-            <div class="text-center">
-              <div class="text-white text-base font-medium mb-3">Caricamento avatar...</div>
-              <div class="w-48 h-1.5 bg-slate-700 rounded-full overflow-hidden">
-                <div class="h-full bg-gradient-to-r from-indigo-600 to-emerald-600 rounded-full animate-pulse"
-                  style="width: 65%;"></div>
+
+            <!-- Badge ascolto microfono -->
+            <div id="listeningBadge"
+              class="hidden absolute top-4 left-4 bg-rose-600/90 text-white text-xs font-semibold px-2.5 py-1 rounded-md shadow animate-pulse">
+              🎤 Ascolto...
+            </div>
+
+            <!-- Loading Overlay -->
+            <div id="loadingOverlay"
+              class="hidden absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-30 rounded-md">
+              <div class="flex flex-col items-center gap-6">
+                <!-- Spinner animato migliorato -->
+                <div class="relative w-16 h-16">
+                  <div
+                    class="absolute inset-0 bg-gradient-to-r from-indigo-600 to-emerald-600 rounded-full animate-spin"
+                    style="border-radius: 50%; -webkit-mask-image: radial-gradient(circle 10px at center, transparent 100%, black 100%); mask-image: radial-gradient(circle 10px at center, transparent 100%, black 100%);">
+                  </div>
+                  <div class="absolute inset-2 bg-black rounded-full flex items-center justify-center">
+                    <div class="w-2 h-2 bg-gradient-to-r from-indigo-400 to-emerald-400 rounded-full animate-pulse">
+                    </div>
+                  </div>
+                </div>
+                <!-- Testo e barra di progresso -->
+                <div class="text-center">
+                  <div class="text-white text-base font-medium mb-3">Caricamento avatar...</div>
+                  <div class="w-48 h-1.5 bg-slate-700 rounded-full overflow-hidden">
+                    <div class="h-full bg-gradient-to-r from-indigo-600 to-emerald-600 rounded-full animate-pulse"
+                      style="width: 65%;"></div>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
-          <!-- Toggle Chat Mode (solo layout full) -->
-          <div v-if="!isWebComponent" class="absolute top-4 right-4 z-30">
-            <button id="modeToggleBtn"
-              class="px-3 py-2 bg-slate-700/80 hover:bg-slate-600 text-white text-xs rounded-md border border-slate-600 shadow">
-              💬 Modalità chat
+
+            <!-- Toggle Chat Mode (solo layout full) -->
+            <div v-if="!isWebComponent" class="absolute top-4 right-4 z-30">
+              <button id="modeToggleBtn"
+                class="px-3 py-2 bg-slate-700/80 hover:bg-slate-600 text-white text-xs rounded-md border border-slate-600 shadow">
+                💬 Modalità chat
+              </button>
+            </div>
+
+            <!-- Close button (snippet mode) -->
+            <button v-if="isWebComponent" id="talkCloseBtn" @click="closeWidget"
+              class="absolute top-4 right-4 z-30 w-8 h-8 rounded-full bg-black/70 text-white flex items-center justify-center border border-white/40">
+              ✕
             </button>
-          </div>
-          <!-- Close button (snippet mode) -->
-          <button v-if="isWebComponent" id="talkCloseBtn" @click="closeWidget"
-            class="absolute top-4 right-4 z-30 w-8 h-8 rounded-full bg-black/70 text-white flex items-center justify-center border border-white/40">
-            ✕
-          </button>
-        <!-- Conversa con Me Button -->
-        <div id="conversaBtnContainer"
-          class="hidden absolute inset-0 flex items-center justify-center z-25 pointer-events-auto rounded-md bg-black/40 backdrop-blur-sm">
-          <button id="conversaBtn"
-            class="px-6 py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors whitespace-nowrap text-lg sm:text-xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105">
-            🎤 Parla con Me
-          </button>
-        </div>
-        <!-- Modal Trascrizione Email -->
-        <div id="emailTranscriptModal"
-          class="hidden absolute inset-0 flex items-center justify-center z-40 rounded-md bg-black/60 backdrop-blur-sm">
-          <div
-            class="w-full max-w-[480px] mx-4 bg-[#0b1220] border border-slate-700 rounded-xl shadow-2xl overflow-hidden">
-            <div class="px-4 py-3 border-b border-slate-700 bg-black/50 flex items-center justify-between">
-              <div class="text-slate-100 font-semibold text-base">Invia trascrizione via email</div>
-              <button id="sendTranscriptCancel"
-                class="text-slate-300 hover:text-white px-2 py-1 rounded-md hover:bg-slate-700/60">✕</button>
+
+            <!-- Conversa con Me Button -->
+            <div id="conversaBtnContainer"
+              class="hidden absolute inset-0 flex items-center justify-center z-25 pointer-events-auto rounded-md bg-black/40 backdrop-blur-sm">
+              <button id="conversaBtn"
+                class="px-6 py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors whitespace-nowrap text-lg sm:text-xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105">
+                🎤 Parla con Me
+              </button>
             </div>
-            <div class="p-4 space-y-3">
-              <label class="block text-slate-300 text-sm">Indirizzo email destinatario</label>
-              <input id="emailTranscriptInput" type="email" placeholder="nome@esempio.com"
-                class="w-full px-3 py-2 bg-[#111827] text-white border border-slate-700 rounded-md placeholder-slate-400 focus:border-indigo-500 focus:outline-none" />
-              <div id="emailTranscriptStatus" class="text-xs text-slate-400 min-h-[1rem]"></div>
-            </div>
-            <div class="px-4 py-3 border-t border-slate-700 bg-black/50 flex items-center justify-end gap-2">
-              <button id="sendTranscriptCancel2"
-                class="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-md transition-colors text-sm">Annulla</button>
-              <button id="sendTranscriptConfirm"
-                class="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors text-sm font-semibold">Invia</button>
-            </div>
-          </div>
-        </div>
-        <!-- Debug Overlay (mostrato con ?debug=1) -->
-        <div id="debugOverlay"
-          class="hidden absolute left-1/2 -translate-x-1/2 top-3 z-10 w-full max-w-[520px] px-3 sm:px-0"
-          style="pointer-events: auto">
-          <div class="bg-black/70 backdrop-blur-sm border border-slate-600 rounded-md overflow-hidden shadow-lg">
-            <div class="flex items-center justify-between px-3 py-2 border-b border-slate-700 bg-black/60 sticky top-0">
-              <div class="text-slate-200 text-xs font-semibold">Debug</div>
-              <div class="flex items-center gap-2">
-                <button id="debugCopy"
-                  class="text-[11px] px-2 py-1 bg-slate-700/70 hover:bg-slate-600 text-white rounded">
-                  Copia
-                </button>
-                <button id="debugClear"
-                  class="text-[11px] px-2 py-1 bg-slate-700/70 hover:bg-slate-600 text-white rounded">
-                  Pulisci
-                </button>
-                <button id="debugClose"
-                  class="text-[11px] px-2 py-1 bg-slate-700/70 hover:bg-slate-600 text-white rounded">
-                  Chiudi
-                </button>
+
+            <!-- Modal Trascrizione Email -->
+            <div id="emailTranscriptModal"
+              class="hidden absolute inset-0 flex items-center justify-center z-40 rounded-md bg-black/60 backdrop-blur-sm">
+              <div
+                class="w-full max-w-[480px] mx-4 bg-[#0b1220] border border-slate-700 rounded-xl shadow-2xl overflow-hidden">
+                <div class="px-4 py-3 border-b border-slate-700 bg-black/50 flex items-center justify-between">
+                  <div class="text-slate-100 font-semibold text-base">Invia trascrizione via email</div>
+                  <button id="sendTranscriptCancel"
+                    class="text-slate-300 hover:text-white px-2 py-1 rounded-md hover:bg-slate-700/60">✕</button>
+                </div>
+                <div class="p-4 space-y-3">
+                  <label class="block text-slate-300 text-sm">Indirizzo email destinatario</label>
+                  <input id="emailTranscriptInput" type="email" placeholder="nome@esempio.com"
+                    class="w-full px-3 py-2 bg-[#111827] text-white border border-slate-700 rounded-md placeholder-slate-400 focus:border-indigo-500 focus:outline-none" />
+                  <div id="emailTranscriptStatus" class="text-xs text-slate-400 min-h-[1rem]"></div>
+                </div>
+                <div class="px-4 py-3 border-t border-slate-700 bg-black/50 flex items-center justify-end gap-2">
+                  <button id="sendTranscriptCancel2"
+                    class="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-md transition-colors text-sm">Annulla</button>
+                  <button id="sendTranscriptConfirm"
+                    class="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors text-sm font-semibold">Invia</button>
+                </div>
               </div>
             </div>
-            <div
-              class="max-h-[50vh] sm:max-h-[60vh] overflow-auto p-2 text-[11px] font-mono text-slate-200 leading-relaxed"
-              style="margin-bottom: calc(var(--controls-pad, 0px))">
-              <div id="debugContent" class="space-y-1"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-      </div>
 
-      <!-- Controlli -->
-      <div id="controlsBar"
+            <!-- Debug Overlay (mostrato con ?debug=1) -->
+            <div id="debugOverlay"
+              class="hidden absolute left-1/2 -translate-x-1/2 top-3 z-10 w-full max-w-[520px] px-3 sm:px-0"
+              style="pointer-events: auto">
+              <div class="bg-black/70 backdrop-blur-sm border border-slate-600 rounded-md overflow-hidden shadow-lg">
+                <div
+                  class="flex items-center justify-between px-3 py-2 border-b border-slate-700 bg-black/60 sticky top-0">
+                  <div class="text-slate-200 text-xs font-semibold">Debug</div>
+                  <div class="flex items-center gap-2">
+                    <button id="debugCopy"
+                      class="text-[11px] px-2 py-1 bg-slate-700/70 hover:bg-slate-600 text-white rounded">
+                      Copia
+                    </button>
+                    <button id="debugClear"
+                      class="text-[11px] px-2 py-1 bg-slate-700/70 hover:bg-slate-600 text-white rounded">
+                      Pulisci
+                    </button>
+                    <button id="debugClose"
+                      class="text-[11px] px-2 py-1 bg-slate-700/70 hover:bg-slate-600 text-white rounded">
+                      Chiudi
+                    </button>
+                  </div>
+                </div>
+                <div
+                  class="max-h-[50vh] sm:max-h-[60vh] overflow-auto p-2 text-[11px] font-mono text-slate-200 leading-relaxed"
+                  style="margin-bottom: calc(var(--controls-pad, 0px))">
+                  <div id="debugContent" class="space-y-1"></div>
+                </div>
+              </div>
+            </div>
+
+          </div> <!-- fine card relativa -->
+        </div> <!-- fine wrapper larghezza -->
+      </div> <!-- fine blocco avatar/chat -->
+
+      <!-- Controlli (solo layout full, come in EnjoyHen la barra in basso non esiste in snippet) -->
+      <div v-if="!isWebComponent" id="controlsBar"
         class="bottom-0 left-0 w-full border-t border-slate-700 bg-[#0f172a] z-20 pb-[env(safe-area-inset-bottom)]">
         <div class="px-3 py-3 sm:px-4 sm:py-4">
           <div class="mx-auto w-full max-w-[520px] px-3 sm:px-0">
@@ -173,7 +194,7 @@
                 📧 Trascrizione
               </button>
             </div>
-            <div :class="['mt-2 flex items-center gap-3 text-slate-300 text-xs sm:text-sm', isWebComponent && 'hidden']">
+            <div class="mt-2 flex items-center gap-3 text-slate-300 text-xs sm:text-sm">
               <label class="inline-flex items-center gap-2 cursor-pointer select-none">
                 <input id="useBrowserTts" type="checkbox" class="accent-indigo-600" />
                 <span>Usa TTS del browser (italiano)</span>
@@ -188,9 +209,10 @@
           </div>
         </div>
       </div>
+
       <audio id="ttsPlayer" class="hidden" playsinline></audio>
-    </div>
-  </div>
+    </div> <!-- fine wrapper contenuto principale -->
+  </div> <!-- fine root -->
 </template>
 
 <script>
