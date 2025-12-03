@@ -48,10 +48,17 @@ class AiDashboard extends Page implements HasForms
 
     public ?string $selectedThreadId = null;
 
+    public ?string $threadSearch = null;
+
     public function mount(): void
     {
         $this->startDate = now()->subDays(6)->format('Y-m-d');
         $this->endDate = now()->format('Y-m-d');
+        $this->loadDashboardData();
+    }
+    
+    public function searchThreads(): void
+    {
         $this->loadDashboardData();
     }
 
@@ -136,8 +143,20 @@ class AiDashboard extends Page implements HasForms
             ->all();
 
         // Ultimi thread per tabella "Active Threads" nel range selezionato
-        $this->latestThreads = Thread::withCount('messages')
-            ->whereBetween('created_at', [$start, $end])
+        $latestThreadsQuery = Thread::withCount('messages')
+            ->whereBetween('created_at', [$start, $end]);
+
+        if (! empty($this->threadSearch)) {
+            $search = $this->threadSearch;
+
+            // Filtra i thread che hanno almeno un messaggio il cui contenuto contiene il testo cercato
+            $matchingThreadIds = Quoter::where('content', 'like', '%' . $search . '%')
+                ->pluck('thread_id');
+
+            $latestThreadsQuery->whereIn('thread_id', $matchingThreadIds);
+        }
+
+        $this->latestThreads = $latestThreadsQuery
             ->orderByDesc('created_at')
             ->limit(6)
             ->get()
