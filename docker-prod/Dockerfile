@@ -80,7 +80,8 @@ RUN apk add --no-cache \
     g++ \
     make \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install -j$(nproc) \
+    # NOTA: -j1 invece di -j$(nproc) per evitare bug QEMU su Mac ARM building per linux/amd64
+    && docker-php-ext-install -j1 \
         gd \
         mysqli \
         pdo_mysql \
@@ -95,8 +96,8 @@ RUN apk add --no-cache \
     && apk del autoconf g++ make \
     && rm -rf /var/cache/apk/*
 
-# Installa bash
-RUN apk add --no-cache bash
+# Installa bash e Node.js (per TTS server interno)
+RUN apk add --no-cache bash nodejs npm
 
 # Crea directory necessarie
 RUN mkdir -p /var/www/html \
@@ -123,10 +124,20 @@ COPY --from=assets-builder /app/public/build ./public/build
 # Copia tutto il codice sorgente
 COPY --chown=www-data:www-data . .
 
+# Installa dipendenze npm per TTS server (Express + Azure Speech SDK)
+RUN cd /var/www/html/src/Modules/Avatar3DReact/scripts \
+    && npm install \
+    && chown -R www-data:www-data /var/www/html/src/Modules/Avatar3DReact/scripts
+
+# Crea directory per audio output
+RUN mkdir -p /var/www/html/public/avatar3d/audio \
+    && chown -R www-data:www-data /var/www/html/public/avatar3d
+
 # Rimuovi file non necessari in produzione
 RUN rm -rf \
     docker-dev-playwright \
     docker-prod \
+    docker-prod-mac-local \
     node_modules \
     tests \
     .git \
@@ -147,7 +158,8 @@ RUN chown -R www-data:www-data /var/www/html \
     && find /var/www/html -type d -exec chmod 755 {} \; \
     && find /var/www/html -type f -exec chmod 644 {} \; \
     && chmod -R 775 /var/www/html/storage \
-    && chmod -R 775 /var/www/html/bootstrap/cache
+    && chmod -R 775 /var/www/html/bootstrap/cache \
+    && chmod -R 775 /var/www/html/public/avatar3d
 
 # Nota: storage:link e cache commands vengono eseguiti nell'entrypoint
 # perché richiedono le variabili d'ambiente corrette (APP_ENV, ecc.)

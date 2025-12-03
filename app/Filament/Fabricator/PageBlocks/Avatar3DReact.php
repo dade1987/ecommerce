@@ -96,6 +96,68 @@ class Avatar3DReact extends PageBlock
                             ->helperText('Quanto dell\'avatar mostrare'),
                     ]),
 
+                Section::make('Widget Mode')
+                    ->schema([
+                        Toggle::make('widget_mode')
+                            ->label('Modalità Widget')
+                            ->default(true)
+                            ->helperText('Chat collassata con pulsante toggle (indipendente da sfondo trasparente)'),
+                    ]),
+
+                Section::make('Ombra a Terra')
+                    ->schema([
+                        Toggle::make('show_shadow')
+                            ->label('Mostra Ombra')
+                            ->default(false)
+                            ->helperText('Ombra sotto i piedi (richiede sfondo NON trasparente)'),
+
+                        Select::make('shadow_preset')
+                            ->label('Preset Ombra')
+                            ->options([
+                                'soft' => 'Soft (morbida)',
+                                'sharp' => 'Sharp (definita)',
+                                'diffuse' => 'Diffuse (molto morbida)',
+                                'fullBody' => 'Full Body (per figura intera)',
+                            ])
+                            ->default('fullBody'),
+
+                        TextInput::make('shadow_opacity')
+                            ->label('Opacità Ombra')
+                            ->numeric()
+                            ->placeholder('0.7')
+                            ->helperText('0-1, lascia vuoto per usare preset'),
+
+                        TextInput::make('shadow_blur')
+                            ->label('Blur Ombra')
+                            ->numeric()
+                            ->placeholder('1.5')
+                            ->helperText('Sfumatura, lascia vuoto per usare preset'),
+
+                        TextInput::make('shadow_y')
+                            ->label('Posizione Y Ombra')
+                            ->numeric()
+                            ->default(0)
+                            ->helperText('Altezza terreno (0 = piedi avatar)'),
+                    ])
+                    ->collapsed(),
+
+                Section::make('Mouse Tracking')
+                    ->schema([
+                        TextInput::make('mouse_tracking_radius')
+                            ->label('Raggio Tracking (px)')
+                            ->numeric()
+                            ->placeholder('400')
+                            ->helperText('Lascia vuoto per tracking su tutto viewport'),
+
+                        TextInput::make('mouse_tracking_speed')
+                            ->label('Velocità Tracking')
+                            ->numeric()
+                            ->placeholder('0.08')
+                            ->default(0.08)
+                            ->helperText('0.01-0.2 (più basso = più lento)'),
+                    ])
+                    ->collapsed(),
+
                 Section::make('Controlli e Debug')
                     ->schema([
                         Select::make('orbit_controls')
@@ -105,8 +167,13 @@ class Avatar3DReact extends PageBlock
                                 'limited' => 'Limitati (zoom/rotazione con limiti)',
                                 'debug' => 'Debug (libertà totale)',
                             ])
-                            ->default('none')
+                            ->default('limited')
                             ->helperText('Permette zoom e rotazione della camera'),
+
+                        Toggle::make('show_fps')
+                            ->label('Mostra FPS')
+                            ->default(false)
+                            ->helperText('Mostra pannello statistiche performance'),
 
                         Toggle::make('show_leva_panel')
                             ->label('Mostra Pannello Leva')
@@ -128,6 +195,9 @@ class Avatar3DReact extends PageBlock
         $booleanDefaults = [
             'fixed_position' => true,
             'transparent_background' => true,
+            'widget_mode' => true,
+            'show_shadow' => false,
+            'show_fps' => false,
             'show_leva_panel' => false,
             'enable_bone_controls' => false,
             'enable_speech_recognition' => true,
@@ -147,7 +217,10 @@ class Avatar3DReact extends PageBlock
         $data['height'] = $data['height'] ?? '80vh';
         $data['avatar_view'] = $data['avatar_view'] ?? 'full';
         $data['aspect_ratio'] = $data['aspect_ratio'] ?? 0.75;
-        $data['orbit_controls'] = $data['orbit_controls'] ?? 'none';
+        $data['orbit_controls'] = $data['orbit_controls'] ?? 'limited';
+        $data['shadow_preset'] = $data['shadow_preset'] ?? 'fullBody';
+        $data['shadow_y'] = $data['shadow_y'] ?? 0;
+        $data['mouse_tracking_speed'] = $data['mouse_tracking_speed'] ?? 0.08;
 
         return $data;
     }

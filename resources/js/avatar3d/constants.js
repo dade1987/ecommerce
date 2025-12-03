@@ -28,6 +28,17 @@ export const DEFAULT_PROPS = {
   positionRight: '0',
   avatarView: 'bust',
   orbitControls: 'none',
+  mouseTrackingRadius: 400,   // raggio in px, null = tracking su viewport
+  mouseTrackingSpeed: 0.08,   // velocità transizione (0.01-0.2)
+  showFps: false,             // mostra pannello FPS
+  // Widget mode - chat collassata con toggle button
+  widgetMode: false,          // true = chat collassata con pulsante toggle
+  // Shadow props
+  showShadow: false,          // mostra ombra a terra
+  shadowPreset: 'soft',       // preset: 'soft', 'sharp', 'diffuse', 'fullBody'
+  shadowOpacity: undefined,   // override opacità (0-1)
+  shadowBlur: undefined,      // override blur
+  shadowY: -1,                // altezza terreno per ombra
 };
 
 // Camera presets based on avatar view

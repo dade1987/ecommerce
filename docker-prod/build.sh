@@ -12,6 +12,7 @@ IMAGE_TAG="${1:-latest}"
 # Usa Dockerfile con Playwright se --playwright è specificato
 USE_PLAYWRIGHT=false
 DOCKERFILE="docker-prod/Dockerfile"
+NO_CACHE=""
 
 for arg in "$@"; do
     case $arg in
@@ -22,6 +23,10 @@ for arg in "$@"; do
             ;;
         --save)
             SAVE_TAR=true
+            shift
+            ;;
+        --no-cache)
+            NO_CACHE="--no-cache"
             shift
             ;;
     esac
@@ -65,6 +70,7 @@ docker build \
     -f "${DOCKERFILE}" \
     -t "${FULL_IMAGE_NAME}" \
     --progress=plain \
+    ${NO_CACHE} \
     .
 
 # Mostra dimensione immagine

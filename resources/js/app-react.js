@@ -25,7 +25,9 @@ if (avatar3dRoot) {
         enableChat: avatar3dRoot.dataset.enableChat !== 'false',
         locale: avatar3dRoot.dataset.locale || 'it',
         teamSlug: avatar3dRoot.dataset.teamSlug || '',
+        chatEndpoint: avatar3dRoot.dataset.chatEndpoint || '/api/chatbot/neuron-website-stream',
         ttsEndpoint: avatar3dRoot.dataset.ttsEndpoint || '/api/avatar3d/tts',
+        backgroundImage: avatar3dRoot.dataset.backgroundImage || null,
 
         // Position and layout
         fixedPosition: avatar3dRoot.dataset.fixedPosition === 'true',
@@ -42,6 +44,35 @@ if (avatar3dRoot) {
 
         // View
         avatarView: avatar3dRoot.dataset.avatarView || 'bust',
+
+        // Mouse tracking
+        // mouseTrackingRadius: null = tracking su tutto viewport (default)
+        // mouseTrackingRadius: 400 = tracking solo entro 400px dal centro container
+        mouseTrackingRadius: avatar3dRoot.dataset.mouseTrackingRadius
+            ? parseInt(avatar3dRoot.dataset.mouseTrackingRadius, 10)
+            : null,
+        mouseTrackingSpeed: avatar3dRoot.dataset.mouseTrackingSpeed
+            ? parseFloat(avatar3dRoot.dataset.mouseTrackingSpeed)
+            : 0.08,
+
+        // Debug
+        showFps: avatar3dRoot.dataset.showFps === 'true',
+
+        // Widget mode (chat collassata con toggle button)
+        widgetMode: avatar3dRoot.dataset.widgetMode === 'true',
+
+        // Shadow (ombra a terra)
+        showShadow: avatar3dRoot.dataset.showShadow === 'true',
+        shadowPreset: avatar3dRoot.dataset.shadowPreset || 'soft',
+        shadowOpacity: avatar3dRoot.dataset.shadowOpacity
+            ? parseFloat(avatar3dRoot.dataset.shadowOpacity)
+            : undefined,
+        shadowBlur: avatar3dRoot.dataset.shadowBlur
+            ? parseFloat(avatar3dRoot.dataset.shadowBlur)
+            : undefined,
+        shadowY: avatar3dRoot.dataset.shadowY
+            ? parseFloat(avatar3dRoot.dataset.shadowY)
+            : -1,
     }
 
     createRoot(avatar3dRoot).render(

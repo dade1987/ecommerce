@@ -1,0 +1,378 @@
+{
+    "animationName": "standing-briefcase-idle",
+    "extractedAt": "2025-11-30T20:26:16.188Z",
+    "bones": [
+    "mixamorigHead",
+    "mixamorigHips",
+    "mixamorigLeftArm",
+    "mixamorigLeftFoot",
+    "mixamorigLeftForeArm",
+    "mixamorigLeftHand",
+    "mixamorigLeftHandIndex1",
+    "mixamorigLeftHandIndex2",
+    "mixamorigLeftHandIndex3",
+    "mixamorigLeftHandMiddle1",
+    "mixamorigLeftHandMiddle2",
+    "mixamorigLeftHandMiddle3",
+    "mixamorigLeftHandPinky1",
+    "mixamorigLeftHandPinky2",
+    "mixamorigLeftHandPinky3",
+    "mixamorigLeftHandRing1",
+    "mixamorigLeftHandRing2",
+    "mixamorigLeftHandRing3",
+    "mixamorigLeftHandThumb1",
+    "mixamorigLeftHandThumb2",
+    "mixamorigLeftHandThumb3",
+    "mixamorigLeftLeg",
+    "mixamorigLeftShoulder",
+    "mixamorigLeftToeBase",
+    "mixamorigLeftUpLeg",
+    "mixamorigNeck",
+    "mixamorigRightArm",
+    "mixamorigRightFoot",
+    "mixamorigRightForeArm",
+    "mixamorigRightHand",
+    "mixamorigRightHandIndex1",
+    "mixamorigRightHandIndex2",
+    "mixamorigRightHandIndex3",
+    "mixamorigRightHandMiddle1",
+    "mixamorigRightHandMiddle2",
+    "mixamorigRightHandMiddle3",
+    "mixamorigRightHandPinky1",
+    "mixamorigRightHandPinky2",
+    "mixamorigRightHandPinky3",
+    "mixamorigRightHandRing1",
+    "mixamorigRightHandRing2",
+    "mixamorigRightHandRing3",
+    "mixamorigRightHandThumb1",
+    "mixamorigRightHandThumb2",
+    "mixamorigRightHandThumb3",
+    "mixamorigRightLeg",
+    "mixamorigRightShoulder",
+    "mixamorigRightToeBase",
+    "mixamorigRightUpLeg",
+    "mixamorigSpine",
+    "mixamorigSpine1",
+    "mixamorigSpine2"
+],
+    "tracks": [
+    {
+        "boneName": "mixamorigHips",
+        "property": "position",
+        "fullName": "mixamorigHips.position",
+        "valueCount": 1293
+    },
+    {
+        "boneName": "mixamorigHips",
+        "property": "quaternion",
+        "fullName": "mixamorigHips.quaternion",
+        "valueCount": 1724
+    },
+    {
+        "boneName": "mixamorigSpine",
+        "property": "quaternion",
+        "fullName": "mixamorigSpine.quaternion",
+        "valueCount": 1724
+    },
+    {
+        "boneName": "mixamorigSpine1",
+        "property": "quaternion",
+        "fullName": "mixamorigSpine1.quaternion",
+        "valueCount": 1724
+    },
+    {
+        "boneName": "mixamorigSpine2",
+        "property": "quaternion",
+        "fullName": "mixamorigSpine2.quaternion",
+        "valueCount": 1724
+    },
+    {
+        "boneName": "mixamorigNeck",
+        "property": "quaternion",
+        "fullName": "mixamorigNeck.quaternion",
+        "valueCount": 1724
+    },
+    {
+        "boneName": "mixamorigHead",
+        "property": "quaternion",
+        "fullName": "mixamorigHead.quaternion",
+        "valueCount": 1724
+    },
+    {
+        "boneName": "mixamorigRightShoulder",
+        "property": "quaternion",
+        "fullName": "mixamorigRightShoulder.quaternion",
+        "valueCount": 1724
+    },
+    {
+        "boneName": "mixamorigRightArm",
+        "property": "quaternion",
+        "fullName": "mixamorigRightArm.quaternion",
+        "valueCount": 1724
+    },
+    {
+        "boneName": "mixamorigRightForeArm",
+        "property": "quaternion",
+        "fullName": "mixamorigRightForeArm.quaternion",
+        "valueCount": 1724
+    },
+    {
+        "boneName": "mixamorigRightHand",
+        "property": "quaternion",
+        "fullName": "mixamorigRightHand.quaternion",
+        "valueCount": 1724
+    },
+    {
+        "boneName": "mixamorigRightHandThumb1",
+        "property": "quaternion",
+        "fullName": "mixamorigRightHandThumb1.quaternion",
+        "valueCount": 4
+    },
+    {
+        "boneName": "mixamorigRightHandThumb2",
+        "property": "quaternion",
+        "fullName": "mixamorigRightHandThumb2.quaternion",
+        "valueCount": 4
+    },
+    {
+        "boneName": "mixamorigRightHandThumb3",
+        "property": "quaternion",
+        "fullName": "mixamorigRightHandThumb3.quaternion",
+        "valueCount": 4
+    },
+    {
+        "boneName": "mixamorigRightHandIndex1",
+        "property": "quaternion",
+        "fullName": "mixamorigRightHandIndex1.quaternion",
+        "valueCount": 4
+    },
+    {
+        "boneName": "mixamorigRightHandIndex2",
+        "property": "quaternion",
+        "fullName": "mixamorigRightHandIndex2.quaternion",
+        "valueCount": 4
+    },
+    {
+        "boneName": "mixamorigRightHandIndex3",
+        "property": "quaternion",
+        "fullName": "mixamorigRightHandIndex3.quaternion",
+        "valueCount": 4
+    },
+    {
+        "boneName": "mixamorigRightHandMiddle1",
+        "property": "quaternion",
+        "fullName": "mixamorigRightHandMiddle1.quaternion",
+        "valueCount": 4
+    },
+    {
+        "boneName": "mixamorigRightHandMiddle2",
+        "property": "quaternion",
+        "fullName": "mixamorigRightHandMiddle2.quaternion",
+        "valueCount": 4
+    },
+    {
+        "boneName": "mixamorigRightHandMiddle3",
+        "property": "quaternion",
+        "fullName": "mixamorigRightHandMiddle3.quaternion",
+        "valueCount": 4
+    },
+    {
+        "boneName": "mixamorigRightHandRing1",
+        "property": "quaternion",
+        "fullName": "mixamorigRightHandRing1.quaternion",
+        "valueCount": 4
+    },
+    {
+        "boneName": "mixamorigRightHandRing2",
+        "property": "quaternion",
+        "fullName": "mixamorigRightHandRing2.quaternion",
+        "valueCount": 4
+    },
+    {
+        "boneName": "mixamorigRightHandRing3",
+        "property": "quaternion",
+        "fullName": "mixamorigRightHandRing3.quaternion",
+        "valueCount": 4
+    },
+    {
+        "boneName": "mixamorigRightHandPinky1",
+        "property": "quaternion",
+        "fullName": "mixamorigRightHandPinky1.quaternion",
+        "valueCount": 4
+    },
+    {
+        "boneName": "mixamorigRightHandPinky2",
+        "property": "quaternion",
+        "fullName": "mixamorigRightHandPinky2.quaternion",
+        "valueCount": 4
+    },
+    {
+        "boneName": "mixamorigRightHandPinky3",
+        "property": "quaternion",
+        "fullName": "mixamorigRightHandPinky3.quaternion",
+        "valueCount": 4
+    },
+    {
+        "boneName": "mixamorigLeftShoulder",
+        "property": "quaternion",
+        "fullName": "mixamorigLeftShoulder.quaternion",
+        "valueCount": 1724
+    },
+    {
+        "boneName": "mixamorigLeftArm",
+        "property": "quaternion",
+        "fullName": "mixamorigLeftArm.quaternion",
+        "valueCount": 1724
+    },
+    {
+        "boneName": "mixamorigLeftForeArm",
+        "property": "quaternion",
+        "fullName": "mixamorigLeftForeArm.quaternion",
+        "valueCount": 1724
+    },
+    {
+        "boneName": "mixamorigLeftHand",
+        "property": "quaternion",
+        "fullName": "mixamorigLeftHand.quaternion",
+        "valueCount": 1724
+    },
+    {
+        "boneName": "mixamorigLeftHandThumb1",
+        "property": "quaternion",
+        "fullName": "mixamorigLeftHandThumb1.quaternion",
+        "valueCount": 1724
+    },
+    {
+        "boneName": "mixamorigLeftHandThumb2",
+        "property": "quaternion",
+        "fullName": "mixamorigLeftHandThumb2.quaternion",
+        "valueCount": 1724
+    },
+    {
+        "boneName": "mixamorigLeftHandThumb3",
+        "property": "quaternion",
+        "fullName": "mixamorigLeftHandThumb3.quaternion",
+        "valueCount": 1724
+    },
+    {
+        "boneName": "mixamorigLeftHandIndex1",
+        "property": "quaternion",
+        "fullName": "mixamorigLeftHandIndex1.quaternion",
+        "valueCount": 1724
+    },
+    {
+        "boneName": "mixamorigLeftHandIndex2",
+        "property": "quaternion",
+        "fullName": "mixamorigLeftHandIndex2.quaternion",
+        "valueCount": 1724
+    },
+    {
+        "boneName": "mixamorigLeftHandIndex3",
+        "property": "quaternion",
+        "fullName": "mixamorigLeftHandIndex3.quaternion",
+        "valueCount": 1724
+    },
+    {
+        "boneName": "mixamorigLeftHandMiddle1",
+        "property": "quaternion",
+        "fullName": "mixamorigLeftHandMiddle1.quaternion",
+        "valueCount": 1724
+    },
+    {
+        "boneName": "mixamorigLeftHandMiddle2",
+        "property": "quaternion",
+        "fullName": "mixamorigLeftHandMiddle2.quaternion",
+        "valueCount": 1724
+    },
+    {
+        "boneName": "mixamorigLeftHandMiddle3",
+        "property": "quaternion",
+        "fullName": "mixamorigLeftHandMiddle3.quaternion",
+        "valueCount": 1724
+    },
+    {
+        "boneName": "mixamorigLeftHandRing1",
+        "property": "quaternion",
+        "fullName": "mixamorigLeftHandRing1.quaternion",
+        "valueCount": 1724
+    },
+    {
+        "boneName": "mixamorigLeftHandRing2",
+        "property": "quaternion",
+        "fullName": "mixamorigLeftHandRing2.quaternion",
+        "valueCount": 1724
+    },
+    {
+        "boneName": "mixamorigLeftHandRing3",
+        "property": "quaternion",
+        "fullName": "mixamorigLeftHandRing3.quaternion",
+        "valueCount": 1724
+    },
+    {
+        "boneName": "mixamorigLeftHandPinky1",
+        "property": "quaternion",
+        "fullName": "mixamorigLeftHandPinky1.quaternion",
+        "valueCount": 1724
+    },
+    {
+        "boneName": "mixamorigLeftHandPinky2",
+        "property": "quaternion",
+        "fullName": "mixamorigLeftHandPinky2.quaternion",
+        "valueCount": 1724
+    },
+    {
+        "boneName": "mixamorigLeftHandPinky3",
+        "property": "quaternion",
+        "fullName": "mixamorigLeftHandPinky3.quaternion",
+        "valueCount": 1724
+    },
+    {
+        "boneName": "mixamorigRightUpLeg",
+        "property": "quaternion",
+        "fullName": "mixamorigRightUpLeg.quaternion",
+        "valueCount": 1724
+    },
+    {
+        "boneName": "mixamorigRightLeg",
+        "property": "quaternion",
+        "fullName": "mixamorigRightLeg.quaternion",
+        "valueCount": 1724
+    },
+    {
+        "boneName": "mixamorigRightFoot",
+        "property": "quaternion",
+        "fullName": "mixamorigRightFoot.quaternion",
+        "valueCount": 1724
+    },
+    {
+        "boneName": "mixamorigRightToeBase",
+        "property": "quaternion",
+        "fullName": "mixamorigRightToeBase.quaternion",
+        "valueCount": 1724
+    },
+    {
+        "boneName": "mixamorigLeftUpLeg",
+        "property": "quaternion",
+        "fullName": "mixamorigLeftUpLeg.quaternion",
+        "valueCount": 1724
+    },
+    {
+        "boneName": "mixamorigLeftLeg",
+        "property": "quaternion",
+        "fullName": "mixamorigLeftLeg.quaternion",
+        "valueCount": 1724
+    },
+    {
+        "boneName": "mixamorigLeftFoot",
+        "property": "quaternion",
+        "fullName": "mixamorigLeftFoot.quaternion",
+        "valueCount": 1724
+    },
+    {
+        "boneName": "mixamorigLeftToeBase",
+        "property": "quaternion",
+        "fullName": "mixamorigLeftToeBase.quaternion",
+        "valueCount": 1724
+    }
+]
+}

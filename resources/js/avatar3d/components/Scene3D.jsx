@@ -1,6 +1,6 @@
 import React, { Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { Environment, OrthographicCamera, OrbitControls, Loader } from '@react-three/drei';
+import { Environment, OrthographicCamera, OrbitControls, Loader, Stats, ContactShadows } from '@react-three/drei';
 
 import Avatar from '../Avatar';
 import Background from './Background';
@@ -21,11 +21,25 @@ export function Scene3D({
   setAudioSource,
   playing,
   ttsEndpoint,
+  voice,
   enableBoneControls,
   showLevaPanel,
+  containerRef,
+  mouseTrackingRadius,
+  mouseTrackingSpeed,
+  showFps,
+  // Shadow props
+  showShadow = false,
+  shadowPreset = 'soft',
+  shadowOpacity,
+  shadowBlur,
+  shadowY,
 }) {
   // Get camera settings based on view
   const cameraSettings = CAMERA_PRESETS[avatarView] || CAMERA_PRESETS.bust;
+
+  // Shadow Y position (default to 0 = ground level)
+  const groundY = shadowY ?? 0;
 
   return (
     <>
@@ -35,7 +49,9 @@ export function Scene3D({
         onCreated={(ctx) => {
           ctx.gl.physicallyCorrectLights = true;
           if (transparentBackground) {
-            ctx.gl.setClearColor(0x000000, 0);
+            ctx.gl.setClearColor(0x000000, 0); // Trasparente
+          } else {
+            ctx.gl.setClearColor(0xf5f5f5, 1); // Grigio chiaro come sfondo
           }
         }}
       >
@@ -83,10 +99,36 @@ export function Scene3D({
             setAudioSource={setAudioSource}
             playing={playing}
             ttsEndpoint={ttsEndpoint}
+            voice={voice}
             enableBoneControls={enableBoneControls}
             showLevaPanel={showLevaPanel}
+            containerRef={containerRef}
+            mouseTrackingRadius={mouseTrackingRadius}
+            mouseTrackingSpeed={mouseTrackingSpeed}
           />
         </Suspense>
+
+        {/* Ombra a terra - ContactShadows funziona solo con sfondo NON trasparente */}
+        {showShadow && !transparentBackground && (
+          <>
+            {/* Piano a terra per ricevere l'ombra */}
+            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, groundY - 0.01, 0]} receiveShadow>
+              <planeGeometry args={[10, 10]} />
+              <meshStandardMaterial color="#f5f5f5" />
+            </mesh>
+            <ContactShadows
+              position={[0, groundY, 0]}
+              opacity={shadowOpacity ?? 0.7}
+              blur={shadowBlur ?? 1.5}
+              far={4}
+              resolution={512}
+              color="black"
+              scale={10}
+            />
+          </>
+        )}
+
+        {showFps && <Stats />}
       </Canvas>
 
       <Loader dataInterpolation={(p) => `Caricamento... attendere`} />

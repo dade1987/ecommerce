@@ -31,7 +31,7 @@ class AzureTTSService
     /**
      * Synthesize text to speech with viseme data
      */
-    public function synthesize(string $text, string $voice = 'it-IT-ElsaNeural'): array
+    public function synthesize(string $text, string $voice = 'it-IT-IsabellaNeural'): array
     {
         if ($this->useNodeProcess) {
             return $this->synthesizeViaNodeProcess($text, $voice);

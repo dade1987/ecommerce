@@ -18,9 +18,21 @@ export function useAudio({ onPlayStart, onPlayEnd }) {
 
   const handleCanPlayThrough = useCallback(() => {
     if (audioRef.current) {
-      audioRef.current.play();
-      setPlaying(true);
-      onPlayStart?.();
+      // play() returns a Promise - handle rejection for mobile autoplay policy
+      const playPromise = audioRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            setPlaying(true);
+            onPlayStart?.();
+          })
+          .catch((error) => {
+            console.warn('Audio autoplay blocked:', error.message);
+            // On mobile, user gesture required - we'll need manual play
+            // For now, just mark as not playing so UI can show play button
+            setPlaying(false);
+          });
+      }
     }
   }, [onPlayStart]);
 
@@ -43,6 +55,8 @@ export function useAudio({ onPlayStart, onPlayEnd }) {
     src: audioSource,
     onEnded: handleEnded,
     onCanPlayThrough: handleCanPlayThrough,
+    playsInline: true,  // Required for iOS Safari
+    preload: 'auto',
     style: { display: 'none' },
   };
 

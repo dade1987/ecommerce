@@ -29,6 +29,7 @@ import {
 } from './avatarBoneTracking';
 import { createArmAnimationClip } from './armAnimation';
 import { useMouseTracking } from './hooks/useMouseTracking';
+import {debugAllBones} from "./boneDebug.js";
 
 // Base path for assets
 const ASSETS_BASE = '/avatar3d';
@@ -43,7 +44,11 @@ function Avatar({
   hideClothing = false,
   enableBoneControls = false,
   showLevaPanel = false,
-  ttsEndpoint = '/api/avatar3d/tts'
+  ttsEndpoint = '/api/avatar3d/tts',
+  voice = 'it-IT-ElsaNeural',
+  containerRef = null,
+  mouseTrackingRadius = null,
+  mouseTrackingSpeed = 0.08,
 }) {
   let gltf = useGLTF(avatarUrl);
   let morphTargetDictionaryBody = null;
@@ -103,7 +108,21 @@ function Avatar({
   const bonesRef = useRef({});
 
   // Mouse tracking per testa e collo
-  const { updateTracking } = useMouseTracking(gltf.scene, { head: true, neck: true, arms: false });
+  // Configura localTrackingArea solo se containerRef è disponibile
+  const mouseTrackingOptions = {
+    head: true,
+    neck: true,
+    arms: true,
+    ...(containerRef && {
+      localTrackingArea: {
+        canvasRef: containerRef,
+        radius: mouseTrackingRadius,  // null = usa bounds container, numero = raggio in px
+        autoCenter: true,
+        transitionSpeed: mouseTrackingSpeed,
+      }
+    })
+  };
+  const { updateTracking } = useMouseTracking(gltf.scene, mouseTrackingOptions);
 
   // Leva controls per braccia - attivabile con enableBoneControls={true}
   const armControls = useControls('Braccia', {
@@ -180,7 +199,7 @@ function Avatar({
   useEffect(() => {
     if (speak === false) return;
 
-    axios.post(ttsEndpoint, { text })
+    axios.post(ttsEndpoint, { text, voice })
       .then(response => {
         let { blendData, filename } = response.data;
 
@@ -203,6 +222,10 @@ function Avatar({
   // Load idle animation
   let idleFbx = useFBX(`${ASSETS_BASE}/models/standing-briefcase-idle.fbx`);
   let { clips: idleClips } = useAnimations(idleFbx.animations);
+
+  // DEBUG: Stampa bones PRIMA del mapping (decommentare per debug)
+  // extractAnimationBones stampa le bones ORIGINALI dell'FBX Mixamo
+  // debugAllBones(gltf.scene, idleFbx.animations, 'Ryia', 'standing-briefcase-idle-ORIGINAL');
 
   // Filter and map animation tracks
   filterAnimationTracks(idleClips);
@@ -304,7 +327,15 @@ function Avatar({
     }
   });
 
-  return (
+    // Rimuovi commento per loggare ossa del modello e dell' animazione passata
+    // useEffect(() => {
+    //     if (gltf.scene && idleFbx.animations) {
+    //         debugAllBones(gltf.scene, idleFbx.animations, 'Ryia', 'standing-briefcase-idle');
+    //     }
+    // }, []);
+
+
+    return (
     <group name="avatar">
       <primitive object={gltf.scene} dispose={null} />
     </group>

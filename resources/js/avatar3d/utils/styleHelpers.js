@@ -46,9 +46,10 @@ export function buildContainerStyle({
  * @param {Object} options - Class options
  * @returns {string} CSS class string
  */
-export function buildContainerClasses({ fixedPosition, transparentBackground }) {
+export function buildContainerClasses({ fixedPosition, transparentBackground, widgetMode }) {
   const classes = ['avatar3d-container'];
   if (fixedPosition) classes.push('avatar3d-fixed');
   if (transparentBackground) classes.push('avatar3d-transparent');
+  if (widgetMode) classes.push('avatar3d-widget');
   return classes.join(' ');
 }

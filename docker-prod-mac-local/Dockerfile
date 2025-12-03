@@ -123,10 +123,9 @@ COPY --from=assets-builder /app/public/build ./public/build
 # Copia tutto il codice sorgente
 COPY --chown=www-data:www-data . .
 
-# Installa dipendenze npm per TTS script (Azure Speech SDK)
+# Installa dipendenze npm per TTS server (Express + Azure Speech SDK)
 RUN cd /var/www/html/src/Modules/Avatar3DReact/scripts \
-    && npm init -y \
-    && npm install microsoft-cognitiveservices-speech-sdk \
+    && npm install \
     && chown -R www-data:www-data /var/www/html/src/Modules/Avatar3DReact/scripts
 
 # Crea directory per audio output

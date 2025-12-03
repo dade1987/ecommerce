@@ -103,6 +103,36 @@ composer dump-autoload --optimize --no-dev 2>/dev/null || true
 echo ""
 echo "=== Container ready! Starting services... ==="
 echo ""
+
+# Esporta variabili Azure per TTS server (Node.js)
+# Il TTS server legge da variabili d'ambiente, non da .env Laravel
+ENV_FILE="/var/www/html/.env"
+if [ -f "$ENV_FILE" ]; then
+    echo "Exporting Azure TTS variables from .env..."
+
+    # Leggi AZURE_SPEECH_KEY
+    AZURE_SPEECH_KEY=$(grep -E "^AZURE_SPEECH_KEY=" "$ENV_FILE" | cut -d'=' -f2- | tr -d '"' | tr -d "'")
+    if [ -n "$AZURE_SPEECH_KEY" ]; then
+        export AZURE_SPEECH_KEY
+        echo "  AZURE_SPEECH_KEY: SET (${#AZURE_SPEECH_KEY} chars)"
+    fi
+
+    # Leggi AZURE_SPEECH_REGION
+    AZURE_SPEECH_REGION=$(grep -E "^AZURE_SPEECH_REGION=" "$ENV_FILE" | cut -d'=' -f2- | tr -d '"' | tr -d "'")
+    if [ -n "$AZURE_SPEECH_REGION" ]; then
+        export AZURE_SPEECH_REGION
+        echo "  AZURE_SPEECH_REGION: $AZURE_SPEECH_REGION"
+    fi
+
+    # Leggi AZURE_DEFAULT_VOICE (opzionale)
+    AZURE_DEFAULT_VOICE=$(grep -E "^AZURE_DEFAULT_VOICE=" "$ENV_FILE" | cut -d'=' -f2- | tr -d '"' | tr -d "'")
+    if [ -n "$AZURE_DEFAULT_VOICE" ]; then
+        export AZURE_DEFAULT_VOICE
+        echo "  AZURE_DEFAULT_VOICE: $AZURE_DEFAULT_VOICE"
+    fi
+fi
+
+echo ""
 echo "Comandi utili da eseguire nel container:"
 echo "  docker exec -it <container> sh"
 echo "  php artisan migrate:status"

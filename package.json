@@ -34,6 +34,7 @@
     },
     "dependencies": {
         "@alpinejs/focus": "^3.13.0",
+        "@lottiefiles/lottie-player": "^2.0.12",
         "@react-three/drei": "^9.117.0",
         "@react-three/fiber": "^8.17.0",
         "frappe-gantt": "^1.0.3",
