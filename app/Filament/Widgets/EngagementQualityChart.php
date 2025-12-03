@@ -2,6 +2,9 @@
 
 namespace App\Filament\Widgets;
 
+use App\Models\Quoter;
+use App\Models\Thread;
+use Carbon\Carbon;
 use Filament\Support\RawJs;
 use Filament\Widgets\ChartWidget;
 
@@ -24,15 +27,44 @@ class EngagementQualityChart extends ChartWidget
      */
     protected function getData(): array
     {
-        // Dati statici d’esempio: punteggio engagement AI su base oraria
-        $labels = ['09:00', '11:00', '13:00', '15:00', '17:00', '19:00', '21:00'];
+        // Dato reale derivato: media messaggi per thread (solo reali, is_fake = false) negli ultimi 7 giorni,
+        // normalizzata in un range 0–10 per rappresentare un "punteggio" di engagement.
+        $end = Carbon::now()->endOfDay();
+        $start = $end->copy()->subDays(6)->startOfDay();
+
+        $labels = [];
+        $values = [];
+
+        $days = $start->diffInDays($end) + 1;
+
+        for ($i = 0; $i < $days; $i++) {
+            $date = $start->copy()->addDays($i);
+
+            $threadsCount = Thread::query()
+                ->where('is_fake', false)
+                ->whereDate('created_at', $date->format('Y-m-d'))
+                ->count();
+
+            $messagesCount = Quoter::query()
+                ->where('is_fake', false)
+                ->whereDate('created_at', $date->format('Y-m-d'))
+                ->count();
+
+            $avg = $threadsCount > 0 ? $messagesCount / $threadsCount : 0.0;
+
+            // Normalizziamo / clamp in 0–10 per restare coerenti con il titolo.
+            $score = min(10, round($avg, 1));
+
+            $labels[] = $date->format('d/m');
+            $values[] = $score;
+        }
 
         return [
             'labels' => $labels,
             'datasets' => [
                 [
                     'label' => 'Punteggio engagement (0–10)',
-                    'data' => [5.4, 6.2, 7.8, 8.5, 7.9, 6.8, 5.9],
+                    'data' => $values,
                     'fill' => true,
                     'tension' => 0.45,
                     'backgroundColor' => 'rgba(251, 191, 36, 0.18)',

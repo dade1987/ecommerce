@@ -163,10 +163,36 @@
                             <x-heroicon-o-magnifying-glass class="h-3.5 w-3.5" />
                         </div>
                     </form>
-                    <span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-1 font-semibold text-emerald-700 ring-1 ring-emerald-100">
-                        <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
-                        LIVE &amp; Recenti
-                    </span>
+
+                    {{-- Switch REALI / FAKE per la sezione in basso --}}
+                    <button
+                        type="button"
+                        wire:click="toggleFakeDataset"
+                        class="inline-flex items-center gap-1 rounded-full px-2 py-1 font-semibold ring-1 text-[11px]
+                            @if ($showFake)
+                                bg-amber-50 text-amber-800 ring-amber-200
+                            @else
+                                bg-emerald-50 text-emerald-700 ring-emerald-100
+                            @endif
+                        "
+                    >
+                        <span
+                            class="h-1.5 w-1.5 rounded-full
+                                @if ($showFake)
+                                    bg-amber-500
+                                @else
+                                    bg-emerald-500
+                                @endif
+                            "
+                        ></span>
+                        <span>
+                            @if ($showFake)
+                                Demo (fake)
+                            @else
+                                Dati reali
+                            @endif
+                        </span>
+                    </button>
                 </div>
             </div>
 

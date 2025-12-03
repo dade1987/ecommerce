@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Carbon;
 
 class Thread extends Model
 {
@@ -29,12 +30,16 @@ class Thread extends Model
         'cookies',
         'headers',
         'server_params',
+        'is_fake',
     ];
 
     protected $casts = [
         'cookies' => 'array',
         'headers' => 'array',
         'server_params' => 'array',
+        'is_fake' => 'bool',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
 
     public function messages(): HasMany
