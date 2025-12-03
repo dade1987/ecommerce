@@ -6,8 +6,6 @@ use Illuminate\Auth\Events\Registered;
 use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Event;
-use App\Models\InventoryMovement;
-use App\Observers\InventoryMovementObserver;
 
 class EventServiceProvider extends ServiceProvider
 {
@@ -23,7 +21,7 @@ class EventServiceProvider extends ServiceProvider
     ];
 
     protected $observers = [
-        InventoryMovement::class => [InventoryMovementObserver::class],
+        // InventoryMovement observer removed - model not used by target files
     ];
 
     /**

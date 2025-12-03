@@ -50,9 +50,4 @@ class Address extends Model
     {
         return $this->belongsTo(Team::class);
     }
-
-    public function restaurants(): MorphToMany
-    {
-        return $this->morphedByMany(Restaurant::class, 'model', 'address_morph');
-    }
 }
