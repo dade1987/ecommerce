@@ -449,7 +449,6 @@ export default defineComponent({
       heygenVoice: "",
       threadId: null,
       teamSlugLocal: null,
-      avatar: null,
       heygenVideo: null,
       textInput: null,
       sendBtn: null,
@@ -1265,12 +1264,10 @@ export default defineComponent({
         return;
       }
 
-      // Se l'avatar sta parlando, inviamo il comando ufficiale di interrupt
-      // così smette di parlare mentre l'utente inizia a parlare al microfono.
+      // Se l'avatar sta parlando, chiediamo a HeyGen di interrompere l'audio corrente
+      // così l'utente non parla sopra la risposta, senza distruggere la sessione.
       try {
-        if (this.avatar && typeof this.avatar.interrupt === "function") {
-          this.avatar.interrupt();
-        }
+        await this.heygenInterrupt();
       } catch { }
 
       try {
@@ -1728,27 +1725,6 @@ export default defineComponent({
         }
 
         this.heygen.started = true;
-        // Wrapper semplice per i comandi avatar.* via LiveKit data,
-        // in particolare avatar.interrupt documentato nei Command Events.
-        this.avatar = {
-          interrupt: () => {
-            try {
-              if (
-                this.heygen &&
-                this.heygen.room &&
-                this.heygen.room.localParticipant &&
-                typeof this.heygen.room.localParticipant.publishData === "function"
-              ) {
-                const payload = JSON.stringify({
-                  event: "avatar.interrupt",
-                });
-                this.heygen.room.localParticipant.publishData(payload);
-              }
-            } catch (e) {
-              console.error("avatar.interrupt failed", e);
-            }
-          },
-        };
         this.setStatus("Connesso");
         this.loadingOverlay.classList.add("hidden");
       } catch (e) {
@@ -1778,6 +1754,29 @@ export default defineComponent({
         });
       } catch (e) {
         console.error("HeyGen repeat failed:", e);
+      }
+    },
+
+    async heygenInterrupt() {
+      // API di interruzione voce HeyGen: interrompe il parlato in corso senza chiudere la sessione.
+      try {
+        if (!this.heygen || !this.heygen.sessionInfo?.session_id) {
+          return;
+        }
+
+        await fetch(`${this.HEYGEN_CONFIG.serverUrl}/v1/streaming.interrupt`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${this.heygen.sessionToken || ""}`,
+            "X-Api-Key": this.HEYGEN_CONFIG.apiKey || "",
+          },
+          body: JSON.stringify({
+            session_id: this.heygen.sessionInfo.session_id,
+          }),
+        });
+      } catch (e) {
+        console.error("HeyGen interrupt failed:", e);
       }
     },
 
