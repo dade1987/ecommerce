@@ -27,7 +27,6 @@ use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Saade\FilamentFullCalendar\FilamentFullCalendarPlugin;
 use Z3d0X\FilamentFabricator\FilamentFabricatorPlugin;
-use App\Filament\Plugins\RichEditor\ColorPlugin;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -69,7 +68,6 @@ class AdminPanelProvider extends PanelProvider
             ])->plugins(
 
                 [
-                    ColorPlugin::make(),
                     FilamentFabricatorPlugin::make(),
                     FilamentShieldPlugin::make(),
                     CuratorPlugin::make(),
