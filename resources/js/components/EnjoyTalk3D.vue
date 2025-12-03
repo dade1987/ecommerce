@@ -238,8 +238,8 @@
         class="w-11 h-11 rounded-full bg-emerald-600/90 backdrop-blur text-white flex items-center justify-center shadow-lg border border-emerald-400/80">
         📧
       </button>
-      <!-- Mic button (snippet) - riusa l'handler globale di micBtn -->
-      <button id="micBtn"
+      <!-- Mic button (snippet) - richiama la stessa logica del mic globale -->
+      <button id="talkMicFloatingBtn" @click="onSnippetMicClick"
         class="w-11 h-11 rounded-full bg-rose-600/90 backdrop-blur text-white flex items-center justify-center shadow-lg border border-rose-400/80">
         🎤
       </button>
@@ -449,6 +449,16 @@ export default defineComponent({
         this.snippetMenuOpen = !this.snippetMenuOpen;
       } catch { }
     },
+    onSnippetMicClick() {
+      try {
+        const isSnippet = import.meta.env.VITE_IS_WEB_COMPONENT || false;
+        if (!isSnippet) return;
+        // Richiama esattamente la stessa logica del bottone microfono globale
+        try {
+          this._micClick && this._micClick();
+        } catch { }
+      } catch { }
+    },
     onSnippetTextClick() {
       try {
         const isSnippet = import.meta.env.VITE_IS_WEB_COMPONENT || false;
@@ -539,6 +549,10 @@ export default defineComponent({
         const isSnippet = import.meta.env.VITE_IS_WEB_COMPONENT || false;
         if (!isSnippet) return;
         // In modalità snippet la chat testuale usa lo stesso flusso di startStream()
+        // e aggiorna subito la vista chat come in onSend() quando chatMode è attivo
+        try {
+          this._pushChatMessage && this._pushChatMessage("user", msg);
+        } catch { }
         try {
           this.startStream && this.startStream(msg);
         } catch { }
@@ -2235,6 +2249,22 @@ export default defineComponent({
           setModeUI();
         };
       } catch { }
+      try {
+        instance.proxy._pushChatMessage = (role, content) => {
+          try {
+            chatMessagesData.push({ role, content: content || "" });
+            renderChatMessages();
+          } catch { }
+        };
+      } catch { }
+      try {
+        instance.proxy._pushChatMessage = (role, content) => {
+          try {
+            chatMessagesData.push({ role, content: content || "" });
+            renderChatMessages();
+          } catch { }
+        };
+      } catch { }
 
       async function stopAllSpeechOutput() {
         try {
@@ -2343,7 +2373,7 @@ export default defineComponent({
         instance.proxy._ensureMicPermission = ensureMicPermission;
       } catch { }
 
-      micBtn?.addEventListener("click", async () => {
+      async function handleMicClick() {
         if (conversaBtnContainer) {
           conversaBtnContainer.classList.add("hidden");
         }
@@ -2551,7 +2581,12 @@ export default defineComponent({
           console.warn("Riconoscimento vocale non disponibile o errore", err);
           alert("Riconoscimento vocale non disponibile in questo browser.");
         }
-      });
+      }
+
+      micBtn?.addEventListener("click", handleMicClick);
+      try {
+        instance.proxy._micClick = handleMicClick;
+      } catch { }
 
       // Listener per bottone "Conversa con Me"
       conversaBtn?.addEventListener("click", async () => {
