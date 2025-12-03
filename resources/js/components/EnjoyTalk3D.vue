@@ -5,8 +5,8 @@
     isWebComponent ? 'bg-transparent' : 'w-full bg-[#0f172a] pb-[96px] sm:pb-0'
   ]">
 
-    <!-- Floating launcher bubble (snippet mode) -->
-    <button v-if="isWebComponent && !widgetOpen" id="talkLauncherBtn"
+    <!-- Floating launcher bubble (snippet mode, sempre visibile) -->
+    <button v-if="isWebComponent" id="talkLauncherBtn"
       class="fixed z-[9999] bottom-4 right-4 w-14 h-14 rounded-full bg-emerald-600/90 backdrop-blur text-white shadow-lg border border-emerald-300/80 flex items-center justify-center"
       @click="onLauncherClick">
       💬
@@ -330,10 +330,21 @@ export default defineComponent({
         return this._setListeningUI?.(active);
       } catch { }
     },
-    // Apertura widget snippet (bubble → widget)
+    // Toggle widget snippet (bubble ↔ widget)
     onLauncherClick() {
       try {
-        this.widgetOpen = true;
+        const isSnippet = import.meta.env.VITE_IS_WEB_COMPONENT || false;
+        if (isSnippet) {
+          // In modalità snippet la bubble apre/chiude il widget
+          if (this.widgetOpen) {
+            this.closeWidget && this.closeWidget();
+          } else {
+            this.widgetOpen = true;
+          }
+        } else {
+          // In layout full, per sicurezza, si limita ad aprire
+          this.widgetOpen = true;
+        }
       } catch { }
     },
     // Chiusura widget snippet (widget → bubble)
