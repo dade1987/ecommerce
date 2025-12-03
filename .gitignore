@@ -30,3 +30,17 @@ storage/webscraper/webscraper.sqlite
 # SSL Certificates
 /docker-dev/certs/*.pem
 /docker-dev/certs/*.key
+/src/Modules/Avatar3DReact/resources/src/
+/public/avatar3d/models/avatar.glb
+/.dockerignore.bak
+/.dockerignore.local
+/.env.prod.local
+/src/Modules/WebScraper/docs/ATLAS-SEARCH.md
+/docker-dev-playwright/certs/avatar-3d-v1.local.pem
+/docker-dev-playwright/certs/avatar-3d-v1.local-key.pem
+/avatar-3d-v1-latest.tar.gz
+/storage/webscraper/backup_webscraper.sqlite
+/src/Modules/WebScraper/docs/INDEX-SEARCH.md
+/public/avatar3d/models/ryia.glb
+/public/avatar3d/models/test-2025112502.glb
+/src/Modules/WebScraper/database/webscraper.sqlite

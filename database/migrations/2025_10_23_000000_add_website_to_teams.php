@@ -16,7 +16,9 @@ return new class extends Migration
             if (Schema::hasColumn('teams', 'website')) {
                 $table->dropColumn('website');
             }
-            $table->json('websites')->nullable()->after('phone');
+            if (!Schema::hasColumn('teams', 'websites')) {
+                $table->json('websites')->nullable()->after('phone');
+            }
         });
     }
 
