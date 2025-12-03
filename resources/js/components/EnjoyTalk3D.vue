@@ -1,17 +1,31 @@
 <template>
   <div ref="rootEl" id="enjoyTalkRoot"
-    :class="['flex flex-col', !isWebComponent && 'min-h-[100dvh]', 'w-full bg-[#0f172a] pb-[96px] sm:pb-0']">
-    <div class="px-4 py-4" v-if="!isWebComponent">
-      <div class="mx-auto w-full max-w-[520px] flex items-center gap-3">
-        <img id="teamLogo" :src="teamLogo" alt="EnjoyTalk 3D"
-          class="w-10 h-10 rounded-full object-cover border border-slate-600" />
-        <h1 class="font-sans text-2xl text-white">EnjoyTalk 3D</h1>
-      </div>
-    </div>
+    :class="[
+      'flex flex-col',
+      !isWebComponent && 'min-h-[100dvh]',
+      isWebComponent ? 'bg-transparent' : 'w-full bg-[#0f172a] pb-[96px] sm:pb-0'
+    ]">
 
-    <!-- Canvas Avatar 3D -->
-    <div class="flex-1 flex items-center justify-center p-4">
-      <div class="relative w-full">
+    <!-- Floating launcher bubble (snippet mode) -->
+    <button v-if="isWebComponent && !widgetOpen" id="talkLauncherBtn"
+      class="fixed z-[9999] bottom-4 right-4 w-14 h-14 rounded-full bg-emerald-600/90 backdrop-blur text-white shadow-lg border border-emerald-300/80 flex items-center justify-center"
+      @click="onLauncherClick">
+      💬
+    </button>
+
+    <!-- Contenuto principale: visibile sempre in layout full, solo se widget aperto in modalità snippet -->
+    <div v-show="!isWebComponent || widgetOpen" :class="['flex flex-col w-full', !isWebComponent && 'flex-1']">
+      <div class="px-4 py-4" v-if="!isWebComponent">
+        <div class="mx-auto w-full max-w-[520px] flex items-center gap-3">
+          <img id="teamLogo" :src="teamLogo" alt="EnjoyTalk 3D"
+            class="w-10 h-10 rounded-full object-cover border border-slate-600" />
+          <h1 class="font-sans text-2xl text-white">EnjoyTalk 3D</h1>
+        </div>
+      </div>
+
+      <!-- Canvas Avatar 3D -->
+      <div class="flex-1 flex items-center justify-center p-4">
+        <div class="relative w-full">
         <div class="mx-auto w-full max-w-[520px] px-3 sm:px-0">
           <div id="avatarStage"
             class="bg-[#111827] border border-slate-700 rounded-md overflow-hidden w-full h-auto max-h-[calc(100dvh-220px)] aspect-[3/4]">
@@ -24,16 +38,16 @@
           </div>
         </div>
 
-        <!-- Fumetto di pensiero -->
-        <div id="thinkingBubble"
-          class="hidden absolute top-4 left-1/2 transform -translate-x-1/2 bg-white rounded-lg px-4 py-2 shadow-lg border border-gray-300">
-          <div class="text-gray-700 text-sm font-medium">
-            💭 Sto pensando...
+          <!-- Fumetto di pensiero -->
+          <div id="thinkingBubble"
+            class="hidden absolute top-4 left-1/2 transform -translate-x-1/2 bg-white rounded-lg px-4 py-2 shadow-lg border border-gray-300">
+            <div class="text-gray-700 text-sm font-medium">
+              💭 Sto pensando...
+            </div>
+            <div class="absolute bottom-0 left-1/2 transform translate-y-full -translate-x-1/2">
+              <div class="w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-white"></div>
+            </div>
           </div>
-          <div class="absolute bottom-0 left-1/2 transform translate-y-full -translate-x-1/2">
-            <div class="w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-white"></div>
-          </div>
-        </div>
         <!-- Badge ascolto microfono -->
         <div id="listeningBadge"
           class="hidden absolute top-4 left-4 bg-rose-600/90 text-white text-xs font-semibold px-2.5 py-1 rounded-md shadow animate-pulse">
@@ -62,13 +76,18 @@
             </div>
           </div>
         </div>
-        <!-- Toggle Chat Mode -->
-        <div class="absolute top-4 right-4 z-30">
-          <button id="modeToggleBtn"
-            class="px-3 py-2 bg-slate-700/80 hover:bg-slate-600 text-white text-xs rounded-md border border-slate-600 shadow">
-            💬 Modalità chat
+          <!-- Toggle Chat Mode (solo layout full) -->
+          <div v-if="!isWebComponent" class="absolute top-4 right-4 z-30">
+            <button id="modeToggleBtn"
+              class="px-3 py-2 bg-slate-700/80 hover:bg-slate-600 text-white text-xs rounded-md border border-slate-600 shadow">
+              💬 Modalità chat
+            </button>
+          </div>
+          <!-- Close button (snippet mode) -->
+          <button v-if="isWebComponent" id="talkCloseBtn" @click="closeWidget"
+            class="absolute top-4 right-4 z-30 w-8 h-8 rounded-full bg-black/70 text-white flex items-center justify-center border border-white/40">
+            ✕
           </button>
-        </div>
         <!-- Conversa con Me Button -->
         <div id="conversaBtnContainer"
           class="hidden absolute inset-0 flex items-center justify-center z-25 pointer-events-auto rounded-md bg-black/40 backdrop-blur-sm">
@@ -131,45 +150,46 @@
           </div>
         </div>
       </div>
-    </div>
+      </div>
 
-    <!-- Controlli -->
-    <div id="controlsBar"
-      class="bottom-0 left-0 w-full border-t border-slate-700 bg-[#0f172a] z-20 pb-[env(safe-area-inset-bottom)]">
-      <div class="px-3 py-3 sm:px-4 sm:py-4">
-        <div class="mx-auto w-full max-w-[520px] px-3 sm:px-0">
-          <div class="flex flex-wrap w-full gap-2 items-center min-w-0">
-            <input id="textInput" type="text" placeholder="Scrivi la domanda..."
-              class="flex-1 min-w-0 px-3 py-3 bg-[#111827] text-white border border-slate-700 rounded-md placeholder-slate-400 focus:border-indigo-500 focus:outline-none text-[15px] sm:text-base" />
-            <button id="sendBtn"
-              class="px-3 py-3 sm:px-4 sm:py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors whitespace-nowrap text-sm sm:text-base">
-              📤
-            </button>
-            <button id="micBtn"
-              class="px-3 py-3 sm:px-4 sm:py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-md transition-colors whitespace-nowrap text-sm sm:text-base">
-              🎤
-            </button>
-            <button id="emailTranscriptBtn"
-              class="px-3 py-3 sm:px-4 sm:py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md transition-colors whitespace-nowrap text-sm sm:text-base">
-              📧 Trascrizione
-            </button>
+      <!-- Controlli -->
+      <div id="controlsBar"
+        class="bottom-0 left-0 w-full border-t border-slate-700 bg-[#0f172a] z-20 pb-[env(safe-area-inset-bottom)]">
+        <div class="px-3 py-3 sm:px-4 sm:py-4">
+          <div class="mx-auto w-full max-w-[520px] px-3 sm:px-0">
+            <div class="flex flex-wrap w-full gap-2 items-center min-w-0">
+              <input id="textInput" type="text" placeholder="Scrivi la domanda..."
+                class="flex-1 min-w-0 px-3 py-3 bg-[#111827] text-white border border-slate-700 rounded-md placeholder-slate-400 focus:border-indigo-500 focus:outline-none text-[15px] sm:text-base" />
+              <button id="sendBtn"
+                class="px-3 py-3 sm:px-4 sm:py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors whitespace-nowrap text-sm sm:text-base">
+                📤
+              </button>
+              <button id="micBtn"
+                class="px-3 py-3 sm:px-4 sm:py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-md transition-colors whitespace-nowrap text-sm sm:text-base">
+                🎤
+              </button>
+              <button id="emailTranscriptBtn"
+                class="px-3 py-3 sm:px-4 sm:py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md transition-colors whitespace-nowrap text-sm sm:text-base">
+                📧 Trascrizione
+              </button>
+            </div>
+            <div :class="['mt-2 flex items-center gap-3 text-slate-300 text-xs sm:text-sm', isWebComponent && 'hidden']">
+              <label class="inline-flex items-center gap-2 cursor-pointer select-none">
+                <input id="useBrowserTts" type="checkbox" class="accent-indigo-600" />
+                <span>Usa TTS del browser (italiano)</span>
+              </label>
+              <span id="browserTtsStatus" class="opacity-70"></span>
+              <label class="inline-flex items-center gap-2 cursor-pointer select-none ml-auto">
+                <input id="useAdvancedLipsync" type="checkbox" class="accent-emerald-600" />
+                <span>LipSync avanzato (WebAudio)</span>
+              </label>
+            </div>
+            <div id="liveText" class="hidden mt-3 text-slate-300 min-h-[1.5rem]"></div>
           </div>
-          <div :class="['mt-2 flex items-center gap-3 text-slate-300 text-xs sm:text-sm', isWebComponent && 'hidden']">
-            <label class="inline-flex items-center gap-2 cursor-pointer select-none">
-              <input id="useBrowserTts" type="checkbox" class="accent-indigo-600" />
-              <span>Usa TTS del browser (italiano)</span>
-            </label>
-            <span id="browserTtsStatus" class="opacity-70"></span>
-            <label class="inline-flex items-center gap-2 cursor-pointer select-none ml-auto">
-              <input id="useAdvancedLipsync" type="checkbox" class="accent-emerald-600" />
-              <span>LipSync avanzato (WebAudio)</span>
-            </label>
-          </div>
-          <div id="liveText" class="hidden mt-3 text-slate-300 min-h-[1.5rem]"></div>
         </div>
       </div>
+      <audio id="ttsPlayer" class="hidden" playsinline></audio>
     </div>
-    <audio id="ttsPlayer" class="hidden" playsinline></audio>
   </div>
 </template>
 
@@ -213,10 +233,16 @@ export default defineComponent({
       // stato minimale esposto secondo Options API
       isListening: false,
       advancedLipsyncOn: false,
+      // stato snippet/webcomponent
+      widgetOpen: true,
     };
   },
   mounted() {
     try {
+      // In modalità webcomponent il widget parte chiuso, mostrato solo come bubble
+      if (import.meta.env.VITE_IS_WEB_COMPONENT) {
+        this.widgetOpen = false;
+      }
       // Inietta gli stili CSS dopo che il componente è montato
       // injectStylesIfNeeded()
       // Mostra l'overlay di caricamento
@@ -279,6 +305,22 @@ export default defineComponent({
     setListeningUI(active) {
       try {
         return this._setListeningUI?.(active);
+      } catch { }
+    },
+    // Apertura widget snippet (bubble → widget)
+    onLauncherClick() {
+      try {
+        this.widgetOpen = true;
+      } catch { }
+    },
+    // Chiusura widget snippet (widget → bubble)
+    closeWidget() {
+      try {
+        this.widgetOpen = false;
+        // Quando chiudo il widget interrompo qualsiasi output vocale attivo
+        try {
+          this.stopAllSpeechOutput && this.stopAllSpeechOutput();
+        } catch { }
       } catch { }
     },
     initUIBase(rootEl, debugEnabled) {
