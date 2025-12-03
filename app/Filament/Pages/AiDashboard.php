@@ -6,6 +6,7 @@ use App\Filament\Resources\ThreadResource;
 use App\Models\Quoter;
 use App\Models\Thread;
 use Carbon\Carbon;
+use Illuminate\Contracts\Support\Htmlable;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
