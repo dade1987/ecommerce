@@ -53,3 +53,5 @@ storage/webscraper/webscraper.sqlite
 /.dockerignore.local
 /.dockerignore.bak
 /src/Modules/WebScraper/database/webscraper.sqlite
+/public/avatar3d/models/avatar.glb
+/storage/webscraper/backup_webscraper.sqlite
