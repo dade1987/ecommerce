@@ -14,7 +14,7 @@
 
     <!-- Contenuto principale: full layout oppure widget snippet fisso in basso a destra -->
     <div v-show="!isWebComponent || widgetOpen" :class="isWebComponent
-      ? 'fixed z-[9998] bottom-24 right-4 w-[320px] max-w-[90vw] pointer-events-none'
+      ? 'fixed z-[9999] bottom-24 right-4 w-[320px] max-w-[90vw] pointer-events-none'
       : 'flex flex-col flex-1 w-full'">
 
       <!-- Header solo in layout full -->
@@ -334,16 +334,6 @@ export default defineComponent({
     onLauncherClick() {
       try {
         this.widgetOpen = true;
-        // In modalità snippet avvia direttamente un messaggio di benvenuto (come il "Parla con Me")
-        const isSnippet = import.meta.env.VITE_IS_WEB_COMPONENT || false;
-        if (isSnippet && !this.introPlayed) {
-          try {
-            const intro =
-              "salutami e spiegami che cosa sai fare";
-            this.startStream && this.startStream(intro);
-            this.introPlayed = true;
-          } catch { }
-        }
       } catch { }
     },
     // Chiusura widget snippet (widget → bubble)
@@ -4364,10 +4354,25 @@ export default defineComponent({
               if (loadingOverlay) {
                 loadingOverlay.classList.add("hidden");
               }
-              // Mostra il bottone "Conversa con Me"
-              if (conversaBtnContainer) {
+              // Mostra il bottone "Conversa con Me" solo in layout full
+              if (!isWebComponent && conversaBtnContainer) {
                 conversaBtnContainer.classList.remove("hidden");
               }
+
+              // In modalità snippet: frase di benvenuto TTS fissa dopo caricamento avatar
+              try {
+                const vmInst = getCurrentInstance()?.proxy;
+                const isSnippet = import.meta.env.VITE_IS_WEB_COMPONENT || false;
+                if (isSnippet && vmInst && !vmInst.introPlayed) {
+                  const intro =
+                    "Ciao, sono il tuo assistente virtuale Enjoy Talk 3D. Posso rispondere alle domande riguardanti questo sito internet.";
+                  try {
+                    vmInst._sendToTts && vmInst._sendToTts(intro);
+                    vmInst.introPlayed = true;
+                  } catch { }
+                }
+              } catch { }
+
               console.log(
                 "ANIMATION [LOADING] Completato (humanoidLoading = false)"
               );
