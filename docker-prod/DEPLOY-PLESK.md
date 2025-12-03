@@ -135,6 +135,13 @@ OPENAI_ASSISTANT_ID=asst_xxx
 # MongoDB Atlas (opzionale)
 MONGODB_URI=mongodb+srv://...
 MONGODB_DATABASE=your_mongo_db
+
+# Azure TTS (Avatar 3D con Visemi)
+AZURE_SPEECH_KEY=your_azure_speech_key
+AZURE_SPEECH_REGION=italynorth
+AZURE_DEFAULT_VOICE=it-IT-IsabellaNeural
+AVATAR3D_USE_NODE_PROCESS=false
+AVATAR3D_TTS_SERVICE_URL=http://localhost:3001
 ```
 
 ---
@@ -334,6 +341,35 @@ docker exec avatar-3d-v1 php artisan tinker --execute="DB::connection()->getPdo(
 2. Verifica firewall Plesk permetta 3306 da 172.17.0.0/16
 3. Verifica permessi MySQL per utente da `172.17.%`
 
+### TTS Server non risponde (Avatar 3D)
+
+**Sintomo**: L'avatar non parla, errore 500 su endpoint TTS.
+
+**Verifica TTS server attivo**:
+```bash
+# Controlla processo tts-server
+docker exec avatar-3d-v1 supervisorctl status tts-server
+
+# Test diretto endpoint interno
+docker exec avatar-3d-v1 curl -X POST http://localhost:3001/talk \
+  -H "Content-Type: application/json" \
+  -d '{"text":"test","voice":"it-IT-IsabellaNeural"}'
+```
+
+**Cause comuni**:
+1. Credenziali Azure mancanti o errate in `.env`
+2. TTS server non avviato da supervisor
+3. `AVATAR3D_USE_NODE_PROCESS=true` invece di `false`
+
+**Soluzione**:
+```bash
+# Riavvia TTS server
+docker exec avatar-3d-v1 supervisorctl restart tts-server
+
+# Controlla logs TTS
+docker logs avatar-3d-v1 2>&1 | grep -i tts
+```
+
 ---
 
 ## 8. Comandi Utili
@@ -421,8 +457,10 @@ docker run -d \
 - [ ] Verificare `docker exec avatar-3d-v1 id www-data` mostra UID/GID Plesk
 - [ ] Configurare SSL Let's Encrypt
 - [ ] Configurare reverse proxy nginx
+- [ ] Verificare TTS server attivo: `docker exec avatar-3d-v1 supervisorctl status tts-server`
+- [ ] Test Avatar 3D con sintesi vocale
 - [ ] Test finale su https://demo-avatar.trentaduebit.it
 
 ---
 
-*Ultimo aggiornamento: 2025-11-21*
+*Ultimo aggiornamento: 2025-12-01*

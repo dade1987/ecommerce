@@ -46,3 +46,9 @@ storage/webscraper/webscraper.sqlite
 /public/avatar3d/models/ryia.glb
 /src/Modules/WebScraper/docs/INDEX-SEARCH.md
 /src/Modules/WebScraper/docs/ATLAS-SEARCH.md
+/docker-dev-playwright/certs/avatar-3d-v1.local.pem
+/docker-dev-playwright/certs/avatar-3d-v1.local-key.pem
+/avatar-3d-v1-latest.tar.gz
+/.env.prod.local
+/.dockerignore.local
+/.dockerignore.bak

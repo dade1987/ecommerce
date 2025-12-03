@@ -1,6 +1,6 @@
 # Stato Lavori - Docker Production Setup
 
-**Data:** 2025-11-20
+**Data:** 2025-12-01
 
 ## Riepilogo
 
@@ -107,6 +107,47 @@ All'avvio del container vengono eseguiti automaticamente:
 8. **Route duplicate** → Rimossa da routes/web.php
 9. **Component layouts.app** → Corretto in 404.blade.php
 10. **Permessi file non corretti** → Impostati permessi 755 per directory e 644 per file in tutti i Dockerfile
+11. **TTS proc_open non disponibile** → Aggiunto Node.js TTS server interno al container, chiamato via HTTP localhost:3001
+
+---
+
+## TTS Server (Azure Speech con Visemi)
+
+Il container include un server Node.js interno per la sintesi vocale con visemi (lip sync per avatar 3D).
+
+### Architettura
+- **Server**: Express.js su porta 3001 (interno al container)
+- **SDK**: Microsoft Azure Cognitive Services Speech SDK
+- **Endpoint**: `POST /talk` con `{ text, voice }`
+- **Output**: Audio WAV + array visemi per sincronizzazione labiale
+
+### Configurazione .env
+```env
+# TTS via HTTP locale (Node.js server interno al container)
+AVATAR3D_USE_NODE_PROCESS=false
+AVATAR3D_TTS_SERVICE_URL=http://localhost:3001
+
+# Azure Speech credentials
+AZURE_SPEECH_KEY=your_azure_speech_key
+AZURE_SPEECH_REGION=italynorth
+AZURE_DEFAULT_VOICE=it-IT-IsabellaNeural
+```
+
+### File Coinvolti
+- `src/Modules/Avatar3DReact/scripts/server.js` - Server Express TTS
+- `src/Modules/Avatar3DReact/scripts/package.json` - Dipendenze (express, @azure/cognitiveservices-speech-sdk)
+- `docker-prod/supervisord.conf` - Configurazione processo tts-server
+
+### Supervisor Process
+```ini
+[program:tts-server]
+command=/usr/bin/node /var/www/html/src/Modules/Avatar3DReact/scripts/server.js
+directory=/var/www/html/src/Modules/Avatar3DReact/scripts
+autostart=true
+autorestart=true
+user=www-data
+environment=AUDIO_DIR="/var/www/html/public/avatar3d/audio",PORT="3001"
+```
 
 ---
 
@@ -162,9 +203,24 @@ RUN_MIGRATIONS=true  # Esegue php artisan migrate --force all'avvio
 ### Stack Container
 - PHP 8.3 FPM Alpine
 - Nginx
-- Supervisor (gestisce nginx, php-fpm, 2 queue workers)
+- Node.js (per TTS server interno)
+- Supervisor (gestisce tutti i processi)
 - MongoDB extension con SSL per Atlas
 - Memcached extension
+- Azure Speech SDK (per TTS con visemi)
+
+### Processi Supervisor (single container)
+Il container esegue 5 processi gestiti da Supervisor:
+
+| # | Processo | Descrizione |
+|---|----------|-------------|
+| 1 | **nginx** | Web server (porta 80) |
+| 2 | **php-fpm** | PHP processing |
+| 3 | **laravel-queue_00** | Background job worker #1 |
+| 4 | **laravel-queue_01** | Background job worker #2 |
+| 5 | **tts-server** | Node.js Azure TTS con visemi (porta 3001 interna) |
+
+> **Nota futura**: In una versione successiva si potrebbe separare in N container (nginx, php-fpm, queue workers, tts-server) per maggiore scalabilità.
 
 ### Playwright (solo versione --playwright)
 - Node.js 22 Alpine
