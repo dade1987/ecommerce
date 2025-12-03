@@ -2,6 +2,8 @@
 
 namespace App\Filament\Widgets;
 
+use App\Models\Quoter;
+use Carbon\Carbon;
 use Filament\Support\RawJs;
 use Filament\Widgets\ChartWidget;
 
@@ -24,10 +26,31 @@ class MessagesVolumeChart extends ChartWidget
      */
     protected function getData(): array
     {
-        // Dati statici d’esempio per effetto wow visivo
-        $labels = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
+        // Serie reale: numero di messaggi (solo reali, is_fake = false) negli ultimi 7 giorni
+        $end = Carbon::now()->endOfDay();
+        $start = $end->copy()->subDays(6)->startOfDay();
 
-        $values = [42, 68, 51, 95, 132, 88, 73];
+        $rawPerDay = Quoter::query()
+            ->selectRaw('DATE(created_at) as d, COUNT(*) as c')
+            ->where('is_fake', false)
+            ->whereBetween('created_at', [$start, $end])
+            ->groupBy('d')
+            ->orderBy('d')
+            ->pluck('c', 'd')
+            ->all();
+
+        $labels = [];
+        $values = [];
+
+        $days = $start->diffInDays($end) + 1;
+
+        for ($i = 0; $i < $days; $i++) {
+            $date = $start->copy()->addDays($i);
+            $key = $date->format('Y-m-d');
+
+            $labels[] = $date->format('d/m');
+            $values[] = $rawPerDay[$key] ?? 0;
+        }
 
         return [
             'labels' => $labels,

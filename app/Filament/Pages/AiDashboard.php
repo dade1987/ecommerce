@@ -7,6 +7,7 @@ use App\Models\Quoter;
 use App\Models\Thread;
 use Carbon\Carbon;
 use Illuminate\Contracts\Support\Htmlable;
+use Illuminate\Database\Eloquent\Builder;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
@@ -50,6 +51,12 @@ class AiDashboard extends Page implements HasForms
 
     public ?string $threadSearch = null;
 
+    /**
+     * Se true, la tabella in basso mostra i dati fake generati dal seeder.
+     * Se false, mostra solo i dati reali.
+     */
+    public bool $showFake = false;
+
     public function mount(): void
     {
         $this->startDate = now()->subDays(6)->format('Y-m-d');
@@ -89,14 +96,20 @@ class AiDashboard extends Page implements HasForms
             [$start, $end] = [$end->copy()->startOfDay(), $start->copy()->endOfDay()];
         }
 
-        $threadQuery = Thread::whereBetween('created_at', [$start, $end]);
+        /** @var Builder<Thread> $threadQuery */
+        $threadQuery = Thread::query()
+            ->where('is_fake', false)
+            ->whereBetween('created_at', [$start, $end]);
+
         $totalThreads = $threadQuery->count();
 
         // Ottieni i thread_id dei thread nel periodo
         $threadIds = $threadQuery->pluck('thread_id');
 
         // Conta solo i messaggi creati nel periodo che appartengono ai thread nel periodo
-        $totalMessages = Quoter::whereIn('thread_id', $threadIds)
+        $totalMessages = Quoter::query()
+            ->where('is_fake', false)
+            ->whereIn('thread_id', $threadIds)
             ->whereBetween('created_at', [$start, $end])
             ->count();
 
@@ -111,7 +124,9 @@ class AiDashboard extends Page implements HasForms
         ];
 
         // Serie temporale: messaggi per giorno nel range selezionato
-        $rawPerDay = Quoter::selectRaw('DATE(created_at) as d, COUNT(*) as c')
+        $rawPerDay = Quoter::query()
+            ->selectRaw('DATE(created_at) as d, COUNT(*) as c')
+            ->where('is_fake', false)
             ->whereBetween('created_at', [$start, $end])
             ->groupBy('d')
             ->orderBy('d')
@@ -130,7 +145,9 @@ class AiDashboard extends Page implements HasForms
         $this->messagesPerDay = $messagesPerDay;
 
         // Distribuzione thread per team (prime 5 squadre) nel range selezionato
-        $this->threadsPerTeam = Thread::selectRaw('COALESCE(team_slug, "n/d") as team, COUNT(*) as total')
+        $this->threadsPerTeam = Thread::query()
+            ->selectRaw('COALESCE(team_slug, "n/d") as team, COUNT(*) as total')
+            ->where('is_fake', false)
             ->whereBetween('created_at', [$start, $end])
             ->groupBy('team')
             ->orderByDesc('total')
@@ -143,14 +160,21 @@ class AiDashboard extends Page implements HasForms
             ->all();
 
         // Ultimi thread per tabella "Active Threads" nel range selezionato
-        $latestThreadsQuery = Thread::withCount('messages')
+        /** @var Builder<Thread> $latestThreadsQuery */
+        $latestThreadsQuery = Thread::query()
+            ->withCount(['messages' => function (Builder $query): void {
+                $query->where('is_fake', $this->showFake);
+            }])
+            ->where('is_fake', $this->showFake)
             ->whereBetween('created_at', [$start, $end]);
 
         if (! empty($this->threadSearch)) {
             $search = $this->threadSearch;
 
             // Filtra i thread che hanno almeno un messaggio il cui contenuto contiene il testo cercato
-            $matchingThreadIds = Quoter::where('content', 'like', '%' . $search . '%')
+            $matchingThreadIds = Quoter::query()
+                ->where('is_fake', $this->showFake)
+                ->where('content', 'like', '%' . $search . '%')
                 ->pluck('thread_id');
 
             $latestThreadsQuery->whereIn('thread_id', $matchingThreadIds);
@@ -177,8 +201,16 @@ class AiDashboard extends Page implements HasForms
             return collect();
         }
 
-        return Quoter::where('thread_id', $this->selectedThreadId)
+        return Quoter::query()
+            ->where('thread_id', $this->selectedThreadId)
+            ->where('is_fake', $this->showFake)
             ->orderBy('created_at', 'asc')
             ->get();
+    }
+
+    public function toggleFakeDataset(): void
+    {
+        $this->showFake = ! $this->showFake;
+        $this->loadDashboardData();
     }
 }
