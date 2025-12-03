@@ -18,9 +18,6 @@ yarn-error.log
 .env
 .env.backup
 .env.production
-.env.prod.local
-.env.prod
-.env.*
 .phpunit.result.cache
 
 # IDE and editor files

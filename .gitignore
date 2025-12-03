@@ -52,3 +52,4 @@ storage/webscraper/webscraper.sqlite
 /.env.prod.local
 /.dockerignore.local
 /.dockerignore.bak
+/src/Modules/WebScraper/database/webscraper.sqlite
