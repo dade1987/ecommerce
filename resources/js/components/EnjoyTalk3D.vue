@@ -2325,24 +2325,29 @@ export default defineComponent({
       } catch { }
       function setListeningUI(active) {
         const badge = $id("listeningBadge");
+        const mic = micBtn;
         if (active) {
           if (badge) badge.classList.remove("hidden");
-          micBtn.classList.remove("bg-rose-600");
-          micBtn.classList.add(
-            "bg-emerald-600",
-            "ring-2",
-            "ring-emerald-400",
-            "animate-pulse"
-          );
+          if (mic) {
+            mic.classList.remove("bg-rose-600");
+            mic.classList.add(
+              "bg-emerald-600",
+              "ring-2",
+              "ring-emerald-400",
+              "animate-pulse"
+            );
+          }
         } else {
           if (badge) badge.classList.add("hidden");
-          micBtn.classList.add("bg-rose-600");
-          micBtn.classList.remove(
-            "bg-emerald-600",
-            "ring-2",
-            "ring-emerald-400",
-            "animate-pulse"
-          );
+          if (mic) {
+            mic.classList.add("bg-rose-600");
+            mic.classList.remove(
+              "bg-emerald-600",
+              "ring-2",
+              "ring-emerald-400",
+              "animate-pulse"
+            );
+          }
         }
       }
       try {
