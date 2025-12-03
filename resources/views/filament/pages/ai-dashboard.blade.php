@@ -151,7 +151,18 @@
                         Ultime conversazioni attivate dai widget EnjoyHen sui vari siti, con stato e azioni rapide.
                     </p>
                 </div>
-                <div class="flex items-center gap-2 text-xs">
+                <div class="flex items-center gap-3 text-xs">
+                    <form wire:submit.prevent="searchThreads" class="relative">
+                        <input
+                            type="search"
+                            wire:model.defer="threadSearch"
+                            placeholder="Cerca nel testo della chat…"
+                            class="w-52 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-700 placeholder-slate-400 focus:border-emerald-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                        >
+                        <div class="pointer-events-none absolute inset-y-0 right-2 flex items-center text-slate-400">
+                            <x-heroicon-o-magnifying-glass class="h-3.5 w-3.5" />
+                        </div>
+                    </form>
                     <span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-1 font-semibold text-emerald-700 ring-1 ring-emerald-100">
                         <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
                         LIVE &amp; Recenti
