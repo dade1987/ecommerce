@@ -212,6 +212,62 @@
 
       <audio id="ttsPlayer" class="hidden" playsinline></audio>
     </div> <!-- fine wrapper contenuto principale -->
+
+    <!-- Floating controls bar (snippet mode) -->
+    <div v-if="isWebComponent && widgetOpen" id="talkFloatingControls"
+      class="fixed z-[9999] bottom-4 right-4 flex items-center gap-2 pointer-events-auto">
+      <!-- Menu button -->
+      <button id="talkMenuBtn" @click="toggleSnippetMenu"
+        class="w-11 h-11 rounded-full bg-slate-900/60 backdrop-blur text-white/90 flex items-center justify-center shadow-lg border border-slate-500/60">
+        ⋯
+      </button>
+      <!-- Email transcript button (riusa la logica esistente di emailTranscriptBtn) -->
+      <button id="emailTranscriptBtn"
+        class="w-11 h-11 rounded-full bg-emerald-600/90 backdrop-blur text-white flex items-center justify-center shadow-lg border border-emerald-400/80">
+        📧
+      </button>
+      <!-- Mic button (riusa la logica esistente di micBtn) -->
+      <button id="micBtn"
+        class="w-11 h-11 rounded-full bg-rose-600/90 backdrop-blur text-white flex items-center justify-center shadow-lg border border-rose-400/80">
+        🎤
+      </button>
+      <!-- Keyboard button: apre/chiude la modalità chat testuale -->
+      <button id="talkKeyboardBtn" @click="onSnippetTextClick"
+        class="w-11 h-11 rounded-full bg-indigo-600/90 backdrop-blur text-white flex items-center justify-center shadow-lg border border-indigo-400/80">
+        ⌨️
+      </button>
+    </div>
+
+    <!-- Floating options menu (snippet mode) -->
+    <div v-if="isWebComponent && widgetOpen && snippetMenuOpen" id="talkOptionsPanel"
+      class="fixed z-[10000] bottom-28 right-4 w-72 rounded-2xl bg-slate-900/90 backdrop-blur text-slate-100 shadow-2xl border border-slate-700/80 pointer-events-auto">
+      <div class="px-4 py-3 border-b border-slate-800 text-[11px] font-semibold text-slate-400">
+        AZIONI
+      </div>
+      <div class="px-4 py-2 space-y-2 text-sm">
+        <button @click="toggleTextInterface"
+          class="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-slate-800/70 hover:bg-slate-700">
+          <span>{{ snippetTextMode ? 'Modalità avatar' : 'Interfaccia testuale' }}</span>
+        </button>
+        <button @click="toggleMessages"
+          class="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-slate-800/70 hover:bg-slate-700">
+          <span>Messaggi</span>
+          <span
+            :class="['px-2 py-0.5 text-[11px] rounded-full', snippetMessagesOn ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white']">
+            {{ snippetMessagesOn ? 'ON' : 'OFF' }}
+          </span>
+        </button>
+        <button @click="toggleAudio"
+          class="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-slate-800/70 hover:bg-slate-700">
+          <span>Audio</span>
+          <span
+            :class="['px-2 py-0.5 text-[11px] rounded-full', snippetAudioOn ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white']">
+            {{ snippetAudioOn ? 'ON' : 'OFF' }}
+          </span>
+        </button>
+      </div>
+    </div>
+
   </div> <!-- fine root -->
 </template>
 
@@ -258,6 +314,10 @@ export default defineComponent({
       // stato snippet/webcomponent
       widgetOpen: true,
       introPlayed: false,
+      snippetMenuOpen: false,
+      snippetTextMode: false,
+      snippetMessagesOn: true,
+      snippetAudioOn: true,
     };
   },
   mounted() {
@@ -355,6 +415,64 @@ export default defineComponent({
         try {
           this.stopAllSpeechOutput && this.stopAllSpeechOutput();
         } catch { }
+      } catch { }
+    },
+    toggleSnippetMenu() {
+      try {
+        this.snippetMenuOpen = !this.snippetMenuOpen;
+      } catch { }
+    },
+    onSnippetTextClick() {
+      try {
+        const isSnippet = import.meta.env.VITE_IS_WEB_COMPONENT || false;
+        if (!isSnippet) return;
+        // In snippet usiamo la chat testuale esistente (chatPanel) al posto dell'avatar
+        const next = !this.snippetTextMode;
+        this.snippetTextMode = next;
+        try {
+          if (this._setChatMode) {
+            this._setChatMode(next);
+          }
+        } catch { }
+        this.snippetMenuOpen = false;
+      } catch { }
+    },
+    toggleTextInterface() {
+      try {
+        const isSnippet = import.meta.env.VITE_IS_WEB_COMPONENT || false;
+        if (!isSnippet) return;
+        const next = !this.snippetTextMode;
+        this.snippetTextMode = next;
+        try {
+          if (this._setChatMode) {
+            this._setChatMode(next);
+          }
+        } catch { }
+        this.snippetMenuOpen = false;
+      } catch { }
+    },
+    toggleMessages() {
+      try {
+        this.snippetMessagesOn = !this.snippetMessagesOn;
+      } catch { }
+    },
+    toggleAudio() {
+      try {
+        this.snippetAudioOn = !this.snippetAudioOn;
+        try {
+          const audio = document.getElementById("ttsPlayer");
+          if (audio) {
+            audio.muted = !this.snippetAudioOn;
+          }
+        } catch { }
+        // Se disattivo l'audio, interrompo anche eventuale speechSynthesis
+        if (!this.snippetAudioOn) {
+          try {
+            if (typeof window !== "undefined" && window.speechSynthesis) {
+              window.speechSynthesis.cancel();
+            }
+          } catch { }
+        }
       } catch { }
     },
     initUIBase(rootEl, debugEnabled) {
@@ -2021,6 +2139,12 @@ export default defineComponent({
           chatMode = !chatMode;
           setModeUI();
         });
+      } catch { }
+      try {
+        instance.proxy._setChatMode = (val) => {
+          chatMode = !!val;
+          setModeUI();
+        };
       } catch { }
 
       async function stopAllSpeechOutput() {
