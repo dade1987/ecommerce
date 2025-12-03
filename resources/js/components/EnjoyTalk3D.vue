@@ -104,8 +104,8 @@
               ✕
             </button>
 
-            <!-- Conversa con Me Button -->
-            <div id="conversaBtnContainer"
+            <!-- Conversa con Me Button (solo layout full) -->
+            <div v-if="!isWebComponent" id="conversaBtnContainer"
               class="hidden absolute inset-0 flex items-center justify-center z-25 pointer-events-auto rounded-md bg-black/40 backdrop-blur-sm">
               <button id="conversaBtn"
                 class="px-6 py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors whitespace-nowrap text-lg sm:text-xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105">
@@ -257,6 +257,7 @@ export default defineComponent({
       advancedLipsyncOn: false,
       // stato snippet/webcomponent
       widgetOpen: true,
+      introPlayed: false,
     };
   },
   mounted() {
@@ -333,6 +334,16 @@ export default defineComponent({
     onLauncherClick() {
       try {
         this.widgetOpen = true;
+        // In modalità snippet avvia direttamente un messaggio di benvenuto (come il "Parla con Me")
+        const isSnippet = import.meta.env.VITE_IS_WEB_COMPONENT || false;
+        if (isSnippet && !this.introPlayed) {
+          try {
+            const intro =
+              "salutami e spiegami che cosa sai fare";
+            this.startStream && this.startStream(intro);
+            this.introPlayed = true;
+          } catch { }
+        }
       } catch { }
     },
     // Chiusura widget snippet (widget → bubble)
