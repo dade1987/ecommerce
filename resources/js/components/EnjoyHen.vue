@@ -1264,6 +1264,25 @@ export default defineComponent({
         return;
       }
 
+      // Se l'avatar sta parlando, interrompiamo subito la riproduzione
+      // così l'utente non parla sopra la risposta.
+      try {
+        // Silenzia immediatamente il video locale
+        if (this.heygenVideo) {
+          try {
+            this.heygenVideo.pause?.();
+          } catch { }
+          this.heygenVideo.muted = true;
+        }
+      } catch { }
+      try {
+        // Chiudi la sessione corrente così HeyGen smette di parlare lato server.
+        // La prossima risposta ricreerà la sessione tramite ensureHeyGenSession().
+        if (this.cleanup) {
+          this.cleanup();
+        }
+      } catch { }
+
       try {
         if (!this.audioCtx) {
           this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();

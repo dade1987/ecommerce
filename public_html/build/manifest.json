@@ -5,7 +5,7 @@
     "src": "resources/css/app.css"
   },
   "resources/css/filament/admin/theme.css": {
-    "file": "assets/theme-112471db.css",
+    "file": "assets/theme-d088e536.css",
     "isEntry": true,
     "src": "resources/css/filament/admin/theme.css"
   },
@@ -17,7 +17,7 @@
     "css": [
       "assets/app-a02fc6a2.css"
     ],
-    "file": "assets/app-6f8578cb.js",
+    "file": "assets/app-a3b174ba.js",
     "isEntry": true,
     "src": "resources/js/app.js"
   }
