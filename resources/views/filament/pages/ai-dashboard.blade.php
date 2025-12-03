@@ -275,20 +275,22 @@
                                         {{ $status['label'] }}
                                     </span>
                                 </td>
-                                <td class="px-6 py-4 text-right space-x-2">
-                                    {{-- Azione 1: Dati thread (view Filament) --}}
-                                    <a href="{{ $thread->view_url }}"
-                                        class="inline-flex items-center gap-1 rounded-full bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white shadow-sm shadow-slate-300/60 hover:bg-slate-800 hover:shadow-md">
-                                        <x-heroicon-o-rectangle-stack class="h-3.5 w-3.5" />
-                                        <span>Dati thread</span>
-                                    </a>
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center justify-end gap-2">
+                                        {{-- Azione 1: Dati thread (view Filament) --}}
+                                        <a href="{{ $thread->view_url }}"
+                                            class="inline-flex items-center gap-1 rounded-full bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white shadow-sm shadow-slate-300/60 hover:bg-slate-800 hover:shadow-md">
+                                            <x-heroicon-o-rectangle-stack class="h-3.5 w-3.5" />
+                                            <span>Dati thread</span>
+                                        </a>
 
-                                    {{-- Azione 2: Visualizza conversazione (modal) --}}
-                                    <button wire:click="openConversationModal('{{ $thread->thread_id }}')"
-                                        class="inline-flex items-center gap-1 rounded-full bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm shadow-indigo-200/70 hover:bg-indigo-700 hover:shadow-md">
-                                        <x-heroicon-o-eye class="h-3.5 w-3.5" />
-                                        <span>Visualizza conversazione</span>
-                                    </button>
+                                        {{-- Azione 2: Visualizza conversazione (modal) --}}
+                                        <button wire:click="openConversationModal('{{ $thread->thread_id }}')"
+                                            class="inline-flex items-center gap-1 rounded-full bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm shadow-indigo-200/70 hover:bg-indigo-700 hover:shadow-md">
+                                            <x-heroicon-o-eye class="h-3.5 w-3.5" />
+                                            <span>Visualizza conversazione</span>
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         @empty
