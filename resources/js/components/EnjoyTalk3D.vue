@@ -5,8 +5,8 @@
     isWebComponent ? 'bg-transparent' : 'w-full bg-[#0f172a] pb-[96px] sm:pb-0'
   ]">
 
-    <!-- Floating launcher bubble (snippet mode, sempre visibile) -->
-    <button v-if="isWebComponent" id="talkLauncherBtn"
+    <!-- Floating launcher bubble (snippet mode, visibile solo quando il widget è chiuso) -->
+    <button v-if="isWebComponent && !widgetOpen" id="talkLauncherBtn"
       class="fixed z-[9999] bottom-4 right-4 w-14 h-14 rounded-full bg-emerald-600/90 backdrop-blur text-white shadow-lg border border-emerald-300/80 flex items-center justify-center"
       @click="onLauncherClick">
       💬
@@ -221,13 +221,13 @@
         class="w-11 h-11 rounded-full bg-slate-900/60 backdrop-blur text-white/90 flex items-center justify-center shadow-lg border border-slate-500/60">
         ⋯
       </button>
-      <!-- Email transcript button (riusa la logica esistente di emailTranscriptBtn) -->
-      <button id="emailTranscriptBtn"
+      <!-- Email transcript button (snippet) -->
+      <button id="talkEmailTranscriptFloatingBtn" @click="openSnippetEmailModal"
         class="w-11 h-11 rounded-full bg-emerald-600/90 backdrop-blur text-white flex items-center justify-center shadow-lg border border-emerald-400/80">
         📧
       </button>
-      <!-- Mic button (riusa la logica esistente di micBtn) -->
-      <button id="micBtn"
+      <!-- Mic button (snippet) -->
+      <button id="talkMicFloatingBtn" @click="onMicClick"
         class="w-11 h-11 rounded-full bg-rose-600/90 backdrop-blur text-white flex items-center justify-center shadow-lg border border-rose-400/80">
         🎤
       </button>
@@ -417,6 +417,20 @@ export default defineComponent({
         } catch { }
       } catch { }
     },
+    onMicClick() {
+      try {
+        const isSnippet = import.meta.env.VITE_IS_WEB_COMPONENT || false;
+        if (isSnippet) {
+          // In snippet riuso il bottone mic principale, se presente
+          const root = this.$el || document;
+          const btn = root && root.querySelector ? root.querySelector("#micBtn") : document.getElementById("micBtn");
+          if (btn && typeof btn.click === "function") {
+            btn.click();
+            return;
+          }
+        }
+      } catch { }
+    },
     toggleSnippetMenu() {
       try {
         this.snippetMenuOpen = !this.snippetMenuOpen;
@@ -434,6 +448,21 @@ export default defineComponent({
             this._setChatMode(next);
           }
         } catch { }
+        // Fallback: applica comunque la visibilità avatar/chat via DOM (come overlay di Hen)
+        try {
+          const root = this.$el || document;
+          const stage = root && root.querySelector ? root.querySelector("#avatarStage") : document.getElementById("avatarStage");
+          const panel = root && root.querySelector ? root.querySelector("#chatPanel") : document.getElementById("chatPanel");
+          if (stage && panel) {
+            if (next) {
+              stage.classList.add("hidden");
+              panel.classList.remove("hidden");
+            } else {
+              stage.classList.remove("hidden");
+              panel.classList.add("hidden");
+            }
+          }
+        } catch { }
         this.snippetMenuOpen = false;
       } catch { }
     },
@@ -446,6 +475,21 @@ export default defineComponent({
         try {
           if (this._setChatMode) {
             this._setChatMode(next);
+          }
+        } catch { }
+        // Fallback DOM come sopra
+        try {
+          const root = this.$el || document;
+          const stage = root && root.querySelector ? root.querySelector("#avatarStage") : document.getElementById("avatarStage");
+          const panel = root && root.querySelector ? root.querySelector("#chatPanel") : document.getElementById("chatPanel");
+          if (stage && panel) {
+            if (next) {
+              stage.classList.add("hidden");
+              panel.classList.remove("hidden");
+            } else {
+              stage.classList.remove("hidden");
+              panel.classList.add("hidden");
+            }
           }
         } catch { }
         this.snippetMenuOpen = false;
@@ -472,6 +516,22 @@ export default defineComponent({
               window.speechSynthesis.cancel();
             }
           } catch { }
+        }
+      } catch { }
+    },
+    openSnippetEmailModal() {
+      try {
+        const isSnippet = import.meta.env.VITE_IS_WEB_COMPONENT || false;
+        if (!isSnippet) return;
+        // Richiama direttamente la logica esistente dell'email modal
+        try {
+          this._openEmailModal && this._openEmailModal();
+        } catch {
+          const root = this.$el || document;
+          const btn = root && root.querySelector ? root.querySelector("#emailTranscriptBtn") : document.getElementById("emailTranscriptBtn");
+          if (btn && typeof btn.click === "function") {
+            btn.click();
+          }
         }
       } catch { }
     },
@@ -2064,6 +2124,9 @@ export default defineComponent({
         emailCancel?.addEventListener("click", closeEmailModal);
         emailCancel2?.addEventListener("click", closeEmailModal);
         emailConfirm?.addEventListener("click", sendTranscriptEmail);
+      } catch { }
+      try {
+        instance.proxy._openEmailModal = openEmailModal;
       } catch { }
 
       // ===== Chat Mode handling =====
