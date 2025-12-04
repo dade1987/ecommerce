@@ -286,6 +286,7 @@
 <script>
 import { onMounted, defineComponent, getCurrentInstance, ref } from "vue";
 import { injectStylesIfNeeded } from '../utils/inject-styles.js'
+import WhisperSpeechRecognition from "../utils/WhisperSpeechRecognition";
 
 export default defineComponent({
   name: "EnjoyTalk3D",
@@ -2382,6 +2383,8 @@ export default defineComponent({
         if (conversaBtnContainer) {
           conversaBtnContainer.classList.add("hidden");
         }
+
+        // Toggle: se sta già ascoltando, ferma la registrazione e chiudi il mic
         if (isListening && recognition) {
           try {
             recognition.stop();
@@ -2392,6 +2395,7 @@ export default defineComponent({
           console.log("MIC: listening stopped by user");
           return;
         }
+
         await stopAllSpeechOutput();
         try {
           if (currentEvtSource) {
@@ -2399,6 +2403,8 @@ export default defineComponent({
             currentEvtSource = null;
           }
         } catch { }
+
+        // Assicura che l'AudioContext sia pronto (come prima)
         try {
           if (!audioCtx)
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -2409,6 +2415,7 @@ export default defineComponent({
         } catch (e) {
           console.warn("AUDIO: failed to init/resume", e);
         }
+
         const ok = await ensureMicPermission();
         if (!ok) {
           alert(
@@ -2416,44 +2423,28 @@ export default defineComponent({
           );
           return;
         }
+
         try {
-          const Rec =
-            window.SpeechRecognition || window.webkitSpeechRecognition;
-          if (!Rec) throw new Error("Web Speech API non disponibile");
-          recognition = new Rec();
+          const vm = getCurrentInstance()?.proxy || {};
+
+          // Usa sempre WhisperSpeechRecognition al posto della Web Speech API
+          recognition = new WhisperSpeechRecognition();
+
+          // Lingua: riusa recLang calcolato in precedenza
           recognition.lang = recLang || "it-IT";
-          recognition.interimResults = isAndroid ? true : false;
-          recognition.continuous = isAndroid ? false : false;
-          recognition.maxAlternatives = 1;
-          let recognitionWatchdogTimer = null;
-          function clearRecWatchdog() {
-            if (recognitionWatchdogTimer) {
-              clearTimeout(recognitionWatchdogTimer);
-              recognitionWatchdogTimer = null;
+
+          // Modalità single-segment + pausa automatica basata sul silenzio (1s)
+          try {
+            recognition.singleSegmentMode = true;
+            if (Object.prototype.hasOwnProperty.call(recognition, "_silenceMs")) {
+              recognition._silenceMs = 1000;
             }
-          }
-          function startRecWatchdog() {
-            clearRecWatchdog();
-            recognitionWatchdogTimer = setTimeout(() => {
-              console.warn("SPEECH: watchdog timeout (no result), restarting");
-              try {
-                recognition.stop();
-                recognition.abort && recognition.abort();
-              } catch { }
-              setTimeout(() => {
-                try {
-                  recognition.start();
-                  console.log("SPEECH: restarted by watchdog");
-                } catch (e) {
-                  console.error("SPEECH: restart failed", e);
-                }
-              }, 250);
-            }, 8000);
-          }
+          } catch { }
+
           recognition.onstart = async () => {
             isListening = true;
             setListeningUI(true);
-            console.log("SPEECH: onstart");
+            console.log("WHISPER: onstart");
             try {
               if (audioCtx && audioCtx.state === "running") {
                 await audioCtx.suspend();
@@ -2463,37 +2454,14 @@ export default defineComponent({
               console.warn("AUDIO: suspend failed", e);
             }
           };
-          recognition.onaudiostart = () => {
-            console.log("SPEECH: onaudiostart");
-          };
-          recognition.onsoundstart = () => {
-            console.log("SPEECH: onsoundstart");
-          };
-          recognition.onspeechstart = () => {
-            console.log("SPEECH: onspeechstart");
-            startRecWatchdog();
-          };
-          recognition.onspeechend = () => {
-            console.log("SPEECH: onspeechend");
-            clearRecWatchdog();
-          };
-          recognition.onsoundend = () => {
-            console.log("SPEECH: onsoundend");
-          };
-          recognition.onaudioend = () => {
-            console.log("SPEECH: onaudioend");
-          };
-          recognition.onnomatch = (e) => {
-            console.warn("SPEECH: onnomatch", (e && e.message) || "");
-          };
+
           recognition.onerror = async (e) => {
             console.error(
-              "SPEECH: onerror",
+              "WHISPER: onerror",
               (e && (e.error || e.message)) || e
             );
             isListening = false;
             setListeningUI(false);
-            clearRecWatchdog();
             try {
               if (audioCtx && audioCtx.state === "suspended") {
                 await audioCtx.resume();
@@ -2503,11 +2471,11 @@ export default defineComponent({
               console.warn("AUDIO: resume after error failed", er);
             }
           };
+
           recognition.onend = async () => {
             isListening = false;
             setListeningUI(false);
-            console.log("SPEECH: onend");
-            clearRecWatchdog();
+            console.log("WHISPER: onend");
             try {
               if (audioCtx && audioCtx.state === "suspended") {
                 await audioCtx.resume();
@@ -2517,73 +2485,77 @@ export default defineComponent({
               console.warn("AUDIO: resume after end failed", er);
             }
           };
+
+          // Auto-pausa dopo 1 secondo di silenzio: ferma il mic (triggerando la trascrizione)
+          if ("onAutoPause" in recognition) {
+            recognition.onAutoPause = function () {
+              try {
+                if (!isListening) return;
+                console.log("WHISPER: onAutoPause → stopping mic after silence");
+                isListening = false;
+                setListeningUI(false);
+                recognition.stop();
+              } catch { }
+            };
+          }
+
           recognition.onresult = (event) => {
             try {
               lastResultAt = Date.now();
-              const res = event.results;
-              const last = res[res.length - 1];
-              const transcript = last[0].transcript;
-              const isFinal =
-                last.isFinal === true || !recognition.interimResults;
-              console.log("SPEECH: onresult", {
-                transcript,
-                isFinal,
-                resultIndex: event.resultIndex,
-                length: res.length,
-              });
+
+              const results = event && event.results ? event.results : [];
+              if (!results || !results.length) return;
+
+              const last = results[results.length - 1];
+              if (!last || !last[0]) return;
+
+              const transcript = last[0].transcript || "";
+              const safe = (transcript || "").trim();
+
+              console.log("WHISPER: onresult", { transcript: safe });
+
+              if (!safe) {
+                console.warn(
+                  "WHISPER: final transcript empty, not starting stream"
+                );
+                return;
+              }
+
+              // In chatMode, mostra subito il messaggio dell'utente
+              if (chatMode) {
+                chatMessagesData.push({ role: "user", content: safe });
+                renderChatMessages();
+              }
+
               if (debugEnabled && liveText) {
                 liveText.classList.remove("hidden");
-                liveText.textContent = transcript + (isFinal ? "" : " …");
-              }
-              if (isFinal) {
-                isListening = false;
-                setListeningUI(false);
-                // In chat mode, mostra subito il messaggio dell'utente
-                if (chatMode) {
-                  const userMsg = (transcript || "").trim();
-                  if (userMsg) {
-                    chatMessagesData.push({ role: "user", content: userMsg });
-                    renderChatMessages();
-                  }
-                }
-                if (debugEnabled && liveText)
-                  setTimeout(() => {
-                    try {
-                      liveText.classList.add("hidden");
-                      liveText.textContent = "";
-                    } catch { }
-                  }, 800);
-                const safe = (transcript || "").trim();
-                if (!safe) {
-                  console.warn(
-                    "SPEECH: final transcript empty, not starting stream"
-                  );
-                  return;
-                }
-                if (isAndroid) {
-                  setTimeout(() => {
-                    try {
-                      instance.proxy.startStream(safe);
-                    } catch {
-                      startStream(safe);
-                    }
-                  }, 220);
-                } else {
+                liveText.textContent = safe;
+                setTimeout(() => {
                   try {
-                    instance.proxy.startStream(safe);
-                  } catch {
-                    startStream(safe);
-                  }
-                }
+                    liveText.classList.add("hidden");
+                    liveText.textContent = "";
+                  } catch { }
+                }, 800);
+              }
+
+              // Invia la frase trascritta nel flusso di conversazione Neuron,
+              // come faceva prima il risultato di WebSpeech.
+              try {
+                vm.startStream
+                  ? vm.startStream(safe)
+                  : startStream(safe);
+              } catch {
+                startStream(safe);
               }
             } catch (err) {
-              console.error("SPEECH: onresult handler failed", err);
+              console.error("WHISPER: onresult handler failed", err);
             }
           };
-          console.log("SPEECH: start()", { lang: recognition.lang });
+
+          console.log("WHISPER: start()", { lang: recognition.lang });
           recognition.start();
         } catch (err) {
-          console.warn("Riconoscimento vocale non disponibile o errore", err);
+          console.warn("Riconoscimento vocale (Whisper) non disponibile o errore", err);
           alert("Riconoscimento vocale non disponibile in questo browser.");
         }
       }
