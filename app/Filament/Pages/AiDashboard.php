@@ -12,6 +12,7 @@ use Filament\Forms\Contracts\HasForms;
 use Filament\Pages\Page;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 
 class AiDashboard extends Page implements HasForms
@@ -274,51 +275,56 @@ class AiDashboard extends Page implements HasForms
             $startTime = now()->subDays(30)->startOfDay()->timestamp;
             $endTime = now()->endOfDay()->timestamp;
 
-            $totalCost = 0.0;
-            $nextPage = null;
+            $cacheKey = 'ai_dashboard.openai_costs_'.$startTime.'_'.$endTime;
 
-            // Gestiamo la paginazione: facciamo più chiamate se necessario
-            do {
-                $params = [
-                    'start_time' => $startTime,
-                    'end_time' => $endTime,
-                    'bucket_width' => '1d',
-                    'limit' => 180, // massimo consentito per ottenere tutti i bucket
-                ];
+            // Cache 5 minuti per evitare troppe chiamate alla dashboard OpenAI
+            $totalCost = Cache::remember($cacheKey, now()->addMinutes(5), function () use ($apiKey, $startTime, $endTime): float {
+                $total = 0.0;
+                $nextPage = null;
 
-                if ($nextPage) {
-                    $params['page'] = $nextPage;
-                }
+                do {
+                    $params = [
+                        'start_time' => $startTime,
+                        'end_time' => $endTime,
+                        'bucket_width' => '1d',
+                        'limit' => 180,
+                    ];
 
-                $response = Http::withHeaders([
-                    'Authorization' => 'Bearer '.$apiKey,
-                    'Content-Type' => 'application/json',
-                ])->get('https://api.openai.com/v1/organization/costs', $params);
+                    if ($nextPage) {
+                        $params['page'] = $nextPage;
+                    }
 
-                if (! $response->successful()) {
-                    throw new \RuntimeException('HTTP '.$response->status().' '.$response->body());
-                }
+                    $response = Http::withHeaders([
+                        'Authorization' => 'Bearer '.$apiKey,
+                        'Content-Type' => 'application/json',
+                    ])->get('https://api.openai.com/v1/organization/costs', $params);
 
-                /** @var array<string,mixed> $json */
-                $json = $response->json();
+                    if (! $response->successful()) {
+                        // Non cacheiamo risposte di errore: lasciamo propagare l'eccezione
+                        throw new \RuntimeException('HTTP '.$response->status().' '.$response->body());
+                    }
 
-                // Somma i costi da tutti i bucket
-                if (isset($json['data']) && is_array($json['data'])) {
-                    foreach ($json['data'] as $bucket) {
-                        if (isset($bucket['results']) && is_array($bucket['results'])) {
-                            foreach ($bucket['results'] as $result) {
-                                if (isset($result['amount']['value'])) {
-                                    $totalCost += (float) $result['amount']['value'];
+                    /** @var array<string,mixed> $json */
+                    $json = $response->json();
+
+                    if (isset($json['data']) && is_array($json['data'])) {
+                        foreach ($json['data'] as $bucket) {
+                            if (isset($bucket['results']) && is_array($bucket['results'])) {
+                                foreach ($bucket['results'] as $result) {
+                                    if (isset($result['amount']['value'])) {
+                                        $total += (float) $result['amount']['value'];
+                                    }
                                 }
                             }
                         }
                     }
-                }
 
-                // Controlla se c'è una pagina successiva
-                $nextPage = $json['next_page'] ?? null;
-                $hasMore = $json['has_more'] ?? false;
-            } while ($hasMore && $nextPage);
+                    $nextPage = $json['next_page'] ?? null;
+                    $hasMore = $json['has_more'] ?? false;
+                } while ($hasMore && $nextPage);
+
+                return $total;
+            });
 
             // Mostra il costo totale degli ultimi 30 giorni
             $this->openAiCreditUsd = $totalCost > 0 ? $totalCost : null;
@@ -348,30 +354,40 @@ class AiDashboard extends Page implements HasForms
         }
 
         try {
-            $response = Http::withHeaders([
-                'x-api-key' => $apiKey,
-                'accept' => 'application/json',
-            ])->get($serverUrl.'/v2/user/remaining_quota');
+            $cacheKey = 'ai_dashboard.heygen_remaining_quota';
 
-            if (! $response->successful()) {
-                throw new \RuntimeException('HTTP '.$response->status());
-            }
+            $data = Cache::remember($cacheKey, now()->addMinutes(5), function () use ($apiKey, $serverUrl): array {
+                $response = Http::withHeaders([
+                    'x-api-key' => $apiKey,
+                    'accept' => 'application/json',
+                ])->get($serverUrl.'/v2/user/remaining_quota');
 
-            /** @var array<string,mixed> $json */
-            $json = $response->json();
+                if (! $response->successful()) {
+                    // Non cacheiamo le risposte di errore
+                    throw new \RuntimeException('HTTP '.$response->status());
+                }
 
-            // Gestione robusta in caso di wrapper tipo { data: { remaining_quota: ... } }
-            $remainingQuota = 0.0;
-            if (isset($json['remaining_quota'])) {
-                $remainingQuota = (float) $json['remaining_quota'];
-            } elseif (isset($json['data']['remaining_quota'])) {
-                $remainingQuota = (float) $json['data']['remaining_quota'];
-            } elseif (isset($json['result']['remaining_quota'])) {
-                $remainingQuota = (float) $json['result']['remaining_quota'];
-            }
+                /** @var array<string,mixed> $json */
+                $json = $response->json();
 
-            // La doc HeyGen indica: credits = remaining_quota / 60
-            $remainingCredits = $remainingQuota > 0 ? ($remainingQuota / 60.0) : null;
+                $remainingQuota = 0.0;
+                if (isset($json['remaining_quota'])) {
+                    $remainingQuota = (float) $json['remaining_quota'];
+                } elseif (isset($json['data']['remaining_quota'])) {
+                    $remainingQuota = (float) $json['data']['remaining_quota'];
+                } elseif (isset($json['result']['remaining_quota'])) {
+                    $remainingQuota = (float) $json['result']['remaining_quota'];
+                }
+
+                $remainingCredits = $remainingQuota > 0 ? ($remainingQuota / 60.0) : null;
+
+                return [
+                    'remaining_quota' => $remainingQuota,
+                    'remaining_credits' => $remainingCredits,
+                ];
+            });
+
+            $remainingCredits = $data['remaining_credits'] ?? null;
 
             if ($remainingCredits === null) {
                 $this->heygenCreditDisplay = 'n/d';
