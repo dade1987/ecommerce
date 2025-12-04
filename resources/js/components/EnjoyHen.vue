@@ -1645,10 +1645,11 @@ export default defineComponent({
         this.setStatus("Token OK");
 
         // Create session
+        // Nota: usiamo VP8 per massima compatibilità (soprattutto su Firefox/Linux).
         const body = {
           quality: "high",
           version: "v2",
-          video_encoding: "H264",
+          video_encoding: "VP8",
         };
         if (this.heygenAvatar) body.avatar_name = this.heygenAvatar;
         if (this.heygenVoice) body.voice = { voice_id: this.heygenVoice, rate: 1.0 };
