@@ -403,6 +403,7 @@
 
 <script>
 import { onMounted, defineComponent, ref, getCurrentInstance } from "vue";
+import WhisperSpeechRecognition from "../utils/WhisperSpeechRecognition";
 
 export default defineComponent({
   name: "EnjoyHen",
@@ -1253,6 +1254,7 @@ export default defineComponent({
     },
 
     async onMicClick() {
+      // Toggle: se sta già ascoltando, ferma la registrazione e chiudi il mic
       if (this.isListening && this.recognition) {
         try {
           this.recognition.stop();
@@ -1264,12 +1266,12 @@ export default defineComponent({
         return;
       }
 
-      // Se l'avatar sta parlando, chiediamo a HeyGen di interrompere l'audio corrente
-      // così l'utente non parla sopra la risposta, senza distruggere la sessione.
+      // Se l'avatar sta parlando, interrompi l'audio corrente HeyGen
       try {
         await this.heygenInterrupt();
       } catch { }
 
+      // Assicura che l'AudioContext sia pronto (stesso comportamento precedente)
       try {
         if (!this.audioCtx) {
           this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -1288,12 +1290,12 @@ export default defineComponent({
       }
 
       try {
-        const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!Rec) throw new Error("Web Speech API non disponibile");
+        const self = this;
 
-        this.recognition = new Rec();
+        // Usa sempre WhisperSpeechRecognition al posto della Web Speech API
+        this.recognition = new WhisperSpeechRecognition();
 
-        // Rilevamento lingua robusto (come in EnjoyTalk3D.vue)
+        // Rilevamento lingua (riuso della logica già usata prima)
         const urlParams = new URLSearchParams(window.location.search);
         const urlLang = (urlParams.get("lang") || "").trim();
         const navLang = (
@@ -1312,7 +1314,7 @@ export default defineComponent({
 
         this.recognition.lang = recLang;
 
-        console.log("SPEECH: Language detection", {
+        console.log("WHISPER: Language detection", {
           urlLang,
           navLang,
           propLocale: this.locale,
@@ -1321,75 +1323,88 @@ export default defineComponent({
           userAgent: navigator.userAgent.substring(0, 50)
         });
 
-        this.recognition.interimResults = false;
-        this.recognition.continuous = false;
-        this.recognition.maxAlternatives = 1;
+        // Single segment + pausa automatica basata sul silenzio
+        try {
+          this.recognition.singleSegmentMode = true;
+          if (Object.prototype.hasOwnProperty.call(this.recognition, "_silenceMs")) {
+            // 1000 ms = 1 secondo di pausa prima dell'auto-stop
+            this.recognition._silenceMs = 1000;
+          }
+        } catch { }
 
-        this.recognition.onstart = async () => {
-          this.isListening = true;
-          this.setListeningUI(true);
-          console.log("SPEECH: onstart");
-        };
-
-        this.recognition.onspeechstart = () => {
-          console.log("SPEECH: onspeechstart");
-        };
-
-        this.recognition.onspeechend = () => {
-          console.log("SPEECH: onspeechend");
-        };
-
-        this.recognition.onerror = async (e) => {
-          console.error("SPEECH: onerror", (e && (e.error || e.message)) || e);
-          this.isListening = false;
-          this.setListeningUI(false);
-        };
-
-        this.recognition.onend = async () => {
-          this.isListening = false;
-          this.setListeningUI(false);
-          console.log("SPEECH: onend");
-        };
-
-        this.recognition.onresult = (event) => {
+        this.recognition.onstart = function () {
           try {
-            const res = event.results;
-            const last = res[res.length - 1];
-            const transcript = last[0].transcript;
-            const isFinal = last.isFinal === true || !this.recognition.interimResults;
+            self.isListening = true;
+            self.setListeningUI(true);
+            console.log("WHISPER: onstart");
+          } catch { }
+        };
 
-            console.log("SPEECH: onresult", { transcript, isFinal });
+        this.recognition.onerror = function (e) {
+          try {
+            console.error("WHISPER: onerror", (e && (e.error || e.message)) || e);
+            self.isListening = false;
+            self.setListeningUI(false);
+          } catch { }
+        };
 
-            if (isFinal) {
-              this.isListening = false;
-              this.setListeningUI(false);
+        this.recognition.onend = function () {
+          try {
+            self.isListening = false;
+            self.setListeningUI(false);
+            console.log("WHISPER: onend");
+          } catch { }
+        };
 
-              const safe = (transcript || "").trim();
-              if (!safe) {
-                console.warn("SPEECH: final transcript empty, not starting stream");
-                return;
-              }
+        // Auto-pausa dopo 1 secondo di silenzio: ferma il mic (triggerando la trascrizione)
+        if ("onAutoPause" in this.recognition) {
+          this.recognition.onAutoPause = function () {
+            try {
+              if (!self.isListening) return;
+              console.log("WHISPER: onAutoPause → stopping mic after silence");
+              self.isListening = false;
+              self.setListeningUI(false);
+              self.recognition.stop();
+            } catch { }
+          };
+        }
 
-              // Quando invio un messaggio registrato con il microfono,
-              // mostro all'utente il testo inviato, come per i messaggi da tastiera.
-              try {
-                const isSnippet = import.meta.env.VITE_IS_WEB_COMPONENT || false;
-                if (isSnippet && this.snippetMessagesOn) {
-                  this.snippetMessages.push({ role: "user", content: safe });
-                }
-              } catch { }
+        this.recognition.onresult = function (event) {
+          try {
+            const results = event && event.results ? event.results : [];
+            if (!results || !results.length) return;
 
-              this.startStream(safe);
+            const last = results[results.length - 1];
+            if (!last || !last[0]) return;
+
+            const transcript = last[0].transcript || "";
+            const safe = (transcript || "").trim();
+
+            console.log("WHISPER: onresult", { transcript: safe });
+
+            if (!safe) {
+              console.warn("WHISPER: empty transcript, not starting stream");
+              return;
             }
+
+            // In modalità snippet mostriamo all'utente il testo come per WebSpeech
+            try {
+              const isSnippet = import.meta.env.VITE_IS_WEB_COMPONENT || false;
+              if (isSnippet && self.snippetMessagesOn) {
+                self.snippetMessages.push({ role: "user", content: safe });
+              }
+            } catch { }
+
+            self.startStream(safe);
           } catch (err) {
-            console.error("SPEECH: onresult handler failed", err);
+            console.error("WHISPER: onresult handler failed", err);
           }
         };
 
-        console.log("SPEECH: start()", { lang: this.recognition.lang });
+        console.log("WHISPER: start()", { lang: this.recognition.lang });
         this.recognition.start();
       } catch (err) {
-        console.warn("Riconoscimento vocale non disponibile o errore", err);
+        console.warn("Riconoscimento vocale (Whisper) non disponibile o errore", err);
         alert("Riconoscimento vocale non disponibile in questo browser.");
       }
     },

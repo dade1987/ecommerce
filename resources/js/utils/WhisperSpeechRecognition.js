@@ -33,8 +33,9 @@ export default class WhisperSpeechRecognition {
         // Parametri per segmentare in base al silenzio
         this._silenceMs = 800; // quanto tempo di silenzio per chiudere il segmento o triggerare auto-pausa
         this._maxSegmentMs = 6000; // sicurezza: durata massima di un singolo segmento
-        // Soglia RMS per considerare "voce": leggermente più alta per ignorare rumore di fondo leggero.
-        this._silenceThreshold = 0.05;
+        // Soglia RMS per considerare "voce": tarata in modo da ignorare rumore di fondo leggero
+        // e trattare come "silenzio" anche livelli bassi di rumore costante.
+        this._silenceThreshold = 0.08;
 
         this._audioContext = null;
         this._analyser = null;
@@ -210,7 +211,14 @@ export default class WhisperSpeechRecognition {
                 formData.append('lang', this.lang);
             }
 
-            const origin = window.__NEURON_TRANSLATOR_ORIGIN__ || window.location.origin;
+            // Usa sempre lo stesso "web origin" usato dagli altri widget:
+            // - per EnjoyTalk3D:   window.__ENJOY_TALK_3D_ORIGIN__
+            // - per EnjoyHen:      window.__ENJOY_HEN_ORIGIN__
+            // - fallback generale: window.location.origin
+            const origin =
+                window.__ENJOY_TALK_3D_ORIGIN__ ||
+                window.__ENJOY_HEN_ORIGIN__ ||
+                window.location.origin;
             const resp = await fetch(`${origin}/api/whisper/transcribe`, {
                 method: 'POST',
                 body: formData,
