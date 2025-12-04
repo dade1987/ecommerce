@@ -3614,7 +3614,8 @@ export default defineComponent({
           const body = {
             quality: "high",
             version: "v2",
-            video_encoding: "H264",
+            // Usa VP8 per garantire compatibilità con Firefox (specialmente su Linux).
+            video_encoding: "VP8",
           };
           if (heygenAvatar) body.avatar_name = heygenAvatar;
           if (heygenVoice) body.voice = { voice_id: heygenVoice, rate: 1.0 };
