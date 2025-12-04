@@ -63,7 +63,7 @@
                     class="w-7 h-7 rounded-full bg-slate-800/80 text-slate-200 flex items-center justify-center text-xs border border-slate-600/70">
                     ✕
                   </button>
-                  <button v-else-if="showEmailPanel" @click="closeEmailPanel"
+                  <button v-else-if="showEmailPanel" @click.stop.prevent="closeEmailPanel"
                     class="w-7 h-7 rounded-full bg-slate-800/80 text-slate-200 flex items-center justify-center text-xs border border-slate-600/70">
                     ✕
                   </button>
@@ -503,6 +503,9 @@ export default defineComponent({
         this.widgetOpen = true;
         this.snippetMenuOpen = false;
         this.snippetTextMode = false;
+        this.showEmailPanel = false;
+        this.showSettingsPanel = false;
+        this.showPrivacyPanel = false;
         if (this.loadingOverlay) {
           this.loadingOverlay.classList.remove("hidden");
         }
@@ -524,6 +527,7 @@ export default defineComponent({
         this.snippetTextMode = false;
         this.showSettingsPanel = false;
         this.showPrivacyPanel = false;
+        this.showEmailPanel = false;
         // Ferma e silenzia l'avatar quando si esce dalla modalità snippet
         try {
           if (this.heygenVideo) {
@@ -920,12 +924,18 @@ export default defineComponent({
       try {
         const isSnippet = import.meta.env.VITE_IS_WEB_COMPONENT || false;
         if (isSnippet) {
-          // In modalità webcomponent, usa il pannello come gli altri
+          // Toggle: se il pannello email è già aperto, chiudilo e torna alla vista precedente
+          if (this.showEmailPanel) {
+            this.closeEmailPanel();
+            return;
+          }
+
+          // Altrimenti apri il pannello email
           this.showEmailPanel = true;
           this.snippetMenuOpen = false;
           this.showSettingsPanel = false;
           this.showPrivacyPanel = false;
-          this.snippetTextMode = false;
+          // NON chiudiamo snippetTextMode: vogliamo tornare alla vista precedente quando chiudiamo
           this.emailTranscriptInput = "";
           this.emailTranscriptStatus = "";
           // Spegni temporaneamente il video come negli altri pannelli
@@ -936,10 +946,16 @@ export default defineComponent({
             }
           } catch { }
         } else {
-          // In modalità full layout, usa il modal originale
-          if (this.emailTranscriptStatusHen) this.emailTranscriptStatusHen.textContent = "";
-          if (this.emailTranscriptInputHen) this.emailTranscriptInputHen.value = "";
-          if (this.emailTranscriptModalHen) this.emailTranscriptModalHen.classList.remove("hidden");
+          // In modalità full layout, usa il modal originale (toggle)
+          if (this.emailTranscriptModalHen && !this.emailTranscriptModalHen.classList.contains("hidden")) {
+            // Se il modal è già aperto, chiudilo
+            this.closeTranscriptModal();
+          } else {
+            // Altrimenti aprilo
+            if (this.emailTranscriptStatusHen) this.emailTranscriptStatusHen.textContent = "";
+            if (this.emailTranscriptInputHen) this.emailTranscriptInputHen.value = "";
+            if (this.emailTranscriptModalHen) this.emailTranscriptModalHen.classList.remove("hidden");
+          }
         }
       } catch { }
     },
@@ -949,8 +965,12 @@ export default defineComponent({
         const isSnippet = import.meta.env.VITE_IS_WEB_COMPONENT || false;
         if (isSnippet) {
           this.showEmailPanel = false;
-          // Al ritorno all'avatar riaggancio il video come negli altri flussi
-          if (this.resumeAvatarVideo && this.$nextTick) {
+          this.snippetMenuOpen = false;
+          this.emailTranscriptInput = "";
+          this.emailTranscriptStatus = "";
+          // Se eravamo in modalità testo, non ripristiniamo l'avatar (rimane spento)
+          // Se eravamo in modalità avatar, ripristiniamo l'avatar
+          if (!this.snippetTextMode && this.resumeAvatarVideo && this.$nextTick) {
             this.$nextTick(() => {
               try {
                 this.resumeAvatarVideo();
@@ -966,7 +986,13 @@ export default defineComponent({
     closeEmailPanel() {
       try {
         this.showEmailPanel = false;
-        if (this.resumeAvatarVideo && this.$nextTick) {
+        this.snippetMenuOpen = false;
+        this.emailTranscriptInput = "";
+        this.emailTranscriptStatus = "";
+
+        // Se eravamo in modalità testo, non ripristiniamo l'avatar (rimane spento)
+        // Se eravamo in modalità avatar, ripristiniamo l'avatar
+        if (!this.snippetTextMode && this.resumeAvatarVideo && this.$nextTick) {
           this.$nextTick(() => {
             try {
               this.resumeAvatarVideo();
