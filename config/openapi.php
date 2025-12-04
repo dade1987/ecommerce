@@ -1,6 +1,6 @@
 <?php
 
 return [
-    'key' => env('OPENAI_API_KEY', 'invalid key'),
-    'assistant_id' => env('OPENAI_ASSISTANT_ID'),
+    'key' => env('OPENAI_API_KEY_GIULIANO', 'invalid key'),
+    'admin_key' => env('OPENAI_API_KEY_ADMIN', ''),
 ];

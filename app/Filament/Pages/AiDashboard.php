@@ -259,10 +259,11 @@ class AiDashboard extends Page implements HasForms
         $this->openAiCreditUsd = null;
         $this->openAiCreditError = null;
 
-        $apiKey = config('openapi.key');
+        // Per il costo nella dashboard usiamo la chiave admin specifica
+        $apiKey = config('openapi.admin_key');
 
-        if (empty($apiKey) || $apiKey === 'invalid key') {
-            $this->openAiCreditError = 'API key OpenAI non configurata.';
+        if (empty($apiKey)) {
+            $this->openAiCreditError = 'API key OpenAI Admin non configurata.';
 
             return;
         }
