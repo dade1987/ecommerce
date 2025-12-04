@@ -9,6 +9,8 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Http;
 use function Safe\json_encode;
 
 class ThreadResource extends Resource
@@ -21,6 +23,16 @@ class ThreadResource extends Resource
     {
         return $form
             ->schema([
+                Forms\Components\Placeholder::make('ip_insights')
+                    ->label('Info IP / Azienda')
+                    ->content(function (?Thread $record): string {
+                        if (! $record || ! $record->ip_address) {
+                            return 'IP non disponibile per questo thread.';
+                        }
+
+                        return static::buildIpSummary($record->ip_address);
+                    })
+                    ->columnSpanFull(),
                 Forms\Components\TextInput::make('thread_id')
                     ->label('Thread ID')
                     ->disabled()
@@ -120,5 +132,69 @@ class ThreadResource extends Resource
             'index' => Pages\ListThreads::route('/'),
             'view' => Pages\ViewThread::route('/{record}'),
         ];
+    }
+
+    /**
+     * Recupera informazioni sull'IP (azienda, località, orario locale) usando un servizio pubblico.
+     *
+     * @param  string  $ip
+     */
+    protected static function buildIpSummary(string $ip): string
+    {
+        if (! filter_var($ip, FILTER_VALIDATE_IP)) {
+            return 'IP non valido.';
+        }
+
+        try {
+            $response = Http::timeout(2)->get('http://ip-api.com/json/' . $ip, [
+                'fields' => 'status,message,country,regionName,city,org,isp,timezone,query',
+                'lang' => 'it',
+            ]);
+
+            if (! $response->successful()) {
+                return 'Impossibile recuperare informazioni sull\'IP.';
+            }
+
+            /** @var array<string,mixed> $data */
+            $data = $response->json();
+
+            if (($data['status'] ?? 'fail') !== 'success') {
+                return 'Impossibile recuperare informazioni sull\'IP.';
+            }
+
+            $org = $data['org'] ?? $data['isp'] ?? null;
+            $city = $data['city'] ?? null;
+            $region = $data['regionName'] ?? null;
+            $country = $data['country'] ?? null;
+            $timezone = $data['timezone'] ?? null;
+
+            $parts = [];
+
+            if ($org) {
+                $parts[] = $org;
+            }
+
+            $location = collect([$city, $region, $country])->filter()->implode(', ');
+            if ($location !== '') {
+                $parts[] = $location;
+            }
+
+            if ($timezone) {
+                try {
+                    $localTime = Carbon::now($timezone)->format('d/m/Y H:i');
+                    $parts[] = 'Ora locale: ' . $localTime . ' (' . $timezone . ')';
+                } catch (\Throwable $e) {
+                    // Se il timezone non è valido, ignoriamo l'orario
+                }
+            }
+
+            if (empty($parts)) {
+                return 'Nessuna informazione aggiuntiva disponibile per questo IP.';
+            }
+
+            return implode(' — ', $parts);
+        } catch (\Throwable $e) {
+            return 'Impossibile recuperare informazioni sull\'IP.';
+        }
     }
 }
