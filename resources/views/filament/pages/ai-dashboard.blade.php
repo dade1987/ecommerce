@@ -9,11 +9,63 @@
                 </div>
                 <div>
                     <h2 class="text-2xl font-semibold text-slate-900">
-                        Panoramica in tempo reale delle chat
+                        Panoramica crediti & chat
                     </h2>
-                    <p class="mt-1 text-sm text-slate-500">
-                        Monitoraggio visuale di thread, messaggi e qualità delle conversazioni generate dal tuo avatar AI.
-                    </p>
+                    {{-- Widget crediti GPT / HeyGen (usa anche endpoint non documentato OpenAI) --}}
+                    <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        {{-- Credito GPT (OpenAI) --}}
+                        <div class="relative overflow-hidden rounded-2xl border border-slate-200 bg-white/90 p-3 shadow-sm">
+                            <div class="absolute -right-4 -top-4 h-14 w-14 rounded-full bg-emerald-200/50 blur-xl"></div>
+                            <div class="relative flex items-start justify-between gap-3">
+                                <div>
+                                    <p class="text-[11px] font-semibold uppercase tracking-wide text-emerald-700/80">
+                                        Costo GPT (ultimi 30 giorni)
+                                    </p>
+                                    <p class="mt-1 text-xl font-bold tracking-tight text-slate-900">
+                                        @if(!is_null($openAiCreditUsd))
+                                            {{ number_format($openAiCreditUsd, 2) }} $
+                                        @elseif($openAiCreditError)
+                                            <span class="text-xs font-medium text-rose-600">
+                                                {{ $openAiCreditError }}
+                                            </span>
+                                        @else
+                                            <span class="text-xs font-medium text-slate-400">
+                                                n/d
+                                            </span>
+                                        @endif
+                                    </p>
+                                    <p class="mt-1 text-[11px] text-slate-500">
+                                        Letto da costs API OpenAI
+                                        <span class="font-mono text-[10px] text-slate-400">/v1/organization/costs</span>.
+                                    </p>
+                                </div>
+                                <div class="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-600 text-white ring-2 ring-emerald-300">
+                                    <x-heroicon-o-banknotes class="h-4 w-4" />
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Credito HeyGen (placeholder, non esiste endpoint API per saldo crediti) --}}
+                        <div class="relative overflow-hidden rounded-2xl border border-slate-200 bg-white/90 p-3 shadow-sm">
+                            <div class="absolute -right-4 -top-4 h-14 w-14 rounded-full bg-sky-200/50 blur-xl"></div>
+                            <div class="relative flex items-start justify-between gap-3">
+                                <div>
+                                    <p class="text-[11px] font-semibold uppercase tracking-wide text-sky-700/80">
+                                        Credito residuo HeyGen
+                                    </p>
+                                    <p class="mt-1 text-sm font-semibold text-slate-900">
+                                        {{ $heygenCreditDisplay ?? 'Verifica dalla dashboard HeyGen' }}
+                                    </p>
+                                    <p class="mt-1 text-[11px] text-slate-500">
+                                        Il saldo dettagliato è disponibile nella sezione billing del tuo account HeyGen.
+                                    </p>
+                                </div>
+                                <div class="flex h-9 w-9 items-center justify-center rounded-full bg-sky-600 text-white ring-2 ring-sky-300">
+                                    <x-heroicon-o-video-camera class="h-4 w-4" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
