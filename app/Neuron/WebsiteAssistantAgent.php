@@ -144,7 +144,6 @@ class WebsiteAssistantAgent extends Agent
             $this->createFallbackTool(),
             $this->createScrapeSiteTool(),
             $this->createScrapeUrlTool(),
-            $this->createSearchSiteTool(),
         ];
 
         Log::debug('WebsiteAssistantAgent.tools', [
@@ -289,13 +288,14 @@ class WebsiteAssistantAgent extends Agent
     {
         return Tool::make(
             name: 'searchSite',
-            description: 'Cerca informazioni specifiche sui siti web aziendali. Usa questo tool quando l\'utente chiede informazioni dettagliate che potrebbero non essere nel contesto generale fornito.'
+            description: "Cerca informazioni specifiche sui siti web aziendali usando il motore RAG basato su MongoDB Atlas Search.\n"
+                . "Usa questo tool quando l'utente chiede di CERCARE qualcosa (es: \"cerca tagliatelle\", \"cerca offerte\", \"cerca servizi\")."
         )
             ->addProperty(
                 ToolProperty::make(
                     name: 'url',
                     type: PropertyType::STRING,
-                    description: 'URL del sito web su cui cercare (es. https://www.esempio.it). Se non specificato, cerca su tutti i siti del team.',
+                    description: "URL del sito web su cui cercare (es. https://www.esempio.it). Se non specificato, verrà usato automaticamente uno dei siti configurati per il team corrente.",
                     required: false
                 )
             )
@@ -311,12 +311,11 @@ class WebsiteAssistantAgent extends Agent
                 ToolProperty::make(
                     name: 'max_pages',
                     type: PropertyType::INTEGER,
-                    description: 'Numero massimo di pagine da analizzare (default: 10). Usato solo se la ricerca RAG non trova risultati.',
+                    description: 'Numero massimo di pagine da analizzare (default: 10). Usato solo come limite per il fallback di scraping.',
                     required: false
                 )
             )
-            ->setCallable(fn (string $query, ?string $url = null, ?int $max_pages = null) => $this->searchSite($query, $url, $max_pages)
-            );
+            ->setCallable(fn (string $query, ?string $url = null, ?int $max_pages = null) => $this->searchSite($query, $url, $max_pages));
     }
 
     private function createFallbackTool(): Tool
@@ -375,55 +374,6 @@ class WebsiteAssistantAgent extends Agent
                 )
             )
             ->setCallable(fn (string $url, string $query) => $this->scrapeUrl($url, $query));
-    }
-
-    private function createSearchSiteTool(): Tool
-    {
-        return Tool::make(
-            name: 'searchSite',
-            description: "Cerca informazioni attraverso MULTIPLE pagine di un sito web.\n"
-                . "Usa SEMPRE questa funzione quando:\n"
-                . "- L'utente chiede di CERCARE informazioni, prodotti, servizi, contenuti (es: \"cerca tagliatelle\", \"trova prodotti\", \"cerca articoli su XYZ\")\n"
-                . "- L'utente fornisce ESPLICITAMENTE un URL specifico (es: \"cerca nel sito https://example.com\", \"trova servizi su https://isofin.it\")\n"
-                . "- L'utente dice \"cerca nel sito web [URL]\" - usa SEMPRE quell'URL esatto, NON il sito del consumer corrente\n"
-                . "- L'utente chiede di cercare qualcosa in \"tutto il sito\", \"nelle pagine del sito\"\n"
-                . "- Serve esplorare più pagine per trovare informazioni distribuite\n\n"
-                . "IMPORTANTE:\n"
-                . "- Se l'utente specifica un URL esplicito nel prompt, usa SEMPRE quell'URL nel parametro \"url\"\n"
-                . "- Se l'utente NON specifica un URL ma chiede di CERCARE qualcosa, usa il sito del consumer corrente come url\n"
-                . "- Se hai già il consumer.website disponibile nel contesto e l'utente fa una query di ricerca generica, usa consumer.website come url\n\n"
-                . "ESEMPI:\n"
-                . "- \"cerca tagliatelle al ragù\" → searchSite(url=consumer.website, query=\"tagliatelle al ragù\")\n"
-                . "- \"trova prodotti con infissi\" → searchSite(url=consumer.website, query=\"prodotti con infissi\")\n"
-                . "- \"cerca nel sito https://isofin.it i servizi\" → searchSite(url=\"https://isofin.it\", query=\"servizi\")\n"
-                . "- \"trova prodotti su https://example.com\" → searchSite(url=\"https://example.com\", query=\"prodotti\")\n\n"
-                . "NON usare per singole pagine prodotto con URL specifico di una pagina - usa scrapeUrl invece."
-        )
-            ->addProperty(
-                ToolProperty::make(
-                    name: 'url',
-                    type: PropertyType::STRING,
-                    description: "L'URL del sito web da esplorare (homepage o URL di partenza)",
-                    required: true
-                )
-            )
-            ->addProperty(
-                ToolProperty::make(
-                    name: 'query',
-                    type: PropertyType::STRING,
-                    description: "Cosa cercare attraverso le pagine del sito (es: \"trova tutti i prezzi dei prodotti\", \"cerca informazioni sui servizi\", \"trova tutte le pagine di contatto\")",
-                    required: true
-                )
-            )
-            ->addProperty(
-                ToolProperty::make(
-                    name: 'max_pages',
-                    type: PropertyType::INTEGER,
-                    description: "Numero massimo di pagine da analizzare (opzionale, gestito automaticamente in base al tipo di ricerca)",
-                    required: false
-                )
-            )
-            ->setCallable(fn (string $url, string $query, ?int $max_pages = null) => $this->searchSite($url, $query, $max_pages));
     }
 
     // ====== Helper Methods ======
@@ -934,102 +884,6 @@ class WebsiteAssistantAgent extends Agent
                 'trace' => $e->getTraceAsString(),
             ]);
             return ['error' => 'Si è verificato un errore durante l\'elaborazione: ' . $e->getMessage()];
-        }
-    }
-
-    /**
-     * Search through multiple pages of a website for specific information.
-     * Usa ricerca intelligente multi-pagina con caching.
-     * max_pages is now managed by SearchStrategy pattern - ignored here
-     */
-    private function searchSite(string $url, string $query, ?int $maxPages = null): array
-    {
-        Log::info('WebsiteAssistantAgent.searchSite: Starting RAG-powered search', [
-            'url' => $url,
-            'query' => $query,
-            'max_pages' => $maxPages,
-        ]);
-
-        if (empty($url)) {
-            return ['error' => 'URL non fornito.'];
-        }
-
-        if (empty($query)) {
-            return ['error' => 'Query di ricerca non fornita.'];
-        }
-
-        try {
-            // Use new RAG-powered search (tries indexed content first, falls back to scraping)
-            $scraper = app(\Modules\WebScraper\Services\WebScraperService::class);
-            $ragResult = $scraper->searchWithRag(
-                $url,
-                $query,
-                [
-                    'max_pages' => $maxPages ?? 10,
-                    'ttl_days' => 30,
-                    'top_k' => 10, // Reduced to fit GPT-3.5-turbo 16K context limit
-                    'min_similarity' => 0.7,
-                ]
-            );
-
-            // Format output for Agent
-            if ($ragResult['success']) {
-                $method = $ragResult['method'] ?? 'unknown';
-
-                Log::info('WebsiteAssistantAgent.searchSite: Search completed', [
-                    'url' => $url,
-                    'query' => $query,
-                    'method' => $method,
-                    'chunks_found' => $ragResult['chunks_found'] ?? null,
-                ]);
-
-                $output = [
-                    'url' => $url,
-                    'query' => $query,
-                    'analysis' => $ragResult['answer'],
-                    'method' => $method,
-                    'from_cache' => false,
-                ];
-
-                // Add method-specific metadata
-                if ($method === 'rag') {
-                    $output['chunks_found'] = $ragResult['chunks_found'];
-                    $output['sources'] = $ragResult['sources'];
-                    $output['summary'] = sprintf(
-                        'Ho trovato %d contenuti rilevanti nel database indicizzato per "%s".',
-                        $ragResult['chunks_found'],
-                        $query
-                    );
-                } elseif ($method === 'scraping_with_indexing') {
-                    $output['pages_visited'] = $ragResult['pages_visited'];
-                    $output['indexed_for_future'] = true;
-                    $output['summary'] = sprintf(
-                        'Ho analizzato %d pagine del sito %s per "%s" e le ho indicizzate per ricerche future.',
-                        $ragResult['pages_visited'],
-                        $url,
-                        $query
-                    );
-                }
-
-                return $output;
-            }
-
-            // Handle failure
-            return [
-                'url' => $url,
-                'query' => $query,
-                'analysis' => $ragResult['answer'] ?? 'Nessuna informazione trovata.',
-                'error' => $ragResult['error'] ?? null,
-            ];
-
-        } catch (\Throwable $e) {
-            Log::error('WebsiteAssistantAgent.searchSite: Errore imprevisto', [
-                'url' => $url,
-                'query' => $query,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-            return ['error' => 'Si è verificato un errore durante la ricerca: ' . $e->getMessage()];
         }
     }
 
