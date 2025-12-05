@@ -288,9 +288,16 @@
                 class="px-3 py-3 sm:px-4 sm:py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors whitespace-nowrap text-sm sm:text-base font-medium">
                 📤
               </button>
-              <button id="micBtn"
-                class="px-3 py-3 sm:px-4 sm:py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-lg transition-colors whitespace-nowrap text-sm sm:text-base font-medium">
-                🎤
+              <button id="micBtn" :class="[
+                'px-3 py-3 sm:px-4 sm:py-3 text-white rounded-lg transition-colors whitespace-nowrap text-sm sm:text-base font-medium',
+                isListening
+                  ? 'bg-emerald-600 ring-2 ring-emerald-400 animate-pulse'
+                  : (isSpeaking
+                    ? 'bg-amber-600 hover:bg-amber-700'
+                    : 'bg-rose-600 hover:bg-rose-700')
+              ]">
+                <span v-if="isSpeaking">⏹</span>
+                <span v-else>🎤</span>
               </button>
               <button id="emailTranscriptBtnHen"
                 class="px-3 py-3 sm:px-4 sm:py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors whitespace-nowrap text-sm sm:text-base font-medium">
@@ -319,9 +326,14 @@
         📧
       </button>
       <!-- Mic button -->
-      <button id="henMicFloatingBtn" @click="onSnippetMicClick"
-        class="w-11 h-11 rounded-full bg-rose-600/90 backdrop-blur text-white flex items-center justify-center shadow-lg border border-rose-400/80">
-        🎤
+      <button id="henMicFloatingBtn" @click="onSnippetMicClick" :class="[
+        'w-11 h-11 rounded-full backdrop-blur text-white flex items-center justify-center shadow-lg border',
+        isSpeaking
+          ? 'bg-amber-600/90 border-amber-400/80'
+          : 'bg-rose-600/90 border-rose-400/80'
+      ]">
+        <span v-if="isSpeaking">⏹</span>
+        <span v-else>🎤</span>
       </button>
       <!-- Keyboard button -->
       <button id="henKeyboardBtn" @click="onSnippetTextClick"
@@ -461,6 +473,9 @@ export default defineComponent({
       videoAvatarStatus: null,
       feedbackMsg: null,
       isListening: false,
+      isSpeaking: false,
+      speakingUntil: null,
+      speakingTimerId: null,
       recognition: null,
       audioCtx: null,
       currentEventSource: null,
@@ -1280,6 +1295,15 @@ export default defineComponent({
     },
 
     async onMicClick() {
+      // Se l'avatar sta parlando, il bottone agisce come STOP (interrupt) e non avvia il microfono
+      if (this.isSpeaking) {
+        try {
+          console.log("MIC: stop requested while speaking, interrupting avatar");
+          await this.interruptAvatarSpeech();
+        } catch { }
+        return;
+      }
+
       // Toggle: se sta già ascoltando, ferma la registrazione e chiudi il mic
       if (this.isListening && this.recognition) {
         try {
@@ -1291,11 +1315,6 @@ export default defineComponent({
         console.log("MIC: listening stopped by user");
         return;
       }
-
-      // Se l'avatar sta parlando, interrompi l'audio corrente HeyGen
-      try {
-        await this.heygenInterrupt();
-      } catch { }
 
       // Assicura che l'AudioContext sia pronto (stesso comportamento precedente)
       try {
@@ -1461,27 +1480,9 @@ export default defineComponent({
         if (this.listeningBadge) {
           this.listeningBadge.classList.remove("hidden");
         }
-        if (this.micBtn) {
-          this.micBtn.classList.remove("bg-rose-600");
-          this.micBtn.classList.add(
-            "bg-emerald-600",
-            "ring-2",
-            "ring-emerald-400",
-            "animate-pulse"
-          );
-        }
       } else {
         if (this.listeningBadge) {
           this.listeningBadge.classList.add("hidden");
-        }
-        if (this.micBtn) {
-          this.micBtn.classList.add("bg-rose-600");
-          this.micBtn.classList.remove(
-            "bg-emerald-600",
-            "ring-2",
-            "ring-emerald-400",
-            "animate-pulse"
-          );
         }
       }
     },
@@ -1782,7 +1783,10 @@ export default defineComponent({
         await this.ensureHeyGenSession();
         if (!this.heygen.sessionInfo?.session_id) return;
 
-        await fetch(`${this.HEYGEN_CONFIG.serverUrl}/v1/streaming.task`, {
+        // L'avatar inizia un nuovo parlato: aggiorna lo stato UI
+        this.isSpeaking = true;
+
+        const response = await fetch(`${this.HEYGEN_CONFIG.serverUrl}/v1/streaming.task`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -1794,11 +1798,59 @@ export default defineComponent({
             task_type: "repeat",
           }),
         });
+
+        // L'endpoint restituisce la durata del parlato in millisecondi:
+        // la usiamo per sapere per quanto tempo considerare l'avatar "in parlato".
+        try {
+          const payload = await response.json();
+          const durationMs = payload?.data?.duration_ms;
+          if (typeof durationMs === "number" && durationMs > 0) {
+            const safetyBuffer = 400; // piccolo margine oltre la durata dichiarata
+            const totalMs = durationMs + safetyBuffer;
+            this.speakingUntil = Date.now() + totalMs;
+            if (this.speakingTimerId) {
+              clearTimeout(this.speakingTimerId);
+            }
+            this.speakingTimerId = window.setTimeout(() => {
+              try {
+                // Se non è già stato interrotto manualmente, chiudi lo stato di parlato
+                if (this.isSpeaking) {
+                  this.isSpeaking = false;
+                }
+              } catch { }
+            }, totalMs);
+          }
+        } catch { }
+
       } catch (e) {
         console.error("HeyGen repeat failed:", e);
+        this.isSpeaking = false;
       }
     },
 
+    async interruptAvatarSpeech() {
+      try {
+        if (this.speakingTimerId) {
+          clearTimeout(this.speakingTimerId);
+          this.speakingTimerId = null;
+        }
+        this.speakingUntil = null;
+
+        // Chiede a HeyGen di interrompere il parlato corrente ma mantiene viva la sessione
+        try {
+          await this.heygenInterrupt();
+        } catch { }
+
+        // Aggiorna immediatamente lo stato UI
+        this.isSpeaking = false;
+
+        if (this.heygenVideo) {
+          try {
+            this.heygenVideo.pause?.();
+          } catch { }
+        }
+      } catch { }
+    },
     async heygenInterrupt() {
       // API di interruzione voce HeyGen: interrompe il parlato in corso senza chiudere la sessione.
       try {
@@ -1860,6 +1912,16 @@ export default defineComponent({
           this.heygen.sessionToken = null;
           this.heygen.room = null;
         }
+      } catch { }
+
+      // Reset stato di parlato e relativo timer
+      try {
+        if (this.speakingTimerId) {
+          clearTimeout(this.speakingTimerId);
+          this.speakingTimerId = null;
+        }
+        this.isSpeaking = false;
+        this.speakingUntil = null;
       } catch { }
     },
 
