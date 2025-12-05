@@ -299,6 +299,11 @@
                 <span v-if="isSpeaking">⏹</span>
                 <span v-else>🎤</span>
               </button>
+              <!-- Bottone STOP dedicato per il microfono in ascolto -->
+              <button v-if="isListening" @click="onMicClick"
+                class="px-3 py-3 sm:px-4 sm:py-3 bg-amber-500 hover:bg-amber-600 text-black rounded-lg transition-colors whitespace-nowrap text-sm sm:text-base font-medium">
+                ⏹
+              </button>
               <button id="emailTranscriptBtnHen"
                 class="px-3 py-3 sm:px-4 sm:py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors whitespace-nowrap text-sm sm:text-base font-medium">
                 📧 Trascrizione
@@ -334,6 +339,11 @@
       ]">
         <span v-if="isSpeaking">⏹</span>
         <span v-else>🎤</span>
+      </button>
+      <!-- Bottone STOP dedicato per il microfono in ascolto (snippet mode) -->
+      <button v-if="isListening" @click="onSnippetMicClick"
+        class="w-11 h-11 rounded-full bg-amber-500 hover:bg-amber-600 text-black flex items-center justify-center shadow-lg border border-amber-300">
+        ⏹
       </button>
       <!-- Keyboard button -->
       <button id="henKeyboardBtn" @click="onSnippetTextClick"

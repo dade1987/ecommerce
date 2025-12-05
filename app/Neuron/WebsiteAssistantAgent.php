@@ -1152,18 +1152,40 @@ class WebsiteAssistantAgent extends Agent
             ]);
 
             // Formatta la risposta per l'agent
+            $answer = $result['answer'] ?? 'Non ho trovato informazioni rilevanti.';
+            $method = $result['method'] ?? 'unknown';
+
             $response = [
-                'answer' => $result['answer'] ?? 'Non ho trovato informazioni rilevanti.',
-                'method' => $result['method'] ?? 'unknown',
+                'answer' => $answer,
+                'method' => $method,
             ];
 
-            // Aggiungi le fonti se disponibili
-            if (! empty($result['sources'])) {
-                $sourcesList = array_map(function ($source) {
-                    return ($source['title'] ?? 'Senza titolo').' - '.($source['url'] ?? '');
-                }, $result['sources']);
-                $response['sources'] = $sourcesList;
-                $response['sources_count'] = count($result['sources']);
+            // Aggiungi le fonti (sia come metadato che in coda al testo, con link cliccabili)
+            if (! empty($result['sources']) && is_array($result['sources'])) {
+                $sourcesList = [];
+                $markdownLinks = [];
+
+                foreach ($result['sources'] as $source) {
+                    $title = $source['title'] ?? 'Senza titolo';
+                    $url = $source['url'] ?? '';
+
+                    $sourcesList[] = $title.' - '.$url;
+
+                    if ($url !== '') {
+                        $markdownLinks[] = '['.$title.']('.$url.')';
+                    } else {
+                        $markdownLinks[] = $title;
+                    }
+                }
+
+                if (! empty($sourcesList)) {
+                    $response['sources'] = $sourcesList;
+                    $response['sources_count'] = count($sourcesList);
+                }
+
+                if (! empty($markdownLinks)) {
+                    $response['answer'] = rtrim($answer)."\n\n".'📚 Fonti: '.implode(' · ', $markdownLinks);
+                }
             }
 
             return $response;
