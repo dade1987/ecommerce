@@ -293,7 +293,7 @@
                 isListening
                   ? 'bg-emerald-600 ring-2 ring-emerald-400 animate-pulse'
                   : (isSpeaking
-                    ? 'bg-amber-600 hover:bg-amber-700'
+                    ? 'bg-red-700 hover:bg-red-800'
                     : 'bg-rose-600 hover:bg-rose-700')
               ]">
                 <span v-if="isSpeaking">⏹</span>
@@ -329,7 +329,7 @@
       <button id="henMicFloatingBtn" @click="onSnippetMicClick" :class="[
         'w-11 h-11 rounded-full backdrop-blur text-white flex items-center justify-center shadow-lg border',
         isSpeaking
-          ? 'bg-amber-600/90 border-amber-400/80'
+          ? 'bg-red-700/90 border-red-400/80'
           : 'bg-rose-600/90 border-rose-400/80'
       ]">
         <span v-if="isSpeaking">⏹</span>
@@ -1843,12 +1843,6 @@ export default defineComponent({
 
         // Aggiorna immediatamente lo stato UI
         this.isSpeaking = false;
-
-        if (this.heygenVideo) {
-          try {
-            this.heygenVideo.pause?.();
-          } catch { }
-        }
       } catch { }
     },
     async heygenInterrupt() {
