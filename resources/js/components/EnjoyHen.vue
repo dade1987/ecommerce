@@ -1526,11 +1526,15 @@ export default defineComponent({
 
       const isSnippet = import.meta.env.VITE_IS_WEB_COMPONENT || false;
 
+      // Leggi tool_mode da localStorage (default: 'all')
+      const toolMode = localStorage.getItem('aiToolMode') || 'all';
+      
       const params = new URLSearchParams({
         message,
         team: this.teamSlugLocal,
         uuid: this.uuid || "",
         locale: this.locale,
+        tool_mode: toolMode,
         ts: String(Date.now()),
       });
 

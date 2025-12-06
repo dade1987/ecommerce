@@ -1835,11 +1835,15 @@ export default defineComponent({
         isSpeaking = false;
         chatStreamingIndex = -1;
         let collected = "";
+        // Leggi tool_mode da localStorage (default: 'all')
+        const toolMode = localStorage.getItem('aiToolMode') || 'all';
+        
         const params = new URLSearchParams({
           message,
           team: teamSlug,
           uuid: uuid || "",
           locale,
+          tool_mode: toolMode,
           ts: String(Date.now()),
         });
         if (assistantsEnabled) params.set("assistants", "1");

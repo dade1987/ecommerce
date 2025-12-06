@@ -216,6 +216,17 @@
                         </div>
                     </form>
 
+                    {{-- Toggle Tool Mode: RAG vs DATABASE --}}
+                    <button
+                        type="button"
+                        id="toolModeToggle"
+                        onclick="toggleToolMode()"
+                        class="inline-flex items-center gap-1 rounded-full px-2 py-1 font-semibold ring-1 text-[11px] bg-indigo-50 text-indigo-700 ring-indigo-100"
+                    >
+                        <span id="toolModeIndicator" class="h-1.5 w-1.5 rounded-full bg-indigo-500"></span>
+                        <span id="toolModeLabel">RAG</span>
+                    </button>
+
                     {{-- Switch REALI / FAKE per la sezione in basso --}}
                     <button
                         type="button"
@@ -382,6 +393,52 @@
             <p class="text-sm text-gray-500">Nessun thread selezionato</p>
         @endif
     </x-filament::modal>
+
+    {{-- Script per gestire il toggle Tool Mode --}}
+    <script>
+        // Inizializza il tool mode dal localStorage (default: 'rag')
+        function initToolMode() {
+            const savedMode = localStorage.getItem('aiToolMode') || 'rag';
+            updateToolModeUI(savedMode);
+        }
+
+        // Aggiorna l'UI del pulsante in base al mode
+        function updateToolModeUI(mode) {
+            const button = document.getElementById('toolModeToggle');
+            const indicator = document.getElementById('toolModeIndicator');
+            const label = document.getElementById('toolModeLabel');
+            
+            if (!button || !indicator || !label) return;
+            
+            if (mode === 'rag') {
+                button.className = 'inline-flex items-center gap-1 rounded-full px-2 py-1 font-semibold ring-1 text-[11px] bg-indigo-50 text-indigo-700 ring-indigo-100';
+                indicator.className = 'h-1.5 w-1.5 rounded-full bg-indigo-500';
+                label.textContent = 'RAG';
+            } else {
+                button.className = 'inline-flex items-center gap-1 rounded-full px-2 py-1 font-semibold ring-1 text-[11px] bg-purple-50 text-purple-700 ring-purple-100';
+                indicator.className = 'h-1.5 w-1.5 rounded-full bg-purple-500';
+                label.textContent = 'DATABASE';
+            }
+        }
+
+        // Toggle tra RAG e DATABASE
+        function toggleToolMode() {
+            const currentMode = localStorage.getItem('aiToolMode') || 'rag';
+            const newMode = currentMode === 'rag' ? 'database' : 'rag';
+            localStorage.setItem('aiToolMode', newMode);
+            updateToolModeUI(newMode);
+        }
+
+        // Inizializza al caricamento della pagina
+        document.addEventListener('DOMContentLoaded', initToolMode);
+        
+        // Se il DOM è già caricato, inizializza subito
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initToolMode);
+        } else {
+            initToolMode();
+        }
+    </script>
 </x-filament-panels::page>
 
 

@@ -34,13 +34,14 @@ class NeuronWebsiteStreamController extends Controller
         $teamSlug = (string) $request->query('team', '');
         $locale = (string) $request->query('locale', 'it');
         $activityUuid = $request->query('uuid');
+        $toolMode = (string) $request->query('tool_mode', 'all'); // 'rag', 'database', 'all'
 
         // Istanzia il service FUORI dal closure
         $apiKey = config('services.openai.key');
         $client = \OpenAI::client($apiKey);
         $scraperService = new \App\Services\WebsiteScraperService($client);
 
-        $response = new StreamedResponse(function () use ($userInput, $teamSlug, $locale, $activityUuid, $scraperService) {
+        $response = new StreamedResponse(function () use ($userInput, $teamSlug, $locale, $activityUuid, $toolMode, $scraperService) {
             $flush = function (array $payload, string $event = 'message') {
                 echo "event: {$event}\n";
                 echo 'data: '.json_encode($payload, JSON_UNESCAPED_UNICODE)."\n\n";
@@ -117,13 +118,14 @@ class NeuronWebsiteStreamController extends Controller
 
                 // Crea e configura l'agent Neuron
                 $agent = WebsiteAssistantAgent::make()
-                    ->withWebsiteContext($teamSlug, $locale, $activityUuid, $websiteContent)
+                    ->withWebsiteContext($teamSlug, $locale, $activityUuid, $websiteContent, $toolMode)
                     ->withChatHistory(new \App\Neuron\QuoterChatHistory($streamThreadId));
 
                 Log::debug('NeuronWebsiteStreamController: Agent created and configured', [
                     'thread_id' => $streamThreadId,
                     'team_slug' => $teamSlug,
                     'locale' => $locale,
+                    'tool_mode' => $toolMode,
                 ]);
 
                 // Streaming nativo da Neuron

@@ -46,6 +46,8 @@ class WebsiteAssistantAgent extends Agent
 
     private ?string $websiteContent = '';
 
+    private string $toolMode = 'all'; // 'rag', 'database', 'all'
+
     /**
      * Configura lo agent con i parametri della richiesta
      */
@@ -53,12 +55,14 @@ class WebsiteAssistantAgent extends Agent
         string $teamSlug,
         string $locale = 'it',
         ?string $activityUuid = null,
-        ?string $websiteContent = ''
+        ?string $websiteContent = '',
+        string $toolMode = 'all'
     ): self {
         $this->teamSlug = $teamSlug;
         $this->locale = $locale;
         $this->activityUuid = $activityUuid;
         $this->websiteContent = $websiteContent ?? '';
+        $this->toolMode = $toolMode;
 
         return $this;
     }
@@ -130,18 +134,46 @@ class WebsiteAssistantAgent extends Agent
      */
     protected function tools(): array
     {
-        $toolsList = [
-            $this->createGetProductInfoTool(),
-            $this->createGetAddressInfoTool(),
-            $this->createGetAvailableTimesTool(),
-            $this->createCreateOrderTool(),
-            $this->createSubmitUserDataTool(),
-            $this->createGetFAQsTool(),
-            $this->createSearchSiteTool(),
-            $this->createFallbackTool(),
+        $allTools = [
+            // Tool RAG
+            'rag' => [
+                $this->createSearchSiteTool(),
+            ],
+            // Tool Database
+            'database' => [
+                $this->createGetProductInfoTool(),
+                $this->createGetAddressInfoTool(),
+                $this->createGetAvailableTimesTool(),
+                $this->createCreateOrderTool(),
+                $this->createSubmitUserDataTool(),
+                $this->createGetFAQsTool(),
+            ],
+            // Tool sempre disponibili
+            'always' => [
+                $this->createFallbackTool(),
+            ],
         ];
 
+        // Filtra i tool in base al toolMode
+        $toolsList = [];
+        
+        if ($this->toolMode === 'rag') {
+            // Solo tool RAG + sempre disponibili
+            $toolsList = array_merge($allTools['rag'], $allTools['always']);
+        } elseif ($this->toolMode === 'database') {
+            // Solo tool Database + sempre disponibili
+            $toolsList = array_merge($allTools['database'], $allTools['always']);
+        } else {
+            // Tutti i tool (default)
+            $toolsList = array_merge(
+                $allTools['rag'],
+                $allTools['database'],
+                $allTools['always']
+            );
+        }
+
         Log::debug('WebsiteAssistantAgent.tools', [
+            'tool_mode' => $this->toolMode,
             'tools_count' => count($toolsList),
             'tool_names' => array_map(fn ($t) => $t->getName(), $toolsList),
         ]);
