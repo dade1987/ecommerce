@@ -197,10 +197,11 @@
               </video>
 
               <!-- Link sorgente (modalità avatar in snippet/webcomponent) -->
-              <div v-if="isWebComponent && lastSourceUrl"
-                class="mt-2 mb-1 text-[11px] text-emerald-300 text-center pointer-events-auto">
-                <button type="button" @click="openLastSourceUrl" class="underline hover:text-emerald-200">
-                  Apri la pagina da cui ho preso queste informazioni
+              <div v-if="isWebComponent && lastSourceUrl" class="mt-3 mb-2 flex justify-center pointer-events-auto">
+                <button type="button" @click="openLastSourceUrl"
+                  class="inline-flex items-center gap-1 px-4 py-2 rounded-full bg-rose-600 hover:bg-rose-700 text-white text-[11px] font-semibold shadow-md border border-rose-300">
+                  <span>Vai alla pagina da cui ho preso queste informazioni</span>
+                  <span class="text-xs">↗</span>
                 </button>
               </div>
 
@@ -328,9 +329,11 @@
             <!-- Feedback -->
             <div id="feedbackMsg" class="text-sm text-slate-400 text-center min-h-5 mt-2"></div>
             <!-- Link sorgente (avatar / layout full) -->
-            <div v-if="lastSourceUrl" class="mt-1 text-[11px] text-emerald-300 text-center">
-              <button type="button" @click="openLastSourceUrl" class="underline hover:text-emerald-200">
-                Apri la pagina da cui ho preso queste informazioni
+            <div v-if="lastSourceUrl" class="mt-3 flex justify-center">
+              <button type="button" @click="openLastSourceUrl"
+                class="inline-flex items-center gap-1 px-4 py-2 rounded-full bg-rose-600 hover:bg-rose-700 text-white text-xs sm:text-[13px] font-semibold shadow-md border border-rose-300">
+                <span>Vai alla pagina da cui ho preso queste informazioni</span>
+                <span class="text-xs">↗</span>
               </button>
             </div>
           </div>
@@ -1374,6 +1377,9 @@ export default defineComponent({
       }
 
       try {
+        // Nuova richiesta vocale: nascondi il bottone della fonte precedente
+        this.lastSourceUrl = "";
+
         const self = this;
 
         // Usa sempre WhisperSpeechRecognition al posto della Web Speech API
