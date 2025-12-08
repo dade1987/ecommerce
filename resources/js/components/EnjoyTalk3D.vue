@@ -39,6 +39,13 @@
                 isWebComponent ? 'bg-transparent border-none' : ''
               ]">
               </div>
+              <!-- Link sorgente (modalità avatar in snippet/webcomponent) -->
+              <div v-if="isWebComponent && !snippetTextMode && lastSourceUrl"
+                class="mt-2 mb-1 text-[11px] text-emerald-300 text-center">
+                <button type="button" @click="openLastSourceUrl" class="underline hover:text-emerald-200">
+                  Apri la pagina da cui ho preso queste informazioni
+                </button>
+              </div>
               <!-- Chat Panel (solo testo) -->
               <div id="chatPanel"
                 class="hidden bg-[#111827] border border-slate-700 rounded-md overflow-hidden w-full h-auto max-h-[calc(100dvh-220px)] aspect-[3/4] flex flex-col">
@@ -2586,6 +2593,28 @@ export default defineComponent({
                 );
                 return;
               }
+
+              // In modalità avatar (non chat), se esiste una fonte RAG con URL,
+              // riconosci una conferma vocale semplice per aprire direttamente la pagina.
+              try {
+                if (!chatMode && vm && vm.lastSourceUrl) {
+                  const lower = safe.toLowerCase();
+                  if (
+                    lower === "sì" ||
+                    lower === "si" ||
+                    lower === "ok" ||
+                    lower === "va bene" ||
+                    lower.indexOf("apri la pagina") !== -1 ||
+                    lower.indexOf("apri il link") !== -1 ||
+                    lower.indexOf("portami") !== -1
+                  ) {
+                    if (typeof vm.openLastSourceUrl === "function") {
+                      vm.openLastSourceUrl();
+                      return;
+                    }
+                  }
+                }
+              } catch { }
 
               // In chatMode, mostra subito il messaggio dell'utente
               if (chatMode) {
