@@ -1634,12 +1634,14 @@ export default defineComponent({
             thinkingBadge.classList.add("hidden");
           }
 
-          const text = this.stripHtml(collected).trim();
-          console.log("[EnjoyHen] Processed text:", { text: text.substring(0, 100) });
-
-          // Estrai l'URL di fonte principale (se la risposta contiene la sezione "📚 Fonti")
+          // Estrai l'URL di fonte principale (se la risposta contiene il marker tecnico)
           const primaryUrl = this.extractPrimarySourceUrl(collected);
           this.lastSourceUrl = primaryUrl || "";
+
+          // Rimuovi il marker tecnico dalla risposta visibile
+          const cleaned = this.removeSourceMarker(collected);
+          const text = this.stripHtml(cleaned).trim();
+          console.log("[EnjoyHen] Processed text:", { text: text.substring(0, 100) });
 
           if (text) {
             // In modalità testo snippet: SOLO chat testuale, niente speech HeyGen
@@ -1690,16 +1692,38 @@ export default defineComponent({
     },
     /**
      * Estrae l'URL principale della fonte dalla risposta completa del modello.
-     * Usa solo le URL presenti nella sezione "📚 Fonti" (RAG sito).
+     * Usa prima il marker tecnico RAG_SOURCE_URL, altrimenti (per retrocompatibilità) cerca eventuali URL dopo "📚 Fonti".
      */
     extractPrimarySourceUrl(fullText) {
       try {
         const txt = fullText || "";
-        if (!txt || txt.indexOf("📚 Fonti") === -1) return "";
-        const match = txt.match(/https?:\/\/[^\s\])]+/);
-        return match ? match[0] : "";
+        if (!txt) return "";
+
+        // 1) Marker tecnico esplicito
+        const markerMatch = txt.match(/RAG_SOURCE_URL:\s*(https?:\/\/[^\s]+)/);
+        if (markerMatch && markerMatch[1]) {
+          return markerMatch[1];
+        }
+
+        // 2) Fallback: URL in sezione "📚 Fonti"
+        if (txt.indexOf("📚 Fonti") === -1) return "";
+        const urlMatch = txt.match(/https?:\/\/[^\s\])]+/);
+        return urlMatch ? urlMatch[0] : "";
       } catch {
         return "";
+      }
+    },
+
+    /**
+     * Rimuove dalla risposta qualsiasi riga tecnica "RAG_SOURCE_URL: ...".
+     */
+    removeSourceMarker(fullText) {
+      try {
+        const txt = fullText || "";
+        if (!txt) return "";
+        return txt.replace(/^RAG_SOURCE_URL:.*$/gm, "").trim();
+      } catch {
+        return fullText || "";
       }
     },
 

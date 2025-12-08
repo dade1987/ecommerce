@@ -220,8 +220,7 @@
             <div id="liveText" class="hidden mt-3 text-slate-300 min-h-[1.5rem]"></div>
             <!-- Link sorgente (avatar / layout full) -->
             <div v-if="lastSourceUrl" class="mt-2 text-xs text-emerald-300 text-center">
-              <button type="button" @click="openLastSourceUrl"
-                class="underline hover:text-emerald-200">
+              <button type="button" @click="openLastSourceUrl" class="underline hover:text-emerald-200">
                 Apri la pagina da cui ho preso queste informazioni
               </button>
             </div>
@@ -1762,6 +1761,8 @@ export default defineComponent({
         let t = vmInst.stripHtml
           ? vmInst.stripHtml(input || "")
           : stripHtml(input || "");
+        // Rimuovi eventuale riga tecnica del marker URL
+        t = t.replace(/^RAG_SOURCE_URL:.*$/gm, "");
         t = t.replace(/\*\*(.*?)\*\*/g, "$1");
         t = t.replace(/\*(.*?)\*/g, "$1");
         t = t.replace(/`+/g, "");
@@ -1806,7 +1807,16 @@ export default defineComponent({
       function extractPrimarySourceUrl(fullText) {
         try {
           const txt = fullText || "";
-          if (!txt || txt.indexOf("📚 Fonti") === -1) return "";
+          if (!txt) return "";
+
+          // 1) Marker tecnico esplicito
+          const markerMatch = txt.match(/RAG_SOURCE_URL:\s*(https?:\/\/[^\s]+)/);
+          if (markerMatch && markerMatch[1]) {
+            return markerMatch[1];
+          }
+
+          // 2) Fallback: URL in sezione "📚 Fonti"
+          if (txt.indexOf("📚 Fonti") === -1) return "";
           const match = txt.match(/https?:\/\/[^\s\])]+/);
           return match ? match[0] : "";
         } catch {
