@@ -41,9 +41,11 @@
               </div>
               <!-- Link sorgente (modalità avatar in snippet/webcomponent) -->
               <div v-if="isWebComponent && !snippetTextMode && lastSourceUrl"
-                class="mt-2 mb-1 text-[11px] text-emerald-300 text-center">
-                <button type="button" @click="openLastSourceUrl" class="underline hover:text-emerald-200">
-                  Apri la pagina da cui ho preso queste informazioni
+                class="mt-3 mb-2 flex justify-center pointer-events-auto">
+                <button type="button" @click="openLastSourceUrl"
+                  class="inline-flex items-center gap-1 px-4 py-2 rounded-full bg-rose-600 hover:bg-rose-700 text-white text-[11px] font-semibold shadow-md border border-rose-300">
+                  <span>Vai alla pagina da cui ho preso queste informazioni</span>
+                  <span class="text-xs">↗</span>
                 </button>
               </div>
               <!-- Chat Panel (solo testo) -->
@@ -226,9 +228,11 @@
             </div>
             <div id="liveText" class="hidden mt-3 text-slate-300 min-h-[1.5rem]"></div>
             <!-- Link sorgente (avatar / layout full) -->
-            <div v-if="lastSourceUrl" class="mt-2 text-xs text-emerald-300 text-center">
-              <button type="button" @click="openLastSourceUrl" class="underline hover:text-emerald-200">
-                Apri la pagina da cui ho preso queste informazioni
+            <div v-if="lastSourceUrl" class="mt-3 flex justify-center">
+              <button type="button" @click="openLastSourceUrl"
+                class="inline-flex items-center gap-1 px-4 py-2 rounded-full bg-rose-600 hover:bg-rose-700 text-white text-xs sm:text-[13px] font-semibold shadow-md border border-rose-300">
+                <span>Vai alla pagina da cui ho preso queste informazioni</span>
+                <span class="text-xs">↗</span>
               </button>
             </div>
           </div>
@@ -2499,6 +2503,13 @@ export default defineComponent({
 
         try {
           const vm = getCurrentInstance()?.proxy || {};
+
+          // Nuova richiesta vocale in modalità avatar: nascondi il bottone della fonte precedente
+          try {
+            if (!chatMode && vm && vm.lastSourceUrl) {
+              vm.lastSourceUrl = "";
+            }
+          } catch {}
 
           // Usa sempre WhisperSpeechRecognition al posto della Web Speech API
           recognition = new WhisperSpeechRecognition();
