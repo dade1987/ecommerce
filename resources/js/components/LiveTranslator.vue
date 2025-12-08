@@ -1,8 +1,7 @@
 <template>
     <div
         class="w-full min-h-screen bg-slate-900 text-slate-100 flex items-stretch justify-center px-2 md:px-6 py-4 md:py-8">
-        <div
-            class="w-full max-w-6xl bg-slate-800/80 border border-slate-700 rounded-2xl shadow-2xl p-4 md:p-8 flex flex-col">
+        <div class="w-full bg-slate-800/80 border border-slate-700 rounded-2xl shadow-2xl p-4 md:p-8 flex flex-col">
             <div class="flex items-center justify-between gap-4 mb-4 md:mb-6">
                 <div>
                     <h1 class="text-2xl md:text-3xl font-semibold tracking-tight">
@@ -69,6 +68,13 @@
                     {{ statusMessage }}
                 </p>
 
+                <!-- Avviso: modalità offline in arrivo -->
+                <div
+                    class="w-full rounded-lg border border-amber-500/40 bg-amber-900/20 px-3 py-2 text-[11px] md:text-xs text-amber-100 flex items-start gap-2">
+                    <span class="mt-0.5 text-sm">⏳</span>
+                    <span>{{ ui.offlineNotice }}</span>
+                </div>
+
                 <!-- Pannello debug: pulsante + finestra log copiabile -->
                 <div class="flex justify-end">
                     <button type="button" @click="showDebugPanel = !showDebugPanel"
@@ -109,68 +115,58 @@
                                 {{ whisperSilenceMs }} ms
                             </span>
                         </div>
-                        <input type="range" min="200" max="3000" step="100" v-model.number="whisperSilenceMs"
+                        <input type="range" min="400" max="2000" step="100" v-model.number="whisperSilenceMs"
                             class="w-full accent-emerald-500" />
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div class="flex flex-col gap-2">
-                        <label class="text-xs font-semibold text-emerald-400">
-                            {{ ui.langALabel }} <span class="text-red-400">*</span>
-                        </label>
-                        <select v-model="langA" @change="onLanguagePairChange"
-                            class="bg-slate-800 border text-sm rounded-md px-3 py-2 focus:outline-none focus:ring-2"
-                            :class="langA ? 'border-slate-600 focus:ring-emerald-500' : 'border-red-500 focus:ring-red-500'">
-                            <option value="">{{ ui.selectLangAPlaceholder }}</option>
-                            <option v-for="opt in availableLanguages" :key="opt.code" :value="opt.code">
-                                {{ opt.label }}
-                            </option>
-                        </select>
+                <!-- Selettori lingue: metà pagina + metà pagina (traduzione prima, poi seconda lingua) -->
+                <div class="w-full">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <!-- Lingua di traduzione (langB) -->
+                        <div class="flex flex-col gap-2">
+                            <label class="text-xs font-semibold text-emerald-400">
+                                {{ ui.langBLabel }} <span class="text-red-400">*</span>
+                            </label>
+                            <select v-model="langB" @change="onLanguagePairChange"
+                                class="w-full bg-slate-800 border text-sm rounded-md px-3 py-2 focus:outline-none focus:ring-2"
+                                :class="langB ? 'border-slate-600 focus:ring-emerald-500' : 'border-red-500 focus:ring-red-500'">
+                                <option value="">{{ ui.selectLangBPlaceholder }}</option>
+                                <option v-for="opt in availableLanguages" :key="opt.code" :value="opt.code">
+                                    {{ opt.label }}
+                                </option>
+                            </select>
+                        </div>
 
-                        <!-- Pulsante microfono Lingua A -->
-                        <button type="button" @click="toggleListeningForLang('A')" :disabled="!langA || !langB" class="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition
-                            focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 border"
-                            :class="activeSpeaker === 'A' && isListening
+                        <!-- Seconda lingua consentita (langA) -->
+                        <div class="flex flex-col gap-2">
+                            <label class="text-xs font-semibold text-slate-200">
+                                {{ ui.langALabel }}
+                            </label>
+                            <select v-model="langA" @change="onLanguagePairChange"
+                                class="w-full bg-slate-800 border text-sm rounded-md px-3 py-2 focus:outline-none focus:ring-2 border-slate-600 focus:ring-emerald-500">
+                                <option value="">{{ ui.selectLangAPlaceholder }}</option>
+                                <option v-for="opt in availableLanguages" :key="'a-' + opt.code" :value="opt.code">
+                                    {{ opt.label }}
+                                </option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Pulsante microfono unico (auto-rilevamento lingua sorgente → traduzione in langB) -->
+                    <div class="mt-3">
+                        <button type="button" @click="toggleListeningForLang('A')" :disabled="!langB" class="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition
+                                focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 border"
+                            :class="isListening
                                 ? 'bg-emerald-600 text-white border-emerald-400 shadow-lg shadow-emerald-500/30'
                                 : 'bg-slate-700 text-slate-100 border-slate-500 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed'">
                             <span
                                 class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-black/30 border border-slate-500">
                                 <span class="inline-block w-1.5 h-3 rounded-full"
-                                    :class="activeSpeaker === 'A' && isListening ? 'bg-red-400 animate-pulse' : 'bg-slate-300'"></span>
+                                    :class="isListening ? 'bg-red-400 animate-pulse' : 'bg-slate-300'"></span>
                             </span>
                             <span>
-                                {{ activeSpeaker === 'A' && isListening ? ui.speakerAActive : ui.speakerASpeak }}
-                            </span>
-                        </button>
-                    </div>
-
-                    <div class="flex flex-col gap-2">
-                        <label class="text-xs font-semibold text-emerald-400">
-                            {{ ui.langBLabel }} <span class="text-red-400">*</span>
-                        </label>
-                        <select v-model="langB" @change="onLanguagePairChange"
-                            class="bg-slate-800 border text-sm rounded-md px-3 py-2 focus:outline-none focus:ring-2"
-                            :class="langB ? 'border-slate-600 focus:ring-emerald-500' : 'border-red-500 focus:ring-red-500'">
-                            <option value="">{{ ui.selectLangBPlaceholder }}</option>
-                            <option v-for="opt in availableLanguages" :key="opt.code" :value="opt.code">
-                                {{ opt.label }}
-                            </option>
-                        </select>
-
-                        <!-- Pulsante microfono Lingua B -->
-                        <button type="button" @click="toggleListeningForLang('B')" :disabled="!langA || !langB" class="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition
-                            focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 border"
-                            :class="activeSpeaker === 'B' && isListening
-                                ? 'bg-blue-600 text-white border-blue-400 shadow-lg shadow-blue-500/30'
-                                : 'bg-slate-700 text-slate-100 border-slate-500 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed'">
-                            <span
-                                class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-black/30 border border-slate-500">
-                                <span class="inline-block w-1.5 h-3 rounded-full"
-                                    :class="activeSpeaker === 'B' && isListening ? 'bg-red-400 animate-pulse' : 'bg-slate-300'"></span>
-                            </span>
-                            <span>
-                                {{ activeSpeaker === 'B' && isListening ? ui.speakerBActive : ui.speakerBSpeak }}
+                                {{ isListening ? ui.speakerAActive : ui.speakerASpeak }}
                             </span>
                         </button>
                     </div>
@@ -178,23 +174,31 @@
                 <div class="mt-4 space-y-6">
                     <!-- Righe principali: originale, traduzione, suggerimenti affiancati -->
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
-                        <div class="flex flex-col gap-2" v-if="!isMobileLowPower">
+                        <div class="flex flex-col gap-2">
                             <div class="flex items-center justify-between">
                                 <span class="text-base md:text-lg font-semibold text-slate-100">
                                     {{ ui.originalTitle }}
                                 </span>
-                                <span class="text-xs text-slate-400">
-                                    {{ ui.originalSubtitle }}
-                                </span>
+                                <div class="flex items-center gap-2">
+                                    <button type="button"
+                                        class="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] md:text-[11px] font-medium border border-slate-600 text-slate-100 bg-slate-800 hover:bg-slate-700 transition"
+                                        @click="copyTranscript">
+                                        <span>{{ ui.transcriptCopyLabel }}</span>
+                                    </button>
+                                    <button type="button"
+                                        class="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] md:text-[11px] font-medium border border-slate-600 text-slate-100 bg-slate-800 hover:bg-slate-700 transition"
+                                        @click="exportTranscriptPdf">
+                                        <span>{{ ui.transcriptExportPdfLabel }}</span>
+                                    </button>
+                                </div>
                             </div>
                             <div ref="originalBox"
                                 class="h-[100px] md:min-h-[260px] md:max-h-[420px] rounded-xl border border-slate-700 bg-slate-900/60 p-4 text-sm md:text-base lg:text-lg overflow-y-auto leading-relaxed">
-                                <p v-if="!displayOriginalText" class="text-slate-500 text-xs md:text-sm">
-                                    {{ ui.originalPlaceholder }}
-                                </p>
-                                <p v-else class="whitespace-pre-wrap">
-                                    {{ displayOriginalText }}
-                                </p>
+                                <div ref="originalEditable" contenteditable="true"
+                                    class="w-full h-full bg-transparent text-sm md:text-base lg:text-lg text-slate-100 outline-none whitespace-pre-wrap"
+                                    @focus="onOriginalFocus" @blur="onOriginalBlurInternal"
+                                    @input="onOriginalEditableInput">
+                                </div>
                             </div>
                         </div>
 
@@ -203,9 +207,22 @@
                                 <span class="text-base md:text-lg font-semibold text-slate-100">
                                     {{ ui.translationTitle }}
                                 </span>
-                                <span v-if="isTtsLoading" class="text-[11px] md:text-xs text-emerald-300 italic ml-2">
-                                    {{ ui.ttsLoadingMessage }}
-                                </span>
+                                <div class="flex items-center gap-2">
+                                    <button type="button"
+                                        class="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] md:text-[11px] font-medium border border-slate-600 text-slate-100 bg-slate-800 hover:bg-slate-700 transition"
+                                        @click="copyTranslation">
+                                        <span>{{ ui.translationCopyLabel }}</span>
+                                    </button>
+                                    <button type="button"
+                                        class="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] md:text-[11px] font-medium border border-slate-600 text-slate-100 bg-slate-800 hover:bg-slate-700 transition"
+                                        @click="exportTranscriptPdf('translation')">
+                                        <span>{{ ui.translationExportPdfLabel }}</span>
+                                    </button>
+                                    <span v-if="isTtsLoading"
+                                        class="text-[11px] md:text-xs text-emerald-300 italic ml-1 hidden md:inline">
+                                        {{ ui.ttsLoadingMessage }}
+                                    </span>
+                                </div>
                             </div>
                             <div ref="translationBox"
                                 class="h-[100px] md:min-h-[260px] md:max-h-[420px] rounded-xl border border-slate-700 bg-slate-900/60 p-4 text-sm md:text-base lg:text-lg overflow-y-auto leading-relaxed">
@@ -218,37 +235,27 @@
                                         class="whitespace-pre-wrap">
                                         {{ seg }}
                                     </div>
-                                    <!-- Frase corrente in streaming, aggiornata token per token con manipolazione diretta DOM -->
-                                    <div ref="translationLiveContainer" class="whitespace-pre-wrap"></div>
                                 </div>
+                                <!-- Frase corrente in streaming, aggiornata token per token con manipolazione diretta DOM -->
+                                <div ref="translationLiveContainer" class="whitespace-pre-wrap"></div>
                             </div>
                         </div>
-                        <div class="flex flex-col gap-2">
+                        <div class="flex flex-col gap-2" v-if="!isMobileLowPower">
                             <div class="flex items-center justify-between gap-4">
                                 <div>
                                     <h2 class="text-base md:text-lg font-semibold text-slate-100">
                                         {{ ui.suggestionsTitle }}
-                                        <span v-if="langA && langB" class="text-sm text-emerald-400">
-                                            ({{ langA.toUpperCase() }} + {{ langB.toUpperCase() }})
+                                        <span v-if="langB" class="text-sm text-emerald-400">
+                                            ({{ langB.toUpperCase() }})
                                         </span>
                                     </h2>
                                 </div>
-                                <div v-if="cvText && langA && langB" class="flex items-center gap-2">
+                                <div v-if="cvText && langB" class="flex items-center gap-2">
                                     <button type="button"
                                         class="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] md:text-xs font-semibold border border-emerald-500 text-emerald-100 bg-emerald-800 hover:bg-emerald-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
                                         :disabled="isLoadingSuggestion" @click="onRequestSuggestionsClick">
                                         <span>
                                             {{ isLoadingSuggestion ? '...' : ui.suggestionsButton }}
-                                        </span>
-                                    </button>
-                                    <button type="button"
-                                        class="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] md:text-xs font-semibold border border-sky-500 text-sky-100 bg-sky-800 hover:bg-sky-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                                        :disabled="isMindMapLoading" @click="onToggleMindMapClick">
-                                        <span v-if="!mindMap.raw">
-                                            {{ isMindMapLoading ? '...' : ui.mindMapButton }}
-                                        </span>
-                                        <span v-else>
-                                            {{ isMindMapLoading ? '...' : ui.mindMapHideButton }}
                                         </span>
                                     </button>
                                 </div>
@@ -260,7 +267,7 @@
                                     {{ ui.suggestionsNoCv }}
                                 </div>
 
-                                <div v-else-if="!langA || !langB" class="text-xs md:text-sm text-slate-500">
+                                <div v-else-if="!langB" class="text-xs md:text-sm text-slate-500">
                                     {{ ui.suggestionsNoLangs }}
                                 </div>
 
@@ -309,30 +316,60 @@
                         </div>
                     </div>
 
-                    <!-- CV spostato sotto -->
-                    <div class="border-t border-slate-700 pt-4 space-y-3" v-if="!isMobileLowPower">
-                        <div>
-                            <h2 class="text-sm font-semibold text-slate-100">
-                                {{ ui.cvSectionTitle }}
-                            </h2>
-                            <p class="text-[11px] text-slate-300 mt-1">
-                                {{ ui.cvSectionDescription }}
-                            </p>
-                        </div>
-                        <div
-                            class="rounded-xl border border-slate-700 bg-slate-900/80 p-3 text-xs space-y-2 max-h-[260px] overflow-y-auto">
-                            <label class="block text-[11px] font-medium text-slate-200 mb-1">
-                                {{ ui.cvUploadLabel }}
-                            </label>
-                            <input type="file" accept=".txt,.md,.rtf"
-                                class="block w-full text-[11px] text-slate-200 file:text-[11px] file:px-2 file:py-1 file:mr-2 file:rounded-md file:border-0 file:bg-emerald-600 file:text-white file:cursor-pointer cursor-pointer"
-                                @change="onCvFileChange" />
-                            <p class="text-[10px] text-slate-500 mt-2">
-                                {{ ui.cvUploadHint }}
-                            </p>
+                    <!-- CV e strumenti call: stessa griglia (2 colonne sotto Testo originale + Traduzione) -->
+                    <div class="border-t border-slate-700 pt-4" v-if="!isMobileLowPower">
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 items-start">
+                            <!-- Sezione CV: occupa le stesse 2 colonne di Testo originale + Traduzione -->
+                            <div class="lg:col-span-2 space-y-3">
+                                <div>
+                                    <h2 class="text-sm font-semibold text-slate-100">
+                                        {{ ui.cvSectionTitle }}
+                                    </h2>
+                                    <p class="text-[11px] text-slate-300 mt-1">
+                                        {{ ui.cvSectionDescription }}
+                                    </p>
+                                </div>
+                                <div class="rounded-xl border border-slate-700 bg-slate-900/80 p-4 text-xs space-y-3">
+                                    <label class="block text-sm font-medium text-slate-200 mb-2">
+                                        {{ ui.cvUploadLabel }}
+                                    </label>
+                                    <input type="file" accept=".txt,.md,.rtf,.pdf"
+                                        class="block w-full text-sm text-slate-200 file:text-sm file:px-4 file:py-2 file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-600 file:text-white file:cursor-pointer file:font-semibold cursor-pointer hover:file:bg-emerald-500 transition"
+                                        @change="onCvFileChange" />
+                                    <p class="text-xs text-slate-400 mt-3">
+                                        {{ ui.cvUploadHint }}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Bottoni strumenti call: colonna a destra (come la colonna Suggerimenti) -->
+                            <div class="flex flex-col gap-3 items-stretch lg:items-end">
+                                <button type="button"
+                                    class="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg text-sm md:text-base font-semibold border-2 border-sky-400 text-sky-100 bg-gradient-to-r from-sky-700 to-sky-800 hover:from-sky-600 hover:to-sky-700 hover:border-sky-300 shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed w-full md:w-[250px]"
+                                    :disabled="isMindMapLoading" @click="onToggleMindMapClick">
+                                    <span>
+                                        {{ isMindMapLoading ? '...' : ui.mindMapButton }}
+                                    </span>
+                                </button>
+                                <button type="button"
+                                    class="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg text-sm md:text-base font-semibold border-2 border-purple-400 text-purple-100 bg-gradient-to-r from-purple-700 to-purple-800 hover:from-purple-600 hover:to-purple-700 hover:border-purple-300 shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed w-full md:w-[250px]"
+                                    :disabled="isNextCallLoading" @click="openNextCallModal">
+                                    <span>
+                                        {{ isNextCallLoading ? '...' : ui.nextCallButton }}
+                                    </span>
+                                </button>
+                                <button type="button"
+                                    class="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg text-sm md:text-base font-semibold border-2 border-amber-400 text-amber-100 bg-gradient-to-r from-amber-700 to-amber-800 hover:from-amber-600 hover:to-amber-700 hover:border-amber-300 shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed w-full md:w-[250px]"
+                                    :disabled="isClarifyIntentLoading" @click="onClarifyIntentClick">
+                                    <span>
+                                        {{ isClarifyIntentLoading ? '...' : ui.clarifyIntentButton }}
+                                    </span>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
+
             </div>
 
             <!-- TAB 2: Traduttore Video Youtube -->
@@ -340,6 +377,13 @@
                 <p v-if="statusMessage" class="text-xs text-slate-300 text-center">
                     {{ statusMessage }}
                 </p>
+
+                <!-- Avviso mobile-only: YouTube interprete limitato su smartphone -->
+                <div v-if="isMobileLowPower"
+                    class="w-full rounded-lg border border-amber-500/40 bg-amber-900/25 px-3 py-2 text-[11px] md:text-xs text-amber-100 flex items-start gap-2">
+                    <span class="mt-0.5 text-sm">📱</span>
+                    <span>{{ ui.youtubeMobileWarning }}</span>
+                </div>
 
                 <!-- Pannello debug: pulsante + finestra log copiabile (anche in modalità YouTube) -->
                 <div class="flex justify-end">
@@ -382,7 +426,7 @@
                                 {{ whisperSilenceMs }} ms
                             </span>
                         </div>
-                        <input type="range" min="200" max="3000" step="100" v-model.number="whisperSilenceMs"
+                        <input type="range" min="400" max="2000" step="100" v-model.number="whisperSilenceMs"
                             class="w-full accent-emerald-500" />
                     </div>
                 </div>
@@ -536,7 +580,7 @@
                         {{ ui.mindMapTitle }}
                     </span>
                     <span class="text-[11px] text-slate-400">
-                        {{ langA && getLangLabel(langA) ? getLangLabel(langA) : '' }}
+                        {{ langB && getLangLabel(langB) ? getLangLabel(langB) : '' }}
                     </span>
                 </div>
                 <div class="flex items-center gap-2">
@@ -552,8 +596,134 @@
                     </button>
                 </div>
             </div>
-            <div class="flex-1">
-                <div ref="mindMapGraphContainer" class="w-full h-full"></div>
+            <div class="flex-1 flex flex-col">
+                <div class="flex-1">
+                    <div ref="mindMapGraphContainer" class="w-full h-full"></div>
+                </div>
+                <!-- Lista testi mappa mentale (sempre visibile e stampabile) -->
+                <div
+                    class="border-t border-slate-700 px-4 py-3 max-h-48 overflow-y-auto text-xs md:text-sm bg-slate-900/95">
+                    <div v-if="mindMapGraph && mindMapGraph.nodes && mindMapGraph.nodes.length">
+                        <div v-for="node in mindMapGraph.nodes" :key="node.id || node.label" class="mb-2 last:mb-0">
+                            <div class="font-semibold text-slate-100">
+                                {{ node.label || node.title || node.id }}
+                            </div>
+                            <div v-if="node.note || node.description" class="text-slate-300 whitespace-pre-line mt-0.5">
+                                {{ node.note || node.description }}
+                            </div>
+                        </div>
+                    </div>
+                    <div v-else class="text-slate-500">
+                        Nessun nodo disponibile nella mappa mentale.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Migliora Prossima Call -->
+    <div v-if="showNextCallModal"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+        <div
+            class="bg-slate-900 rounded-2xl border border-slate-700 w-[92vw] max-w-4xl max-h-[90vh] flex flex-col shadow-2xl">
+            <div class="flex items-center justify-between px-4 py-2 border-b border-slate-700">
+                <div class="flex flex-col">
+                    <span class="text-sm md:text-base font-semibold text-slate-100">
+                        {{ ui.nextCallButton }}
+                    </span>
+                    <span class="text-[11px] text-slate-400">
+                        {{ ui.manualTranscriptLabel }}
+                    </span>
+                </div>
+                <button type="button"
+                    class="inline-flex items-center justify-center w-7 h-7 rounded-full border border-slate-600 text-slate-200 hover:bg-slate-700 transition"
+                    @click="closeNextCallModal">
+                    ✕
+                </button>
+            </div>
+            <div class="p-4 space-y-4 overflow-y-auto">
+                <div class="space-y-1">
+                    <label class="text-xs font-semibold text-slate-200">
+                        Obiettivo call
+                    </label>
+                    <textarea v-model="nextCallGoal" rows="4"
+                        class="w-full text-xs md:text-sm rounded-md border border-slate-600 bg-slate-900/80 px-2 py-1 text-slate-100 resize-y focus:outline-none focus:ring-2 focus:ring-emerald-500"></textarea>
+                </div>
+                <div class="flex justify-end">
+                    <button type="button"
+                        class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-[11px] md:text-xs font-semibold border border-emerald-500 text-emerald-100 bg-emerald-900 hover:bg-emerald-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                        :disabled="isNextCallLoading || !nextCallGoal.trim()" @click="onNextCallSuggestClick">
+                        <span>{{ isNextCallLoading ? '...' : 'Suggerisci' }}</span>
+                    </button>
+                </div>
+                <div v-if="nextCallSuggestionsLangA || nextCallSuggestionsLangB" class="w-full space-y-4">
+                    <div v-if="nextCallSuggestionsLangA" class="w-full space-y-1">
+                        <div class="text-[11px] md:text-xs font-semibold text-slate-200">
+                            {{ getLangLabel(langA || 'it') }}
+                        </div>
+                        <div class="w-full text-xs md:text-sm text-slate-100 whitespace-pre-wrap leading-relaxed">
+                            {{ nextCallSuggestionsLangA }}
+                        </div>
+                    </div>
+                    <div v-if="nextCallSuggestionsLangB" class="w-full space-y-1">
+                        <div class="text-[11px] md:text-xs font-semibold text-slate-200">
+                            {{ getLangLabel(langB || 'en') }}
+                        </div>
+                        <div class="w-full text-xs md:text-sm text-slate-100 whitespace-pre-wrap leading-relaxed">
+                            {{ nextCallSuggestionsLangB }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Chiarisci Intenzione Interlocutore -->
+    <div v-if="showClarifyIntentModal"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+        <div
+            class="bg-slate-900 rounded-2xl border border-slate-700 w-[92vw] max-w-4xl max-h-[90vh] flex flex-col shadow-2xl">
+            <div class="flex items-center justify-between px-4 py-2 border-b border-slate-700">
+                <div class="flex flex-col">
+                    <span class="text-sm md:text-base font-semibold text-slate-100">
+                        {{ ui.clarifyIntentTitle }}
+                    </span>
+                    <span class="text-[11px] text-slate-400">
+                        {{ langB && getLangLabel(langB) ? getLangLabel(langB) : '' }}
+                    </span>
+                </div>
+                <button type="button"
+                    class="inline-flex items-center justify-center w-7 h-7 rounded-full border border-slate-600 text-slate-200 hover:bg-slate-700 transition"
+                    @click="closeClarifyIntentModal">
+                    ✕
+                </button>
+            </div>
+            <div class="p-4 space-y-4 overflow-y-auto">
+                <!-- Fase 1: Descrizione ruolo interlocutore -->
+                <div v-if="!clarifyIntentText" class="w-full space-y-4">
+                    <div class="space-y-1">
+                        <label class="text-xs font-semibold text-slate-200">
+                            {{ ui.clarifyIntentSelectSpeaker }}
+                        </label>
+                        <textarea v-model="clarifyIntentInterlocutorRole" rows="3"
+                            :placeholder="ui.clarifyIntentInterlocutorRolePlaceholder"
+                            class="w-full text-xs md:text-sm rounded-md border border-slate-600 bg-slate-900/80 px-2 py-1 text-slate-100 resize-y focus:outline-none focus:ring-2 focus:ring-amber-500"></textarea>
+                    </div>
+                    <div class="flex justify-end">
+                        <button type="button"
+                            class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-[11px] md:text-xs font-semibold border border-amber-500 text-amber-100 bg-amber-900 hover:bg-amber-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                            :disabled="isClarifyIntentLoading || !clarifyIntentInterlocutorRole.trim()"
+                            @click="onClarifyIntentAnalyzeClick">
+                            <span>{{ isClarifyIntentLoading ? '...' : ui.clarifyIntentAnalyzeButton }}</span>
+                        </button>
+                    </div>
+                </div>
+                <!-- Fase 2: Risultato -->
+                <div v-else class="w-full">
+                    <div class="w-full text-xs md:text-sm text-slate-100 whitespace-pre-wrap leading-relaxed">
+                        {{ clarifyIntentText }}
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -608,6 +778,12 @@ export default {
             mindMapNetwork: null,
             lastPreviewText: '',
             lastPreviewAt: 0,
+            // Per tradurre solo la parte aggiunta a mano nella trascrizione
+            originalTextBeforeManualEdit: '',
+            // Spiegazione intenzione cliente
+            isClarifyIntentLoading: false,
+            clarifyIntentText: '',
+            isOriginalEditingManually: false,
             langA: '',
             langB: '',
             currentMicLang: '',
@@ -624,13 +800,15 @@ export default {
             youtubeAutoPauseEnabled: true,
             youtubeAutoResumeEnabled: true,
             // Durata (ms) di silenzio che chiude un segmento dei motori backend (Whisper / Google)
-            // e fa scattare l'auto-pausa quando abilitata.
-            whisperSilenceMs: 800,
+            // e fa scattare l'auto-pausa quando abilitata. Default: 800ms (pausa naturale di conversazione).
+            whisperSilenceMs: 700,
             ttsQueue: [],
             isTtsPlaying: false,
             wasListeningBeforeTts: false,
             lastSpeakerBeforeTts: null,
             translationThreadId: null,
+            // Coda per traduzioni finali quando uno stream è ancora attivo
+            pendingTranslationQueue: [],
 
             // Speaker da riattivare automaticamente dopo una pausa auto-rilevata
             // (solo modalità call e solo quando il TTS è disattivato).
@@ -651,6 +829,15 @@ export default {
             showDebugPanel: false,
             debugLogs: [],
             debugCopyStatus: '',
+            // Migliora prossima call
+            showNextCallModal: false,
+            isNextCallLoading: false,
+            nextCallGoal: '',
+            nextCallSuggestionsLangA: '',
+            nextCallSuggestionsLangB: '',
+            // Chiarisci intenzione interlocutore
+            showClarifyIntentModal: false,
+            clarifyIntentInterlocutorRole: '', // Testo libero che descrive il ruolo dell'interlocutore
             webSpeechDebugSeq: 0,
             lastWebSpeechEventAt: 0,
 
@@ -707,10 +894,10 @@ export default {
             const lang = (this.uiLocale || 'it').toLowerCase();
             const dict = {
                 it: {
-                    title: 'PolyGlide – l\'interprete virtuale che ti fa parlare con chiunque',
+                    title: 'Interpreter – l\'interprete virtuale che ti fa parlare con chiunque',
                     subtitle: 'Parla in qualsiasi lingua: vedrai il testo originale e la traduzione live.',
-                    langALabel: 'Lingua A',
-                    langBLabel: 'Lingua B',
+                    langALabel: 'Lingua dell\'interlocutore',
+                    langBLabel: 'Lingua di traduzione',
                     whisperLabel: 'Usa il motore avanzato (cloud)',
                     whisperForcedNote: '',
                     whisperSingleSegmentLabel: 'Invia l’audio solo quando spengo il microfono (meno chiamate, frasi più complete)',
@@ -733,8 +920,8 @@ export default {
                     mindMapEmpty: 'La mappa mentale sarà disponibile dopo qualche scambio di suggerimenti.',
                     cvSectionTitle: 'CV per i suggerimenti',
                     cvSectionDescription: 'Carica un file di testo con il tuo CV. Verrà usato solo per generare suggerimenti, non per le traduzioni.',
-                    cvUploadLabel: 'Carica CV da file (.txt)',
-                    cvUploadHint: 'Suggerimento: salva il tuo CV in formato testo (.txt) e caricalo da qui.',
+                    cvUploadLabel: 'Carica CV da file',
+                    cvUploadHint: 'Suggerimento: salva il tuo CV e caricalo da qui.',
                     youtubeUrlLabel: 'URL video YouTube',
                     youtubeUrlHelp: 'Incolla qui il link del video che vuoi usare durante la call di lavoro.',
                     youtubeLangSourceLabel: 'Lingua del video',
@@ -745,12 +932,12 @@ export default {
                     youtubeAutoPauseHint: '',
                     youtubeAutoResumeLabel: 'Riprendi automaticamente dopo traduzione',
                     youtubeAutoResumeHint: '',
-                    speakerAActive: 'Parlante A attivo',
-                    speakerASpeak: 'Parla Lingua A',
+                    speakerAActive: 'Registrazione in corso',
+                    speakerASpeak: 'Registra',
                     speakerBActive: 'Parlante B attivo',
                     speakerBSpeak: 'Parla Lingua B',
-                    selectLangAPlaceholder: '-- Seleziona lingua A --',
-                    selectLangBPlaceholder: '-- Seleziona lingua B --',
+                    selectLangAPlaceholder: '-- Seleziona la lingua dell\'interlocutore --',
+                    selectLangBPlaceholder: '-- Seleziona lingua di traduzione --',
                     selectOptionPlaceholder: '-- Seleziona --',
                     ttsBusyMessage: 'Sto leggendo la traduzione, attendi che finisca prima di parlare.',
                     ttsLoadingMessage: 'Caricamento traduzione in corso...',
@@ -759,7 +946,7 @@ export default {
                     statusSelectLangAB: '⚠️ Seleziona entrambe le lingue (A e B) prima di iniziare!',
                     statusMicDenied: 'Permesso microfono negato. Abilitalo nelle impostazioni del browser.',
                     statusMicStartError: 'Impossibile avviare il microfono.',
-                    statusLangPairMissing: 'Seleziona entrambe le lingue (A e B) per iniziare.',
+                    statusLangPairMissing: 'Seleziona la lingua di traduzione per iniziare.',
                     statusLangPairDifferent: 'Le due lingue devono essere diverse!',
                     statusWhisperModeOn: 'Modalità Whisper attivata: userò OpenAI per il riconoscimento vocale.',
                     statusBrowserModeOn: 'Modalità browser attivata: userò il riconoscimento vocale del browser.',
@@ -793,12 +980,25 @@ export default {
                     youtubeStatusReadingTranslation: 'Lettura traduzione',
                     downloadBackendAudioLabel: 'Scarica audio inviato al riconoscimento vocale',
                     youtubePlayPauseHint: 'FAI PLAY per ascoltare il video, metti in PAUSA per tradurre la frase appena detta.',
+                    transcriptCopyLabel: 'Copia trascrizione',
+                    transcriptExportPdfLabel: 'Esporta PDF trascrizione',
+                    translationCopyLabel: 'Copia traduzione',
+                    translationExportPdfLabel: 'Esporta PDF traduzione',
+                    nextCallButton: 'Migliora prossima call',
+                    offlineNotice: 'Tra poco potrai usare Interpreter anche offline, senza connessione: stiamo preparando una modalità locale dedicata.',
+                    youtubeMobileWarning: 'Su questo dispositivo mobile il browser non permette di tradurre i video bene come da computer. Per l’esperienza completa di YouTube Interprete usa un PC o Mac (meglio se con Chrome).',
+                    clarifyIntentButton: 'Chiarisci intenzione interlocutore',
+                    clarifyIntentTitle: 'Cosa intende davvero l\'interlocutore',
+                    clarifyIntentEmpty: 'Quando hai dei dubbi su cosa stia chiedendo l\'interlocutore, usa il pulsante qui sopra: qui apparirà una spiegazione ragionata delle sue intenzioni.',
+                    clarifyIntentSelectSpeaker: 'Qual è il ruolo dell\'interlocutore di cui vuoi chiarire le intenzioni?',
+                    clarifyIntentInterlocutorRolePlaceholder: 'Es: il recruiter, il cliente, il capo, il candidato, ecc.',
+                    clarifyIntentAnalyzeButton: 'Chiarisci',
                 },
                 en: {
-                    title: 'PolyGlide – the virtual interpreter that lets you talk to anyone',
+                    title: 'Interpreter – the virtual interpreter that lets you talk to anyone',
                     subtitle: 'Speak in any language: you will see the original text and the live translation.',
-                    langALabel: 'Language A',
-                    langBLabel: 'Language B',
+                    langALabel: 'Interlocutor language',
+                    langBLabel: 'Translation language',
                     whisperLabel: 'Use the advanced engine (cloud)',
                     whisperForcedNote: '',
                     whisperSingleSegmentLabel: 'Send audio only when I stop the microphone (fewer calls, more complete sentences)',
@@ -821,8 +1021,8 @@ export default {
                     mindMapEmpty: 'Mind map will be available after a few suggestion exchanges.',
                     cvSectionTitle: 'CV for suggestions',
                     cvSectionDescription: 'Upload a text file with your CV. It will be used only to generate suggestions, not for translations.',
-                    cvUploadLabel: 'Upload CV from file (.txt)',
-                    cvUploadHint: 'Tip: save your CV as a text file (.txt) and upload it here.',
+                    cvUploadLabel: 'Upload CV from file',
+                    cvUploadHint: 'Tip: save your CV as a text file and upload it here.',
                     youtubeUrlLabel: 'YouTube video URL',
                     youtubeUrlHelp: 'Paste here the link of the video you want to use during the work call.',
                     youtubeLangSourceLabel: 'Video language',
@@ -833,12 +1033,12 @@ export default {
                     youtubeAutoPauseHint: '',
                     youtubeAutoResumeLabel: 'Auto-resume after translation',
                     youtubeAutoResumeHint: '',
-                    speakerAActive: 'Speaker A active',
-                    speakerASpeak: 'Speak Language A',
+                    speakerAActive: 'Recording…',
+                    speakerASpeak: 'Record',
                     speakerBActive: 'Speaker B active',
                     speakerBSpeak: 'Speak Language B',
-                    selectLangAPlaceholder: '-- Select language A --',
-                    selectLangBPlaceholder: '-- Select language B --',
+                    selectLangAPlaceholder: '-- Select interlocutor language --',
+                    selectLangBPlaceholder: '-- Select translation language --',
                     selectOptionPlaceholder: '-- Select --',
                     ttsBusyMessage: 'I am reading the translation, please wait until it finishes before speaking.',
                     ttsLoadingMessage: 'Loading translation...',
@@ -867,6 +1067,14 @@ export default {
                     tabCallSubtitle: 'Real-time work call',
                     tabYoutubeTitle: 'YouTube Interpreter',
                     tabYoutubeSubtitle: 'Video + phrase-by-phrase translation',
+                    offlineNotice: 'Soon you will be able to use Interpreter offline, without an internet connection: we are working on a dedicated local mode.',
+                    youtubeMobileWarning: 'On this mobile device the browser cannot handle video translation as well as on desktop. For the full YouTube Interpreter experience, use a PC or Mac (ideally with Chrome).',
+                    clarifyIntentButton: 'Clarify interlocutor intent',
+                    clarifyIntentTitle: 'What the interlocutor probably means',
+                    clarifyIntentEmpty: 'If you are unsure about what the interlocutor is really asking for, use the button above: a step-by-step explanation of their intent will appear here.',
+                    clarifyIntentSelectSpeaker: 'What is the role of the interlocutor whose intent you want to clarify?',
+                    clarifyIntentInterlocutorRolePlaceholder: 'E.g.: the recruiter, the client, the boss, the candidate, etc.',
+                    clarifyIntentAnalyzeButton: 'Clarify',
                     translationPlaceholder: 'The translation will appear here as you speak.',
                     youtubePlayerPlaceholder: 'Paste a YouTube URL and select the languages on the left: the player loads automatically.',
                     youtubeOriginalTitle: 'Text recognized from microphone',
@@ -886,7 +1094,7 @@ export default {
                     title: 'PolyGlide – el intérprete virtual que te permite hablar con cualquiera',
                     subtitle: 'Habla en cualquier idioma: verás el texto original y la traducción en directo.',
                     langALabel: 'Idioma A',
-                    langBLabel: 'Idioma B',
+                    langBLabel: 'Idioma de traducción',
                     whisperLabel: 'Usar el motor avanzado (cloud) en lugar del reconocimiento de voz del navegador',
                     whisperForcedNote: 'forzado: no estás en Chrome',
                     dubbingLabel: 'Leer la traducción en voz alta (doblaje)',
@@ -923,7 +1131,7 @@ export default {
                     title: 'PolyGlide – l\'interprète virtuel qui te permet de parler à n\'importe qui',
                     subtitle: 'Parle dans n’importe quelle langue : tu verras le texte original et la traduction en direct.',
                     langALabel: 'Langue A',
-                    langBLabel: 'Langue B',
+                    langBLabel: 'Langue de traduction',
                     whisperLabel: 'Utiliser le moteur avancé (cloud) au lieu de la reconnaissance vocale du navigateur',
                     whisperForcedNote: 'forcé : tu n’es pas sur Chrome',
                     dubbingLabel: 'Lire la traduction à voix haute (doublage)',
@@ -960,7 +1168,7 @@ export default {
                     title: 'PolyGlide – der virtuelle Dolmetscher, der dich mit jedem sprechen lässt',
                     subtitle: 'Sprich in jeder Sprache: Du siehst den Originaltext und die Live-Übersetzung.',
                     langALabel: 'Sprache A',
-                    langBLabel: 'Sprache B',
+                    langBLabel: 'Übersetzungssprache',
                     whisperLabel: 'Erweiterten Cloud‑Dienst statt Spracherkennung des Browsers verwenden',
                     whisperForcedNote: 'erzwungen: du verwendest nicht Chrome',
                     dubbingLabel: 'Übersetzung vorlesen (Synchronisation)',
@@ -997,7 +1205,7 @@ export default {
                     title: 'PolyGlide – o intérprete virtual que te permite falar com qualquer pessoa',
                     subtitle: 'Fala em qualquer idioma: vais ver o texto original e a tradução em tempo real.',
                     langALabel: 'Idioma A',
-                    langBLabel: 'Idioma B',
+                    langBLabel: 'Idioma de tradução',
                     whisperLabel: 'Usar o motor avançado (cloud) em vez do reconhecimento de voz do navegador',
                     whisperForcedNote: 'forçado: não estás a usar o Chrome',
                     dubbingLabel: 'Ler a tradução em voz alta (dobragem)',
@@ -1019,7 +1227,7 @@ export default {
                     title: 'PolyGlide – de virtuele tolk die je met iedereen laat praten',
                     subtitle: 'Spreek in elke taal: je ziet de originele tekst en de livevertaling.',
                     langALabel: 'Taal A',
-                    langBLabel: 'Taal B',
+                    langBLabel: 'Vertalings taal',
                     whisperLabel: 'De geavanceerde cloud‑engine gebruiken in plaats van de spraakherkenning van de browser',
                     whisperForcedNote: 'afgedwongen: je gebruikt geen Chrome',
                     dubbingLabel: 'Vertaling hardop voorlezen (nasynchronisatie)',
@@ -1035,7 +1243,7 @@ export default {
                     title: 'PolyGlide – den virtuella tolken som låter dig prata med vem som helst',
                     subtitle: 'Tala på vilket språk du vill: du ser originaltexten och översättningen i realtid.',
                     langALabel: 'Språk A',
-                    langBLabel: 'Språk B',
+                    langBLabel: 'Översättnings språk',
                     whisperLabel: 'Använd den avancerade moln‑motorn i stället för webbläsarens röstigenkänning',
                     whisperForcedNote: 'tvingat: du använder inte Chrome',
                     dubbingLabel: 'Läs upp översättningen (dubbning)',
@@ -1051,7 +1259,7 @@ export default {
                     title: 'PolyGlide – den virtuelle tolken som lar deg snakke med hvem som helst',
                     subtitle: 'Snakk på hvilket som helst språk: du ser originalteksten og oversettelsen i sanntid.',
                     langALabel: 'Språk A',
-                    langBLabel: 'Språk B',
+                    langBLabel: 'Översättnings språk',
                     whisperLabel: 'Bruk den avanserte sky‑motoren i stedet for nettleserens talegjenkjenning',
                     whisperForcedNote: 'tvunget: du bruker ikke Chrome',
                     dubbingLabel: 'Les opp oversettelsen (dubbing)',
@@ -1067,7 +1275,7 @@ export default {
                     title: 'PolyGlide – den virtuelle tolk, der lader dig tale med hvem som helst',
                     subtitle: 'Tal på hvilket som helst sprog: du ser originalteksten og live-oversættelsen.',
                     langALabel: 'Sprog A',
-                    langBLabel: 'Sprog B',
+                    langBLabel: 'Oversættelsessprog',
                     whisperLabel: 'Brug den avancerede cloud‑motor i stedet for browserens stemmegenkendelse',
                     whisperForcedNote: 'tvunget: du bruger ikke Chrome',
                     dubbingLabel: 'Læs oversættelsen højt (dubbing)',
@@ -1083,7 +1291,7 @@ export default {
                     title: 'PolyGlide – virtuaalinen tulkki, joka antaa sinun puhua kenelle tahansa',
                     subtitle: 'Puhu millä tahansa kielellä: näet alkuperäisen tekstin ja reaaliaikaisen käännöksen.',
                     langALabel: 'Kieli A',
-                    langBLabel: 'Kieli B',
+                    langBLabel: 'Käännös kieli',
                     whisperLabel: 'Käytä kehittynyttä pilvipalvelua selaimen puheentunnistuksen sijaan',
                     whisperForcedNote: 'pakotettu: et käytä Chromea',
                     dubbingLabel: 'Lue käännös ääneen (dubbaus)',
@@ -1099,7 +1307,7 @@ export default {
                     title: 'PolyGlide – wirtualny tłumacz, który pozwala rozmawiać z kimkolwiek',
                     subtitle: 'Mów w dowolnym języku: zobaczysz tekst oryginalny i tłumaczenie na żywo.',
                     langALabel: 'Język A',
-                    langBLabel: 'Język B',
+                    langBLabel: 'Język tłumaczenia',
                     whisperLabel: 'Użyj zaawansowanego silnika w chmurze zamiast rozpoznawania mowy przeglądarki',
                     whisperForcedNote: 'wymuszone: nie korzystasz z Chrome',
                     dubbingLabel: 'Odczytaj tłumaczenie na głos (dubbing)',
@@ -1115,7 +1323,7 @@ export default {
                     title: 'PolyGlide – virtuální tlumočník, který vám umožní mluvit s kýmkoli',
                     subtitle: 'Mluv jakýmkoliv jazykem: uvidíš původní text a překlad v reálném čase.',
                     langALabel: 'Jazyk A',
-                    langBLabel: 'Jazyk B',
+                    langBLabel: 'Jazyk překladu',
                     whisperLabel: 'Použít pokročilý cloudový modul místo rozpoznávání řeči prohlížeče',
                     whisperForcedNote: 'vynuceno: nepoužíváš Chrome',
                     dubbingLabel: 'Přečíst překlad nahlas (dubbing)',
@@ -1131,7 +1339,7 @@ export default {
                     title: 'PolyGlide – virtuálny tlmočník, ktorý vám umožní hovoriť s kýmkoľvek',
                     subtitle: 'Hovor v akomkoľvek jazyku: uvidíš pôvodný text a preklad v reálnom čase.',
                     langALabel: 'Jazyk A',
-                    langBLabel: 'Jazyk B',
+                    langBLabel: 'Jazyk překladu',
                     whisperLabel: 'Použiť pokročilý cloudový modul namiesto rozpoznávania reči v prehliadači',
                     whisperForcedNote: 'vynútené: nepoužívaš Chrome',
                     dubbingLabel: 'Prečítať preklad nahlas (dubbing)',
@@ -1147,7 +1355,7 @@ export default {
                     title: 'PolyGlide – a virtuális tolmács, aki bárkivel beszélni enged',
                     subtitle: 'Beszélj bármilyen nyelven: látni fogod az eredeti szöveget és az élő fordítást.',
                     langALabel: 'A nyelv',
-                    langBLabel: 'B nyelv',
+                    langBLabel: 'Fordítási nyelv',
                     whisperLabel: 'Használd a fejlett felhőalapú motort a böngésző beszédfelismerése helyett',
                     whisperForcedNote: 'kényszerítve: nem Chrome-ot használsz',
                     dubbingLabel: 'Fordítás felolvasása (szinkron)',
@@ -1163,7 +1371,7 @@ export default {
                     title: 'PolyGlide – interpretul virtual care îți permite să vorbești cu oricine',
                     subtitle: 'Vorbește în orice limbă: vei vedea textul original și traducerea în timp real.',
                     langALabel: 'Limba A',
-                    langBLabel: 'Limba B',
+                    langBLabel: 'Limba traducerii',
                     whisperLabel: 'Folosește motorul avansat din cloud în locul recunoașterii vocale din browser',
                     whisperForcedNote: 'forțat: nu folosești Chrome',
                     dubbingLabel: 'Citește traducerea cu voce tare (dublaj)',
@@ -1179,7 +1387,7 @@ export default {
                     title: 'PolyGlide – виртуалният преводач, който ти позволява да говориш с всеки',
                     subtitle: 'Говори на всеки език: ще виждаш оригиналния текст и превода в реално време.',
                     langALabel: 'Език A',
-                    langBLabel: 'Език B',
+                    langBLabel: 'Език на превода',
                     whisperLabel: 'Използвай разширения облачен модул вместо разпознаването на реч в браузъра',
                     whisperForcedNote: 'принудително: не използваш Chrome',
                     dubbingLabel: 'Прочитане на превода на глас (дублиране)',
@@ -1195,7 +1403,7 @@ export default {
                     title: 'PolyGlide – ο εικονικός διερμηνέας που σου επιτρέπει να μιλάς με οποιονδήποτε',
                     subtitle: 'Μίλησε σε οποιαδήποτε γλώσσα: θα βλέπεις το αρχικό κείμενο και τη ζωντανή μετάφραση.',
                     langALabel: 'Γλώσσα A',
-                    langBLabel: 'Γλώσσα B',
+                    langBLabel: 'Γλώσσα μετάφρασης',
                     whisperLabel: 'Χρήση της προηγμένης μηχανής cloud αντί για την αναγνώριση ομιλίας του browser',
                     whisperForcedNote: 'υποχρεωτικά: δεν χρησιμοποιείς Chrome',
                     dubbingLabel: 'Ανάγνωση της μετάφρασης (dubbing)',
@@ -1211,7 +1419,7 @@ export default {
                     title: 'PolyGlide – віртуальний перекладач, який дозволяє розмовляти з будь-ким',
                     subtitle: 'Говори будь-якою мовою: ти бачитимеш оригінальний текст і переклад у реальному часі.',
                     langALabel: 'Мова A',
-                    langBLabel: 'Мова B',
+                    langBLabel: 'Мова перекладу',
                     whisperLabel: 'Використовувати розширений хмарний модуль замість розпізнавання мовлення браузера',
                     whisperForcedNote: 'примусово: ти не використовуєш Chrome',
                     dubbingLabel: 'Читати переклад уголос (дубляж)',
@@ -1227,7 +1435,7 @@ export default {
                     title: 'PolyGlide – виртуальный переводчик, который позволяет говорить с кем угодно',
                     subtitle: 'Говори на любом языке: ты увидишь оригинальный текст и перевод в реальном времени.',
                     langALabel: 'Язык A',
-                    langBLabel: 'Язык B',
+                    langBLabel: 'Язык перевода',
                     whisperLabel: 'Использовать продвинутый облачный модуль вместо распознавания речи браузером',
                     whisperForcedNote: 'принудительно: ты не используешь Chrome',
                     dubbingLabel: 'Зачитать перевод вслух (дубляж)',
@@ -1243,7 +1451,7 @@ export default {
                     title: 'PolyGlide – herkesle konuşmanı sağlayan sanal çevirmen',
                     subtitle: 'Herhangi bir dilde konuş: orijinal metni ve canlı çeviriyi göreceksin.',
                     langALabel: 'Dil A',
-                    langBLabel: 'Dil B',
+                    langBLabel: 'Çeviri dili',
                     whisperLabel: 'Tarayıcının ses tanıması yerine gelişmiş bulut motorunu kullan',
                     whisperForcedNote: 'zorunlu: Chrome kullanmıyorsun',
                     dubbingLabel: 'Çeviriyi sesli oku (dublaj)',
@@ -1259,7 +1467,7 @@ export default {
                     title: 'PolyGlide – المترجم الافتراضي الذي يتيح لك التحدث مع أي شخص',
                     subtitle: 'تحدّث بأي لغة: سترى النص الأصلي والترجمة مباشرة.',
                     langALabel: 'اللغة أ',
-                    langBLabel: 'اللغة ب',
+                    langBLabel: 'لغة الترجمة',
                     whisperLabel: 'استخدم المحرك السحابي المتقدم بدلاً من أداة التعرف على الصوت في المتصفح',
                     whisperForcedNote: 'إجباري: أنت لا تستخدم كروم',
                     dubbingLabel: 'قراءة الترجمة بصوت عالٍ (دبلجة)',
@@ -1275,7 +1483,7 @@ export default {
                     title: 'PolyGlide – המתרגם הווירטואלי שמאפשר לך לדבר עם כל אחד',
                     subtitle: 'דבר בכל שפה: תראה את הטקסט המקורי ואת התרגום בזמן אמת.',
                     langALabel: 'שפה A',
-                    langBLabel: 'שפה B',
+                    langBLabel: 'שפת תרגום',
                     whisperLabel: 'השתמש במנוע ענן מתקדם במקום זיהוי הדיבור של הדפדפן',
                     whisperForcedNote: 'חובה: אינך משתמש ב‑Chrome',
                     dubbingLabel: 'קריאת התרגום בקול (דיבוב)',
@@ -1291,7 +1499,7 @@ export default {
                     title: 'PolyGlide – वर्चुअल दुभाषिया जो आपको किसी से भी बात करने देता है',
                     subtitle: 'किसी भी भाषा में बोलें: आप मूल पाठ और लाइव अनुवाद देखेंगे।',
                     langALabel: 'भाषा A',
-                    langBLabel: 'भाषा B',
+                    langBLabel: 'अनुवाद भाषा',
                     whisperLabel: 'ब्राउज़र की स्पीच रिकग्निशन की जगह उन्नत क्लाउड इंजन का उपयोग करें',
                     whisperForcedNote: 'अनिवार्य: आप Chrome का उपयोग नहीं कर रहे हैं',
                     dubbingLabel: 'अनुवाद को ज़ोर से पढ़ें (डबिंग)',
@@ -1307,7 +1515,7 @@ export default {
                     title: 'PolyGlide – 让您与任何人交谈的虚拟口译员',
                     subtitle: '用任何语言说话：你会看到原文和实时翻译。',
                     langALabel: '语言 A',
-                    langBLabel: '语言 B',
+                    langBLabel: '翻译语言',
                     whisperLabel: '使用高级云端引擎替代浏览器自带的语音识别',
                     whisperForcedNote: '已强制启用：当前浏览器不是 Chrome',
                     dubbingLabel: '朗读译文（配音）',
@@ -1323,7 +1531,7 @@ export default {
                     title: 'PolyGlide – 誰とでも話せるバーチャル通訳',
                     subtitle: 'どんな言語でも話せます。元のテキストとリアルタイム翻訳が表示されます。',
                     langALabel: '言語 A',
-                    langBLabel: '言語 B',
+                    langBLabel: '翻訳言語',
                     whisperLabel: 'ブラウザの音声認識の代わりに高度なクラウドエンジンを使用する',
                     whisperForcedNote: '強制: Chrome 以外のブラウザを使用中です',
                     dubbingLabel: '翻訳を音声で読み上げる（吹き替え）',
@@ -1339,7 +1547,7 @@ export default {
                     title: 'PolyGlide – 누구와도 대화할 수 있게 해주는 가상 통역사',
                     subtitle: '어떤 언어로 말해도 원문과 실시간 번역을 볼 수 있습니다.',
                     langALabel: '언어 A',
-                    langBLabel: '언어 B',
+                    langBLabel: '번역 언어',
                     whisperLabel: '브라우저 음성 인식 대신 고급 클라우드 엔진 사용',
                     whisperForcedNote: '강제: Chrome 브라우저가 아님',
                     dubbingLabel: '번역 내용을 소리 내어 읽기 (더빙)',
@@ -1355,7 +1563,7 @@ export default {
                     title: 'PolyGlide – penerjemah virtual yang memungkinkan Anda berbicara dengan siapa pun',
                     subtitle: 'Berbicaralah dalam bahasa apa pun: kamu akan melihat teks asli dan terjemahan langsung.',
                     langALabel: 'Bahasa A',
-                    langBLabel: 'Bahasa B',
+                    langBLabel: 'Bahasa terjemahan',
                     whisperLabel: 'Gunakan mesin cloud tingkat lanjut sebagai pengganti pengenalan suara browser',
                     whisperForcedNote: 'dipaksa: kamu tidak menggunakan Chrome',
                     dubbingLabel: 'Bacakan terjemahan (dubbing)',
@@ -1371,7 +1579,7 @@ export default {
                     title: 'PolyGlide – penterjemah maya yang membolehkan anda bercakap dengan sesiapa sahaja',
                     subtitle: 'Bercakap dalam apa‑apa bahasa: anda akan melihat teks asal dan terjemahan secara langsung.',
                     langALabel: 'Bahasa A',
-                    langBLabel: 'Bahasa B',
+                    langBLabel: 'Bahasa terjemahan',
                     whisperLabel: 'Guna enjin awan lanjutan menggantikan pengecaman suara pelayar',
                     whisperForcedNote: 'dipaksa: anda tidak menggunakan Chrome',
                     dubbingLabel: 'Baca terjemahan dengan kuat (dubbing)',
@@ -1387,7 +1595,7 @@ export default {
                     title: 'PolyGlide – ล่ามเสมือนที่ให้คุณพูดคุยกับใครก็ได้',
                     subtitle: 'พูดได้ทุกภาษา: คุณจะเห็นข้อความต้นฉบับและคำแปลแบบเรียลไทม์',
                     langALabel: 'ภาษา A',
-                    langBLabel: 'ภาษา B',
+                    langBLabel: 'ภาษาการแปล',
                     whisperLabel: 'ใช้เอนจินคลาวด์ขั้นสูงแทนระบบรู้จำเสียงพูดของเบราว์เซอร์',
                     whisperForcedNote: 'ถูกบังคับใช้: คุณไม่ได้ใช้ Chrome',
                     dubbingLabel: 'อ่านคำแปลออกเสียง (พากย์เสียง)',
@@ -1403,7 +1611,7 @@ export default {
                     title: 'PolyGlide – thông dịch viên ảo cho phép bạn nói chuyện với bất kỳ ai',
                     subtitle: 'Hãy nói bất kỳ ngôn ngữ nào: bạn sẽ thấy văn bản gốc và bản dịch theo thời gian thực.',
                     langALabel: 'Ngôn ngữ A',
-                    langBLabel: 'Ngôn ngữ B',
+                    langBLabel: 'Ngôn ngữ dịch',
                     whisperLabel: 'Sử dụng engine đám mây nâng cao thay cho nhận dạng giọng nói của trình duyệt',
                     whisperForcedNote: 'bắt buộc: bạn không dùng Chrome',
                     dubbingLabel: 'Đọc to bản dịch (lồng tiếng)',
@@ -1450,10 +1658,17 @@ export default {
                 ? this.readTranslationEnabledYoutube
                 : this.readTranslationEnabledCall;
         },
-        displayOriginalText() {
-            const base = this.originalConfirmed || '';
-            const interim = this.originalInterim || '';
-            return [base, interim].filter(Boolean).join('\n');
+        displayOriginalText: {
+            get() {
+                const base = this.originalConfirmed || '';
+                const interim = this.originalInterim || '';
+                return [base, interim].filter(Boolean).join('\n');
+            },
+            set(value) {
+                const text = (value || '').toString();
+                this.originalConfirmed = text;
+                this.originalInterim = '';
+            },
         },
         displayTranslationText() {
             // Usato solo per debug o fallback: unisce segmenti + tokens correnti
@@ -1514,6 +1729,28 @@ export default {
         youtubeLangTarget() {
             // Anche il cambio della lingua di destinazione YouTube non modifica langA/langB della tab "call".
             this.maybeAutoLoadYoutubePlayer();
+        },
+        displayOriginalText(newVal) {
+            try {
+                const el = this.$refs.originalEditable;
+                if (!el) {
+                    return;
+                }
+                if (this.isOriginalEditingManually) {
+                    // Se l'utente sta digitando non forziamo il contenuto, per non spostare il cursore.
+                    return;
+                }
+                // Evita di riscrivere se il testo è già uguale
+                if ((el.innerText || '') === (newVal || '')) {
+                    return;
+                }
+                el.innerText = newVal || '';
+                this.$nextTick(() => {
+                    this.scrollToBottom('originalBox');
+                });
+            } catch {
+                // silenzioso
+            }
         },
     },
     mounted() {
@@ -1576,6 +1813,268 @@ export default {
                 }, 2000);
             } catch {
                 // ignora
+            }
+        },
+
+        async copyTranscript() {
+            try {
+                const text = (this.displayOriginalText || '').trim();
+                if (!text) {
+                    return;
+                }
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(text);
+                }
+            } catch {
+                // silenzioso: non blocca l'esperienza
+            }
+        },
+
+        onOriginalInput() {
+            try {
+                this.$nextTick(() => {
+                    this.scrollToBottom('originalBox');
+                });
+            } catch {
+                // ignora errori di scroll
+            }
+        },
+
+        onOriginalFocus() {
+            try {
+                this.isOriginalEditingManually = true;
+                this.originalTextBeforeManualEdit = this.displayOriginalText || '';
+                const el = this.$refs.originalEditable;
+                if (el && (el.innerText || '') !== (this.displayOriginalText || '')) {
+                    el.innerText = this.displayOriginalText || '';
+                }
+            } catch {
+                // silenzioso
+            }
+        },
+
+        onOriginalEditableInput(event) {
+            try {
+                const el = event && event.target ? event.target : this.$refs.originalEditable;
+                if (!el) {
+                    return;
+                }
+                const text = el.innerText || '';
+                // Aggiorna il modello reattivo
+                this.displayOriginalText = text;
+                this.onOriginalInput();
+            } catch {
+                // silenzioso
+            }
+        },
+
+        onOriginalBlurInternal() {
+            try {
+                this.isOriginalEditingManually = false;
+            } catch {
+                // silenzioso
+            }
+            // Usa la logica esistente per capire cosa tradurre
+            this.onOriginalBlur();
+        },
+
+        onClarifyIntentClick() {
+            // Serve un thread di TRASCRIZIONE, altrimenti non abbiamo contesto sufficiente
+            if (!this.translationThreadId) {
+                return;
+            }
+
+            // Reset dello stato quando si apre il modal
+            this.clarifyIntentInterlocutorRole = '';
+            this.clarifyIntentText = '';
+            this.openClarifyIntentModal();
+        },
+
+        async onClarifyIntentAnalyzeClick() {
+            if (this.isClarifyIntentLoading || !this.clarifyIntentInterlocutorRole.trim()) {
+                return;
+            }
+
+            // Serve un thread di TRASCRIZIONE, altrimenti non abbiamo contesto sufficiente
+            if (!this.translationThreadId) {
+                return;
+            }
+
+            // Prendiamo le ultime frasi dell'originale come focus principale
+            const lines = (this.displayOriginalText || '')
+                .split('\n')
+                .map((l) => l.trim())
+                .filter(Boolean);
+
+            if (!lines.length) {
+                return;
+            }
+
+            const focusText = lines.slice(-5).join('\n');
+
+            this.isClarifyIntentLoading = true;
+            this.clarifyIntentText = ''; // Reset del risultato precedente
+
+            try {
+                const res = await fetch('/api/chatbot/interpreter-clarify-intent', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: JSON.stringify({
+                        focus_text: focusText,
+                        interlocutor_role: this.clarifyIntentInterlocutorRole.trim(),
+                        locale: this.locale || this.uiLocale || 'it',
+                        lang_a: this.langA || 'it',
+                        lang_b: this.langB || 'en',
+                        thread_id: this.translationThreadId,
+                    }),
+                });
+
+                const json = await res.json().catch(() => ({}));
+
+                if (!res.ok || json.error) {
+                    return;
+                }
+
+                this.clarifyIntentText = (json.explanation || '').trim();
+            } catch {
+                // silenzioso
+            } finally {
+                this.isClarifyIntentLoading = false;
+            }
+        },
+
+        openClarifyIntentModal() {
+            this.showClarifyIntentModal = true;
+        },
+
+        closeClarifyIntentModal() {
+            this.showClarifyIntentModal = false;
+            this.clarifyIntentInterlocutorRole = '';
+            this.clarifyIntentText = '';
+        },
+
+        async copyTranslation() {
+            try {
+                const text = (this.displayTranslationText || '').trim();
+                if (!text) {
+                    return;
+                }
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(text);
+                }
+            } catch {
+                // silenzioso
+            }
+        },
+
+        exportTranscriptPdf(kind) {
+            try {
+                const original = (this.displayOriginalText || '').trim();
+                const translation = (this.displayTranslationText || '').trim();
+                const langALabel = this.langA ? this.getLangLabel(this.langA) : '';
+                const langBLabel = this.langB ? this.getLangLabel(this.langB) : '';
+
+                const win = window.open('', '_blank');
+                if (!win) {
+                    return;
+                }
+
+                let title = 'Transcript';
+                let safeBody = '';
+
+                if (kind === 'translation') {
+                    title = 'Traduzione';
+                    const safeTranslation = (translation || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
+                    safeBody = `
+  <h2>Translation ${langBLabel ? '(' + langBLabel + ')' : ''}</h2>
+  <div class="box">${safeTranslation || '<em>(vuoto)</em>'}</div>
+                    `;
+                } else {
+                    title = 'Trascrizione';
+                    const safeOriginal = (original || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
+                    safeBody = `
+  <h2>Original ${langALabel ? '(' + langALabel + ')' : ''}</h2>
+  <div class="box">${safeOriginal || '<em>(vuoto)</em>'}</div>
+                    `;
+                }
+
+                win.document.write(`
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>${title}</title>
+  <style>
+    body { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 24px; color: #020617; }
+    h1 { font-size: 20px; margin-bottom: 12px; }
+    h2 { font-size: 16px; margin-top: 16px; margin-bottom: 8px; }
+    .box { border: 1px solid #cbd5f5; padding: 12px; border-radius: 8px; background: #f8fafc; }
+  </style>
+</head>
+<body>
+  <h1>${title} call</h1>
+  ${safeBody}
+</body>
+</html>
+                `);
+                win.document.close();
+                win.focus();
+                win.print();
+            } catch {
+                // silenzioso
+            }
+        },
+
+        onOriginalBlur() {
+            const currentText = (this.displayOriginalText || '').trim();
+            const beforeText = (this.originalTextBeforeManualEdit || '').trim();
+
+            if (!currentText || currentText === beforeText) {
+                return;
+            }
+
+            // Se il testo attuale contiene quello precedente, estrai solo la parte nuova
+            let newText = '';
+            if (beforeText && currentText.startsWith(beforeText)) {
+                newText = currentText.substring(beforeText.length).trim();
+            } else {
+                // Se il testo è stato modificato completamente, prendi tutto
+                newText = currentText;
+            }
+
+            if (!newText) {
+                return;
+            }
+
+            // Traduci solo la parte nuova (mantenendo eventuali trattini e punteggiatura)
+            this.startTranslationStream(newText, {
+                commit: true,
+                mergeLast: false,
+                shouldEnqueueTts: false,
+                // Per testo incollato/scritto a mano NON aggiungiamo "- " noi:
+                // se l'utente vuole i trattini, li mette già nel testo originale.
+                addDash: false,
+            });
+
+            this.originalTextBeforeManualEdit = '';
+        },
+
+        onOriginalInput() {
+            try {
+                const el = this.$refs.originalTextarea;
+                if (el) {
+                    // auto-resize del textarea per evitare la scrollbar interna
+                    el.style.height = 'auto';
+                    el.style.height = `${el.scrollHeight}px`;
+                }
+                this.$nextTick(() => {
+                    this.scrollToBottom('originalBox');
+                });
+            } catch {
+                // ignora errori di scroll/resize
             }
         },
 
@@ -1670,22 +2169,27 @@ export default {
                 const nav = (navigator.language || (navigator.languages && navigator.languages[0]) || this.locale || 'it-IT').toString();
                 const base = nav.split(/[-_]/)[0].toLowerCase();
 
-                let defaultA = 'it';
+                // LangB: lingua di traduzione = lingua del browser (se supportata), altrimenti en
                 let defaultB = 'en';
 
                 const match = this.availableLanguages.find(l => l.code === base);
                 if (match) {
-                    defaultA = match.code;
+                    defaultB = match.code;
                 }
 
-                // Se la lingua A è già inglese, metti italiano come B; altrimenti metti inglese come B
-                defaultB = defaultA === 'en' ? 'it' : 'en';
+                // LangA: lingua dell'interlocutore.
+                // Default: inglese; se la lingua del browser è già inglese,
+                // usa italiano come seconda lingua per coprire il caso tipico it<->en.
+                let defaultA = 'en';
+                if (defaultB === 'en') {
+                    defaultA = 'it';
+                }
 
                 this.langA = defaultA;
                 this.langB = defaultB;
             } catch {
-                this.langA = 'it';
-                this.langB = 'en';
+                this.langA = 'en';
+                this.langB = 'it';
             }
 
             this.onLanguagePairChange();
@@ -2413,11 +2917,11 @@ export default {
                     return;
                 }
             } else {
-                if (!this.langA || !this.langB) {
-                    this.statusMessage = this.ui.statusSelectLangAB;
-                    console.warn('⚠️ toggleListeningForLang: missing langA/langB', {
+                // Modalità interprete standard: serve solo la lingua dell'utente (langB)
+                if (!this.langB) {
+                    this.statusMessage = this.ui.statusLangPairMissing;
+                    console.warn('⚠️ toggleListeningForLang: missing langB (user language)', {
                         speaker,
-                        langA: this.langA,
                         langB: this.langB,
                     });
                     return;
@@ -2452,19 +2956,14 @@ export default {
                     }
                 }
             } else {
-                // Nella tab "call" manteniamo il comportamento standard basato su langA/langB
-                if (speaker === 'A') {
-                    const langAObj = this.availableLanguages.find(l => l.code === this.langA);
-                    if (langAObj) {
-                        this.currentMicLang = langAObj.micCode;
-                        this.currentTargetLang = this.langB;
-                    }
-                } else {
-                    const langBObj = this.availableLanguages.find(l => l.code === this.langB);
-                    if (langBObj) {
-                        this.currentMicLang = langBObj.micCode;
-                        this.currentTargetLang = this.langA;
-                    }
+                // Nella tab "call" usiamo un solo microfono:
+                // - la lingua sorgente viene auto-rilevata dal motore (Whisper)
+                // - la lingua di destinazione è SEMPRE langB (lingua dell'utente)
+                const langBObj = this.availableLanguages.find(l => l.code === this.langB);
+                if (langBObj) {
+                    this.currentTargetLang = this.langB;
+                    // currentMicLang lo lasciamo vuoto per indicare "auto"
+                    this.currentMicLang = '';
                 }
             }
 
@@ -2534,6 +3033,43 @@ export default {
 
             if (this.recognition) {
                 this.recognition.lang = this.currentMicLang;
+
+                // Comunica al wrapper Whisper quali sono le lingue consentite
+                // per il riconoscimento: il backend userà questa whitelist
+                // per bloccare trascrizioni in lingue diverse.
+                try {
+                    const allowed = [];
+                    if (this.activeTab === 'youtube') {
+                        if (this.youtubeLangSource) {
+                            allowed.push(this.youtubeLangSource.toLowerCase());
+                        }
+                        if (this.youtubeLangTarget && this.youtubeLangTarget !== this.youtubeLangSource) {
+                            allowed.push(this.youtubeLangTarget.toLowerCase());
+                        }
+                    } else {
+                        if (this.langA) {
+                            allowed.push(this.langA.toLowerCase());
+                        }
+                        if (this.langB && this.langB !== this.langA) {
+                            allowed.push(this.langB.toLowerCase());
+                        }
+                    }
+                    if (this.recognition && typeof this.recognition === 'object') {
+                        this.recognition.allowedLangs = allowed;
+                    }
+                    this.debugLog('toggleListeningForLang: allowedLangs set on recognition', {
+                        allowedLangs: allowed,
+                        activeTab: this.activeTab,
+                    });
+                    console.log('🌐 toggleListeningForLang: allowedLangs set on recognition', {
+                        ts: new Date().toISOString(),
+                        allowedLangs: allowed,
+                        activeTab: this.activeTab,
+                    });
+                } catch {
+                    // silenzioso: se fallisce, semplicemente non settiamo la whitelist
+                }
+
                 this.debugLog('toggleListeningForLang: recognition.lang set', {
                     lang: this.recognition.lang,
                     currentMicLang: this.currentMicLang,
@@ -2569,7 +3105,8 @@ export default {
                     this.recognition.singleSegmentMode = !!this.whisperSendOnStopOnlyEffective;
 
                     // Propaga al wrapper anche la soglia di silenzio (in ms) configurata a livello di UI.
-                    let silenceMs = 800;
+                    // Default leggero: 600ms se non è stato ancora mosso lo slider.
+                    let silenceMs = 600;
                     if (typeof this.whisperSilenceMs === 'number' && this.whisperSilenceMs > 0) {
                         silenceMs = this.whisperSilenceMs;
                     }
@@ -2859,8 +3396,8 @@ export default {
             });
         },
 
-        startTranslationStream(textSegment, options = { commit: true, mergeLast: false, mergeIndex: null, shouldEnqueueTts: true }) {
-            const safeText = ((textSegment || '').trim()).toLowerCase();
+        startTranslationStream(textSegment, options = { commit: true, mergeLast: false, mergeIndex: null, shouldEnqueueTts: true, addDash: true }) {
+            const safeText = ((textSegment || '').trim());
             if (!safeText) {
                 this.debugLog('startTranslationStream: empty text, skipping', {
                     textSegment: textSegment?.substring(0, 50),
@@ -2876,6 +3413,7 @@ export default {
             const mergeLast = options && typeof options.mergeLast === 'boolean' ? options.mergeLast : false;
             const mergeIndex = options && typeof options.mergeIndex === 'number' ? options.mergeIndex : null;
             const shouldEnqueueTts = options && typeof options.shouldEnqueueTts === 'boolean' ? options.shouldEnqueueTts : true;
+            const addDash = options && typeof options.addDash === 'boolean' ? options.addDash : true;
 
             this.debugLog('startTranslationStream START', {
                 text: safeText.substring(0, 100),
@@ -2906,26 +3444,32 @@ export default {
             // (stopListeningInternal), per evitare interazioni imprevedibili tra WebSpeech,
             // YouTube player e TTS, soprattutto su mobile. Qui non tocchiamo più il player.
 
-            // Se è già attivo uno stream e questa è una richiesta finale (commit: true),
-            // chiudiamo lo stream precedente per dare priorità alla frase completa
+            // Se è già attivo uno stream:
+            // - per le preview (commit: false) ignoriamo la nuova richiesta;
+            // - per le frasi finali (commit: true) mettiamo in coda la richiesta
+            //   così non perdiamo nessuna traduzione, ma le elaboriamo in sequenza.
             if (this.currentStream) {
                 if (commit) {
-                    this.debugLog('startTranslationStream: closing previous stream', {
-                        hadStream: !!this.currentStream,
+                    this.debugLog('startTranslationStream: queueing commit while another stream is active', {
+                        queuedTextPreview: safeText.substring(0, 80),
+                        queueLength: (this.pendingTranslationQueue && this.pendingTranslationQueue.length) || 0,
                     });
-                    console.log('🔄 startTranslationStream: closing previous stream', {
+                    console.log('⏳ startTranslationStream: queueing commit while another stream is active', {
                         ts: new Date().toISOString(),
-                        hadStream: !!this.currentStream,
+                        queuedTextPreview: safeText.substring(0, 80),
+                        queueLength: (this.pendingTranslationQueue && this.pendingTranslationQueue.length) || 0,
                     });
-                    try {
-                        this.currentStream.close();
-                    } catch (err) {
-                        this.debugLog('startTranslationStream: error closing previous stream', {
-                            error: String(err),
-                        });
-                        console.warn('⚠️ startTranslationStream: error closing previous stream', err);
-                    }
-                    this.currentStream = null;
+                    this.pendingTranslationQueue.push({
+                        text: safeText,
+                        options: {
+                            commit,
+                            mergeLast,
+                            mergeIndex,
+                            shouldEnqueueTts,
+                            addDash,
+                        },
+                    });
+                    return;
                 } else {
                     // Se è solo una preview (commit: false), ignora
                     this.debugLog('startTranslationStream: preview request, ignoring (stream already active)', {});
@@ -2937,21 +3481,17 @@ export default {
             }
 
             // Assicurati che currentTargetLang sia sempre impostato correttamente
-            if (!this.currentTargetLang && this.langA && this.langB) {
-                // Default: se parli langA, traduci verso langB
-                this.currentTargetLang = this.currentMicLang && this.currentMicLang.startsWith(this.langA.split('-')[0])
-                    ? this.langB
-                    : this.langA;
+            // Nella modalità call: la lingua sorgente è auto-rilevata, target è sempre langB
+            if (!this.currentTargetLang && this.langB) {
+                this.currentTargetLang = this.langB;
                 this.debugLog('startTranslationStream: auto-set currentTargetLang', {
                     currentTargetLang: this.currentTargetLang,
-                    langA: this.langA,
                     langB: this.langB,
                     currentMicLang: this.currentMicLang,
                 });
                 console.log('🌐 startTranslationStream: auto-set currentTargetLang', {
                     ts: new Date().toISOString(),
                     currentTargetLang: this.currentTargetLang,
-                    langA: this.langA,
                     langB: this.langB,
                     currentMicLang: this.currentMicLang,
                 });
@@ -3069,7 +3609,7 @@ export default {
                         });
                         console.warn('⚠️ startTranslationStream: error closing EventSource on done', err);
                     }
-                    const segment = buffer.trim().toLowerCase();
+                    const segment = buffer.trim();
                     this.debugLog('startTranslationStream: done event', {
                         segment: segment.substring(0, 100),
                         commit,
@@ -3090,6 +3630,15 @@ export default {
                         bufferLength: buffer.length,
                     });
                     if (commit && segment) {
+                        // Decidi come visualizzare il segmento nella lista fissa:
+                        // - se addDash è true e il modello NON ha già messo un bullet all'inizio,
+                        //   aggiungi un "- " davanti;
+                        // - se il testo incollato dall'utente aveva già i trattini, il modello in genere
+                        //   li mantiene, quindi NON ne aggiungiamo altri.
+                        let displaySegment = segment;
+                        if (addDash && !/^\s*[-–•*]/.test(segment)) {
+                            displaySegment = `- ${segment}`;
+                        }
                         // Quando una frase è conclusa:
                         // - se mergeIndex è un indice valido, aggiorniamo quella riga (caso mobile)
                         // - altrimenti, se mergeLast è true, aggiorniamo l'ultima riga
@@ -3102,7 +3651,7 @@ export default {
                             this.translationSegments.splice(
                                 mergeIndex,
                                 1,
-                                `- ${segment}`
+                                displaySegment
                             );
                             this.debugLog('startTranslationStream: merged at index', {
                                 mergeIndex,
@@ -3117,7 +3666,7 @@ export default {
                             this.translationSegments.splice(
                                 this.translationSegments.length - 1,
                                 1,
-                                `- ${segment}`
+                                displaySegment
                             );
                             this.debugLog('startTranslationStream: merged last', {
                                 segment: segment.substring(0, 50),
@@ -3127,7 +3676,7 @@ export default {
                                 segment: segment.substring(0, 50),
                             });
                         } else {
-                            this.translationSegments.push(`- ${segment}`);
+                            this.translationSegments.push(displaySegment);
                             this.debugLog('startTranslationStream: added new segment', {
                                 segment: segment.substring(0, 50),
                                 totalSegments: this.translationSegments.length,
@@ -3169,6 +3718,23 @@ export default {
                     this.$nextTick(() => {
                         this.scrollToBottom('translationBox');
                     });
+
+                    // Se ci sono traduzioni finali in coda, avviane la prossima
+                    if (this.pendingTranslationQueue && this.pendingTranslationQueue.length > 0) {
+                        const next = this.pendingTranslationQueue.shift();
+                        if (next && next.text) {
+                            this.debugLog('startTranslationStream: starting queued translation', {
+                                textPreview: next.text.substring(0, 80),
+                                remainingQueue: this.pendingTranslationQueue.length,
+                            });
+                            console.log('⏭️ startTranslationStream: starting queued translation', {
+                                ts: new Date().toISOString(),
+                                textPreview: next.text.substring(0, 80),
+                                remainingQueue: this.pendingTranslationQueue.length,
+                            });
+                            this.startTranslationStream(next.text, next.options || {});
+                        }
+                    }
                 });
 
                 es.addEventListener('error', (e) => {
@@ -3190,6 +3756,23 @@ export default {
                         console.warn('⚠️ startTranslationStream: error closing EventSource on error', err);
                     }
                     this.currentStream = null;
+
+                    // In caso di errore, prova comunque a processare gli eventuali elementi in coda
+                    if (this.pendingTranslationQueue && this.pendingTranslationQueue.length > 0) {
+                        const next = this.pendingTranslationQueue.shift();
+                        if (next && next.text) {
+                            this.debugLog('startTranslationStream: starting queued translation after error', {
+                                textPreview: next.text.substring(0, 80),
+                                remainingQueue: this.pendingTranslationQueue.length,
+                            });
+                            console.log('⏭️ startTranslationStream: starting queued translation after error', {
+                                ts: new Date().toISOString(),
+                                textPreview: next.text.substring(0, 80),
+                                remainingQueue: this.pendingTranslationQueue.length,
+                            });
+                            this.startTranslationStream(next.text, next.options || {});
+                        }
+                    }
                 });
             } catch {
                 // In caso di errore, non blocchiamo l'interfaccia
@@ -3751,7 +4334,12 @@ export default {
             }
 
             const now = Date.now();
-            if (text === this.lastPreviewText && now - this.lastPreviewAt < 800) {
+            // Debounce delle traduzioni di preview: usa una soglia proporzionale alla
+            // durata di silenzio configurata per Whisper, con un minimo di 300ms.
+            const minDelay = (typeof this.whisperSilenceMs === 'number' && this.whisperSilenceMs > 0)
+                ? Math.max(300, this.whisperSilenceMs)
+                : 600;
+            if (text === this.lastPreviewText && now - this.lastPreviewAt < minDelay) {
                 return;
             }
 
@@ -3762,7 +4350,7 @@ export default {
         },
 
         updateTranslationTokens(fullText) {
-            const clean = ((fullText || '').trim()).toLowerCase();
+            const clean = ((fullText || '').trim());
             const container = this.$refs.translationLiveContainer;
 
             if (!container) {
@@ -3781,10 +4369,6 @@ export default {
             if (!this.translationTokens || this.translationTokens.length === 0) {
                 container.innerHTML = '';
                 this.translationTokens = [];
-
-                // Aggiungi trattino all'inizio della prima frase
-                const dash = document.createTextNode('- ');
-                container.appendChild(dash);
 
                 for (let i = 0; i < newTokens.length; i++) {
                     const span = document.createElement('span');
@@ -3872,28 +4456,16 @@ export default {
         },
 
         onLanguagePairChange() {
-            // Validazione: entrambe le lingue devono essere selezionate e diverse
-            if (!this.langA || !this.langB) {
+            // Nella modalità "call": serve solo langB (lingua di traduzione)
+            // La lingua sorgente viene auto-rilevata da Whisper
+            if (!this.langB) {
                 this.statusMessage = this.ui.statusLangPairMissing;
                 return;
             }
 
-            if (this.langA === this.langB) {
-                this.statusMessage = this.ui.statusLangPairDifferent;
-                this.langB = '';
-                return;
-            }
-
-            // Imposta la lingua A come predefinita per il microfono
-            const langAObj = this.availableLanguages.find(l => l.code === this.langA);
-            if (langAObj) {
-                this.currentMicLang = langAObj.micCode;
-                this.currentTargetLang = this.langB;
-
-                if (this.recognition) {
-                    this.recognition.lang = this.currentMicLang;
-                }
-            }
+            // Imposta la lingua di destinazione per la traduzione
+            // La lingua sorgente viene auto-rilevata, quindi non impostiamo currentMicLang qui
+            this.currentTargetLang = this.langB;
 
             this.statusMessage = '';
         },
@@ -4283,13 +4855,16 @@ export default {
 
         async requestInterviewMindMap() {
             // Richiede la mappa mentale solo se:
-            // - c'è un CV
-            // - sono selezionate entrambe le lingue
-            // - se esiste un thread di suggerimenti, lo usiamo come contesto aggiuntivo
-            if (!this.cvText || !this.cvText.trim()) {
+            // - è selezionata la lingua di traduzione (langB)
+            // - esiste un thread di TRASCRIZIONE (translationThreadId) da usare come contesto
+            if (!this.langB) {
                 return;
             }
-            if (!this.langA || !this.langB) {
+            // Se langA non è impostato, usa un default opposto a langB per i suggerimenti bilingue
+            const langA = this.langA || (this.langB === 'it' ? 'en' : 'it');
+
+            if (!this.translationThreadId) {
+                // Nessuna trascrizione salvata: non ha senso generare la mappa mentale
                 return;
             }
 
@@ -4303,11 +4878,12 @@ export default {
                         'X-Requested-With': 'XMLHttpRequest',
                     },
                     body: JSON.stringify({
-                        cv_text: this.cvText,
+                        // Il CV viene ignorato: la mappa mentale si basa solo sulla history
+                        // della TRASCRIZIONE salvata nel thread di traduzione.
                         locale: this.locale || 'it',
-                        lang_a: this.langA,
+                        lang_a: langA,
                         lang_b: this.langB,
-                        thread_id: this.interviewSuggestionThreadId,
+                        thread_id: this.translationThreadId,
                     }),
                 });
 
@@ -4369,10 +4945,35 @@ export default {
                     return;
                 }
 
-                const data = {
-                    nodes: this.mindMapGraph.nodes || [],
-                    edges: this.mindMapGraph.edges || [],
-                };
+                const rawNodes = Array.isArray(this.mindMapGraph.nodes) ? this.mindMapGraph.nodes : [];
+                const rawEdges = Array.isArray(this.mindMapGraph.edges) ? this.mindMapGraph.edges : [];
+
+                const nodes = rawNodes.map((n) => {
+                    const importance = typeof n.importance === 'number' ? n.importance : 0.5;
+                    const size = 8 + importance * 12; // 8–20
+
+                    return {
+                        id: n.id,
+                        label: n.label || n.title || '',
+                        group: n.group || undefined,
+                        value: size,
+                        title: n.note || n.description || '',
+                    };
+                });
+
+                const edges = rawEdges.map((e) => {
+                    const strength = typeof e.strength === 'number' ? e.strength : 0.5;
+                    const width = 0.5 + strength * 2.5; // 0.5–3
+
+                    return {
+                        from: e.from,
+                        to: e.to,
+                        label: e.label || '',
+                        width,
+                    };
+                });
+
+                const data = { nodes, edges };
 
                 const options = {
                     autoResize: true,
@@ -4460,9 +5061,11 @@ export default {
                 return;
             }
 
-            if (!this.langA || !this.langB) {
+            if (!this.langB) {
                 return;
             }
+            // Se langA non è impostato, usa un default opposto a langB per i suggerimenti bilingue
+            const langA = this.langA || (this.langB === 'it' ? 'en' : 'it');
 
             // Genera thread_id se non esiste ancora
             if (!this.interviewSuggestionThreadId) {
@@ -4482,7 +5085,7 @@ export default {
                         cv_text: this.cvText,
                         utterance: safeText,
                         locale: this.locale || 'it',
-                        lang_a: this.langA,
+                        lang_a: langA,
                         lang_b: this.langB,
                         thread_id: this.interviewSuggestionThreadId,
                     }),
@@ -4513,7 +5116,7 @@ export default {
                 this.suggestions = [
                     {
                         utterancePreview: preview,
-                        langA: this.langA,
+                        langA: langA,
                         langB: this.langB,
                         suggestionLangA: langAText || langBText,
                         suggestionLangB: langBText || langAText,
@@ -4525,6 +5128,57 @@ export default {
                 // Silenzioso: non blocca l'esperienza
             } finally {
                 this.isLoadingSuggestion = false;
+            }
+        },
+
+        openNextCallModal() {
+            this.showNextCallModal = true;
+        },
+
+        closeNextCallModal() {
+            this.showNextCallModal = false;
+        },
+
+        async onNextCallSuggestClick() {
+            const goal = (this.nextCallGoal || '').trim();
+            if (!goal) {
+                return;
+            }
+
+            const transcript = (this.displayOriginalText || '').trim();
+
+            this.isNextCallLoading = true;
+
+            try {
+                const res = await fetch('/api/chatbot/interview-next-call', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: JSON.stringify({
+                        goal,
+                        transcript_text: transcript,
+                        locale: this.locale || 'it',
+                        lang_a: this.langA || 'it',
+                        lang_b: this.langB || 'en',
+                        thread_id: this.interviewSuggestionThreadId,
+                    }),
+                });
+
+                const json = await res.json().catch(() => ({}));
+
+                if (!res.ok || json.error) {
+                    return;
+                }
+
+                // Per l'UI di Interpreter mostriamo solo la lingua dell'utente (langB).
+                this.nextCallSuggestionsLangA = '';
+                this.nextCallSuggestionsLangB = (json.tips_lang_b || '').trim();
+            } catch {
+                // silenzioso
+            } finally {
+                this.isNextCallLoading = false;
             }
         },
     },

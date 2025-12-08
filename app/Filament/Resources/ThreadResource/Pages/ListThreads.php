@@ -18,4 +18,3 @@ class ListThreads extends ListRecords
         ];
     }
 }
-

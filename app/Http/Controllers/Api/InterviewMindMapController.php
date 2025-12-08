@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Quoter;
 use App\Neuron\InterviewMindMapAgent;
 use App\Neuron\QuoterChatHistory;
 use Illuminate\Http\Request;
@@ -13,47 +14,60 @@ use function Safe\json_decode;
 class InterviewMindMapController extends Controller
 {
     /**
-     * Genera una mappa mentale multilingua basata su:
-     * - CV dell'utente
-     * - storia delle conversazioni (thread_id)
+     * Genera una mappa mentale multilingua basata sulla
+     * storia delle conversazioni (thread_id) del colloquio.
+     *
+     * NOTA: il CV viene completamente ignorato; la mappa
+     * è un riassunto della conversazione avuta.
      *
      * Endpoint:
      * POST /api/chatbot/interview-mindmap
-     * body JSON: { cv_text: string, locale?: string, lang_a?: string, lang_b?: string, thread_id?: string }
+     * body JSON: {
+     *   locale?: string,
+     *   lang_a?: string,
+     *   lang_b?: string,
+     *   thread_id?: string // thread della TRASCRIZIONE (translationThreadId)
+     * }
      */
     public function generate(Request $request)
     {
-        $cvText = (string) $request->input('cv_text', '');
         $locale = (string) $request->input('locale', 'it');
         $langA = (string) $request->input('lang_a', 'it');
         $langB = (string) $request->input('lang_b', 'en');
         $threadId = (string) $request->input('thread_id', '');
 
-        if (trim($cvText) === '') {
-            return response()->json([
-                'error' => 'cv_text è obbligatorio.',
-            ], 422);
-        }
-
-        // Genera thread_id se non fornito
-        if (empty($threadId)) {
-            $threadId = 'interview_mm_'.uniqid('', true);
-        }
-
-        Log::info('InterviewMindMapController.generate START', [
-            'thread_id' => $threadId,
-            'cv_length' => strlen($cvText),
-            'locale' => $locale,
-            'lang_a' => $langA,
-            'lang_b' => $langB,
-        ]);
-
         try {
             $chatHistory = new QuoterChatHistory($threadId);
 
+            // Carichiamo TUTTE le frasi della trascrizione dal thread di traduzione.
+            // Il controller di streaming salva in Quoter con role "translation":
+            // qui le trasformiamo in messaggi utente sequenziali per il memory provider.
+            $records = Quoter::where('thread_id', $threadId)
+                ->orderBy('created_at', 'asc')
+                ->get(['content']);
+
+            $messages = [];
+            foreach ($records as $record) {
+                $text = trim((string) $record->content);
+                if ($text === '') {
+                    continue;
+                }
+                $messages[] = new UserMessage($text);
+            }
+
+            if (! empty($messages)) {
+                $chatHistory->setMessages($messages);
+            }
+
+            Log::info('InterviewMindMapController.generate START', [
+                'thread_id' => $threadId,
+                'locale' => $locale,
+                'lang_a' => $langA,
+                'lang_b' => $langB,
+            ]);
+
             $agent = InterviewMindMapAgent::make()
                 ->withLocale($locale)
-                ->withCv($cvText)
                 ->withLanguages($langA, $langB)
                 ->withChatHistory($chatHistory);
 

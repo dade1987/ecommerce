@@ -3,11 +3,13 @@
 use App\Http\Controllers\Api\CalzaturieroController;
 use App\Http\Controllers\Api\ChatbotController;
 use App\Http\Controllers\Api\ChatTranscriptController;
+use App\Http\Controllers\Api\ClientIntentClarifierController;
 use App\Http\Controllers\Api\GoogleSpeechTranscriptionController;
 use App\Http\Controllers\Api\InterviewMindMapController;
 use App\Http\Controllers\Api\InterviewSuggestionController;
 use App\Http\Controllers\Api\NeuronTranslatorStreamController;
 use App\Http\Controllers\Api\NeuronWebsiteStreamController;
+use App\Http\Controllers\Api\NextCallCoachController;
 use App\Http\Controllers\Api\OperatorFeedbackController;
 use App\Http\Controllers\Api\RealtimeChatController;
 use App\Http\Controllers\Api\RealtimeChatWebsiteController;
@@ -147,6 +149,8 @@ Route::get('/chatbot/neuron-website-stream', [NeuronWebsiteStreamController::cla
 Route::get('/chatbot/translator-stream', [NeuronTranslatorStreamController::class, 'stream']);
 Route::post('/chatbot/interview-suggestion', [InterviewSuggestionController::class, 'suggest']);
 Route::post('/chatbot/interview-mindmap', [InterviewMindMapController::class, 'generate']);
+Route::post('/chatbot/interview-next-call', [NextCallCoachController::class, 'improve']);
+Route::post('/chatbot/interpreter-clarify-intent', [ClientIntentClarifierController::class, 'clarify']);
 Route::post('/tts', [TtsController::class, 'synthesize']);
 Route::post('/whisper/transcribe', [WhisperTranscriptionController::class, 'transcribe']);
 Route::post('/google-speech/transcribe', [GoogleSpeechTranscriptionController::class, 'transcribe']);

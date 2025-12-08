@@ -29,13 +29,30 @@ class WhisperTranscriptionController extends Controller
         }
 
         $audio = $request->file('audio');
-        $langHeader = (string) ($request->input('lang') ?? 'it-IT');
+        $langHeader = $request->input('lang');
 
-        // Converte BCP-47 (es. it-IT) in codice lingua iso (es. it) per Whisper
-        $language = 'it';
-        $langHeader = strtolower(trim($langHeader));
-        if (preg_match('/^[a-z]{2}/', $langHeader, $m)) {
-            $language = $m[0];
+        // Se lang è vuoto o non presente, non passiamo il parametro language a Whisper
+        // per permettere l'auto-rilevamento della lingua
+        $language = null;
+        if ($langHeader && trim($langHeader) !== '') {
+            // Converte BCP-47 (es. it-IT) in codice lingua iso (es. it) per Whisper
+            $langHeader = strtolower(trim((string) $langHeader));
+            if (preg_match('/^[a-z]{2}/', $langHeader, $m)) {
+                $language = $m[0];
+            }
+        }
+
+        // Elenco di lingue consentite (codici ISO-639-1 in minuscolo, es. "it", "en"),
+        // passato dal frontend come stringa separata da virgole (es. "it,en").
+        $allowedLangsRaw = (string) ($request->input('allowed_langs') ?? '');
+        $allowedLanguages = [];
+        if (trim($allowedLangsRaw) !== '') {
+            foreach (explode(',', $allowedLangsRaw) as $code) {
+                $code = strtolower(trim((string) $code));
+                if ($code !== '' && ! in_array($code, $allowedLanguages, true)) {
+                    $allowedLanguages[] = $code;
+                }
+            }
         }
 
         try {
@@ -73,55 +90,213 @@ class WhisperTranscriptionController extends Controller
                 'forced_content_type' => $contentType,
                 'size' => $audio->getSize(),
                 'language' => $language,
+                'allowed_languages' => $allowedLanguages,
             ]);
 
-            $response = $client->post('audio/transcriptions', [
-                'multipart' => [
-                    [
-                        'name' => 'file',
-                        'contents' => fopen($audio->getRealPath(), 'r'),
-                        'filename' => $originalName,
-                        'headers' => [
-                            'Content-Type' => $contentType,
-                        ],
-                    ],
-                    [
-                        'name' => 'model',
-                        'contents' => 'whisper-1',
-                    ],
-                    [
-                        'name' => 'language',
-                        'contents' => $language,
+            // Costruisce la base dei parametri multipart (senza il modello/response_format, che proveremo a scegliere)
+            $multipartBase = [
+                [
+                    'name' => 'file',
+                    'contents' => fopen($audio->getRealPath(), 'r'),
+                    'filename' => $originalName,
+                    'headers' => [
+                        'Content-Type' => $contentType,
                     ],
                 ],
-            ]);
+                // Temperature a zero per ridurre al minimo le allucinazioni
+                [
+                    'name' => 'temperature',
+                    'contents' => '0',
+                ],
+            ];
 
-            $status = $response->getStatusCode();
-            $body = (string) $response->getBody();
+            // Aggiunge il parametro language solo se specificato (per auto-rilevamento)
+            if ($language !== null) {
+                $multipartBase[] = [
+                    'name' => 'language',
+                    'contents' => $language,
+                ];
+            }
 
-            if ($status < 200 || $status >= 300) {
+            // Prova il "miglior" modello disponibile in cascata:
+            // 1) gpt-4o-transcribe (se disponibile per l'account)
+            // 2) gpt-4o-mini-transcribe
+            // 3) whisper-1 (fallback sicuro)
+            $modelsToTry = [
+                'gpt-4o-transcribe',
+                'gpt-4o-mini-transcribe',
+                'whisper-1',
+            ];
+
+            $response = null;
+            $body = '';
+            $status = 0;
+            $usedModel = null;
+            $multipartForRetry = null;
+
+            foreach ($modelsToTry as $candidateModel) {
+                $multipart = $multipartBase;
+                $multipart[] = [
+                    'name' => 'model',
+                    'contents' => $candidateModel,
+                ];
+
+                // I modelli GPT-* di trascrizione non supportano response_format=verbose_json:
+                // per loro usiamo "json"; per whisper-1 manteniamo "verbose_json"
+                $responseFormat = (strpos($candidateModel, 'gpt-4o') === 0) ? 'json' : 'verbose_json';
+                $multipart[] = [
+                    'name' => 'response_format',
+                    'contents' => $responseFormat,
+                ];
+
+                $resp = $client->post('audio/transcriptions', [
+                    'multipart' => $multipart,
+                ]);
+
+                $status = $resp->getStatusCode();
+                $body = (string) $resp->getBody();
+
+                if ($status >= 200 && $status < 300) {
+                    $response = $resp;
+                    $usedModel = $candidateModel;
+                    $multipartForRetry = $multipart;
+                    break;
+                }
+
+                $decodedError = json_decode($body, true);
+                $errorCode = is_array($decodedError) && isset($decodedError['error']['code'])
+                    ? (string) $decodedError['error']['code']
+                    : null;
+                $errorMessage = is_array($decodedError) && isset($decodedError['error']['message'])
+                    ? (string) $decodedError['error']['message']
+                    : '';
+
+                $isModelMissingError = $status === 404
+                    || $errorCode === 'model_not_found'
+                    || str_contains(strtolower($errorMessage), 'does not exist')
+                    || str_contains(strtolower($errorMessage), 'unknown model');
+
+                // Se il modello non esiste / non è disponibile, logga e prova il successivo
+                if ($isModelMissingError && $candidateModel !== 'whisper-1') {
+                    Log::warning('WhisperTranscriptionController: modello non disponibile, fallback al successivo', [
+                        'model' => $candidateModel,
+                        'status' => $status,
+                        'error_code' => $errorCode,
+                        'message' => $errorMessage,
+                    ]);
+                    continue;
+                }
+
+                // Per altri errori (rate limit, auth, ecc.) logghiamo ma non blocchiamo
+                // il flusso dell'applicazione: restituiamo semplicemente testo vuoto,
+                // così il frontend non vede un errore HTTP e il microfono non si blocca.
                 Log::error('OpenAI Whisper error', [
+                    'model' => $candidateModel,
                     'status' => $status,
                     'body' => $body,
                 ]);
 
-                $decoded = json_decode($body, true);
-                $message = '';
-                if (is_array($decoded) && isset($decoded['error']['message'])) {
-                    $message = (string) $decoded['error']['message'];
-                } else {
-                    $message = mb_substr($body, 0, 500);
-                }
-
                 return response()->json([
-                    'error' => 'Errore Whisper OpenAI',
-                    'status' => $status,
-                    'message' => $message,
-                ], 502);
+                    'text' => '',
+                ]);
             }
 
+            if (! $response || ! $usedModel) {
+                return response()->json([
+                    'text' => '',
+                ]);
+            }
+
+            Log::info('WhisperTranscriptionController: modello di trascrizione utilizzato', [
+                'model' => $usedModel,
+            ]);
+
             $json = json_decode($body, true);
-            $text = (string) ($json['text'] ?? '');
+
+            // Se è stata fornita una whitelist di lingue e Whisper ha rilevato una lingua
+            // che non rientra tra quelle consentite, blocchiamo la trascrizione.
+            $detectedLanguage = null;
+            if (is_array($json) && isset($json['language'])) {
+                $detectedLanguage = strtolower((string) $json['language']);
+            }
+            if (! empty($allowedLanguages) && $detectedLanguage !== null && ! in_array($detectedLanguage, $allowedLanguages, true)) {
+                Log::info('WhisperTranscriptionController: lingua fuori whitelist, trascrizione bloccata', [
+                    'detected_language' => $detectedLanguage,
+                    'allowed_languages' => $allowedLanguages,
+                ]);
+
+                return response()->json([
+                    'text' => '',
+                ]);
+            }
+
+            // Applica i filtri di qualità sui segmenti Whisper
+            $text = $this->extractHighQualityTextFromWhisperResponse($json);
+
+            // Se dopo i filtri la trascrizione risulta vuota, proviamo UNA SOLA VOLTA
+            // a reinviare l'audio a Whisper (stesso modello e stessi parametri).
+            if ($text === '') {
+                Log::info('WhisperTranscriptionController: testo vuoto dopo primo tentativo, retry senza guard', [
+                    'model' => $usedModel,
+                ]);
+
+                $retryResponse = $client->post('audio/transcriptions', [
+                    'multipart' => $multipartForRetry ?? $multipartBase,
+                ]);
+
+                $retryStatus = $retryResponse->getStatusCode();
+                $retryBody = (string) $retryResponse->getBody();
+
+                if ($retryStatus >= 200 && $retryStatus < 300) {
+                    $retryJson = json_decode($retryBody, true);
+                    $text = $this->extractHighQualityTextFromWhisperResponse($retryJson);
+                } else {
+                    Log::error('WhisperTranscriptionController: errore nel retry Whisper (text vuoto)', [
+                        'status' => $retryStatus,
+                        'body' => $retryBody,
+                    ]);
+                    $text = '';
+                }
+            }
+
+            // Controllo grammaticale / allucinazioni / lingua con un modello leggero (gpt-4o-mini).
+            // Il guard accetta la frase solo se:
+            // - è coerente e "umana"
+            // - sembra scritta in una delle lingue consentite (allowedLanguages)
+            // - non appare palesemente fuori contesto (sottotitoli random, disclaimer, spam, ecc.)
+            // In caso di dubbio, chiediamo UNA SOLA VOLTA un retry della trascrizione;
+            // se fallisce di nuovo, restituiamo testo vuoto.
+            if ($text !== '' && ! $this->isTranscriptionPlausible($text, $allowedLanguages)) {
+                Log::info('WhisperTranscriptionController: trascrizione bocciata dal guard, tentativo di retry', [
+                    'text_preview' => mb_substr($text, 0, 120),
+                ]);
+
+                // Secondo tentativo: nuova chiamata Whisper con gli stessi parametri
+                // (stesso modello scelto, stessa configurazione)
+                $retryResponse = $client->post('audio/transcriptions', [
+                    'multipart' => $multipartForRetry ?? $multipartBase,
+                ]);
+
+                $retryStatus = $retryResponse->getStatusCode();
+                $retryBody = (string) $retryResponse->getBody();
+
+                if ($retryStatus >= 200 && $retryStatus < 300) {
+                    $retryJson = json_decode($retryBody, true);
+                    $retryText = $this->extractHighQualityTextFromWhisperResponse($retryJson);
+
+                    if ($retryText !== '' && $this->isTranscriptionPlausible($retryText, $allowedLanguages)) {
+                        $text = $retryText;
+                    } else {
+                        $text = '';
+                    }
+                } else {
+                    Log::error('WhisperTranscriptionController: errore nel retry Whisper', [
+                        'status' => $retryStatus,
+                        'body' => $retryBody,
+                    ]);
+                    $text = '';
+                }
+            }
 
             return response()->json([
                 'text' => $text,
@@ -131,7 +306,146 @@ class WhisperTranscriptionController extends Controller
                 'error' => $e->getMessage(),
             ]);
 
-            return response()->json(['error' => 'Errore trascrizione audio'], 500);
+            // In caso di errore imprevisto, restituiamo comunque HTTP 200 con testo vuoto:
+            // il frontend semplicemente ignorerà il chunk e il microfono non verrà bloccato.
+            return response()->json([
+                'text' => '',
+            ]);
+        }
+    }
+
+    /**
+     * Estrae il testo "buono" da una risposta Whisper in verbose_json,
+     * scartando segmenti con bassa confidenza o alta probabilità di silenzio.
+     *
+     * Regole:
+     * - scarta segmenti con avg_logprob < -1 (bassa confidenza)
+     * - scarta segmenti con no_speech_prob > 0.5 (silenzio/rumore)
+     */
+    private function extractHighQualityTextFromWhisperResponse(mixed $json): string
+    {
+        $text = '';
+
+        if (is_array($json) && isset($json['segments']) && is_array($json['segments'])) {
+            $acceptedTexts = [];
+
+            foreach ($json['segments'] as $segment) {
+                $segmentText = isset($segment['text']) ? (string) $segment['text'] : '';
+                $segmentText = trim($segmentText);
+                if ($segmentText === '') {
+                    continue;
+                }
+
+                $avgLogprob = $segment['avg_logprob'] ?? null;
+                $noSpeechProb = $segment['no_speech_prob'] ?? null;
+
+                // Filtra per avg_logprob
+                if (is_numeric($avgLogprob) && (float) $avgLogprob < -1.0) {
+                    Log::info('WhisperTranscriptionController: segmento scartato per avg_logprob', [
+                        'avg_logprob' => $avgLogprob,
+                        'text_preview' => mb_substr($segmentText, 0, 80),
+                    ]);
+                    continue;
+                }
+
+                // Filtra per no_speech_prob
+                if (is_numeric($noSpeechProb) && (float) $noSpeechProb > 0.5) {
+                    Log::info('WhisperTranscriptionController: segmento scartato per no_speech_prob', [
+                        'no_speech_prob' => $noSpeechProb,
+                        'text_preview' => mb_substr($segmentText, 0, 80),
+                    ]);
+                    continue;
+                }
+
+                $acceptedTexts[] = $segmentText;
+            }
+
+            $text = trim(implode(' ', $acceptedTexts));
+
+            // Se dopo il filtro non resta nulla, come fallback usiamo comunque il campo "text"
+            if ($text === '') {
+                $text = (string) ($json['text'] ?? '');
+            }
+        } else {
+            // Fallback: struttura inattesa, usiamo il campo "text" se presente
+            $text = (string) ($json['text'] ?? '');
+        }
+
+        return $text;
+    }
+
+    /**
+     * Usa un modello GPT leggero per verificare se la trascrizione sembra
+     * coerente, umana e non "allucinata".
+     *
+     * Ritorna true se il testo è plausibile, false se è sospetto.
+     */
+    private function isTranscriptionPlausible(string $text, array $allowedLanguages = []): bool
+    {
+        $clean = trim($text);
+        if ($clean === '') {
+            return false;
+        }
+
+        try {
+            $apiKey = config('openapi.key');
+            if (! $apiKey) {
+                return true;
+            }
+
+            $client = \OpenAI::client($apiKey);
+
+            // Costruiamo una descrizione testuale delle lingue consentite (es. "it, en")
+            $allowedDesc = '';
+            if (! empty($allowedLanguages)) {
+                $allowedDesc = implode(', ', $allowedLanguages);
+            }
+
+            $response = $client->chat()->create([
+                'model' => 'gpt-4o-mini',
+                'temperature' => 0,
+                'max_tokens' => 2,
+                'messages' => [
+                    [
+                        'role' => 'system',
+                        'content' => 'You are a strict ASR quality checker for a bilingual interpreter. '
+                            .'Given a short automatic transcription, you MUST answer ONLY "OK" or "RETRY". '
+                            .'ALLOWED LANGUAGE CODES: ['.$allowedDesc.']. '
+                            .'Answer "OK" ONLY IF ALL of the following are true: '
+                            .'(1) the sentence is coherent and sounds like something a human would say in a conversation; '
+                            .'(2) the language of the text appears to be one of the allowed language codes (if the language is clearly different, answer "RETRY"); '
+                            .'(3) the content could plausibly belong to an ongoing call or dialog (reject obvious subtitles, credits, URLs, ads, boilerplate legal text, UI labels, etc.). '
+                            .'Answer "RETRY" for noise, random characters, truncated or repeated fragments, text in a clearly different language, or content that is obviously unrelated to a live conversation. '
+                            .'Do not explain, no extra words.',
+                    ],
+                    [
+                        'role' => 'user',
+                        'content' => $clean,
+                    ],
+                ],
+            ]);
+
+            $choice = $response->choices[0] ?? null;
+            $content = '';
+            if ($choice && isset($choice->message->content)) {
+                $content = (string) $choice->message->content;
+            }
+
+            $normalized = strtolower(trim($content));
+
+            if ($normalized === 'retry') {
+                return false;
+            }
+
+            // Default: considera buono tutto ciò che non è un "retry" esplicito
+            return true;
+        } catch (\Throwable $e) {
+            Log::warning('WhisperTranscriptionController.isTranscriptionPlausible error', [
+                'error' => $e->getMessage(),
+            ]);
+
+            // In caso di errore nel guard, non blocchiamo la trascrizione
+            return true;
         }
     }
 }

@@ -20,6 +20,10 @@ export default class WhisperSpeechRecognition {
         // Hint opzionale dal chiamante: 'mic' (voce diretta) o 'speaker' (audio da casse/YouTube)
         this.sourceHint = null;
 
+        // Elenco di lingue consentite (array di codici ISO come 'it', 'en', ecc.),
+        // usato dal backend per bloccare trascrizioni in lingue fuori whitelist.
+        this.allowedLangs = null;
+
         this.onstart = null;
         this.onresult = null;
         this.onerror = null;
@@ -35,11 +39,14 @@ export default class WhisperSpeechRecognition {
         this._maxSegmentMs = 6000; // sicurezza: durata massima di un singolo segmento
         // Soglia RMS per considerare "voce": tarata in modo da ignorare rumore di fondo leggero
         // e trattare come "silenzio" anche livelli bassi di rumore costante.
-        this._silenceThreshold = 0.08;
+        // Abbassata per rendere più sensibile il VAD e permettere all'auto-pausa
+        // di scattare in modo più affidabile anche con microfoni meno sensibili.
+        this._silenceThreshold = 0.03;
 
         this._audioContext = null;
         this._analyser = null;
         this._volumeArray = null;
+        this._freqArray = null;
         this._volumeCheckRaf = null;
         this._segmentStartedAt = 0;
         this._lastNonSilentAt = 0;
@@ -108,6 +115,7 @@ export default class WhisperSpeechRecognition {
                 this._analyser.fftSize = 1024;
                 source.connect(this._analyser);
                 this._volumeArray = new Uint8Array(this._analyser.fftSize);
+                this._freqArray = new Uint8Array(this._analyser.frequencyBinCount);
             }
 
             this._isRecording = true;
@@ -170,6 +178,7 @@ export default class WhisperSpeechRecognition {
         this._audioContext = null;
         this._analyser = null;
         this._volumeArray = null;
+        this._freqArray = null;
         this._segmentHasVoice = false;
     }
 
@@ -209,6 +218,25 @@ export default class WhisperSpeechRecognition {
             // Passiamo la lingua BCP-47; il backend ridurrà a codice ISO-639-1
             if (this.lang) {
                 formData.append('lang', this.lang);
+            }
+
+            // Passiamo anche l'elenco di lingue consentite (se fornito dal chiamante),
+            // così il backend può bloccare le trascrizioni in lingue fuori da questa whitelist.
+            if (this.allowedLangs && this.allowedLangs.length) {
+                try {
+                    const cleaned = [];
+                    for (let i = 0; i < this.allowedLangs.length; i++) {
+                        const code = (this.allowedLangs[i] || '').toString().trim().toLowerCase();
+                        if (code && cleaned.indexOf(code) === -1) {
+                            cleaned.push(code);
+                        }
+                    }
+                    if (cleaned.length) {
+                        formData.append('allowed_langs', cleaned.join(','));
+                    }
+                } catch {
+                    // in caso di errore nella pulizia, semplicemente non inviamo il campo
+                }
             }
 
             // Usa sempre lo stesso "web origin" usato dagli altri widget:
@@ -347,12 +375,13 @@ export default class WhisperSpeechRecognition {
             this._chunks.push(event.data);
         };
 
-        this._recorder.onstop = () => {
+            this._recorder.onstop = () => {
             const blob = this._buildFinalBlob();
 
             // Invia il segmento solo se ha senso:
-            // - in modalità normale: solo se è stata rilevata voce (_segmentHasVoice)
-            // - in singleSegmentMode: basta che il blob non sia vuoto
+            // - in modalità multi-segmento: solo se è stata rilevata VOCE reale (_segmentHasVoice)
+            // - in singleSegmentMode: evita solo chunk completamente vuoti; il filtro
+            //   su voce reale viene già applicato PRIMA a livello di VAD e nel backend Whisper.
             const shouldSend =
                 this.singleSegmentMode
                     ? !!(blob && blob.size > 0)
@@ -394,9 +423,46 @@ export default class WhisperSpeechRecognition {
                 }
                 const rms = Math.sqrt(sum / this._volumeArray.length);
 
+                // Analisi spettrale di base: controlliamo che ci sia energia
+                // significativa nella banda di frequenze tipica della voce.
+                let hasVoiceBandEnergy = false;
+                try {
+                    if (this._freqArray) {
+                        this._analyser.getByteFrequencyData(this._freqArray);
+                        const sampleRate = this._audioContext && this._audioContext.sampleRate
+                            ? this._audioContext.sampleRate
+                            : 44100;
+                        const binCount = this._freqArray.length;
+                        const fftSize = this._analyser.fftSize || (binCount * 2);
+
+                        let voiceEnergy = 0;
+                        let totalEnergy = 0;
+
+                        for (let i = 0; i < binCount; i++) {
+                            const amp = this._freqArray[i] / 255;
+                            const energy = amp * amp;
+                            totalEnergy += energy;
+
+                            const freq = i * (sampleRate / fftSize);
+                            // Banda voce molto grossolana: 80 Hz – 4000 Hz
+                            if (freq >= 80 && freq <= 4000) {
+                                voiceEnergy += energy;
+                            }
+                        }
+
+                        if (totalEnergy > 0 && voiceEnergy / totalEnergy > 0.2) {
+                            hasVoiceBandEnergy = true;
+                        }
+                    }
+                } catch {
+                    // Se qualcosa va storto nell'analisi spettrale, non blocchiamo il VAD:
+                    // continuiamo a usare solo l'RMS.
+                    hasVoiceBandEnergy = false;
+                }
+
                 const nowTs = performance.now ? performance.now() : Date.now();
 
-                if (rms > this._silenceThreshold) {
+                if (rms > this._silenceThreshold && hasVoiceBandEnergy) {
                     this._lastNonSilentAt = nowTs;
                     this._segmentHasVoice = true;
                 }

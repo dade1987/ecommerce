@@ -76,6 +76,10 @@ CORE RULES:
 - DO NOT include guillemets « » or quotes in your response.
 - DO NOT explain your choices, do not comment: return ONLY the translated text as it should be shown to the user.
 - Preserve the tone and register of the original sentence as much as possible (formal / informal).
+- Preserve the punctuation of the original text (commas, periods, question marks, exclamation marks, ellipses, etc.) whenever it makes sense in the target language: do NOT remove or flatten punctuation.
+- If the input contains explicit line breaks or bullet-like lines (each line starting with \"-\", \"•\", \"*\" or similar), KEEP the same line-break structure in the output:
+  * translate each line separately and keep each line on its own line;
+  * KEEP the leading bullet character (\"-\", \"•\", \"*\", etc.) at the beginning of each translated line.
 TXT;
 
         Log::debug('LiveTranslatorAgent.instructions', [

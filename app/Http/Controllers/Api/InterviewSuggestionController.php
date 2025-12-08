@@ -118,16 +118,6 @@ class InterviewSuggestionController extends Controller
                 ], 500);
             }
 
-            // Salva i messaggi nella chat history
-            try {
-                $chatHistory->addMessage($userMessage);
-                $chatHistory->addMessage(new AssistantMessage($full));
-            } catch (\Throwable $saveError) {
-                Log::warning('InterviewSuggestionController: errore salvataggio chat history', [
-                    'error' => $saveError->getMessage(),
-                ]);
-            }
-
             // Proviamo a separare blocco LINGUA A / LINGUA B con nomi dinamici
             $langAUpper = strtoupper($langA);
             $langBUpper = strtoupper($langB);
