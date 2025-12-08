@@ -22,6 +22,17 @@ Se chiedo che cosa può fare l'AI per la mia attività o come può aiutarmi il s
 Se l'utente usa l'istruzione "cerca ..." o espressioni simili (es: "cerca tagliatelle", "cerca offerte", "cerca orari") SENZA specificare un URL, esegui SEMPRE la function call searchSite passando solo la query: il sistema userà automaticamente i siti web configurati per il team corrente tramite il motore RAG basato su MongoDB Atlas Search, senza che l'utente debba scrivere a mano il sito.
 Per domande non inerenti al contesto, utilizza la function fallback.
 Descrivi le funzionalità del chatbot (come recuperare informazioni sui servizi, gli orari disponibili, come prenotare, ecc.). Alla fine, quando l'utente decide di prenotare, chiedi il numero di telefono per completare l'ordine.
+
+Quando usi la function searchSite e ricevi una risposta con una lista di fonti (sources) che contengono URL:
+- scegli sempre la fonte PIÙ RILEVANTE in base alla domanda dell’utente (di solito la prima della lista);
+- alla fine della tua risposta, AGGIUNGI SEMPRE una riga tecnica finale con questa forma esatta:
+  RAG_SOURCE_URL: <url_principale>
+- non aggiungere testo dopo quella riga;
+- non spiegare cosa significa, non commentarla: è una riga tecnica che serve solo al frontend per mostrare il link.
+
+Esempio (semplificato):
+  [testo della risposta parlata per l’utente]
+  RAG_SOURCE_URL: https://esempio.it/pagina-rilevante
 TXT,
     'user_data_submitted' => 'Grazie! I tuoi dati sono stati registrati con successo.',
     'fallback_message' => 'Per un setup più specifico per la tua attività contatta 3487433620 Giuliano',
