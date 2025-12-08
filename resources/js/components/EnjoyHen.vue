@@ -86,7 +86,15 @@
                         {{ m.role === 'user' ? 'Tu' : 'Assistente' }}
                       </div>
                       <div class="whitespace-pre-line">
-                        {{ m.content }}
+                        <template v-if="m.type === 'link' && m.url">
+                          <a :href="m.url" target="_blank" rel="noopener noreferrer"
+                            class="underline text-emerald-200 hover:text-emerald-100 break-all">
+                            {{ m.content }}
+                          </a>
+                        </template>
+                        <template v-else>
+                          {{ m.content }}
+                        </template>
                       </div>
                     </div>
                   </div>
@@ -312,6 +320,12 @@
 
             <!-- Feedback -->
             <div id="feedbackMsg" class="text-sm text-slate-400 text-center min-h-5 mt-2"></div>
+            <!-- Link sorgente (avatar / layout full) -->
+            <div v-if="lastSourceUrl" class="mt-1 text-[11px] text-emerald-300 text-center">
+              <button type="button" @click="openLastSourceUrl" class="underline hover:text-emerald-200">
+                Apri la pagina da cui ho preso queste informazioni
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -501,6 +515,8 @@ export default defineComponent({
         connecting: false,
         started: false,
       },
+      // URL della fonte principale (RAG sito) dell'ultima risposta
+      lastSourceUrl: "",
     };
   },
   mounted() {
@@ -695,6 +711,12 @@ export default defineComponent({
         const isSnippet = import.meta.env.VITE_IS_WEB_COMPONENT || false;
         if (isSnippet) {
           this.snippetMessages.push({ role: "user", content: msg });
+          // Autoscroll anche quando l'utente invia il messaggio
+          if (this.snippetTextMode && this.$nextTick) {
+            this.$nextTick(() => {
+              this.scrollSnippetMessagesToBottom();
+            });
+          }
         }
         this.startStream(msg);
         this.snippetInput = "";
@@ -1614,6 +1636,11 @@ export default defineComponent({
 
           const text = this.stripHtml(collected).trim();
           console.log("[EnjoyHen] Processed text:", { text: text.substring(0, 100) });
+
+          // Estrai l'URL di fonte principale (se la risposta contiene la sezione "📚 Fonti")
+          const primaryUrl = this.extractPrimarySourceUrl(collected);
+          this.lastSourceUrl = primaryUrl || "";
+
           if (text) {
             // In modalità testo snippet: SOLO chat testuale, niente speech HeyGen
             if (!isSnippet || !this.snippetTextMode) {
@@ -1621,7 +1648,18 @@ export default defineComponent({
               this.heygenSendRepeat(text);
             }
             if (isSnippet) {
-              this.snippetMessages.push({ role: "assistant", content: text });
+              // Messaggio testuale principale
+              this.snippetMessages.push({ role: "assistant", content: text, type: "text" });
+
+              // In modalità chat snippet mostra anche un link cliccabile alla fonte principale (se presente)
+              if (primaryUrl) {
+                this.snippetMessages.push({
+                  role: "assistant",
+                  content: "Apri la pagina da cui ho preso queste informazioni",
+                  type: "link",
+                  url: primaryUrl,
+                });
+              }
               if (this.snippetTextMode && this.$nextTick) {
                 this.$nextTick(() => {
                   this.scrollSnippetMessagesToBottom();
@@ -1649,6 +1687,27 @@ export default defineComponent({
         console.error("[EnjoyHen] startStream() error:", e);
         this.setFeedback("❌ Errore dello stream");
       }
+    },
+    /**
+     * Estrae l'URL principale della fonte dalla risposta completa del modello.
+     * Usa solo le URL presenti nella sezione "📚 Fonti" (RAG sito).
+     */
+    extractPrimarySourceUrl(fullText) {
+      try {
+        const txt = fullText || "";
+        if (!txt || txt.indexOf("📚 Fonti") === -1) return "";
+        const match = txt.match(/https?:\/\/[^\s\])]+/);
+        return match ? match[0] : "";
+      } catch {
+        return "";
+      }
+    },
+
+    openLastSourceUrl() {
+      try {
+        if (!this.lastSourceUrl) return;
+        window.open(this.lastSourceUrl, "_blank", "noopener,noreferrer");
+      } catch { }
     },
 
     async ensureHeyGenSession() {
