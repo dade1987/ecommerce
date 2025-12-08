@@ -218,6 +218,13 @@
               </label>
             </div>
             <div id="liveText" class="hidden mt-3 text-slate-300 min-h-[1.5rem]"></div>
+            <!-- Link sorgente (avatar / layout full) -->
+            <div v-if="lastSourceUrl" class="mt-2 text-xs text-emerald-300 text-center">
+              <button type="button" @click="openLastSourceUrl"
+                class="underline hover:text-emerald-200">
+                Apri la pagina da cui ho preso queste informazioni
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -332,6 +339,8 @@ export default defineComponent({
       snippetMessagesOn: true,
       snippetAudioOn: true,
       snippetInput: "",
+      // URL della fonte principale (RAG sito) dell'ultima risposta
+      lastSourceUrl: "",
     };
   },
   mounted() {
@@ -541,6 +550,12 @@ export default defineComponent({
             }
           } catch { }
         }
+      } catch { }
+    },
+    openLastSourceUrl() {
+      try {
+        if (!this.lastSourceUrl) return;
+        window.open(this.lastSourceUrl, "_blank", "noopener,noreferrer");
       } catch { }
     },
     sendSnippetInput() {
@@ -1787,6 +1802,18 @@ export default defineComponent({
 
       initDebugOverlay();
 
+      // Estrae l'URL principale della fonte dalle risposte (solo se è presente la sezione "📚 Fonti")
+      function extractPrimarySourceUrl(fullText) {
+        try {
+          const txt = fullText || "";
+          if (!txt || txt.indexOf("📚 Fonti") === -1) return "";
+          const match = txt.match(/https?:\/\/[^\s\])]+/);
+          return match ? match[0] : "";
+        } catch {
+          return "";
+        }
+      }
+
       function startStream(message) {
         if (!message || message.trim() === "") return;
         if (isStartingStream) {
@@ -1975,6 +2002,15 @@ export default defineComponent({
               } catch { }
               sseConnectWatchdog = null;
             }
+            // Estrai URL principale della fonte (RAG sito) dalla risposta completa
+            const primaryUrl = extractPrimarySourceUrl(collected);
+            try {
+              const vmInst = getCurrentInstance()?.proxy;
+              if (vmInst) {
+                vmInst.lastSourceUrl = primaryUrl || "";
+              }
+            } catch { }
+
             if (!chatMode) {
               if (ttsBuffer.trim().length > 0) {
                 const remainingText = stripHtml(ttsBuffer).trim();
@@ -1994,7 +2030,12 @@ export default defineComponent({
                 ttsTick = null;
               }
             } else {
-              // Chat-only: stream già applicato; finalizza indice
+              // Chat-only: stream già applicato; aggiungi l'URL di fonte principale (se presente)
+              if (primaryUrl && chatStreamingIndex >= 0 && chatStreamingIndex < chatMessagesData.length) {
+                chatMessagesData[chatStreamingIndex].sourceUrl = primaryUrl;
+                renderChatMessages();
+              }
+              // finalizza indice
               chatStreamingIndex = -1;
             }
           });
@@ -2186,6 +2227,21 @@ export default defineComponent({
             body.textContent = stripHtml(m.content || "");
             row.appendChild(head);
             row.appendChild(body);
+
+            // Link cliccabile alla fonte principale (se presente)
+            if (m.sourceUrl) {
+              const linkRow = document.createElement("div");
+              linkRow.className = "mt-1 text-[11px] text-emerald-300";
+              const a = document.createElement("a");
+              a.href = m.sourceUrl;
+              a.target = "_blank";
+              a.rel = "noopener noreferrer";
+              a.className = "underline break-all hover:text-emerald-100";
+              a.textContent = "Apri la pagina da cui ho preso queste informazioni";
+              linkRow.appendChild(a);
+              row.appendChild(linkRow);
+            }
+
             chatMessagesEl.appendChild(row);
           }
           // Autoscroll in basso
