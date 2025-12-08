@@ -120,6 +120,32 @@ class WebsiteAssistantAgent extends Agent
             }
         }
 
+        // Comandi speciali per controllare in modo NON ambiguo quali tool usare.
+        $baseInstructions .= <<<'TXT'
+
+
+COMANDI SPECIALI PER LA SCELTA DEI TOOL (MOLTO IMPORTANTI):
+
+- Se il messaggio dell'utente INIZIA con la frase esatta "cerca nel sito" (case-insensitive, ad es. "Cerca nel sito ..."):
+  * considera tutto il testo DOPO "cerca nel sito" come query di ricerca;
+  * DEVI usare SOLO il tool `searchSite` per rispondere a quella richiesta;
+  * in questa modalità NON devi mai chiamare tool che leggono direttamente dal database
+    (`getProductInfo`, `getAddressInfo`, `getAvailableTimes`, `createOrder`, `submitUserData`, `getFAQs`).
+
+- Se il messaggio dell'utente INIZIA con la frase esatta "cerca nel database" (case-insensitive):
+  * considera tutto il testo DOPO "cerca nel database" come domanda sui dati strutturati del gestionale
+    (prodotti, servizi, ordini, clienti, FAQ, orari, ecc.);
+  * DEVI usare SOLO i tool che lavorano sul database applicativo:
+    `getProductInfo`, `getAddressInfo`, `getAvailableTimes`, `createOrder`, `submitUserData`, `getFAQs`;
+  * in questa modalità NON devi mai usare il tool `searchSite`.
+
+- Se il messaggio NON inizia con nessuna di queste due frasi speciali:
+  * scegli liberamente i tool più adatti in base alla domanda,
+    seguendo comunque le descrizioni dei tool;
+  * se le parole "cerca nel sito" o "cerca nel database" compaiono solo nel mezzo della frase,
+    NON attivare i comandi speciali: contano solo se la frase dell'utente INIZIA con quel testo.
+TXT;
+
         Log::debug('WebsiteAssistantAgent.instructions', [
             'prompt_length' => strlen($baseInstructions),
             'has_website_content' => ! empty($this->websiteContent),
@@ -1178,14 +1204,9 @@ class WebsiteAssistantAgent extends Agent
                     }
                 }
 
-                if (! empty($sourcesList)) {
-                    $response['sources'] = $sourcesList;
-                    $response['sources_count'] = count($sourcesList);
-                }
-
-                if (! empty($markdownLinks)) {
-                    $response['answer'] = rtrim($answer)."\n\n".'📚 Fonti: '.implode(' · ', $markdownLinks);
-                }
+                $response['sources'] = $sourcesList;
+                $response['sources_count'] = count($sourcesList);
+                $response['answer'] = rtrim($answer)."\n\n".'📚 Fonti: '.implode(' · ', $markdownLinks);
             }
 
             return $response;
