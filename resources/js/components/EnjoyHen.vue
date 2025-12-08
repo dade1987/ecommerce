@@ -196,6 +196,13 @@
               <video id="heygenVideo" class="w-full h-auto rounded-lg" autoplay playsinline controls>
               </video>
 
+              <!-- Link sorgente (modalità avatar in snippet/webcomponent) -->
+              <div v-if="isWebComponent && lastSourceUrl"
+                class="mt-2 mb-1 text-[11px] text-emerald-300 text-center pointer-events-auto">
+                <button type="button" @click="openLastSourceUrl" class="underline hover:text-emerald-200">
+                  Apri la pagina da cui ho preso queste informazioni
+                </button>
+              </div>
 
               <!-- Fumetto di pensiero -->
               <div id="thinkingBubble"
