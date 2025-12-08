@@ -93,7 +93,20 @@ class WebsiteAssistantAgent extends Agent
      */
     public function instructions(): string
     {
-        $locale = $this->locale ?? 'it';
+        // Normalizza la locale in forma breve ('it', 'en', ecc.) per usare i file di lingua corretti.
+        // Esempio: 'it-IT' o 'it_IT' -> 'it'; 'en-US' -> 'en'.
+        $rawLocale = $this->locale ?? 'it';
+        $normalized = str_replace('_', '-', (string) $rawLocale);
+        $parts = explode('-', $normalized);
+        $baseLocale = strtolower($parts[0] ?: 'it');
+
+        // Limita alle lingue effettivamente disponibili per questo prompt
+        if (! in_array($baseLocale, ['it', 'en'], true)) {
+            $baseLocale = config('app.locale', 'it');
+        }
+
+        $locale = $baseLocale;
+
         $baseInstructions = (string) trans('enjoywork3d_prompts.instructions', ['locale' => $locale], $locale);
 
         if (! empty($this->websiteContent)) {
@@ -146,6 +159,8 @@ TXT;
         Log::debug('WebsiteAssistantAgent.instructions', [
             'prompt_length' => strlen($baseInstructions),
             'has_website_content' => ! empty($this->websiteContent),
+            'raw_locale' => (string) $rawLocale,
+            'effective_locale' => $locale,
         ]);
 
         return $baseInstructions;
