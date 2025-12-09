@@ -423,6 +423,20 @@ export default defineComponent({
         return this._setListeningUI?.(active);
       } catch { }
     },
+
+    getGreetingMessage() {
+      try {
+        const raw = this.locale || "it-IT";
+        const low = String(raw).toLowerCase();
+        if (low === "it" || low.indexOf("it-") === 0) {
+          return "Buongiorno";
+        }
+        if (low === "en" || low.indexOf("en-") === 0) {
+          return "Good morning";
+        }
+      } catch { }
+      return "Buongiorno";
+    },
     // Toggle widget snippet (bubble ↔ widget)
     onLauncherClick() {
       try {
@@ -2509,7 +2523,7 @@ export default defineComponent({
             if (!chatMode && vm && vm.lastSourceUrl) {
               vm.lastSourceUrl = "";
             }
-          } catch {}
+          } catch { }
 
           // Usa sempre WhisperSpeechRecognition al posto della Web Speech API
           recognition = new WhisperSpeechRecognition();
@@ -4702,15 +4716,16 @@ export default defineComponent({
                 conversaBtnContainer.classList.remove("hidden");
               }
 
-              // In modalità snippet: frase di benvenuto TTS fissa dopo caricamento avatar
+              // In modalità snippet: frase di benvenuto presa dal welcome_message del team
               try {
                 const vmInst = getCurrentInstance()?.proxy;
                 const isSnippet = import.meta.env.VITE_IS_WEB_COMPONENT || false;
                 if (isSnippet && vmInst && !vmInst.introPlayed) {
-                  const intro =
-                    "Ciao, sono il tuo assistente virtuale Enjoy Talk 3D. Posso rispondere alle domande riguardanti questo sito internet.";
                   try {
-                    vmInst._sendToTts && vmInst._sendToTts(intro);
+                    const greeting = vmInst.getGreetingMessage
+                      ? vmInst.getGreetingMessage()
+                      : "Buongiorno";
+                    vmInst.startStream && vmInst.startStream(greeting);
                     vmInst.introPlayed = true;
                   } catch { }
                 }
