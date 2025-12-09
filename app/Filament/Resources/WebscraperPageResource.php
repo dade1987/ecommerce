@@ -56,12 +56,17 @@ class WebscraperPageResource extends Resource
                 Tables\Filters\SelectFilter::make('domain')
                     ->label('Dominio')
                     ->options(function (): array {
-                        return WebscraperPage::query()
+                        $domains = WebscraperPage::query()
                             ->select('domain')
                             ->whereNotNull('domain')
                             ->distinct()
                             ->orderBy('domain')
-                            ->pluck('domain', 'domain')
+                            ->pluck('domain')
+                            ->filter(fn ($domain) => $domain !== null && $domain !== '')
+                            ->values();
+
+                        return $domains
+                            ->mapWithKeys(fn ($domain) => [(string) $domain => (string) $domain])
                             ->toArray();
                     })
                     ->query(function (Builder $query, array $data): Builder {
