@@ -1897,11 +1897,22 @@ export default defineComponent({
         isSpeaking = false;
         chatStreamingIndex = -1;
         let collected = "";
+        const backendLocale = (function (l) {
+          try {
+            const low = String(l || "it").toLowerCase();
+            if (low === "it" || low.indexOf("it-") === 0) return "it";
+            if (low === "en" || low.indexOf("en-") === 0) return "en";
+            return low.substring(0, 2) || "it";
+          } catch {
+            return "it";
+          }
+        })(locale);
+
         const params = new URLSearchParams({
           message,
           team: teamSlug,
           uuid: uuid || "",
-          locale,
+          locale: backendLocale,
           ts: String(Date.now()),
         });
         if (assistantsEnabled) params.set("assistants", "1");
