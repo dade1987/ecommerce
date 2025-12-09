@@ -1311,6 +1311,21 @@ export default defineComponent({
       return "Buongiorno";
     },
 
+    getBackendLocale() {
+      try {
+        const raw = this.locale || "it";
+        const low = String(raw).toLowerCase();
+        if (low === "it" || low.indexOf("it-") === 0) {
+          return "it";
+        }
+        if (low === "en" || low.indexOf("en-") === 0) {
+          return "en";
+        }
+        return low.substring(0, 2) || "it";
+      } catch { }
+      return "it";
+    },
+
     setupEventListeners() {
       console.log("[EnjoyHen] setupEventListeners()");
       if (this.sendBtn) {
@@ -1606,11 +1621,15 @@ export default defineComponent({
 
       const isSnippet = import.meta.env.VITE_IS_WEB_COMPONENT || false;
 
+      const backendLocale = this.getBackendLocale
+        ? this.getBackendLocale()
+        : "it";
+
       const params = new URLSearchParams({
         message,
         team: this.teamSlugLocal,
         uuid: this.uuid || "",
-        locale: this.locale,
+        locale: backendLocale,
         ts: String(Date.now()),
       });
 
