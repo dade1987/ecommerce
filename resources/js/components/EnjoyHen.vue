@@ -193,7 +193,7 @@
 
             <!-- DEFAULT: video HeyGen e overlay vari -->
             <template v-else>
-              <video id="heygenVideo" class="w-full h-auto rounded-lg" autoplay playsinline controls>
+              <video id="heygenVideo" class="w-full h-auto rounded-lg" autoplay playsinline>
               </video>
 
               <!-- Link sorgente (modalità avatar in snippet/webcomponent) -->
@@ -277,6 +277,16 @@
                 </div>
               </div>
             </template>
+          </div>
+
+          <div v-if="avatarErrorSimple"
+            class="mt-3 px-3 py-2 bg-rose-900/80 border border-rose-400/70 text-rose-50 text-xs sm:text-sm rounded-md space-y-1">
+            <div>
+              {{ avatarErrorSimple }}
+            </div>
+            <div v-if="avatarErrorDetails" class="text-[11px] text-rose-200/90 break-words">
+              {{ avatarErrorDetails }}
+            </div>
           </div>
 
           <!-- Listening Badge -->
@@ -527,6 +537,8 @@ export default defineComponent({
       },
       // URL della fonte principale (RAG sito) dell'ultima risposta
       lastSourceUrl: "",
+      avatarErrorSimple: "",
+      avatarErrorDetails: "",
     };
   },
   mounted() {
@@ -561,12 +573,15 @@ export default defineComponent({
           this.loadingOverlay.classList.remove("hidden");
         }
         this.ensureHeyGenSession().then(() => {
-          if (!this.introPlayed) {
-            const intro =
-              "Ciao, sono il tuo assistente virtuale Enjoy Talk 3D. Posso rispondere alle domande riguardanti questo sito internet.";
-            this.heygenSendRepeat(intro);
-            this.introPlayed = true;
-          }
+          try {
+            if (!this.introPlayed) {
+              const greeting = this.getGreetingMessage
+                ? this.getGreetingMessage()
+                : "Buongiorno";
+              this.startStream(greeting);
+              this.introPlayed = true;
+            }
+          } catch { }
         });
       } catch { }
     },
@@ -831,12 +846,18 @@ export default defineComponent({
         this.loadingOverlay = pick("loadingOverlay");
         this.videoAvatarStatus = pick("videoAvatarStatus");
         this.feedbackMsg = pick("feedbackMsg");
+        if (this.heygenVideo) {
+          this.heygenVideo.controls = false;
+        }
       } catch { }
     },
 
     resumeAvatarVideo() {
       try {
         this.refreshHeygenVideoRef();
+        if (this.clearAvatarError) {
+          this.clearAvatarError();
+        }
 
         // Se esiste già una sessione HeyGen attiva, riaggancio lo stream al nuovo elemento <video>
         if (
@@ -1276,6 +1297,20 @@ export default defineComponent({
       }
     },
 
+    getGreetingMessage() {
+      try {
+        const raw = this.locale || "it-IT";
+        const low = String(raw).toLowerCase();
+        if (low === "it" || low.indexOf("it-") === 0) {
+          return "Buongiorno";
+        }
+        if (low === "en" || low.indexOf("en-") === 0) {
+          return "Good morning";
+        }
+      } catch { }
+      return "Buongiorno";
+    },
+
     setupEventListeners() {
       console.log("[EnjoyHen] setupEventListeners()");
       if (this.sendBtn) {
@@ -1685,7 +1720,7 @@ export default defineComponent({
           this.setFeedback("");
         });
 
-        eventSource.addEventListener("error", () => {
+        eventSource.addEventListener("error", (e) => {
           console.error("[EnjoyHen] EventSource error");
           try {
             eventSource.close();
@@ -1697,10 +1732,16 @@ export default defineComponent({
             thinkingBadge.classList.add("hidden");
           }
           this.setFeedback("❌ Errore di connessione");
+          if (this.handleAvatarError) {
+            this.handleAvatarError("Stream", e);
+          }
         });
       } catch (e) {
         console.error("[EnjoyHen] startStream() error:", e);
         this.setFeedback("❌ Errore dello stream");
+        if (this.handleAvatarError) {
+          this.handleAvatarError("Stream", e);
+        }
       }
     },
     /**
@@ -1879,6 +1920,9 @@ export default defineComponent({
       } catch (e) {
         console.error("HeyGen session error:", e);
         this.setStatus("Errore connessione");
+        if (this.handleAvatarError) {
+          this.handleAvatarError("HeyGen session", e);
+        }
       } finally {
         this.heygen.connecting = false;
       }
@@ -1931,6 +1975,9 @@ export default defineComponent({
       } catch (e) {
         console.error("HeyGen repeat failed:", e);
         this.isSpeaking = false;
+        if (this.handleAvatarError) {
+          this.handleAvatarError("HeyGen speak", e);
+        }
       }
     },
 
@@ -2041,6 +2088,52 @@ export default defineComponent({
       const tmp = document.createElement("div");
       tmp.innerHTML = html;
       return (tmp.textContent || tmp.innerText || "").replace(/\s+/g, " ").trim();
+    },
+
+    clearAvatarError() {
+      this.avatarErrorSimple = "";
+      this.avatarErrorDetails = "";
+    },
+
+    handleAvatarError(context, error) {
+      try {
+        const base =
+          "Si è verificato un errore tecnico, sto riavviando l'assistente.";
+        this.avatarErrorSimple = base;
+        let detail = "";
+        if (error && typeof error === "object") {
+          detail = error.message || String(error);
+        } else if (error) {
+          detail = String(error);
+        }
+        const ctx = context ? "[" + context + "] " : "";
+        this.avatarErrorDetails = ctx + detail;
+        this.setStatus("Errore, riavvio in corso...");
+      } catch { }
+
+      try {
+        if (this.loadingOverlay) {
+          this.loadingOverlay.classList.remove("hidden");
+        }
+      } catch { }
+
+      try {
+        if (this.cleanup) {
+          this.cleanup();
+        }
+      } catch { }
+
+      try {
+        if (this.resumeAvatarVideo && this.$nextTick) {
+          this.$nextTick(() => {
+            try {
+              this.resumeAvatarVideo();
+            } catch { }
+          });
+        } else if (this.ensureHeyGenSession) {
+          this.ensureHeyGenSession();
+        }
+      } catch { }
     },
 
     setStatus(status) {

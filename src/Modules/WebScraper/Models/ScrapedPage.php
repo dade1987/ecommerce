@@ -38,6 +38,22 @@ class ScrapedPage extends Model
     ];
 
     /**
+     * Dominio estratto dall'URL (es. example.com).
+     */
+    public function getDomainAttribute(): ?string
+    {
+        $url = (string) $this->url;
+
+        if ($url === '') {
+            return null;
+        }
+
+        $host = parse_url($url, PHP_URL_HOST);
+
+        return $host ?: null;
+    }
+
+    /**
      * Boot the model and ensure storage directory exists
      */
     protected static function boot()
