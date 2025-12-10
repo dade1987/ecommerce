@@ -1,6 +1,6 @@
 @aware(['page'])
 
-<section class="relative bg-gradient-to-br from-slate-50 via-white to-blue-50 py-8 lg:py-24 overflow-hidden">
+<section class="relative bg-gradient-to-br from-slate-50 via-white to-blue-50 py-8 lg:py-12 overflow-hidden">
     
     <!-- Background decorativo animato -->
     <div class="absolute inset-0 overflow-hidden pointer-events-none">
@@ -48,8 +48,8 @@
                         </a>
                     </div>
                     
-                    <!-- Trust badge sotto il CTA -->
-                    <div class="flex items-center justify-center gap-4 mt-4 text-sm text-gray-500">
+                    <!-- Trust badges sotto il CTA -->
+                    <div class="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 mt-4 text-sm text-gray-500">
                         <div class="flex items-center gap-1">
                             <svg class="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
@@ -68,6 +68,33 @@
                             </svg>
                             <span>{{ __('frontend.expert_advice') }}</span>
                         </div>
+                    </div>
+                    
+                    <!-- Elementi di sicurezza psicologica -->
+                    <div class="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 mt-3 text-sm text-gray-600">
+                        <div class="flex items-center gap-1.5">
+                            <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                            </svg>
+                            <span>{{ __('frontend.direct_talk') }}</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                            </svg>
+                            <span>{{ __('frontend.no_aggressive_sales') }}</span>
+                        </div>
+                    </div>
+                    
+                    <!-- CTA Secondaria sotto la primaria -->
+                    <div class="flex justify-center mt-5">
+                        <a href="#servizi" 
+                           class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-gray-600 hover:text-blue-700 transition-colors duration-200">
+                            <span>{{ __('frontend.discover_services') }}</span>
+                            <svg class="w-4 h-4 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </a>
                     </div>
                 </div>
             </div>
@@ -181,16 +208,6 @@
                     </div>
                 @endforeach
 
-                <!-- CTA Secondario dopo accordion -->
-                <div class="mt-8">
-                    <a href="#servizi" 
-                       class="inline-flex items-center gap-2 px-6 py-3 text-base font-semibold text-blue-700 bg-blue-50 border-2 border-blue-200 rounded-xl hover:bg-blue-100 hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                        </svg>
-                        {{ __('frontend.discover_services') }}
-                    </a>
-                </div>
             </div>
         </div>
 

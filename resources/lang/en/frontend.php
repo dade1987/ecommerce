@@ -8,4 +8,6 @@ return [
     'no_commitment' => 'No commitment',
     'expert_advice' => '100% Personalized',
     'discover_services' => 'Discover Services',
+    'direct_talk' => 'Talk directly with me (no salesperson)',
+    'no_aggressive_sales' => 'No aggressive sales tactics',
 ];
