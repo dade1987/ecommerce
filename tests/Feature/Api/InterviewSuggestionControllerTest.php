@@ -57,3 +57,6 @@ class InterviewSuggestionControllerTest extends TestCase
         $this->assertSame('', $json['suggestion_lang_b']);
     }
 }
+
+
+

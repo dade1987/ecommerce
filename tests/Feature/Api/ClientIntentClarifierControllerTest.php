@@ -20,3 +20,6 @@ class ClientIntentClarifierControllerTest extends TestCase
         $this->assertStringContainsString('focus_text', (string) $response->json('error'));
     }
 }
+
+
+
