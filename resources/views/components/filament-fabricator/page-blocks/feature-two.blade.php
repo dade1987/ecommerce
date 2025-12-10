@@ -15,7 +15,7 @@
     'textThree',
     'showButtonThree',
 ])
-<section class="bg-white dark:bg-gray-900 py-16">
+<section id="servizi" class="bg-white dark:bg-gray-900 py-16">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         
         <div class="text-center mb-16">
