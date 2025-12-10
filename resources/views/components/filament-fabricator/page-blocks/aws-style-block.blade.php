@@ -1,18 +1,74 @@
 @aware(['page'])
 
-<section class="bg-white py-16 lg:py-24">
-    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+<section class="relative bg-gradient-to-br from-slate-50 via-white to-blue-50 py-8 lg:py-24 overflow-hidden">
+    
+    <!-- Background decorativo animato -->
+    <div class="absolute inset-0 overflow-hidden pointer-events-none">
+        <div class="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400/20 to-indigo-600/20 rounded-full blur-3xl animate-pulse"></div>
+        <div class="absolute -bottom-40 -left-40 w-96 h-96 bg-gradient-to-tr from-blue-300/15 to-indigo-400/15 rounded-full blur-3xl animate-pulse" style="animation-delay: 1s;"></div>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-r from-slate-200/10 to-blue-200/10 rounded-full blur-3xl"></div>
+    </div>
+    
+    <div class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         
         <!-- Sezione "Perché AWS?" -->
         <div class="grid grid-cols-1 gap-12 lg:grid-cols-2 lg:items-start lg:gap-16 mb-20">
             
             <!-- Colonna sinistra: Titolo e descrizione -->
             <div class="flex flex-col">
-                <h2 class="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl mb-8">
+                <h2 class="text-4xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-gray-900 via-blue-900 to-indigo-900 sm:text-5xl mb-8 animate-fade-in">
                     {{ $percheTitle }}
                 </h2>
                 <div class="prose prose-lg text-gray-600 leading-relaxed" id="perche-description">
                     {!! $percheDescription !!}
+                </div>
+
+                <!-- 🎯 CTA PRIMARIO - Posizione strategica subito dopo i bullet -->
+                <div class="mt-10 mb-6 lg:mb-0">
+                    <div class="relative group">
+                        <!-- Glow effect blu -->
+                        <div class="absolute -inset-1 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 rounded-2xl blur-lg opacity-60 group-hover:opacity-90 transition duration-500 animate-pulse"></div>
+                        
+                        <!-- CTA Button -->
+                        <a href="#contact-form" 
+                           class="cta-shine relative flex items-center justify-center gap-3 px-8 py-5 text-lg font-bold text-white bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 rounded-xl shadow-2xl shadow-blue-600/30 hover:shadow-blue-600/50 transform hover:scale-105 transition-all duration-300 group-hover:from-blue-700 group-hover:via-blue-800 group-hover:to-indigo-800"
+                           @click="typeof gtag !== 'undefined' && gtag('event', 'cta_click', { event_category: 'engagement', event_label: 'primary_cta_early' })">
+                            
+                            <!-- Icona calendario animata -->
+                            <svg class="w-6 h-6 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                            
+                            <span>{{ __('frontend.book_15_min_call', ['minutes' => 15]) }}</span>
+                            
+                            <!-- Freccia animata -->
+                            <svg class="w-5 h-5 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
+                            </svg>
+                        </a>
+                    </div>
+                    
+                    <!-- Trust badge sotto il CTA -->
+                    <div class="flex items-center justify-center gap-4 mt-4 text-sm text-gray-500">
+                        <div class="flex items-center gap-1">
+                            <svg class="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                            </svg>
+                            <span>{{ __('frontend.free_consultation') }}</span>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <svg class="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                            </svg>
+                            <span>{{ __('frontend.no_commitment') }}</span>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <svg class="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                            </svg>
+                            <span>{{ __('frontend.expert_advice') }}</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -125,10 +181,21 @@
                     </div>
                 @endforeach
 
-                <div class="mt-8">
-                    @livewire('open-calendar-button')
-                    <a href="#contact-form" class="inline-block ml-4 px-6 py-3 text-base font-semibold text-white bg-gray-600 rounded-lg shadow-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition">
+                <!-- CTA Secondari dopo accordion -->
+                <div class="mt-8 flex flex-wrap gap-3">
+                    <a href="#contact-form" 
+                       class="inline-flex items-center gap-2 px-6 py-3 text-base font-semibold text-blue-700 bg-blue-50 border-2 border-blue-200 rounded-xl hover:bg-blue-100 hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                        </svg>
                         {{ __('frontend.contact_us') }}
+                    </a>
+                    <a href="#servizi" 
+                       class="inline-flex items-center gap-2 px-6 py-3 text-base font-semibold text-gray-700 bg-gray-50 border-2 border-gray-200 rounded-xl hover:bg-gray-100 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-all duration-200">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                        {{ __('frontend.discover_services') }}
                     </a>
                 </div>
             </div>
@@ -136,6 +203,55 @@
 
     </div>
 </section>
+
+<style>
+    /* Animazioni WOW per effetto impatto */
+    @keyframes fade-in {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    @keyframes slide-up {
+        from { opacity: 0; transform: translateY(40px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    @keyframes glow-pulse {
+        0%, 100% { box-shadow: 0 0 20px rgba(37, 99, 235, 0.4); }
+        50% { box-shadow: 0 0 40px rgba(37, 99, 235, 0.6); }
+    }
+    
+    .animate-fade-in {
+        animation: fade-in 0.8s ease-out forwards;
+    }
+    
+    .animate-slide-up {
+        animation: slide-up 0.6s ease-out forwards;
+    }
+    
+    /* Effetto shine sul CTA primario */
+    .cta-shine {
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .cta-shine::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+        animation: shine 3s infinite;
+    }
+    
+    @keyframes shine {
+        0% { left: -100%; }
+        20% { left: 100%; }
+        100% { left: 100%; }
+    }
+</style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
