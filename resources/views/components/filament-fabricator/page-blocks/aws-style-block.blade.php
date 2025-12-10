@@ -1,6 +1,6 @@
 @aware(['page'])
 
-<section class="relative bg-gradient-to-br from-slate-50 via-white to-blue-50 py-8 lg:py-12 overflow-hidden">
+<section class="relative bg-gradient-to-br from-slate-50 via-white to-blue-50 py-8 lg:py-14 overflow-hidden">
     
     <!-- Background decorativo animato -->
     <div class="absolute inset-0 overflow-hidden pointer-events-none">
