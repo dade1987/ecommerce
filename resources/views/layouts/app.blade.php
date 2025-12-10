@@ -134,6 +134,11 @@ In your html page, add the snippet and call gtag_report_conversion when someone 
     @livewireScriptConfig
     @stack('scripts')
     @livewireScripts
+
+    {{-- Calendly Widget --}}
+    <link href="https://assets.calendly.com/assets/external/widget.css" rel="stylesheet">
+    <script src="https://assets.calendly.com/assets/external/widget.js" type="text/javascript"></script>
+
     <script>
         document.addEventListener('livewire:initialized', () => {
             Livewire.on('gtag_report_conversion', (event) => {
@@ -142,6 +147,21 @@ In your html page, add the snippet and call gtag_report_conversion when someone 
                     console.log('gtag_report_conversion called via app.blade.php');
                 } else {
                     console.error('gtag_report_conversion function not found');
+                }
+            });
+
+            Livewire.on('calendar-opened', () => {
+                var calendlyUrl = "{{ config('services.calendly.booking_url') }}";
+
+                if (!calendlyUrl) {
+                    console.error('Calendly booking URL non configurato. Imposta CALENDLY_BOOKING_URL nel file .env.');
+                    return;
+                }
+
+                if (typeof Calendly !== 'undefined' && Calendly.initPopupWidget) {
+                    Calendly.initPopupWidget({ url: calendlyUrl });
+                } else {
+                    console.error('Calendly widget non caricato correttamente.');
                 }
             });
         });

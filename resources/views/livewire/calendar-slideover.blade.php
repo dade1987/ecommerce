@@ -1,4 +1,4 @@
-<div
+{{-- <div
     x-data="{}"
     x-on:calendar-opened.window="
         setTimeout(() => {
@@ -19,3 +19,5 @@
         </div>
     </x-filament::modal>
 </div>
+--}}
+<div x-data="{}"></div>

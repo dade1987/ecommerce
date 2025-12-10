@@ -54,4 +54,8 @@ return [
         'server_url' => env('HEYGEN_SERVER_URL', 'https://api.heygen.com'),
     ],
 
+    'calendly' => [
+        'booking_url' => env('CALENDLY_BOOKING_URL'),
+    ],
+
 ];
