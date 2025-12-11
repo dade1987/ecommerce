@@ -24,15 +24,15 @@
                 </div>
 
                 <!-- 🎯 CTA PRIMARIO - Posizione strategica subito dopo i bullet -->
-                <div class="mt-10 mb-6 lg:mb-0">
+                <div class="mt-10 mb-6 lg:mb-0" x-data>
                     <div class="relative group">
                         <!-- Glow effect blu -->
                         <div class="absolute -inset-1 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 rounded-2xl blur-lg opacity-60 group-hover:opacity-90 transition duration-500 animate-pulse"></div>
                         
-                        <!-- CTA Button -->
-                        <a href="#contact-form" 
-                           class="cta-shine relative flex items-center justify-center gap-3 px-8 py-5 text-lg font-bold text-white bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 rounded-xl shadow-2xl shadow-blue-600/30 hover:shadow-blue-600/50 transform hover:scale-105 transition-all duration-300 group-hover:from-blue-700 group-hover:via-blue-800 group-hover:to-indigo-800"
-                           @click="typeof gtag !== 'undefined' && gtag('event', 'cta_click', { event_category: 'engagement', event_label: 'primary_cta_early' })">
+                        <!-- CTA Button - Apre Calendly -->
+                        <button type="button"
+                           @click="$dispatch('open-calendar-slideover'); typeof gtag !== 'undefined' && gtag('event', 'cta_click', { event_category: 'engagement', event_label: 'primary_cta_calendly' })"
+                           class="cta-shine relative w-full flex items-center justify-center gap-3 px-8 py-5 text-lg font-bold text-white bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 rounded-xl shadow-2xl shadow-blue-600/30 hover:shadow-blue-600/50 transform hover:scale-105 transition-all duration-300 group-hover:from-blue-700 group-hover:via-blue-800 group-hover:to-indigo-800 cursor-pointer">
                             
                             <!-- Icona calendario animata -->
                             <svg class="w-6 h-6 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -45,7 +45,7 @@
                             <svg class="w-5 h-5 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
                             </svg>
-                        </a>
+                        </button>
                     </div>
                     
                     <!-- Trust badges sotto il CTA -->
@@ -86,14 +86,24 @@
                         </div>
                     </div>
                     
-                    <!-- CTA Secondaria sotto la primaria -->
-                    <div class="flex justify-center mt-5">
+                    <!-- CTA Secondarie: Scopri Servizi + Contattaci (F-pattern layout) -->
+                    <div class="flex flex-wrap items-center justify-center gap-4 mt-5">
+                        <!-- Scopri i Servizi - più visibile -->
                         <a href="#servizi" 
-                           class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-gray-600 hover:text-blue-700 transition-colors duration-200">
+                           class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-blue-700 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 rounded-lg transition-all duration-200">
                             <span>{{ __('frontend.discover_services') }}</span>
                             <svg class="w-4 h-4 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                             </svg>
+                        </a>
+                        
+                        <!-- Contattaci - meno visibile (terziario) -->
+                        <a href="#contact-form" 
+                           class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors duration-200">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                            </svg>
+                            <span>{{ __('frontend.or_contact_us') }}</span>
                         </a>
                     </div>
                 </div>

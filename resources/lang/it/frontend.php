@@ -10,4 +10,5 @@ return [
     'discover_services' => 'Scopri i Servizi',
     'direct_talk' => 'Parli direttamente con me (no commerciale)',
     'no_aggressive_sales' => 'Nessuna vendita aggressiva',
+    'or_contact_us' => 'oppure scrivici',
 ];
