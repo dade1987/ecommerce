@@ -10,6 +10,7 @@ use App\Neuron\WebsiteAssistantAgent;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use NeuronAI\Chat\Messages\UserMessage;
+use function Safe\json_decode;
 use function Safe\json_encode;
 use function Safe\ob_flush;
 use function Safe\preg_split;
@@ -152,19 +153,36 @@ class NeuronWebsiteStreamController extends Controller
 
                 $flush(['token' => ''], 'done');
             } catch (\Throwable $e) {
-                Log::error('NeuronWebsiteStreamController error', [
+                $errorDetails = [
                     'error' => $e->getMessage(),
                     'trace' => $e->getTraceAsString(),
                     'thread_id' => $streamThreadId,
                     'error_class' => get_class($e),
                     'code' => $e->getCode(),
-                ]);
+                ];
 
-                // Se è un errore OpenAI, tenta di estrarre più dettagli
-                if (strpos($e->getMessage(), 'openai.com') !== false || strpos($e->getMessage(), 'Bad Request') !== false) {
-                    Log::error('OpenAI API Error Detail', [
+                // Estrai il body della risposta HTTP se è un errore Guzzle
+                if ($e instanceof \GuzzleHttp\Exception\RequestException && $e->hasResponse()) {
+                    try {
+                        $responseBody = $e->getResponse()->getBody()->getContents();
+                        $errorDetails['http_status'] = $e->getResponse()->getStatusCode();
+                        $errorDetails['response_body'] = $responseBody;
+                        $errorDetails['response_json'] = json_decode($responseBody, true);
+                    } catch (\Throwable $parseError) {
+                        $errorDetails['response_body_error'] = $parseError->getMessage();
+                    }
+                }
+
+                Log::error('NeuronWebsiteStreamController error', $errorDetails);
+
+                // Se è un errore OpenAI/vLLM, tenta di estrarre più dettagli
+                if (strpos($e->getMessage(), 'openai.com') !== false ||
+                    strpos($e->getMessage(), 'Bad Request') !== false ||
+                    strpos($e->getMessage(), 'runpod.net') !== false) {
+                    Log::error('API Error Detail', [
                         'full_message' => $e->getMessage(),
                         'previous' => $e->getPrevious() ? $e->getPrevious()->getMessage() : null,
+                        'response_details' => $errorDetails['response_body'] ?? null,
                     ]);
                 }
 

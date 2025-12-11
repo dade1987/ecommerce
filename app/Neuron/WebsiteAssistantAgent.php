@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Log;
 use NeuronAI\Agent;
 use NeuronAI\Providers\AIProviderInterface;
 use NeuronAI\Providers\OpenAI\OpenAI;
+use NeuronAI\Providers\OpenAILike;
 use NeuronAI\Tools\ArrayProperty;
 use NeuronAI\Tools\PropertyType;
 use NeuronAI\Tools\Tool;
@@ -82,8 +83,29 @@ class WebsiteAssistantAgent extends Agent
      */
     protected function provider(): AIProviderInterface
     {
+        // Se è configurato un endpoint vLLM/OpenAI‑compatibile, usalo come provider principale
+        $vllmBaseUri = (string) config('services.vllm.base_uri', '');
+
+        if ($vllmBaseUri !== '') {
+            Log::info('WebsiteAssistantAgent: using vLLM OpenAI-like provider', [
+                'base_uri' => $vllmBaseUri,
+                'model' => (string) config('services.vllm.model', 'gpt-4o-mini'),
+            ]);
+
+            return new OpenAILike(
+                baseUri: $vllmBaseUri,
+                key: (string) config('services.vllm.key', ''),
+                model: (string) config('services.vllm.model', 'gpt-4o-mini'),
+            );
+        }
+
+        // Fallback: usa OpenAI classico
+        Log::info('WebsiteAssistantAgent: using OpenAI provider', [
+            'model' => 'gpt-4o-mini',
+        ]);
+
         return new OpenAI(
-            key: config('services.openai.key'),
+            key: (string) config('services.openai.key'),
             model: 'gpt-4o-mini',
         );
     }
