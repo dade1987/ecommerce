@@ -589,11 +589,33 @@ CONTESTO:
 EOT;
 
                 try {
-                    $apiKey = config('services.openai.key');
-                    $client = \OpenAI::client($apiKey);
+                    // Use vLLM if configured, otherwise fallback to OpenAI
+                    $vllmBaseUri = (string) config('services.vllm.base_uri', '');
+                    $vllmApiKey = (string) config('services.vllm.key', '');
+                    $vllmModel = (string) config('services.vllm.model', 'gpt-3.5-turbo');
+
+                    if ($vllmBaseUri !== '') {
+                        // Use vLLM OpenAI-compatible endpoint
+                        $baseUri = rtrim($vllmBaseUri, '/');
+                        $client = \OpenAI::client($vllmApiKey, [
+                            'base_uri' => $baseUri,
+                        ]);
+
+                        Log::channel('webscraper')->info('WebScraper: Using vLLM for hybrid search answer', [
+                            'base_uri' => $baseUri,
+                            'model' => $vllmModel,
+                        ]);
+                    } else {
+                        // Fallback to OpenAI
+                        $apiKey = config('services.openai.key');
+                        $client = \OpenAI::client($apiKey);
+                        $vllmModel = 'gpt-3.5-turbo';
+
+                        Log::channel('webscraper')->info('WebScraper: Using OpenAI for hybrid search answer');
+                    }
 
                     $response = $client->chat()->create([
-                        'model' => 'gpt-3.5-turbo',
+                        'model' => $vllmModel,
                         'messages' => [
                             ['role' => 'system', 'content' => $systemPrompt],
                             ['role' => 'user', 'content' => $query],
