@@ -86,14 +86,11 @@ class WebsiteAssistantAgent extends Agent
         // Se è configurato un endpoint vLLM/OpenAI‑compatibile, usalo come provider principale
         $vllmBaseUri = (string) config('services.vllm.base_uri', '');
 
-        
         if ($vllmBaseUri !== '') {
             Log::info('WebsiteAssistantAgent: using vLLM OpenAI-like provider', [
                 'base_uri' => $vllmBaseUri,
                 'model' => (string) config('services.vllm.model', 'gpt-4o-mini'),
             ]);
-
-           
 
             return new OpenAILike(
                 baseUri: $vllmBaseUri,
@@ -166,6 +163,13 @@ COMANDI SPECIALI PER LA SCELTA DEI TOOL (MOLTO IMPORTANTI):
   * DEVI usare SOLO il tool `searchSite` per rispondere a quella richiesta;
   * in questa modalità NON devi mai chiamare tool che leggono direttamente dal database
     (`getProductInfo`, `getAddressInfo`, `getAvailableTimes`, `createOrder`, `submitUserData`, `getFAQs`).
+
+- IMPORTANTE: Se l'utente chiede informazioni dettagliate, specifiche o tecniche che NON sono presenti nel contesto generale fornito sopra,
+  DEVI usare il tool `searchSite` per cercare nei siti web aziendali. Esempi di quando usare searchSite:
+  * Domande su prodotti/servizi specifici non elencati nel contesto
+  * Informazioni su procedure, processi o dettagli tecnici
+  * Contenuti specifici di pagine del sito web
+  * Qualsiasi informazione che richiede una ricerca approfondita nei siti web
 
 - Se il messaggio dell'utente INIZIA con la frase esatta "cerca nel database" (case-insensitive):
   * considera tutto il testo DOPO "cerca nel database" come domanda sui dati strutturati del gestionale
@@ -349,7 +353,7 @@ TXT;
     {
         return Tool::make(
             name: 'searchSite',
-            description: 'Cerca informazioni specifiche sui siti web aziendali. Usa questo tool quando l\'utente chiede informazioni dettagliate che potrebbero non essere nel contesto generale fornito.'
+            description: 'Cerca informazioni specifiche sui siti web aziendali usando RAG (Retrieval-Augmented Generation). USA QUESTO TOOL quando l\'utente chiede informazioni dettagliate, specifiche o tecniche che potrebbero non essere nel contesto generale fornito. Esempi: domande su prodotti specifici, servizi dettagliati, procedure, orari specifici, informazioni non presenti nel contesto iniziale.'
         )
             ->addProperty(
                 ToolProperty::make(
@@ -705,11 +709,12 @@ TXT;
      */
     private function searchSite(string $query, ?string $url = null, ?int $maxPages = null): array
     {
-        Log::info('WebsiteAssistantAgent.searchSite', [
+        Log::info('WebsiteAssistantAgent.searchSite CALLED', [
             'query' => $query,
             'url' => $url,
             'team_slug' => $this->teamSlug,
             'max_pages' => $maxPages,
+            'timestamp' => now()->toIso8601String(),
         ]);
 
         if (! $this->teamSlug) {
