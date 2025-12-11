@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use GuzzleHttp\Client;
+use GuzzleHttp\Promise\Utils;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use function Safe\fopen;
@@ -127,6 +128,26 @@ class WhisperTranscriptionController extends Controller
                 'gpt-4o-mini-transcribe',
                 'whisper-1',
             ];
+
+            // Semplificazione del flusso quando sappiamo già che la lingua può essere
+            // solo una tra quelle consentite (es. coppia A/B scelta nel LiveTranslator).
+            // In questo caso NON usiamo l'auto-rilevamento di Whisper: proviamo
+            // direttamente in sequenza ciascuna lingua consentita e ci teniamo
+            // la prima trascrizione plausibile.
+            if (! empty($allowedLanguages)) {
+                $text = $this->transcribeWithForcedLanguages(
+                    $client,
+                    $audio,
+                    $allowedLanguages,
+                    $modelsToTry,
+                    $originalName,
+                    $contentType
+                );
+
+                return response()->json([
+                    'text' => $text,
+                ]);
+            }
 
             $response = null;
             $body = '';
@@ -312,6 +333,149 @@ class WhisperTranscriptionController extends Controller
                 'text' => '',
             ]);
         }
+    }
+
+    /**
+     * Trascrive l'audio forzando esplicitamente ciascuna lingua consentita
+     * (tipicamente una coppia, es. it/en) con chiamate parallele a Whisper.
+     *
+     * Per ogni lingua costruisce una richiesta indipendente verso Whisper
+     * (stesso file, stesso modello preferito) e attende che tutte le risposte
+     * arrivino. Restituisce la prima trascrizione "plausibile" trovata in ordine
+     * di priorità dato da $allowedLanguages, oppure stringa vuota se nessuna va bene.
+     *
+     * @param Client $client
+     * @param mixed  $audio
+     */
+    private function transcribeWithForcedLanguages(Client $client, $audio, array $allowedLanguages, array $modelsToTry, string $originalName, string $contentType): string
+    {
+        if (empty($allowedLanguages)) {
+            return '';
+        }
+
+        // Usiamo il primo modello della lista come "best effort" per il ramo parallelo;
+        // se per qualche ragione fallisce, restituiremo stringa vuota e lasceremo
+        // che il chiamante decida come comportarsi.
+        $preferredModel = $modelsToTry[0] ?? 'whisper-1';
+        $responseFormat = (strpos($preferredModel, 'gpt-4o') === 0) ? 'json' : 'verbose_json';
+
+        $promises = [];
+        $orderedForcedLangs = [];
+
+        foreach ($allowedLanguages as $forcedLanguage) {
+            $forcedLanguage = strtolower(trim((string) $forcedLanguage));
+            if ($forcedLanguage === '') {
+                continue;
+            }
+
+            $multipart = [
+                [
+                    'name' => 'file',
+                    'contents' => fopen($audio->getRealPath(), 'r'),
+                    'filename' => $originalName,
+                    'headers' => [
+                        'Content-Type' => $contentType,
+                    ],
+                ],
+                [
+                    'name' => 'temperature',
+                    'contents' => '0',
+                ],
+                [
+                    'name' => 'language',
+                    'contents' => $forcedLanguage,
+                ],
+                [
+                    'name' => 'model',
+                    'contents' => $preferredModel,
+                ],
+                [
+                    'name' => 'response_format',
+                    'contents' => $responseFormat,
+                ],
+            ];
+
+            $key = $forcedLanguage;
+            $orderedForcedLangs[] = $forcedLanguage;
+
+            $promises[$key] = $client->postAsync('audio/transcriptions', [
+                'multipart' => $multipart,
+            ]);
+        }
+
+        if (empty($promises)) {
+            return '';
+        }
+
+        // Esegue tutte le chiamate in parallelo e attende che siano completate
+        $results = Utils::settle($promises)->wait();
+
+        // Seleziona la prima trascrizione plausibile seguendo l'ordine originale
+        foreach ($orderedForcedLangs as $forcedLanguage) {
+            $key = $forcedLanguage;
+
+            if (! isset($results[$key])) {
+                continue;
+            }
+
+            $result = $results[$key];
+            if (($result['state'] ?? '') !== 'fulfilled') {
+                Log::warning('WhisperTranscriptionController (parallel): richiesta fallita', [
+                    'forced_language' => $forcedLanguage,
+                    'reason' => isset($result['reason']) ? (string) $result['reason'] : null,
+                ]);
+                continue;
+            }
+
+            /** @var \Psr\Http\Message\ResponseInterface $resp */
+            $resp = $result['value'];
+            $status = $resp->getStatusCode();
+            $body = (string) $resp->getBody();
+
+            if ($status < 200 || $status >= 300) {
+                $decodedError = json_decode($body, true);
+                $errorCode = is_array($decodedError) && isset($decodedError['error']['code'])
+                    ? (string) $decodedError['error']['code']
+                    : null;
+                $errorMessage = is_array($decodedError) && isset($decodedError['error']['message'])
+                    ? (string) $decodedError['error']['message']
+                    : '';
+
+                Log::error('OpenAI Whisper error (parallel lingue forzate)', [
+                    'forced_language' => $forcedLanguage,
+                    'status' => $status,
+                    'body' => $body,
+                    'error_code' => $errorCode,
+                    'message' => $errorMessage,
+                ]);
+
+                continue;
+            }
+
+            $json = json_decode($body, true);
+            $text = $this->extractHighQualityTextFromWhisperResponse($json);
+
+            if ($text === '') {
+                continue;
+            }
+
+            if (! $this->isTranscriptionPlausible($text, [$forcedLanguage])) {
+                Log::info('WhisperTranscriptionController (parallel): trascrizione bocciata dal guard', [
+                    'forced_language' => $forcedLanguage,
+                    'text_preview' => mb_substr($text, 0, 120),
+                ]);
+                continue;
+            }
+
+            Log::info('WhisperTranscriptionController: trascrizione riuscita con lingua forzata (parallel)', [
+                'forced_language' => $forcedLanguage,
+                'model' => $preferredModel,
+            ]);
+
+            return $text;
+        }
+
+        return '';
     }
 
     /**
