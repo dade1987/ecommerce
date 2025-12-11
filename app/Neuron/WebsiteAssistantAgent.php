@@ -83,7 +83,27 @@ class WebsiteAssistantAgent extends Agent
      */
     protected function provider(): AIProviderInterface
     {
-        // Se è configurato un endpoint vLLM/OpenAI‑compatibile, usalo come provider principale
+        // Priorità: Groq > vLLM > OpenAI
+
+        // 1. Groq (se configurato)
+        $groqApiKey = (string) config('services.groq.key', '');
+        if ($groqApiKey !== '') {
+            $groqBaseUri = (string) config('services.groq.base_uri', 'https://api.groq.com/openai/v1');
+            $groqModel = (string) config('services.groq.model', 'llama-3.1-70b-versatile');
+
+            Log::info('WebsiteAssistantAgent: using Groq OpenAI-like provider', [
+                'base_uri' => $groqBaseUri,
+                'model' => $groqModel,
+            ]);
+
+            return new OpenAILike(
+                baseUri: $groqBaseUri,
+                key: $groqApiKey,
+                model: $groqModel,
+            );
+        }
+
+        // 2. vLLM (se configurato)
         $vllmBaseUri = (string) config('services.vllm.base_uri', '');
 
         if ($vllmBaseUri !== '') {
@@ -99,7 +119,7 @@ class WebsiteAssistantAgent extends Agent
             );
         }
 
-        // Fallback: usa OpenAI classico
+        // 3. Fallback: usa OpenAI classico
         Log::info('WebsiteAssistantAgent: using OpenAI provider', [
             'model' => 'gpt-4o-mini',
         ]);

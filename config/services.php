@@ -42,6 +42,13 @@ return [
         'model' => env('VLLM_MODEL', 'gpt-4o-mini'),
     ],
 
+    'groq' => [
+        // Groq OpenAI-compatible API
+        'base_uri' => env('GROQ_BASE_URI', 'https://api.groq.com/openai/v1'),
+        'key' => env('GROQ_API_KEY', ''),
+        'model' => env('GROQ_MODEL', 'llama-3.1-70b-versatile'),
+    ],
+
     'gemini' => [
         'key' => env('GEMINI_API_KEY'),
     ],

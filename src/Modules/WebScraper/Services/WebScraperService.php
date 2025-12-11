@@ -5,6 +5,7 @@ namespace Modules\WebScraper\Services;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Http;
 use Modules\WebScraper\Contracts\ScraperInterface;
 use Modules\WebScraper\Contracts\ParserInterface;
 use Modules\WebScraper\Models\ScrapedPage;
@@ -589,21 +590,41 @@ CONTESTO:
 EOT;
 
                 try {
-                    // Use vLLM if configured, otherwise fallback to OpenAI
+                    // Check for Groq first, then vLLM, then OpenAI
+                    $groqApiKey = (string) config('services.groq.key', '');
+                    $groqBaseUri = (string) config('services.groq.base_uri', 'https://api.groq.com/openai/v1');
+                    $groqModel = (string) config('services.groq.model', 'llama-3.1-70b-versatile');
+
                     $vllmBaseUri = (string) config('services.vllm.base_uri', '');
                     $vllmApiKey = (string) config('services.vllm.key', '');
                     $vllmModel = (string) config('services.vllm.model', 'gpt-3.5-turbo');
 
-                    if ($vllmBaseUri !== '') {
-                        // Use vLLM OpenAI-compatible endpoint
-                        $baseUri = rtrim($vllmBaseUri, '/');
-                        $client = \OpenAI::client($vllmApiKey, [
-                            'base_uri' => $baseUri,
+                    $useHttp = false;
+                    $httpBaseUri = '';
+                    $httpApiKey = '';
+                    $httpModel = '';
+
+                    if ($groqApiKey !== '') {
+                        // Use Groq OpenAI-compatible endpoint via HTTP
+                        $useHttp = true;
+                        $httpBaseUri = rtrim($groqBaseUri, '/');
+                        $httpApiKey = $groqApiKey;
+                        $httpModel = $groqModel;
+
+                        Log::channel('webscraper')->info('WebScraper: Using Groq for hybrid search answer', [
+                            'base_uri' => $httpBaseUri,
+                            'model' => $httpModel,
                         ]);
+                    } elseif ($vllmBaseUri !== '') {
+                        // Use vLLM OpenAI-compatible endpoint via HTTP
+                        $useHttp = true;
+                        $httpBaseUri = rtrim($vllmBaseUri, '/');
+                        $httpApiKey = $vllmApiKey;
+                        $httpModel = $vllmModel;
 
                         Log::channel('webscraper')->info('WebScraper: Using vLLM for hybrid search answer', [
-                            'base_uri' => $baseUri,
-                            'model' => $vllmModel,
+                            'base_uri' => $httpBaseUri,
+                            'model' => $httpModel,
                         ]);
                     } else {
                         // Fallback to OpenAI
@@ -614,17 +635,41 @@ EOT;
                         Log::channel('webscraper')->info('WebScraper: Using OpenAI for hybrid search answer');
                     }
 
-                    $response = $client->chat()->create([
-                        'model' => $vllmModel,
-                        'messages' => [
-                            ['role' => 'system', 'content' => $systemPrompt],
-                            ['role' => 'user', 'content' => $query],
-                        ],
-                        'temperature' => 0.7,
-                        'max_tokens' => 1000,
-                    ]);
+                    if ($useHttp) {
+                        // Use HTTP directly for Groq/vLLM
+                        $response = Http::withHeaders([
+                            'Authorization' => 'Bearer ' . $httpApiKey,
+                            'Content-Type' => 'application/json',
+                        ])->timeout(60)->post($httpBaseUri . '/chat/completions', [
+                            'model' => $httpModel,
+                            'messages' => [
+                                ['role' => 'system', 'content' => $systemPrompt],
+                                ['role' => 'user', 'content' => $query],
+                            ],
+                            'temperature' => 0.7,
+                            'max_tokens' => 1000,
+                        ]);
 
-                    $answer = $response->choices[0]->message->content ?? '';
+                        if (!$response->successful()) {
+                            throw new Exception('API error: ' . $response->body());
+                        }
+
+                        $result = $response->json();
+                        $answer = $result['choices'][0]['message']['content'] ?? '';
+                    } else {
+                        // Use OpenAI client
+                        $response = $client->chat()->create([
+                            'model' => $vllmModel,
+                            'messages' => [
+                                ['role' => 'system', 'content' => $systemPrompt],
+                                ['role' => 'user', 'content' => $query],
+                            ],
+                            'temperature' => 0.7,
+                            'max_tokens' => 1000,
+                        ]);
+
+                        $answer = $response->choices[0]->message->content ?? '';
+                    }
 
                     // Extract unique sources
                     $sources = [];
