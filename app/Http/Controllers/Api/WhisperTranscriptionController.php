@@ -234,23 +234,6 @@ class WhisperTranscriptionController extends Controller
 
             $json = json_decode($body, true);
 
-            // Se è stata fornita una whitelist di lingue e Whisper ha rilevato una lingua
-            // che non rientra tra quelle consentite, blocchiamo la trascrizione.
-            $detectedLanguage = null;
-            if (is_array($json) && isset($json['language'])) {
-                $detectedLanguage = strtolower((string) $json['language']);
-            }
-            if (! empty($allowedLanguages) && $detectedLanguage !== null && ! in_array($detectedLanguage, $allowedLanguages, true)) {
-                Log::info('WhisperTranscriptionController: lingua fuori whitelist, trascrizione bloccata', [
-                    'detected_language' => $detectedLanguage,
-                    'allowed_languages' => $allowedLanguages,
-                ]);
-
-                return response()->json([
-                    'text' => '',
-                ]);
-            }
-
             // Applica i filtri di qualità sui segmenti Whisper
             $text = $this->extractHighQualityTextFromWhisperResponse($json);
 
