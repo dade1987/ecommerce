@@ -35,6 +35,13 @@ return [
         'key' => env('OPENAI_API_KEY'),
     ],
 
+    'vllm' => [
+        // Esempio: https://51iprziqf9r25z-8000.proxy.runpod.net/v1
+        'base_uri' => env('VLLM_BASE_URI', ''),
+        'key' => env('VLLM_API_KEY', ''),
+        'model' => env('VLLM_MODEL', 'gpt-4o-mini'),
+    ],
+
     'gemini' => [
         'key' => env('GEMINI_API_KEY'),
     ],
