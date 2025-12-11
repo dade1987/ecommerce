@@ -86,11 +86,14 @@ class WebsiteAssistantAgent extends Agent
         // Se è configurato un endpoint vLLM/OpenAI‑compatibile, usalo come provider principale
         $vllmBaseUri = (string) config('services.vllm.base_uri', '');
 
+        
         if ($vllmBaseUri !== '') {
             Log::info('WebsiteAssistantAgent: using vLLM OpenAI-like provider', [
                 'base_uri' => $vllmBaseUri,
                 'model' => (string) config('services.vllm.model', 'gpt-4o-mini'),
             ]);
+
+           
 
             return new OpenAILike(
                 baseUri: $vllmBaseUri,

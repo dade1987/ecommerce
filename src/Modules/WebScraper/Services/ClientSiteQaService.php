@@ -296,12 +296,35 @@ CONTESTO:
 EOT;
 
         try {
-            // Use OpenAI client directly (same as EmbeddingService)
-            $apiKey = config('services.openai.key');
-            $client = \OpenAI::client($apiKey);
+            // Use vLLM if configured, otherwise fallback to OpenAI
+            $vllmBaseUri = (string) config('services.vllm.base_uri', '');
+            $vllmApiKey = (string) config('services.vllm.key', '');
+            $vllmModel = (string) config('services.vllm.model', $this->llmModel);
+
+            if ($vllmBaseUri !== '') {
+                // Use vLLM OpenAI-compatible endpoint
+                $baseUri = rtrim($vllmBaseUri, '/');
+                $client = \OpenAI::client($vllmApiKey, [
+                    'base_uri' => $baseUri,
+                ]);
+
+                Log::channel('webscraper')->info('ClientSiteQa: Using vLLM for answer generation', [
+                    'base_uri' => $baseUri,
+                    'model' => $vllmModel,
+                ]);
+            } else {
+                // Fallback to OpenAI
+                $apiKey = config('services.openai.key');
+                $client = \OpenAI::client($apiKey);
+                $vllmModel = $this->llmModel;
+
+                Log::channel('webscraper')->info('ClientSiteQa: Using OpenAI for answer generation', [
+                    'model' => $vllmModel,
+                ]);
+            }
 
             $response = $client->chat()->create([
-                'model' => $this->llmModel,
+                'model' => $vllmModel,
                 'messages' => [
                     ['role' => 'system', 'content' => $systemPrompt],
                     ['role' => 'user', 'content' => $query],
@@ -315,7 +338,7 @@ EOT;
             Log::channel('webscraper')->info('ClientSiteQa: LLM answer generated', [
                 'query' => $query,
                 'answer_length' => strlen($answer),
-                'model' => 'gpt-3.5-turbo',
+                'model' => $vllmModel,
             ]);
 
             return trim($answer);
