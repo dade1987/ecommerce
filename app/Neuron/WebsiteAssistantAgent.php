@@ -11,7 +11,6 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\Quoter;
 use App\Models\Team;
-use App\Neuron\Providers\RunpodVllmProvider;
 use App\Services\EmbeddingCacheService;
 use App\Services\WebsiteScraperService;
 use Illuminate\Support\Facades\Log;
@@ -93,7 +92,7 @@ class WebsiteAssistantAgent extends Agent
                 'model' => (string) config('services.vllm.model', 'gpt-4o-mini'),
             ]);
 
-            return new RunpodVllmProvider(
+            return new OpenAILike(
                 baseUri: $vllmBaseUri,
                 key: (string) config('services.vllm.key', ''),
                 model: (string) config('services.vllm.model', 'gpt-4o-mini'),
