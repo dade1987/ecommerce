@@ -240,6 +240,16 @@ class RunpodVllmProvider implements AIProviderInterface
 
             $choice = $line['choices'][0];
 
+            // Log ogni chunk per debug (solo i primi e quelli con finish_reason)
+            if (isset($choice['finish_reason']) || isset($choice['delta']['tool_calls']) || ! empty($choice['delta']['content'])) {
+                Log::debug('RunpodVllmProvider: Stream chunk', [
+                    'finish_reason' => $choice['finish_reason'] ?? null,
+                    'has_tool_calls_delta' => isset($choice['delta']['tool_calls']),
+                    'has_content_delta' => ! empty($choice['delta']['content'] ?? ''),
+                    'content_preview' => substr($choice['delta']['content'] ?? '', 0, 50),
+                ]);
+            }
+
             // Compile tool calls
             if (isset($choice['delta']['tool_calls'])) {
                 Log::debug('RunpodVllmProvider: Received tool_calls delta', [
