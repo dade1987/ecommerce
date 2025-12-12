@@ -3,6 +3,10 @@
 namespace Modules\WebScraper\Services;
 
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
+use GuzzleHttp\Client as GuzzleClient;
+use GuzzleHttp\Promise\Create;
+use GuzzleHttp\Promise\PromiseInterface;
 
 /**
  * Service for generating and comparing text embeddings using OpenAI
@@ -30,6 +34,7 @@ class EmbeddingService
 
     /**
      * Generate embedding vector for a text query
+     * Uses cache to avoid regenerating embeddings for identical or similar queries
      *
      * @param string $text Text to embed
      * @return array|null Embedding vector (1536 dimensions) or null on error
@@ -37,34 +42,7 @@ class EmbeddingService
     public function generateEmbedding(string $text): ?array
     {
         try {
-            Log::channel('webscraper')->debug('EmbeddingService: Generating embedding', [
-                'text' => substr($text, 0, 100),
-                'model' => $this->model,
-            ]);
-
-            // Use OpenAI client directly
-            $apiKey = config('services.openai.key');
-            $client = \OpenAI::client($apiKey);
-
-            $response = $client->embeddings()->create([
-                'model' => $this->model,
-                'input' => $text,
-            ]);
-
-            $embedding = $response->embeddings[0]->embedding ?? null;
-
-            if ($embedding === null) {
-                Log::channel('webscraper')->error('EmbeddingService: No embedding in response');
-                return null;
-            }
-
-            Log::channel('webscraper')->debug('EmbeddingService: Embedding generated', [
-                'dimensions' => count($embedding),
-                'first_5_values' => array_slice($embedding, 0, 5),
-                'last_5_values' => array_slice($embedding, -5),
-            ]);
-
-            return $embedding;
+            return $this->generateEmbeddingPromise($text)->wait();
 
         } catch (\Exception $e) {
             Log::channel('webscraper')->error('EmbeddingService: Error generating embedding', [
@@ -73,6 +51,111 @@ class EmbeddingService
             ]);
             return null;
         }
+    }
+
+    /**
+     * Generate embedding asynchronously (Promise).
+     * This enables overlapping the embedding HTTP call with other work (e.g., Mongo text search).
+     *
+     * @param string $text Text to embed
+     * @return PromiseInterface Promise resolving to embedding array
+     */
+    public function generateEmbeddingPromise(string $text): PromiseInterface
+    {
+        // Normalize text for cache key (trim, remove extra spaces)
+        $normalizedText = $this->normalizeTextForCache($text);
+        $cacheKey = $this->getCacheKey($normalizedText);
+
+        // Cache hit: return fulfilled promise
+        $cached = Cache::get($cacheKey);
+        if ($cached !== null) {
+            Log::channel('webscraper')->debug('EmbeddingService: Cache hit', [
+                'text' => substr($text, 0, 100),
+                'model' => $this->model,
+                'dimensions' => is_array($cached) ? count($cached) : null,
+            ]);
+            return Create::promiseFor($cached);
+        }
+
+        $apiKey = (string) config('services.openai.key');
+        if ($apiKey === '') {
+            return Create::rejectionFor(new \RuntimeException('Missing OpenAI API key (services.openai.key)'));
+        }
+
+        Log::channel('webscraper')->debug('EmbeddingService: Generating embedding (async)', [
+            'text' => substr($text, 0, 100),
+            'model' => $this->model,
+            'cache_key' => $cacheKey,
+        ]);
+
+        $client = new GuzzleClient([
+            'base_uri' => 'https://api.openai.com/v1/',
+            'timeout' => 60,
+        ]);
+
+        $ttl = config('webscraper.rag.embedding.cache_ttl', 60 * 60 * 24 * 7); // 7 days default
+
+        return $client->postAsync('embeddings', [
+            'headers' => [
+                'Authorization' => 'Bearer ' . $apiKey,
+                'Content-Type' => 'application/json',
+            ],
+            'json' => [
+                'model' => $this->model,
+                'input' => $text,
+            ],
+        ])->then(
+            function ($response) use ($cacheKey, $ttl) {
+                $body = (string) $response->getBody();
+                $json = json_decode($body, true);
+
+                $embedding = $json['data'][0]['embedding'] ?? null;
+                if (!is_array($embedding)) {
+                    Log::channel('webscraper')->error('EmbeddingService: No embedding in async response', [
+                        'response_body_preview' => substr($body, 0, 300),
+                    ]);
+                    throw new \RuntimeException('No embedding in response');
+                }
+
+                Cache::put($cacheKey, $embedding, $ttl);
+
+                Log::channel('webscraper')->debug('EmbeddingService: Embedding generated and cached (async)', [
+                    'dimensions' => count($embedding),
+                    'cache_ttl_seconds' => $ttl,
+                ]);
+
+                return $embedding;
+            }
+        );
+    }
+
+    /**
+     * Normalize text for cache key generation
+     * Removes extra spaces, trims, and normalizes whitespace
+     *
+     * @param string $text Original text
+     * @return string Normalized text
+     */
+    protected function normalizeTextForCache(string $text): string
+    {
+        // Trim and normalize whitespace
+        $normalized = trim($text);
+        $normalized = preg_replace('/\s+/', ' ', $normalized);
+        
+        return $normalized;
+    }
+
+    /**
+     * Generate cache key for embedding
+     *
+     * @param string $normalizedText Normalized text
+     * @return string Cache key
+     */
+    protected function getCacheKey(string $normalizedText): string
+    {
+        // Include model name in cache key to avoid conflicts
+        $hash = hash('sha256', $normalizedText . '|' . $this->model);
+        return "embedding:{$this->model}:{$hash}";
     }
 
     /**
