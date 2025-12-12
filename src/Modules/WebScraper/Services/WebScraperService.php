@@ -743,11 +743,11 @@ class WebScraperService implements ScraperInterface
                 
                 // Use cache to avoid repeated database queries
                 if (!isset(self::$domainCache[$wwwDomain])) {
-                    // Cache miss: query database
-                    self::$domainCache[$wwwDomain] = \Modules\WebScraper\Models\WebscraperPage::where('domain', $wwwDomain)
-                        ->select('domain')
+                    // Cache miss: query database (optimize with count instead of exists for MongoDB)
+                    $count = \Modules\WebScraper\Models\WebscraperPage::where('domain', $wwwDomain)
                         ->limit(1)
-                        ->exists();
+                        ->count();
+                    self::$domainCache[$wwwDomain] = $count > 0;
                 }
                 
                 $existsWithWww = self::$domainCache[$wwwDomain];
@@ -757,6 +757,7 @@ class WebScraperService implements ScraperInterface
                     Log::channel('webscraper')->warning('WebScraper: Domain check took too long', [
                         'time_ms' => $checkTime,
                         'domain' => $wwwDomain,
+                        'cached' => isset(self::$domainCache[$wwwDomain]),
                     ]);
                 }
                 
@@ -769,7 +770,7 @@ class WebScraperService implements ScraperInterface
                     ]);
                 }
                 
-                // Cache the original domain too
+                // Cache the original domain too (assume it exists if we're searching it)
                 if (!isset(self::$domainCache[$domain])) {
                     self::$domainCache[$domain] = true; // We know it exists from the URL
                 }

@@ -7,6 +7,7 @@ use Modules\WebScraper\Traits\EnhancesSearchQueries;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use GuzzleHttp\Promise\PromiseInterface;
 use Exception;
 
 /**
@@ -490,6 +491,65 @@ EOT;
 
         } finally {
             // Restore original topK
+            $this->topK = $originalTopK;
+        }
+    }
+
+    /**
+     * Start embedding generation asynchronously for the (enhanced) query.
+     * This is used by HybridSearchService to overlap embedding HTTP time with Mongo text search.
+     */
+    public function startQueryEmbeddingPromise(string $query, ?string $domain = null): PromiseInterface
+    {
+        $enhancedQuery = $this->enhanceQuery($query, ['domain' => $domain]);
+
+        return $this->embeddingService->generateEmbeddingPromise($enhancedQuery);
+    }
+
+    /**
+     * Perform vector search + formatting using a precomputed query embedding.
+     * This avoids generating the embedding twice when HybridSearch parallelizes work.
+     *
+     * @param array $queryEmbedding Embedding vector
+     * @param string|null $domain Optional domain filter
+     * @param int|null $topK Override topK
+     * @return array Formatted chunks (same shape as searchChunks)
+     */
+    public function searchChunksByEmbedding(array $queryEmbedding, ?string $domain = null, ?int $topK = null): array
+    {
+        $originalTopK = $this->topK;
+        if ($topK !== null) {
+            $this->topK = $topK;
+        }
+
+        try {
+            $similarChunks = $this->vectorSearch($queryEmbedding, $domain);
+
+            $formattedChunks = [];
+            foreach ($similarChunks as $item) {
+                $chunk = $item['chunk'];
+                $score = $item['score'];
+
+                if (!$chunk) {
+                    continue;
+                }
+
+                $page = $chunk->page;
+
+                $formattedChunks[] = [
+                    'content' => $chunk->content,
+                    'score' => $score,
+                    'url' => $page->url ?? null,
+                    'title' => $page->title ?? 'No title',
+                    'description' => $page->description ?? '',
+                    'domain' => $chunk->domain ?? $page->domain ?? null,
+                    'chunk_index' => $chunk->chunk_index,
+                    'word_count' => $chunk->word_count,
+                ];
+            }
+
+            return $formattedChunks;
+        } finally {
             $this->topK = $originalTopK;
         }
     }

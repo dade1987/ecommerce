@@ -104,11 +104,50 @@ class HybridSearchService
             $vectorWeight = $options['vector_weight'] ?? $this->vectorWeight;
             $textWeight = $options['text_weight'] ?? $this->textWeight;
 
-            // 1. Vector Search (semantic similarity)
-            $vectorResults = $this->performVectorSearch($query, $domain, $topK);
+            // Parallelize the EMBEDDING HTTP call with Mongo TEXT search:
+            // - start embedding async (for vector search)
+            // - run text search while the embedding request is in-flight
+            // - wait for embedding, then run vector search using the precomputed embedding
+            $vectorStartTime = microtime(true);
+            $textStartTime = microtime(true);
 
-            // 2. Text Search (keyword matching with fuzzy)
+            $embeddingPromise = null;
+            try {
+                $embeddingPromise = $this->qaService->startQueryEmbeddingPromise($query, $domain);
+            } catch (Exception $e) {
+                Log::channel('webscraper')->warning('HybridSearch: Failed to start embedding promise, falling back to sequential', [
+                    'error' => $e->getMessage(),
+                ]);
+            }
+
+            // 1) Text search runs immediately (does not depend on embedding)
             $textResults = $this->performTextSearch($query, $domain, $topK);
+            $textDuration = round((microtime(true) - $textStartTime) * 1000, 2);
+
+            // 2) Vector search runs after embedding is ready (but embedding overlapped with text search)
+            $vectorResults = [];
+            if ($embeddingPromise !== null) {
+                try {
+                    $queryEmbedding = $embeddingPromise->wait();
+                    if (is_array($queryEmbedding)) {
+                        $vectorResults = $this->qaService->searchChunksByEmbedding($queryEmbedding, $domain, $topK);
+                    }
+                } catch (Exception $e) {
+                    Log::channel('webscraper')->warning('HybridSearch: Vector search failed (after async embedding), continuing with text only', [
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            } else {
+                // Fallback: original sequential behavior
+                $vectorResults = $this->performVectorSearch($query, $domain, $topK);
+            }
+            $vectorDuration = round((microtime(true) - $vectorStartTime) * 1000, 2);
+
+            Log::channel('webscraper')->debug('HybridSearch: Search timings', [
+                'vector_duration_ms' => $vectorDuration,
+                'text_duration_ms' => $textDuration,
+                'note' => 'Embedding HTTP overlapped with Mongo text search when possible',
+            ]);
 
             // 3. Apply Reciprocal Rank Fusion
             $mergedResults = $this->reciprocalRankFusion(
