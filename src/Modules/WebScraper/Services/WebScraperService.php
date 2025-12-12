@@ -208,19 +208,18 @@ class WebScraperService implements ScraperInterface
     }
 
     /**
-     * Extract domain from query if it contains site: prefix
+     * Extract domain from query if it contains site: prefix or a valid domain
      * Example: "academy site:prtspa.com" -> "prtspa.com"
+     * Example: "academy prtspa.com" -> "prtspa.com"
      * Example: "cerca site:example.co.uk" -> "example.co.uk"
-     * Example: "info site:subdomain.example.com" -> "subdomain.example.com"
+     * Example: "info subdomain.example.com" -> "subdomain.example.com"
      *
      * @param string $query Search query
      * @return string|null Domain if found, null otherwise
      */
     protected function extractDomainFromQuery(string $query): ?string
     {
-        // Match patterns like "site:prtspa.com", "site:www.prtspa.com", "site:example.co.uk", etc.
-        // Pattern matches: site: followed by valid domain (subdomain.domain.tld)
-        // Supports: .com, .co.uk, .it, .org, etc.
+        // First, try to match site: prefix (priority)
         if (preg_match('/\bsite:([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*\.[a-z]{2,})\b/i', $query, $matches)) {
             $domain = strtolower(trim($matches[1]));
             
@@ -243,25 +242,77 @@ class WebScraperService implements ScraperInterface
             return $domain;
         }
 
+        // If no site: prefix, try to find a valid domain in the query
+        // Pattern matches valid domains: subdomain.domain.tld (e.g., prtspa.com, www.example.co.uk)
+        // Must be surrounded by word boundaries or spaces to avoid matching partial words
+        if (preg_match('/\b([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*\.[a-z]{2,})\b/i', $query, $matches)) {
+            $domain = strtolower(trim($matches[1]));
+            
+            // Remove trailing dots or spaces
+            $domain = rtrim($domain, '. ');
+            
+            if (empty($domain)) {
+                return null;
+            }
+            
+            // Verify it's actually a domain (not part of a word) by checking it exists in the database
+            $exists = \Modules\WebScraper\Models\WebscraperPage::where('domain', $domain)
+                ->orWhere('domain', 'www.' . $domain)
+                ->exists();
+            
+            if (!$exists) {
+                return null;
+            }
+            
+            // Normalize: add www. if missing (for consistency with indexed data)
+            if (!str_starts_with($domain, 'www.')) {
+                $wwwDomain = 'www.' . $domain;
+                $existsWithWww = \Modules\WebScraper\Models\WebscraperPage::where('domain', $wwwDomain)->exists();
+                if ($existsWithWww) {
+                    return $wwwDomain;
+                }
+            }
+            
+            return $domain;
+        }
+
         return null;
     }
 
     /**
-     * Remove site: prefix from query
+     * Remove site: prefix or domain from query
      * Example: "academy site:prtspa.com" -> "academy"
+     * Example: "academy prtspa.com" -> "academy"
      * Example: "site:example.com cerca info" -> "cerca info"
      * Example: "test site:domain.co.uk altro" -> "test altro"
+     * Example: "test domain.co.uk altro" -> "test altro"
      *
      * @param string $query Search query
-     * @return string Query without site: prefix
+     * @return string Query without site: prefix or domain
      */
     protected function removeSitePrefixFromQuery(string $query): string
     {
-        // Remove site:domain pattern from query (supports any valid domain)
-        // Pattern matches: site: followed by valid domain
-        $pattern = '/\s*site:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*\.[a-z]{2,}\s*/i';
+        // First, remove site:domain pattern from query (supports any valid domain)
+        $sitePattern = '/\s*site:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*\.[a-z]{2,}\s*/i';
+        $cleaned = preg_replace($sitePattern, ' ', $query);
         
-        $cleaned = preg_replace($pattern, ' ', $query);
+        // Then, try to remove standalone domains (must verify they exist in database)
+        // Extract potential domain first
+        if (preg_match('/\b([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*\.[a-z]{2,})\b/i', $cleaned, $matches)) {
+            $potentialDomain = strtolower(trim($matches[1]));
+            $potentialDomain = rtrim($potentialDomain, '. ');
+            
+            // Check if it exists in database (to avoid removing non-domain words)
+            $exists = \Modules\WebScraper\Models\WebscraperPage::where('domain', $potentialDomain)
+                ->orWhere('domain', 'www.' . $potentialDomain)
+                ->exists();
+            
+            if ($exists) {
+                // Remove the domain from query
+                $domainPattern = '/\b' . preg_quote($potentialDomain, '/') . '\b/i';
+                $cleaned = preg_replace($domainPattern, ' ', $cleaned);
+            }
+        }
         
         // Clean up multiple spaces
         $cleaned = preg_replace('/\s+/', ' ', $cleaned);
