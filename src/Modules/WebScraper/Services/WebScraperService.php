@@ -233,7 +233,11 @@ class WebScraperService implements ScraperInterface
             // Normalize: add www. if missing (for consistency with indexed data)
             if (!str_starts_with($domain, 'www.')) {
                 $wwwDomain = 'www.' . $domain;
-                $existsWithWww = \Modules\WebScraper\Models\WebscraperPage::where('domain', $wwwDomain)->exists();
+                // Optimize: use select with limit for better performance
+                $existsWithWww = \Modules\WebScraper\Models\WebscraperPage::where('domain', $wwwDomain)
+                    ->select('domain')
+                    ->limit(1)
+                    ->exists();
                 if ($existsWithWww) {
                     return $wwwDomain;
                 }
@@ -256,8 +260,11 @@ class WebScraperService implements ScraperInterface
             }
             
             // Verify it's actually a domain (not part of a word) by checking it exists in the database
+            // Optimize: use select with limit for better performance
             $exists = \Modules\WebScraper\Models\WebscraperPage::where('domain', $domain)
                 ->orWhere('domain', 'www.' . $domain)
+                ->select('domain')
+                ->limit(1)
                 ->exists();
             
             if (!$exists) {
@@ -267,7 +274,11 @@ class WebScraperService implements ScraperInterface
             // Normalize: add www. if missing (for consistency with indexed data)
             if (!str_starts_with($domain, 'www.')) {
                 $wwwDomain = 'www.' . $domain;
-                $existsWithWww = \Modules\WebScraper\Models\WebscraperPage::where('domain', $wwwDomain)->exists();
+                // Optimize: use select with limit for better performance
+                $existsWithWww = \Modules\WebScraper\Models\WebscraperPage::where('domain', $wwwDomain)
+                    ->select('domain')
+                    ->limit(1)
+                    ->exists();
                 if ($existsWithWww) {
                     return $wwwDomain;
                 }
@@ -303,8 +314,11 @@ class WebScraperService implements ScraperInterface
             $potentialDomain = rtrim($potentialDomain, '. ');
             
             // Check if it exists in database (to avoid removing non-domain words)
+            // Optimize: use select with limit for better performance
             $exists = \Modules\WebScraper\Models\WebscraperPage::where('domain', $potentialDomain)
                 ->orWhere('domain', 'www.' . $potentialDomain)
+                ->select('domain')
+                ->limit(1)
                 ->exists();
             
             if ($exists) {
@@ -629,6 +643,7 @@ class WebScraperService implements ScraperInterface
      */
     public function searchWithRag(string $url, string $query, array $options = []): array
     {
+        $startTime = microtime(true);
         Log::channel('webscraper')->info('WebScraper: searchWithRag called', [
             'url' => $url,
             'query' => $query,
@@ -637,15 +652,37 @@ class WebScraperService implements ScraperInterface
 
         // Check if query contains site: prefix to override domain
         $originalQuery = $query;
+        $extractStart = microtime(true);
         $domainFromQuery = $this->extractDomainFromQuery($query);
+        $extractTime = round((microtime(true) - $extractStart) * 1000, 2);
+        
+        if ($extractTime > 100) {
+            Log::channel('webscraper')->warning('WebScraper: extractDomainFromQuery took too long', [
+                'time_ms' => $extractTime,
+                'query' => $query,
+            ]);
+        }
+        
         if ($domainFromQuery) {
             // Use domain from query, remove site: prefix from query
             $domain = $domainFromQuery;
+            $removeStart = microtime(true);
             $query = $this->removeSitePrefixFromQuery($query);
+            $removeTime = round((microtime(true) - $removeStart) * 1000, 2);
+            
+            if ($removeTime > 100) {
+                Log::channel('webscraper')->warning('WebScraper: removeSitePrefixFromQuery took too long', [
+                    'time_ms' => $removeTime,
+                    'original_query' => $originalQuery,
+                ]);
+            }
+            
             Log::channel('webscraper')->info('WebScraper: Domain extracted from query', [
                 'domain' => $domain,
                 'original_query' => $originalQuery,
                 'cleaned_query' => $query,
+                'extract_time_ms' => $extractTime,
+                'remove_time_ms' => $removeTime,
             ]);
         } else {
             // Normalize domain: add www. if missing (for consistency with indexed data)
@@ -653,15 +690,39 @@ class WebScraperService implements ScraperInterface
             if ($domain && !str_starts_with($domain, 'www.')) {
                 // Check if www version exists in database, use it
                 $wwwDomain = 'www.' . $domain;
-                $existsWithWww = \Modules\WebScraper\Models\WebscraperPage::where('domain', $wwwDomain)->exists();
+                $checkStart = microtime(true);
+                // Optimize: use select with limit instead of exists() for better performance
+                $existsWithWww = \Modules\WebScraper\Models\WebscraperPage::where('domain', $wwwDomain)
+                    ->select('domain')
+                    ->limit(1)
+                    ->exists();
+                $checkTime = round((microtime(true) - $checkStart) * 1000, 2);
+                
+                if ($checkTime > 100) {
+                    Log::channel('webscraper')->warning('WebScraper: Domain check took too long', [
+                        'time_ms' => $checkTime,
+                        'domain' => $wwwDomain,
+                    ]);
+                }
+                
                 if ($existsWithWww) {
                     $domain = $wwwDomain;
                     Log::channel('webscraper')->info('WebScraper: Normalized domain to www version', [
                         'original' => parse_url($url, PHP_URL_HOST),
                         'normalized' => $domain,
+                        'check_time_ms' => $checkTime,
                     ]);
                 }
             }
+        }
+        
+        $prepTime = round((microtime(true) - $startTime) * 1000, 2);
+        if ($prepTime > 500) {
+            Log::channel('webscraper')->warning('WebScraper: Preparation phase took too long', [
+                'time_ms' => $prepTime,
+                'extract_time_ms' => $extractTime ?? 0,
+                'remove_time_ms' => $removeTime ?? 0,
+            ]);
         }
 
         // Step 1: Try HYBRID search first (combines vector + text search with RRF)
