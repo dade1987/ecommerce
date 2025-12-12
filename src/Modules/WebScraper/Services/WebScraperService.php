@@ -4,6 +4,7 @@ namespace Modules\WebScraper\Services;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
 use Modules\WebScraper\Contracts\ScraperInterface;
@@ -22,6 +23,92 @@ class WebScraperService implements ScraperInterface
      * @var array<string, bool>
      */
     protected static array $domainCache = [];
+
+    /**
+     * Get TTL (seconds) for persistent domain existence cache.
+     */
+    protected function getDomainExistsCacheTtl(): int
+    {
+        return (int) config('webscraper.rag.domain_exists_cache_ttl', 60 * 60 * 24 * 7); // 7 days
+    }
+
+    /**
+     * Persistent (Cache) + in-process (static) cached existence check for a domain and its www-variant.
+     * Uses ONE Mongo query on cache miss to populate both variants.
+     *
+     * @return array{plain:string,www:string,exists_plain:bool,exists_www:bool,cache_hit_plain:bool,cache_hit_www:bool}
+     */
+    protected function getDomainExistenceCached(string $domain): array
+    {
+        $domain = strtolower(trim($domain));
+        $domain = rtrim($domain, '. ');
+
+        // Normalize to "plain" + "www" variants (without duplicating www.www.)
+        $plain = str_starts_with($domain, 'www.') ? substr($domain, 4) : $domain;
+        $www = 'www.' . $plain;
+
+        $plainKey = 'webscraper:domain_exists:' . $plain;
+        $wwwKey = 'webscraper:domain_exists:' . $www;
+
+        // 1) In-process cache first
+        $existsPlain = self::$domainCache[$plain] ?? null;
+        $existsWww = self::$domainCache[$www] ?? null;
+
+        // 2) Persistent cache
+        $cacheHitPlain = false;
+        $cacheHitWww = false;
+
+        if ($existsPlain === null && Cache::has($plainKey)) {
+            $cacheHitPlain = true;
+            $existsPlain = (bool) Cache::get($plainKey);
+            self::$domainCache[$plain] = $existsPlain;
+        }
+
+        if ($existsWww === null && Cache::has($wwwKey)) {
+            $cacheHitWww = true;
+            $existsWww = (bool) Cache::get($wwwKey);
+            self::$domainCache[$www] = $existsWww;
+        }
+
+        // If both resolved, return
+        if ($existsPlain !== null && $existsWww !== null) {
+            return [
+                'plain' => $plain,
+                'www' => $www,
+                'exists_plain' => (bool) $existsPlain,
+                'exists_www' => (bool) $existsWww,
+                'cache_hit_plain' => $cacheHitPlain,
+                'cache_hit_www' => $cacheHitWww,
+            ];
+        }
+
+        // 3) Cache miss: one DB query to populate both
+        $ttl = $this->getDomainExistsCacheTtl();
+        $dbResult = \Modules\WebScraper\Models\WebscraperPage::where('domain', $plain)
+            ->orWhere('domain', $www)
+            ->select('domain')
+            ->limit(2)
+            ->get();
+
+        $foundDomains = $dbResult->pluck('domain')->toArray();
+        $existsPlain = in_array($plain, $foundDomains, true);
+        $existsWww = in_array($www, $foundDomains, true);
+
+        // Persist + in-process cache
+        Cache::put($plainKey, $existsPlain, $ttl);
+        Cache::put($wwwKey, $existsWww, $ttl);
+        self::$domainCache[$plain] = $existsPlain;
+        self::$domainCache[$www] = $existsWww;
+
+        return [
+            'plain' => $plain,
+            'www' => $www,
+            'exists_plain' => $existsPlain,
+            'exists_www' => $existsWww,
+            'cache_hit_plain' => $cacheHitPlain,
+            'cache_hit_www' => $cacheHitWww,
+        ];
+    }
 
     public function __construct(ParserInterface $parser)
     {
@@ -237,30 +324,14 @@ class WebScraperService implements ScraperInterface
                 return null;
             }
             
-            // Normalize: add www. if missing (for consistency with indexed data)
-            if (!str_starts_with($domain, 'www.')) {
-                $wwwDomain = 'www.' . $domain;
-                
-                // Check cache first
-                if (!isset(self::$domainCache[$wwwDomain])) {
-                    // Cache miss: query database
-                    self::$domainCache[$wwwDomain] = \Modules\WebScraper\Models\WebscraperPage::where('domain', $wwwDomain)
-                        ->select('domain')
-                        ->limit(1)
-                        ->exists();
-                }
-                
-                if (self::$domainCache[$wwwDomain]) {
-                    return $wwwDomain;
-                }
+            $existence = $this->getDomainExistenceCached($domain);
+
+            // Prefer www if it exists
+            if (!str_starts_with($domain, 'www.') && $existence['exists_www']) {
+                return $existence['www'];
             }
-            
-            // Cache the original domain too
-            if (!isset(self::$domainCache[$domain])) {
-                self::$domainCache[$domain] = true; // We know it exists because we matched it
-            }
-            
-            return $domain;
+
+            return $existence['plain'];
         }
 
         // If no site: prefix, try to find a valid domain in the query
@@ -276,46 +347,19 @@ class WebScraperService implements ScraperInterface
                 return null;
             }
             
-            // Verify it's actually a domain (not part of a word) by checking it exists in the database
-            // Use cache to avoid repeated database queries
-            $cacheKey = $domain;
-            $wwwCacheKey = 'www.' . $domain;
-            
-            // Check cache first
-            $exists = self::$domainCache[$cacheKey] ?? null;
-            $existsWithWww = self::$domainCache[$wwwCacheKey] ?? null;
-            
-            if ($exists === null || $existsWithWww === null) {
-                // Cache miss: query database
-                // Optimize: use select with limit for better performance
-                $dbResult = \Modules\WebScraper\Models\WebscraperPage::where('domain', $domain)
-                    ->orWhere('domain', 'www.' . $domain)
-                    ->select('domain')
-                    ->limit(2)
-                    ->get();
-                
-                // Populate cache
-                $foundDomains = $dbResult->pluck('domain')->toArray();
-                self::$domainCache[$cacheKey] = in_array($domain, $foundDomains);
-                self::$domainCache[$wwwCacheKey] = in_array($wwwCacheKey, $foundDomains);
-                
-                $exists = self::$domainCache[$cacheKey];
-                $existsWithWww = self::$domainCache[$wwwCacheKey];
-            }
-            
+            $existence = $this->getDomainExistenceCached($domain);
+
             // Check if domain exists (either version)
-            if (!$exists && !$existsWithWww) {
+            if (!$existence['exists_plain'] && !$existence['exists_www']) {
                 return null;
             }
             
             // Normalize: add www. if missing (for consistency with indexed data)
-            if (!str_starts_with($domain, 'www.')) {
-                if ($existsWithWww) {
-                    return $wwwCacheKey;
-                }
+            if (!str_starts_with($domain, 'www.') && $existence['exists_www']) {
+                return $existence['www'];
             }
-            
-            return $domain;
+
+            return $existence['plain'];
         }
 
         return null;
@@ -344,33 +388,9 @@ class WebScraperService implements ScraperInterface
             $potentialDomain = strtolower(trim($matches[1]));
             $potentialDomain = rtrim($potentialDomain, '. ');
             
-            // Check if it exists in database (to avoid removing non-domain words)
-            // Use cache to avoid repeated database queries
-            $cacheKey = $potentialDomain;
-            $wwwCacheKey = 'www.' . $potentialDomain;
-            
-            // Check cache first
-            $exists = self::$domainCache[$cacheKey] ?? null;
-            $existsWithWww = self::$domainCache[$wwwCacheKey] ?? null;
-            
-            if ($exists === null && $existsWithWww === null) {
-                // Cache miss: query database
-                $dbResult = \Modules\WebScraper\Models\WebscraperPage::where('domain', $potentialDomain)
-                    ->orWhere('domain', 'www.' . $potentialDomain)
-                    ->select('domain')
-                    ->limit(2)
-                    ->get();
-                
-                // Populate cache
-                $foundDomains = $dbResult->pluck('domain')->toArray();
-                self::$domainCache[$cacheKey] = in_array($potentialDomain, $foundDomains);
-                self::$domainCache[$wwwCacheKey] = in_array($wwwCacheKey, $foundDomains);
-                
-                $exists = self::$domainCache[$cacheKey];
-                $existsWithWww = self::$domainCache[$wwwCacheKey];
-            }
-            
-            if ($exists || $existsWithWww) {
+            $existence = $this->getDomainExistenceCached($potentialDomain);
+
+            if ($existence['exists_plain'] || $existence['exists_www']) {
                 // Remove the domain from query
                 $domainPattern = '/\b' . preg_quote($potentialDomain, '/') . '\b/i';
                 $cleaned = preg_replace($domainPattern, ' ', $cleaned);
@@ -740,39 +760,27 @@ class WebScraperService implements ScraperInterface
                 // Check if www version exists in database, use it
                 $wwwDomain = 'www.' . $domain;
                 $checkStart = microtime(true);
-                
-                // Use cache to avoid repeated database queries
-                if (!isset(self::$domainCache[$wwwDomain])) {
-                    // Cache miss: query database (optimize with count instead of exists for MongoDB)
-                    $count = \Modules\WebScraper\Models\WebscraperPage::where('domain', $wwwDomain)
-                        ->limit(1)
-                        ->count();
-                    self::$domainCache[$wwwDomain] = $count > 0;
-                }
-                
-                $existsWithWww = self::$domainCache[$wwwDomain];
+
+                $existence = $this->getDomainExistenceCached($domain);
+                $existsWithWww = $existence['exists_www'];
                 $checkTime = round((microtime(true) - $checkStart) * 1000, 2);
                 
                 if ($checkTime > 100) {
                     Log::channel('webscraper')->warning('WebScraper: Domain check took too long', [
                         'time_ms' => $checkTime,
                         'domain' => $wwwDomain,
-                        'cached' => isset(self::$domainCache[$wwwDomain]),
+                        'cache_hit_persistent_www' => $existence['cache_hit_www'],
+                        'cache_hit_in_process_www' => array_key_exists($existence['www'], self::$domainCache),
                     ]);
                 }
                 
                 if ($existsWithWww) {
-                    $domain = $wwwDomain;
+                    $domain = $existence['www'];
                     Log::channel('webscraper')->info('WebScraper: Normalized domain to www version', [
                         'original' => parse_url($url, PHP_URL_HOST),
                         'normalized' => $domain,
                         'check_time_ms' => $checkTime,
                     ]);
-                }
-                
-                // Cache the original domain too (assume it exists if we're searching it)
-                if (!isset(self::$domainCache[$domain])) {
-                    self::$domainCache[$domain] = true; // We know it exists from the URL
                 }
             }
         }
