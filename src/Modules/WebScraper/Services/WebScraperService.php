@@ -208,6 +208,68 @@ class WebScraperService implements ScraperInterface
     }
 
     /**
+     * Extract domain from query if it contains site: prefix
+     * Example: "academy site:prtspa.com" -> "prtspa.com"
+     * Example: "cerca site:example.co.uk" -> "example.co.uk"
+     * Example: "info site:subdomain.example.com" -> "subdomain.example.com"
+     *
+     * @param string $query Search query
+     * @return string|null Domain if found, null otherwise
+     */
+    protected function extractDomainFromQuery(string $query): ?string
+    {
+        // Match patterns like "site:prtspa.com", "site:www.prtspa.com", "site:example.co.uk", etc.
+        // Pattern matches: site: followed by valid domain (subdomain.domain.tld)
+        // Supports: .com, .co.uk, .it, .org, etc.
+        if (preg_match('/\bsite:([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*\.[a-z]{2,})\b/i', $query, $matches)) {
+            $domain = strtolower(trim($matches[1]));
+            
+            // Remove trailing dots or spaces
+            $domain = rtrim($domain, '. ');
+            
+            if (empty($domain)) {
+                return null;
+            }
+            
+            // Normalize: add www. if missing (for consistency with indexed data)
+            if (!str_starts_with($domain, 'www.')) {
+                $wwwDomain = 'www.' . $domain;
+                $existsWithWww = \Modules\WebScraper\Models\WebscraperPage::where('domain', $wwwDomain)->exists();
+                if ($existsWithWww) {
+                    return $wwwDomain;
+                }
+            }
+            
+            return $domain;
+        }
+
+        return null;
+    }
+
+    /**
+     * Remove site: prefix from query
+     * Example: "academy site:prtspa.com" -> "academy"
+     * Example: "site:example.com cerca info" -> "cerca info"
+     * Example: "test site:domain.co.uk altro" -> "test altro"
+     *
+     * @param string $query Search query
+     * @return string Query without site: prefix
+     */
+    protected function removeSitePrefixFromQuery(string $query): string
+    {
+        // Remove site:domain pattern from query (supports any valid domain)
+        // Pattern matches: site: followed by valid domain
+        $pattern = '/\s*site:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*\.[a-z]{2,}\s*/i';
+        
+        $cleaned = preg_replace($pattern, ' ', $query);
+        
+        // Clean up multiple spaces
+        $cleaned = preg_replace('/\s+/', ' ', $cleaned);
+        
+        return trim($cleaned);
+    }
+
+    /**
      * Get cached scraping result from SQLite
      */
     public function getCached(string $url): ?array
@@ -522,18 +584,32 @@ class WebScraperService implements ScraperInterface
             'options' => $options,
         ]);
 
-        // Normalize domain: add www. if missing (for consistency with indexed data)
-        $domain = parse_url($url, PHP_URL_HOST);
-        if ($domain && !str_starts_with($domain, 'www.')) {
-            // Check if www version exists in database, use it
-            $wwwDomain = 'www.' . $domain;
-            $existsWithWww = \Modules\WebScraper\Models\WebscraperPage::where('domain', $wwwDomain)->exists();
-            if ($existsWithWww) {
-                $domain = $wwwDomain;
-                Log::channel('webscraper')->info('WebScraper: Normalized domain to www version', [
-                    'original' => parse_url($url, PHP_URL_HOST),
-                    'normalized' => $domain,
-                ]);
+        // Check if query contains site: prefix to override domain
+        $originalQuery = $query;
+        $domainFromQuery = $this->extractDomainFromQuery($query);
+        if ($domainFromQuery) {
+            // Use domain from query, remove site: prefix from query
+            $domain = $domainFromQuery;
+            $query = $this->removeSitePrefixFromQuery($query);
+            Log::channel('webscraper')->info('WebScraper: Domain extracted from query', [
+                'domain' => $domain,
+                'original_query' => $originalQuery,
+                'cleaned_query' => $query,
+            ]);
+        } else {
+            // Normalize domain: add www. if missing (for consistency with indexed data)
+            $domain = parse_url($url, PHP_URL_HOST);
+            if ($domain && !str_starts_with($domain, 'www.')) {
+                // Check if www version exists in database, use it
+                $wwwDomain = 'www.' . $domain;
+                $existsWithWww = \Modules\WebScraper\Models\WebscraperPage::where('domain', $wwwDomain)->exists();
+                if ($existsWithWww) {
+                    $domain = $wwwDomain;
+                    Log::channel('webscraper')->info('WebScraper: Normalized domain to www version', [
+                        'original' => parse_url($url, PHP_URL_HOST),
+                        'normalized' => $domain,
+                    ]);
+                }
             }
         }
 

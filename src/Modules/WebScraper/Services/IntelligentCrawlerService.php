@@ -19,6 +19,7 @@ class IntelligentCrawlerService
     protected array $foundResults = [];
     protected string $searchMode = 'strict'; // 'strict' or 'related'
     protected ?string $baseDomain = null;
+    protected bool $criticalErrorDetected = false; // Track critical errors that prevent scraping
 
     public function __construct(
         WebScraperService $scraper,
@@ -71,6 +72,7 @@ class IntelligentCrawlerService
 
         $this->visitedUrls = [];
         $this->foundResults = [];
+        $this->criticalErrorDetected = false;
 
         // Try priority URLs first (if strategy defines them)
         $priorityUrls = $strategy->getPriorityUrls($startUrl);
@@ -141,6 +143,18 @@ class IntelligentCrawlerService
             }
         }
 
+        // Early exit if critical error detected (e.g., cURL encoding errors)
+        if ($this->criticalErrorDetected) {
+            Log::channel('webscraper')->warning('IntelligentCrawler: Critical error detected, skipping remaining strategies', [
+                'start_url' => $startUrl,
+            ]);
+            return [
+                'query' => $query,
+                'pages_visited' => count($this->visitedUrls),
+                'results' => $this->foundResults,
+            ];
+        }
+
         // STRATEGY 2: Check sitemap for relevant URLs (keyword-based)
         Log::channel('webscraper')->info('IntelligentCrawler: STRATEGY 2 - Searching in sitemap (keyword filter)');
         $sitemapUrls = $this->sitemapService->searchInSitemap($startUrl, $query);
@@ -158,10 +172,30 @@ class IntelligentCrawlerService
             }
         }
 
+        // Early exit if critical error detected
+        if ($this->criticalErrorDetected) {
+            Log::channel('webscraper')->warning('IntelligentCrawler: Critical error detected, skipping remaining strategies');
+            return [
+                'query' => $query,
+                'pages_visited' => count($this->visitedUrls),
+                'results' => $this->foundResults,
+            ];
+        }
+
         // STRATEGY 3: Menu-guided recursive crawling
         // The searchRecursive function will handle the homepage scraping AND menu extraction
         Log::channel('webscraper')->info('IntelligentCrawler: STRATEGY 3 - Menu-guided crawling');
         $this->searchRecursive($startUrl, $query, 0, $maxDepth);
+
+        // Early exit if critical error detected
+        if ($this->criticalErrorDetected) {
+            Log::channel('webscraper')->warning('IntelligentCrawler: Critical error detected, skipping remaining strategies');
+            return [
+                'query' => $query,
+                'pages_visited' => count($this->visitedUrls),
+                'results' => $this->foundResults,
+            ];
+        }
 
         // STRATEGY 4 (FALLBACK): If we have less than 1 results, scrape more pages from sitemap
         $minResults = 1; // Minimum number of results before we're satisfied
@@ -237,6 +271,32 @@ class IntelligentCrawlerService
     }
 
     /**
+     * Check if an error is critical and should stop further scraping attempts
+     * Critical errors indicate that the site is not accessible (e.g., encoding issues, connection problems)
+     */
+    protected function isCriticalError(string $error): bool
+    {
+        $criticalPatterns = [
+            'Unrecognized content encoding',
+            'cURL error 61',
+            'cURL error 6', // Couldn't resolve host
+            'cURL error 7', // Failed to connect
+            'cURL error 28', // Timeout
+            'SSL certificate problem',
+            'Connection refused',
+            'Failed to fetch website',
+        ];
+
+        foreach ($criticalPatterns as $pattern) {
+            if (stripos($error, $pattern) !== false) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Scrape a single page and check for query match
      */
     protected function scrapeSinglePage(string $url, string $query, int $depth, string $source): void
@@ -265,6 +325,16 @@ class IntelligentCrawlerService
                 'url' => $url,
                 'error' => $scrapedData['error'],
             ]);
+
+            // Check if this is a critical error that prevents further scraping
+            if ($this->isCriticalError($scrapedData['error'])) {
+                $this->criticalErrorDetected = true;
+                Log::channel('webscraper')->error('IntelligentCrawler: Critical error detected, will skip remaining strategies', [
+                    'url' => $url,
+                    'error' => $scrapedData['error'],
+                ]);
+            }
+
             return;
         }
 
