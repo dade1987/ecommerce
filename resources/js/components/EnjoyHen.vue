@@ -995,6 +995,32 @@ export default defineComponent({
       } else if (this.loadingOverlay) {
         this.loadingOverlay.classList.add("hidden");
       }
+
+      // ==================== CONSOLE API ====================
+      // Espone un'interfaccia per controllare HeyGen da console
+      window.enjoyHenConsole = {
+        speak: (text) => {
+          if (!text || typeof text !== 'string') {
+            console.warn('[EnjoyHen Console] speak() richiede un testo (stringa)');
+            return;
+          }
+          console.log(`[EnjoyHen Console] Invio messaggio a HeyGen: "${text}"`);
+          this.heygenSendRepeat(text);
+        },
+        interrupt: () => {
+          console.log('[EnjoyHen Console] Interrompo il parlato corrente');
+          this.heygenInterrupt();
+        },
+        ensureSession: async () => {
+          console.log('[EnjoyHen Console] Assicuro che la sessione HeyGen sia attiva');
+          await this.ensureHeyGenSession();
+        },
+        stop: async () => {
+          console.log('[EnjoyHen Console] Fermo e chiudo la sessione HeyGen');
+          await this.cleanup();
+        },
+      };
+
       console.log("[EnjoyHen] initComponent() complete");
     },
 
