@@ -1,13 +1,13 @@
 <a name="about-us"></a>
 <section class="bg-white dark:bg-gray-900">
     <div class="py-8 px-4 mx-auto max-w-7xl lg:py-16 lg:px-6">
-        <div class="mx-auto max-w-screen-sm text-center mb-8 lg:mb-16">
+        <div class="mx-auto text-center mb-8 lg:mb-16">
             <h2 class="mb-4 text-4xl tracking-tight font-extrabold text-gray-900 dark:text-white">{{ $title }}</h2>
             <p class="font-light text-gray-500 lg:mb-16 sm:text-xl dark:text-gray-400">{{ $text }}</p>
         </div>
         <div class="flex flex-wrap gap-8 mb-6 lg:mb-16 justify-center">
             @foreach ($persons as $person)
-                <div class="w-full sm:w-2/5 md:w-1/3 bg-gray-50 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700 p-5 text-center sm:text-left">
+                <div class="w-full bg-gray-50 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700 p-5 text-center sm:text-left">
                     <div class="flex flex-col sm:flex-row items-center sm:items-start gap-4">
                         <img class="w-24 h-24 rounded-full object-cover flex-shrink-0" src="{{ $person['image'] }}" alt="{{ $person['name'] }}">
                         <div class="person-info">
