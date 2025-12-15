@@ -123,7 +123,7 @@
                     <!-- Lista Progetti (max 5, preview) -->
                     <div class="p-3 space-y-1 flex-1">
                         <!-- Descrizione contesto -->
-                        <p class="text-xs text-gray-500 mb-3 px-1">Esempi di gestionali Laravel e integrazioni AI in produzione</p>
+                        <p class="text-xs text-gray-500 mb-3 px-1">Esempi reali di gestionali Laravel utilizzati ogni giorno, non demo.</p>
                         
                         @foreach(array_slice($accordionItems ?? [], 0, 5) as $index => $item)
                             <div 
