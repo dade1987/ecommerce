@@ -25,19 +25,26 @@
                     </div>
                 @endif
 
-                <div class="mt-8 flex flex-wrap justify-start gap-4">
-                    @if($button_one_link && $button_one_text)
-                        <a href="{{ $button_one_link }}"
-                           class="inline-flex items-center justify-center rounded-lg bg-blue-500 px-5 py-3 text-center text-base font-medium text-white hover:bg-blue-600 focus:ring-4 focus:ring-blue-200 dark:focus:ring-blue-700">
-                            {{ $button_one_text }}
-                        </a>
-                    @endif
+                <div class="mt-8">
+                    <div class="flex flex-wrap justify-start gap-4">
+                        @if($button_one_link && $button_one_text)
+                            <a href="{{ $button_one_link }}"
+                               class="inline-flex items-center justify-center rounded-lg bg-blue-500 px-5 py-3 text-center text-base font-medium text-white hover:bg-blue-600 focus:ring-4 focus:ring-blue-200 dark:focus:ring-blue-700">
+                                {{ $button_one_text }}
+                            </a>
+                        @endif
 
-                    @livewire('open-calendar-button', ['style' => 'secondary', 'text' => __('frontend.book_call')])
+                        @livewire('open-calendar-button', ['style' => 'primary', 'text' => 'Prenota una call tecnica di 15 minuti'])
+                        
+                        <a href="#contact-form" class="inline-flex items-center justify-center rounded-lg bg-gray-600 px-5 py-3 text-center text-base font-medium text-white hover:bg-gray-700 focus:ring-4 focus:ring-gray-200 dark:focus:ring-gray-700">
+                            {{ __('frontend.contact_us') }}
+                        </a>
+                    </div>
                     
-                    <a href="#contact-form" class="inline-flex items-center justify-center rounded-lg bg-gray-600 px-5 py-3 text-center text-base font-medium text-white hover:bg-gray-700 focus:ring-4 focus:ring-gray-200 dark:focus:ring-gray-700">
-                        {{ __('frontend.contact_us') }}
-                    </a>
+                    <!-- Sottotesto CTA -->
+                    <p class="mt-3 text-sm text-gray-500 dark:text-gray-400">
+                        Serve solo a capire se ha senso lavorare insieme. Se non ha senso, te lo dico.
+                    </p>
                 </div>
             </div>
 
