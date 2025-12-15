@@ -11,4 +11,7 @@ return [
     'direct_talk' => 'Talk directly with me (no salesperson)',
     'no_aggressive_sales' => 'No aggressive sales tactics',
     'or_contact_us' => 'or write us',
+    'real_projects' => 'Real Projects',
+    'view_all_projects' => 'All projects',
+    'explore_portfolio' => 'Explore Full Portfolio',
 ];

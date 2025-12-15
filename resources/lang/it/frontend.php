@@ -11,4 +11,7 @@ return [
     'direct_talk' => 'Parli direttamente con me (no commerciale)',
     'no_aggressive_sales' => 'Nessuna vendita aggressiva',
     'or_contact_us' => 'oppure scrivici',
+    'real_projects' => 'Progetti Reali',
+    'view_all_projects' => 'Tutti i progetti',
+    'explore_portfolio' => 'Esplora il Portfolio Completo',
 ];
