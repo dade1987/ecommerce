@@ -109,73 +109,52 @@
                 </div>
             </div>
 
-            <!-- Colonna destra: Portfolio Card -->
+            <!-- Colonna destra: Portfolio Card (subordinato all'hero) -->
             <div class="relative lg:sticky lg:top-8" x-data="{ activeProject: null }">
-                <!-- Portfolio Container con effetto glassmorphism -->
-                <div class="relative bg-white/70 backdrop-blur-xl rounded-3xl border border-white/50 shadow-2xl shadow-indigo-500/10 overflow-hidden portfolio-card-animate">
+                <!-- Portfolio Container - sobrio, supporto visivo -->
+                <div class="relative bg-white/80 rounded-2xl border border-gray-200/80 shadow-sm overflow-hidden">
                     
-                    <!-- Decorazione angolo superiore -->
-                    <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-indigo-500/10 to-transparent rounded-bl-full"></div>
-                    <div class="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-blue-500/10 to-transparent rounded-tr-full"></div>
-                    
-                    <!-- Header Portfolio -->
-                    <div class="relative px-6 pt-6 pb-4 border-b border-gray-100/80">
-                        <div class="flex items-center gap-3">
-                            <!-- Badge animato -->
-                            <div class="relative">
-                                <div class="absolute inset-0 bg-gradient-to-r from-indigo-600 to-blue-600 rounded-xl blur-md opacity-40 animate-pulse"></div>
-                                <div class="relative flex items-center justify-center w-12 h-12 bg-gradient-to-br from-indigo-600 via-blue-600 to-indigo-700 rounded-xl shadow-lg">
-                                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
-                                    </svg>
-                                </div>
+                    <!-- Header Portfolio - discreto -->
+                    <div class="relative px-5 pt-5 pb-3 border-b border-gray-100">
+                        <div class="flex items-center gap-2.5">
+                            <!-- Icona semplice -->
+                            <div class="flex items-center justify-center w-9 h-9 bg-gray-100 rounded-lg">
+                                <svg class="w-4.5 h-4.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                                </svg>
                             </div>
                             <div>
                                 <div class="flex items-center gap-2">
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gradient-to-r from-indigo-100 to-blue-100 text-indigo-700 border border-indigo-200/50">
-                                        <span class="w-1.5 h-1.5 bg-green-500 rounded-full mr-1.5 animate-pulse"></span>
-                                        {{ __('frontend.real_projects') ?? 'Progetti Reali' }}
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-gray-100 text-gray-600">
+                                        <span class="w-1 h-1 bg-green-500 rounded-full mr-1"></span>
+                                        {{ __('frontend.real_projects') }}
                                     </span>
                                 </div>
-                                <h3 class="text-lg font-bold text-gray-900 mt-1">Portfolio</h3>
+                                <p class="text-sm font-semibold text-gray-700 mt-0.5">Portfolio</p>
                             </div>
                         </div>
                     </div>
                     
                     <!-- Lista Progetti Accordion -->
-                    <div class="p-4 space-y-3">
+                    <div class="p-4 space-y-2">
                         @foreach($accordionItems ?? [] as $index => $item)
                             <div 
-                                class="group relative rounded-2xl transition-all duration-500 ease-out"
+                                class="group relative rounded-xl transition-all duration-300"
                                 :class="{ 
-                                    'bg-gradient-to-r from-indigo-50/80 via-blue-50/60 to-white shadow-lg shadow-indigo-500/10 scale-[1.02] z-10': activeProject === {{ $index }},
-                                    'bg-gray-50/50 hover:bg-gray-100/70': activeProject !== {{ $index }},
-                                    'opacity-50 scale-[0.98]': activeProject !== null && activeProject !== {{ $index }}
+                                    'bg-gray-50': activeProject === {{ $index }},
+                                    'hover:bg-gray-50/50': activeProject !== {{ $index }},
+                                    'opacity-40': activeProject !== null && activeProject !== {{ $index }}
                                 }"
                             >
-                                <!-- Project Number Indicator -->
-                                <div class="absolute -left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 z-20"
-                                     :class="{ 
-                                         'bg-gradient-to-br from-indigo-600 to-blue-600 text-white shadow-lg shadow-indigo-500/30': activeProject === {{ $index }},
-                                         'bg-white border-2 border-gray-200 text-gray-400 group-hover:border-indigo-300 group-hover:text-indigo-600': activeProject !== {{ $index }}
-                                     }">
-                                    {{ str_pad($index + 1, 2, '0', STR_PAD_LEFT) }}
-                                </div>
-                                
                                 <button 
                                     @click="activeProject = activeProject === {{ $index }} ? null : {{ $index }}"
-                                    class="w-full pl-10 pr-5 py-5 text-left flex items-center justify-between transition-all duration-300"
+                                    class="w-full px-4 py-3.5 text-left flex items-center justify-between transition-all duration-200"
                                 >
-                                    <div class="flex items-center space-x-4">
+                                    <div class="flex items-center space-x-3">
                                         @if(isset($item['icon']))
-                                            <div class="flex-shrink-0 w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-300"
-                                                 :class="{ 
-                                                     'bg-gradient-to-br from-indigo-500 to-blue-600 shadow-lg': activeProject === {{ $index }},
-                                                     'bg-white shadow-sm border border-gray-100 group-hover:border-indigo-200 group-hover:shadow-md': activeProject !== {{ $index }}
-                                                 }">
-                                                <svg class="w-5 h-5 transition-colors duration-300" 
-                                                     :class="{ 'text-white': activeProject === {{ $index }}, 'text-indigo-600': activeProject !== {{ $index }} }"
-                                                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <div class="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center bg-gray-100 transition-colors duration-200"
+                                                 :class="{ 'bg-gray-200': activeProject === {{ $index }} }">
+                                                <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     @switch($item['icon'])
                                                         @case('heroicon-o-server')
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"></path>
@@ -244,45 +223,34 @@
                                                 </svg>
                                             </div>
                                         @endif
-                                        <div>
-                                            <span class="font-semibold text-gray-900 group-hover:text-indigo-700 transition-colors duration-300"
-                                                  :class="{ 'text-indigo-700': activeProject === {{ $index }} }">
-                                                {{ $item['title'] }}
-                                            </span>
-                                        </div>
+                                        <span class="text-sm font-medium text-gray-700 group-hover:text-gray-900 transition-colors duration-200"
+                                              :class="{ 'text-gray-900': activeProject === {{ $index }} }">
+                                            {{ $item['title'] }}
+                                        </span>
                                     </div>
                                     
-                                    <!-- Chevron animato -->
-                                    <div class="w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300"
-                                         :class="{ 
-                                             'bg-indigo-600 rotate-180': activeProject === {{ $index }},
-                                             'bg-gray-100 group-hover:bg-indigo-100': activeProject !== {{ $index }}
-                                         }">
-                                        <svg class="w-4 h-4 transition-colors duration-300" 
-                                             :class="{ 'text-white': activeProject === {{ $index }}, 'text-gray-500 group-hover:text-indigo-600': activeProject !== {{ $index }} }"
-                                             fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                                        </svg>
-                                    </div>
+                                    <!-- Chevron semplice -->
+                                    <svg class="w-4 h-4 text-gray-400 transition-transform duration-200" 
+                                         :class="{ 'rotate-180': activeProject === {{ $index }} }"
+                                         fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                    </svg>
                                 </button>
                                 
                                 <!-- Contenuto espanso -->
                                 <div 
                                     x-show="activeProject === {{ $index }}" 
-                                    x-transition:enter="transition ease-out duration-300"
-                                    x-transition:enter-start="opacity-0 max-h-0"
-                                    x-transition:enter-end="opacity-100 max-h-96"
-                                    x-transition:leave="transition ease-in duration-200"
-                                    x-transition:leave-start="opacity-100 max-h-96"
-                                    x-transition:leave-end="opacity-0 max-h-0"
+                                    x-transition:enter="transition ease-out duration-200"
+                                    x-transition:enter-start="opacity-0"
+                                    x-transition:enter-end="opacity-100"
+                                    x-transition:leave="transition ease-in duration-150"
+                                    x-transition:leave-start="opacity-100"
+                                    x-transition:leave-end="opacity-0"
                                     class="overflow-hidden"
                                 >
-                                    <div class="pl-10 pr-5 pb-5">
-                                        <div class="relative pl-5 border-l-2 border-indigo-200">
-                                            <div class="absolute -left-[5px] top-0 w-2 h-2 rounded-full bg-indigo-500"></div>
-                                            <div class="prose prose-sm text-gray-600 prose-p:leading-relaxed prose-headings:text-gray-900">
-                                                {!! $item['content'] !!}
-                                            </div>
+                                    <div class="px-4 pb-4 pt-1">
+                                        <div class="pl-11 text-sm text-gray-600 leading-relaxed">
+                                            {!! $item['content'] !!}
                                         </div>
                                     </div>
                                 </div>
@@ -290,37 +258,13 @@
                         @endforeach
                     </div>
                     
-                    <!-- CTA Portfolio Completo -->
-                    <div class="p-4 pt-2">
-                        <a href="/portfolio" class="group/cta relative block w-full overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-900 to-slate-900 p-[1px]">
-                            <!-- Animated border gradient -->
-                            <div class="absolute inset-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-blue-500 opacity-0 group-hover/cta:opacity-100 transition-opacity duration-500 animate-gradient-x"></div>
-                            
-                            <div class="relative flex items-center justify-between gap-4 rounded-[15px] bg-gradient-to-r from-slate-900 via-indigo-900 to-slate-900 px-6 py-4 group-hover/cta:from-slate-800 group-hover/cta:via-indigo-800 group-hover/cta:to-slate-800 transition-all duration-300">
-                                <div class="flex items-center gap-4">
-                                    <!-- Icon container -->
-                                    <div class="relative">
-                                        <div class="absolute inset-0 bg-indigo-500 rounded-xl blur-md opacity-50 group-hover/cta:opacity-80 transition-opacity duration-300"></div>
-                                        <div class="relative w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
-                                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
-                                            </svg>
-                                        </div>
-                                    </div>
-                                    
-                                    <div>
-                                        <p class="text-sm text-indigo-300 font-medium">{{ __('frontend.view_all_projects') ?? 'Tutti i progetti' }}</p>
-                                        <p class="text-white font-bold text-lg">{{ __('frontend.explore_portfolio') ?? 'Esplora il Portfolio Completo' }}</p>
-                                    </div>
-                                </div>
-                                
-                                <!-- Arrow with animation -->
-                                <div class="flex-shrink-0 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center group-hover/cta:bg-white/20 transition-all duration-300 group-hover/cta:translate-x-1">
-                                    <svg class="w-5 h-5 text-white transform group-hover/cta:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
-                                    </svg>
-                                </div>
-                            </div>
+                    <!-- Link Portfolio - secondario, discreto -->
+                    <div class="px-5 py-4 border-t border-gray-100">
+                        <a href="/portfolio" class="group/cta flex items-center justify-center gap-2 text-sm text-gray-500 hover:text-gray-700 transition-colors duration-200">
+                            <span class="font-medium">{{ __('frontend.explore_portfolio') }}</span>
+                            <svg class="w-4 h-4 transform group-hover/cta:translate-x-0.5 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
+                            </svg>
                         </a>
                     </div>
                     
@@ -379,43 +323,6 @@
         100% { left: 100%; }
     }
     
-    /* Portfolio CTA gradient animation */
-    @keyframes gradient-x {
-        0%, 100% { background-position: 0% 50%; }
-        50% { background-position: 100% 50%; }
-    }
-    
-    .animate-gradient-x {
-        background-size: 200% 200%;
-        animation: gradient-x 3s ease infinite;
-    }
-    
-    /* Portfolio card entrance animation */
-    @keyframes portfolio-entrance {
-        0% { 
-            opacity: 0; 
-            transform: translateY(30px) scale(0.95);
-        }
-        100% { 
-            opacity: 1; 
-            transform: translateY(0) scale(1);
-        }
-    }
-    
-    .portfolio-card-animate {
-        animation: portfolio-entrance 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-        animation-delay: 0.2s;
-        opacity: 0;
-    }
-    
-    /* Subtle hover lift for project items */
-    .project-item-hover {
-        transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
-    }
-    
-    .project-item-hover:hover {
-        transform: translateX(4px);
-    }
 </style>
 
 <script>
