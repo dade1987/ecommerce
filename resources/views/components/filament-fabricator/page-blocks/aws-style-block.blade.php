@@ -48,6 +48,9 @@
                         </button>
                     </div>
                     
+                    <!-- Testo di supporto -->
+                    <p class="mt-3 text-sm text-gray-500 text-center">La call serve solo a capire se ha senso lavorare insieme. Se non ha senso, te lo dico.</p>
+                    
                     <!-- Trust badges sotto il CTA -->
                     <div class="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 mt-4 text-sm text-gray-500">
                         <div class="flex items-center gap-1">

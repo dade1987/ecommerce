@@ -2,7 +2,7 @@
     <div class="flex items-center justify-center p-12">
         <div class="mx-auto w-full max-w-[550px]">
             <h2 class="text-2xl font-bold text-gray-900 mb-2">Non vuoi prenotare una call? Scrivimi qui.</h2>
-            <p class="text-sm text-gray-600 mb-6">Usa il form solo se preferisci scrivere invece di fare una call.</p>
+            <p class="text-sm text-gray-600 mb-6">La call serve solo a capire se ha senso lavorare insieme. Se non ha senso, te lo dico.</p>
             
             <form method="POST" wire:submit.prevent="send">
                 <div class="mb-5">

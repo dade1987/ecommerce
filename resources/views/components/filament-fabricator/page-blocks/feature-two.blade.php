@@ -37,6 +37,7 @@
                     @if($showButtonOne)
                         <div class="mt-6">
                             @livewire('open-calendar-button', ['style' => 'primary', 'text' => 'Prenota una call tecnica di 15 minuti'])
+                            <p class="mt-3 text-sm text-gray-500">La call serve solo a capire se ha senso lavorare insieme. Se non ha senso, te lo dico.</p>
                         </div>
                     @endif
                 </div>
@@ -50,6 +51,7 @@
                     @if($showButtonTwo)
                         <div class="mt-6">
                             @livewire('open-calendar-button', ['style' => 'primary', 'text' => 'Prenota una call tecnica di 15 minuti'])
+                            <p class="mt-3 text-sm text-gray-500">La call serve solo a capire se ha senso lavorare insieme. Se non ha senso, te lo dico.</p>
                         </div>
                     @endif
                 </div>
@@ -69,6 +71,7 @@
                     @if($showButtonThree)
                         <div class="mt-6">
                             @livewire('open-calendar-button', ['style' => 'primary', 'text' => 'Prenota una call tecnica di 15 minuti'])
+                            <p class="mt-3 text-sm text-gray-500">La call serve solo a capire se ha senso lavorare insieme. Se non ha senso, te lo dico.</p>
                         </div>
                     @endif
                 </div>
