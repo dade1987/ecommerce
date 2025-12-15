@@ -35,10 +35,6 @@
                         @endif
 
                         @livewire('open-calendar-button', ['style' => 'primary', 'text' => 'Prenota una call tecnica di 15 minuti'])
-                        
-                        <a href="#contact-form" class="inline-flex items-center justify-center rounded-lg bg-gray-600 px-5 py-3 text-center text-base font-medium text-white hover:bg-gray-700 focus:ring-4 focus:ring-gray-200 dark:focus:ring-gray-700">
-                            {{ __('frontend.contact_us') }}
-                        </a>
                     </div>
                     
                     <!-- Sottotesto CTA -->
