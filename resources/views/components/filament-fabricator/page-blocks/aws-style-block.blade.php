@@ -12,10 +12,10 @@
     <div class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         
         <!-- Sezione "Perché AWS?" -->
-        <div class="grid grid-cols-1 gap-12 lg:grid-cols-2 lg:items-start lg:gap-16 mb-20">
+        <div class="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:items-start lg:gap-12 mb-20">
             
-            <!-- Colonna sinistra: Titolo e descrizione -->
-            <div class="flex flex-col">
+            <!-- Colonna sinistra: Titolo e descrizione (HERO - sempre primo su mobile) -->
+            <div class="flex flex-col order-1">
                 <h2 class="text-4xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-gray-900 via-blue-900 to-indigo-900 sm:text-5xl mb-8 animate-fade-in">
                     {{ $percheTitle }}
                 </h2>
@@ -109,52 +109,38 @@
                 </div>
             </div>
 
-            <!-- Colonna destra: Portfolio Card (subordinato all'hero) -->
-            <div class="relative lg:sticky lg:top-8" x-data="{ activeProject: null }">
-                <!-- Portfolio Container - sobrio, supporto visivo -->
-                <div class="relative bg-white/80 rounded-2xl border border-gray-200/80 shadow-sm overflow-hidden">
+            <!-- Colonna destra: Portfolio Preview (subordinato all'hero, dopo CTA su mobile) -->
+            <div class="relative order-2 lg:mt-16" x-data="{ activeProject: null }">
+                <!-- Portfolio Container - minimalista, puro supporto -->
+                <div class="relative bg-gray-50/50 rounded-xl border border-gray-100 overflow-hidden">
                     
-                    <!-- Header Portfolio - discreto -->
-                    <div class="relative px-5 pt-5 pb-3 border-b border-gray-100">
-                        <div class="flex items-center gap-2.5">
-                            <!-- Icona semplice -->
-                            <div class="flex items-center justify-center w-9 h-9 bg-gray-100 rounded-lg">
-                                <svg class="w-4.5 h-4.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
-                                </svg>
-                            </div>
-                            <div>
-                                <div class="flex items-center gap-2">
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-gray-100 text-gray-600">
-                                        <span class="w-1 h-1 bg-green-500 rounded-full mr-1"></span>
-                                        {{ __('frontend.real_projects') }}
-                                    </span>
-                                </div>
-                                <p class="text-sm font-semibold text-gray-700 mt-0.5">Portfolio</p>
-                            </div>
+                    <!-- Header Portfolio - minimale -->
+                    <div class="px-4 py-3 border-b border-gray-100/80">
+                        <div class="flex items-center justify-between">
+                            <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Portfolio</p>
+                            <span class="text-[10px] text-gray-400">{{ __('frontend.real_projects') }}</span>
                         </div>
                     </div>
                     
-                    <!-- Lista Progetti Accordion -->
-                    <div class="p-4 space-y-2">
-                        @foreach($accordionItems ?? [] as $index => $item)
+                    <!-- Lista Progetti (max 5, preview) -->
+                    <div class="p-3 space-y-1">
+                        @foreach(array_slice($accordionItems ?? [], 0, 5) as $index => $item)
                             <div 
-                                class="group relative rounded-xl transition-all duration-300"
+                                class="group relative rounded-lg transition-all duration-200"
                                 :class="{ 
-                                    'bg-gray-50': activeProject === {{ $index }},
-                                    'hover:bg-gray-50/50': activeProject !== {{ $index }},
-                                    'opacity-40': activeProject !== null && activeProject !== {{ $index }}
+                                    'bg-white': activeProject === {{ $index }},
+                                    'hover:bg-white/60': activeProject !== {{ $index }},
+                                    'opacity-30': activeProject !== null && activeProject !== {{ $index }}
                                 }"
                             >
                                 <button 
                                     @click="activeProject = activeProject === {{ $index }} ? null : {{ $index }}"
-                                    class="w-full px-4 py-3.5 text-left flex items-center justify-between transition-all duration-200"
+                                    class="w-full px-3 py-2.5 text-left flex items-center justify-between transition-all duration-150"
                                 >
-                                    <div class="flex items-center space-x-3">
+                                    <div class="flex items-center space-x-2.5">
                                         @if(isset($item['icon']))
-                                            <div class="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center bg-gray-100 transition-colors duration-200"
-                                                 :class="{ 'bg-gray-200': activeProject === {{ $index }} }">
-                                                <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <div class="flex-shrink-0 w-6 h-6 rounded flex items-center justify-center">
+                                                <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     @switch($item['icon'])
                                                         @case('heroicon-o-server')
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"></path>
@@ -223,14 +209,12 @@
                                                 </svg>
                                             </div>
                                         @endif
-                                        <span class="text-sm font-medium text-gray-700 group-hover:text-gray-900 transition-colors duration-200"
-                                              :class="{ 'text-gray-900': activeProject === {{ $index }} }">
+                                        <span class="text-xs text-gray-600 group-hover:text-gray-800 transition-colors duration-150">
                                             {{ $item['title'] }}
                                         </span>
                                     </div>
                                     
-                                    <!-- Chevron semplice -->
-                                    <svg class="w-4 h-4 text-gray-400 transition-transform duration-200" 
+                                    <svg class="w-3 h-3 text-gray-300 transition-transform duration-150 flex-shrink-0" 
                                          :class="{ 'rotate-180': activeProject === {{ $index }} }"
                                          fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
@@ -240,16 +224,16 @@
                                 <!-- Contenuto espanso -->
                                 <div 
                                     x-show="activeProject === {{ $index }}" 
-                                    x-transition:enter="transition ease-out duration-200"
+                                    x-transition:enter="transition ease-out duration-150"
                                     x-transition:enter-start="opacity-0"
                                     x-transition:enter-end="opacity-100"
-                                    x-transition:leave="transition ease-in duration-150"
+                                    x-transition:leave="transition ease-in duration-100"
                                     x-transition:leave-start="opacity-100"
                                     x-transition:leave-end="opacity-0"
                                     class="overflow-hidden"
                                 >
-                                    <div class="px-4 pb-4 pt-1">
-                                        <div class="pl-11 text-sm text-gray-600 leading-relaxed">
+                                    <div class="px-3 pb-3">
+                                        <div class="pl-9 text-xs text-gray-500 leading-relaxed">
                                             {!! $item['content'] !!}
                                         </div>
                                     </div>
@@ -258,12 +242,12 @@
                         @endforeach
                     </div>
                     
-                    <!-- Link Portfolio - secondario, discreto -->
-                    <div class="px-5 py-4 border-t border-gray-100">
-                        <a href="/portfolio" class="group/cta flex items-center justify-center gap-2 text-sm text-gray-500 hover:text-gray-700 transition-colors duration-200">
-                            <span class="font-medium">{{ __('frontend.explore_portfolio') }}</span>
-                            <svg class="w-4 h-4 transform group-hover/cta:translate-x-0.5 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
+                    <!-- Link Portfolio - terziario -->
+                    <div class="px-3 py-2.5 border-t border-gray-100/60 bg-gray-50/30">
+                        <a href="/portfolio" class="group/cta flex items-center justify-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 transition-colors duration-150">
+                            <span>{{ __('frontend.explore_portfolio') }}</span>
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                             </svg>
                         </a>
                     </div>
