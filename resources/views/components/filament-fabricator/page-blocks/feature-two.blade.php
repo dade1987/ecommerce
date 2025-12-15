@@ -36,7 +36,7 @@
                     <div class="prose dark:prose-invert mt-4 text-gray-600 dark:text-gray-400">{!! $textOne !!}</div>
                     @if($showButtonOne)
                         <div class="mt-6">
-                            @livewire('open-calendar-button', ['text' => 'Prenota una call tecnica'])
+                            @livewire('open-calendar-button', ['style' => 'primary', 'text' => 'Prenota una call tecnica di 15 minuti'])
                         </div>
                     @endif
                 </div>
@@ -49,7 +49,7 @@
                     <div class="prose dark:prose-invert mt-4 text-gray-600 dark:text-gray-400">{!! $textTwo !!}</div>
                     @if($showButtonTwo)
                         <div class="mt-6">
-                            @livewire('open-calendar-button', ['text' => 'Prenota una call tecnica'])
+                            @livewire('open-calendar-button', ['style' => 'primary', 'text' => 'Prenota una call tecnica di 15 minuti'])
                         </div>
                     @endif
                 </div>
@@ -68,7 +68,7 @@
                     <div class="prose dark:prose-invert mt-4 text-gray-600 dark:text-gray-400">{!! $textThree !!}</div>
                     @if($showButtonThree)
                         <div class="mt-6">
-                            @livewire('open-calendar-button', ['text' => 'Prenota una call tecnica'])
+                            @livewire('open-calendar-button', ['style' => 'primary', 'text' => 'Prenota una call tecnica di 15 minuti'])
                         </div>
                     @endif
                 </div>
