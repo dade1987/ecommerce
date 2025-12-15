@@ -77,6 +77,3 @@ class WhisperTranscriptionControllerSegmentsTest extends TestCase
         $this->assertSame('testo di fallback', $text);
     }
 }
-
-
-

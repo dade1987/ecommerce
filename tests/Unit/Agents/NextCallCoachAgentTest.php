@@ -31,6 +31,3 @@ class NextCallCoachAgentTest extends TestCase
         $this->assertStringContainsString('INGLESE:', $instructions);
     }
 }
-
-
-

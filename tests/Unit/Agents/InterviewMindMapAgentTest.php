@@ -26,6 +26,3 @@ class InterviewMindMapAgentTest extends TestCase
         $this->assertStringContainsString('OUTPUT SOLO JSON', $instructions);
     }
 }
-
-
-

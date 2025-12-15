@@ -20,6 +20,3 @@ class NextCallCoachControllerTest extends TestCase
         $this->assertStringContainsString('goal', (string) $response->json('error'));
     }
 }
-
-
-

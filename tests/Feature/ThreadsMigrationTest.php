@@ -23,6 +23,3 @@ class ThreadsMigrationTest extends TestCase
         $this->assertTrue(Schema::hasColumn('threads', 'updated_at'));
     }
 }
-
-
-

@@ -41,6 +41,3 @@ class InterviewSuggestionSimilarityTest extends TestCase
         $this->assertLessThan(0.7, $result);
     }
 }
-
-
-

@@ -9,6 +9,3 @@ class ViewThread extends ViewRecord
 {
     protected static string $resource = ThreadResource::class;
 }
-
-
-
