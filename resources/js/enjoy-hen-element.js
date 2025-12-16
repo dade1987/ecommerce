@@ -8,7 +8,7 @@
  * 
  * Attributi supportati:
  * - team-slug: (REQUIRED) Lo slug del team da usare per le richieste API
- * - live-avatar-api-key: API key per LiveAvatar
+ * - live-avatar-api-key: (IGNORATO) l'API key arriva solo da env / server-side
  * - live-avatar-server-url: URL del server LiveAvatar
  * - heygen-api-key: (legacy) API key (fallback)
  * - heygen-server-url: (legacy) URL server (fallback)
@@ -50,10 +50,6 @@ const componentWithProps = {
         heygenServerUrl: {
             type: String,
             default: "https://api.heygen.com"
-        },
-        liveAvatarApiKey: {
-            type: String,
-            default: ""
         },
         liveAvatarServerUrl: {
             type: String,

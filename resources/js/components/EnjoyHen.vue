@@ -474,10 +474,6 @@ export default defineComponent({
       type: String,
       default: "https://api.heygen.com",
     },
-    liveAvatarApiKey: {
-      type: String,
-      default: "",
-    },
     liveAvatarServerUrl: {
       type: String,
       default: "https://api.liveavatar.com",
@@ -1019,14 +1015,12 @@ export default defineComponent({
 
       // LiveAvatar config: priorità alle props liveAvatar*, fallback ai vecchi attributi heygen*
       this.LIVEAVATAR_CONFIG = {
-        apiKey:
-          this.liveAvatarApiKey ||
-          rootData.liveavatarApiKey ||
-          this.heygenApiKey ||
-          rootData.heygenApiKey ||
-          "",
+        // L'API key NON deve arrivare da props/attributi del componente.
+        // La prendiamo da env (Vite) oppure dal dataset server-side (Blade).
+        apiKey: import.meta.env.VITE_LIVEAVATAR_API_KEY || rootData.liveavatarApiKey || "",
         serverUrl:
           this.liveAvatarServerUrl ||
+          import.meta.env.VITE_LIVEAVATAR_SERVER_URL ||
           rootData.liveavatarServerUrl ||
           this.heygenServerUrl ||
           rootData.heygenServerUrl ||
