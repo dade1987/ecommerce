@@ -2018,18 +2018,19 @@ export default defineComponent({
           avatarPersona.voice_id = voiceId;
         }
 
+        // Payload per il proxy server-side (LiveAvatarSessionController):
+        // il controller richiede context_id a livello root.
         const tokenBody = {
-          mode: "FULL",
           avatar_id: avatarId,
-          avatar_persona: avatarPersona,
+          context_id: contextId,
+          language: lang,
         };
+        if (voiceId) {
+          tokenBody.voice_id = voiceId;
+        }
 
         try {
-          console.log("[EnjoyHen] LiveAvatar /api/liveavatar/start body:", {
-            mode: tokenBody.mode,
-            avatar_id: tokenBody.avatar_id,
-            avatar_persona: tokenBody.avatar_persona,
-          });
+          console.log("[EnjoyHen] LiveAvatar /api/liveavatar/start body:", tokenBody);
         } catch { }
 
         const webComponentOrigin = window.__ENJOY_HEN_ORIGIN__ || window.location.origin;
