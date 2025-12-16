@@ -2024,6 +2024,8 @@ export default defineComponent({
           avatar_id: avatarId,
           context_id: contextId,
           language: lang,
+          // Nota: usiamo VP8 per massima compatibilità (soprattutto su Firefox/Linux).
+          video_encoding: "VP8",
         };
         if (voiceId) {
           tokenBody.voice_id = voiceId;
