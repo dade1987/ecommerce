@@ -56,6 +56,15 @@ class WhisperTranscriptionController extends Controller
             }
         }
 
+        // TEMP: per stabilizzare il comportamento (e far tornare l'auto-pausa),
+        // inviamo UNA SOLA VOLTA a Whisper lasciando l'auto-rilevamento lingua.
+        // Quindi: ignoriamo qualsiasi lingua forzata dal frontend e disattiviamo
+        // la logica "forced languages" (multi-call / parallelo).
+        $forceAutoDetectLanguage = true;
+        if ($forceAutoDetectLanguage) {
+            $language = null;
+        }
+
         try {
             $apiKey = config('groq.key');
             if (! $apiKey) {
@@ -111,7 +120,8 @@ class WhisperTranscriptionController extends Controller
                 ],
             ];
 
-            // Aggiunge il parametro language solo se specificato (per auto-rilevamento)
+            // Aggiunge il parametro language solo se specificato.
+            // In modalità auto-detect (TEMP) NON lo inviamo mai.
             if ($language !== null) {
                 $multipartBase[] = [
                     'name' => 'language',
@@ -124,25 +134,9 @@ class WhisperTranscriptionController extends Controller
                 'whisper-large-v3-turbo',
             ];
 
-            // Semplificazione del flusso quando sappiamo già che la lingua può essere
-            // solo una tra quelle consentite (es. coppia A/B scelta nel LiveTranslator).
-            // In questo caso NON usiamo l'auto-rilevamento di Whisper: proviamo
-            // direttamente in sequenza ciascuna lingua consentita e ci teniamo
-            // la prima trascrizione plausibile.
-            if (! empty($allowedLanguages)) {
-                $text = $this->transcribeWithForcedLanguages(
-                    $client,
-                    $audio,
-                    $allowedLanguages,
-                    $modelsToTry,
-                    $originalName,
-                    $contentType
-                );
-
-                return response()->json([
-                    'text' => $text,
-                ]);
-            }
+            // TEMP: disabilitiamo le lingue forzate (multi-call/parallelo).
+            // Manteniamo $allowedLanguages solo per i filtri/guard (se attivi),
+            // ma la trascrizione viene fatta con auto-detect in un'unica chiamata.
 
             $response = null;
             $body = '';
