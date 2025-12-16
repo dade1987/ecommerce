@@ -530,8 +530,8 @@ export default defineComponent({
       audioCtx: null,
       currentEventSource: null,
       LIVEAVATAR_CONFIG: {
-        apiKey: "",
-        serverUrl: "https://api.liveavatar.com",
+        // Server-side proxy: nessuna API key nel client
+        serverUrl: "",
       },
       liveavatar: {
         sessionInfo: null,
@@ -1020,9 +1020,7 @@ export default defineComponent({
 
       // LiveAvatar config: priorità alle props liveAvatar*, fallback ai vecchi attributi heygen*
       this.LIVEAVATAR_CONFIG = {
-        // L'API key NON deve arrivare da props/attributi del componente.
-        // La prendiamo da env (Vite) oppure dal dataset server-side (Blade).
-        apiKey: import.meta.env.VITE_LIVEAVATAR_API_KEY || rootData.liveavatarApiKey || "",
+        // Server-side proxy: nessuna API key nel client
         serverUrl:
           this.liveAvatarServerUrl ||
           import.meta.env.VITE_LIVEAVATAR_SERVER_URL ||
@@ -1992,11 +1990,7 @@ export default defineComponent({
       try { this.liveavatar.attempts = (this.liveavatar.attempts || 0) + 1; } catch { }
 
       try {
-        if (!this.LIVEAVATAR_CONFIG.apiKey || !this.LIVEAVATAR_CONFIG.serverUrl) {
-          this.setStatus("Config mancante");
-          this.markLiveAvatarFailed("Config", "LIVEAVATAR config missing");
-          return;
-        }
+        // L'API key è sul server: lato client serve solo avere un origin valido per chiamare /api/liveavatar/start
 
         // Config avatar/voice/context via URL params (retro-compat: ?avatar= e ?voice=)
         const urlParams = new URLSearchParams(window.location.search);
@@ -2031,190 +2025,131 @@ export default defineComponent({
         };
 
         try {
-          console.log("[EnjoyHen] LiveAvatar /v1/sessions/token body:", {
+          console.log("[EnjoyHen] LiveAvatar /api/liveavatar/start body:", {
             mode: tokenBody.mode,
             avatar_id: tokenBody.avatar_id,
             avatar_persona: tokenBody.avatar_persona,
           });
         } catch { }
 
+        const webComponentOrigin = window.__ENJOY_HEN_ORIGIN__ || window.location.origin;
         this.httpJson(
           "POST",
-          `${this.LIVEAVATAR_CONFIG.serverUrl}/v1/sessions/token`,
+          `${webComponentOrigin}/api/liveavatar/start`,
           {
             "Content-Type": "application/json",
             "accept": "application/json",
-            "X-API-KEY": this.LIVEAVATAR_CONFIG.apiKey,
           },
           tokenBody,
-          (tokJson) => {
-            const sessionToken =
-              (tokJson && (tokJson.session_token || tokJson.sessionToken)) ||
-              (tokJson && tokJson.data && (tokJson.data.session_token || tokJson.data.sessionToken));
-            if (!sessionToken) {
-              this.markLiveAvatarFailed("Token", tokJson || "No session_token from LiveAvatar");
+          (proxyJson) => {
+            // Risposta proxy: { code, data: { session_id, livekit_url, livekit_client_token, session_token, ... }, message }
+            const startData = (proxyJson && proxyJson.data) || {};
+            const url = (startData && (startData.livekit_url || startData.room_url || startData.url)) || "";
+            const accessToken = (startData && (startData.livekit_client_token || startData.room_token || startData.access_token || startData.token)) || "";
+            const sessionToken = (startData && startData.session_token) || "";
+            if (!url || !accessToken) {
+              this.markLiveAvatarFailed("Start payload", proxyJson || "Missing livekit_url/livekit_client_token");
               return;
             }
-            this.liveavatar.sessionToken = sessionToken;
-            this.setStatus("Avvio sessione...");
+            this.liveavatar.sessionToken = sessionToken || null;
+            this.liveavatar.sessionInfo = { url, access_token: accessToken };
+            this.setStatus("Connessione video...");
 
-            this.httpJson(
-              "POST",
-              `${this.LIVEAVATAR_CONFIG.serverUrl}/v1/sessions/start`,
-              {
-                "accept": "application/json",
-                "authorization": `Bearer ${this.liveavatar.sessionToken}`,
-              },
-              undefined,
-              (startJson) => {
-                // Leggi dalla docs: la response contiene i parametri LiveKit per joinare la room.
-                // Logghiamo la risposta per poter adeguare i nomi campi senza "inventare".
+            // Setup LiveKit room (uguale a prima)
+            this.loadScriptOnce(
+              "LivekitClient",
+              "https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js",
+              () => {
                 try {
-                  console.log("[EnjoyHen] LiveAvatar /v1/sessions/start response:", startJson);
-                } catch { }
-
-                const startData = (startJson && startJson.data) || startJson || {};
-                const livekitCfg =
-                  (startData && (startData.livekit_config || startData.livekit || startData.room)) || {};
-
-                const url =
-                  (startData && (startData.room_url || startData.livekit_url || startData.url)) ||
-                  (livekitCfg && (livekitCfg.room_url || livekitCfg.livekit_url || livekitCfg.url)) ||
-                  "";
-
-                const accessToken =
-                  (startData &&
-                    (startData.room_token ||
-                      startData.livekit_client_token ||
-                      startData.access_token ||
-                      startData.token ||
-                      startData.livekit_token)) ||
-                  (livekitCfg &&
-                    (livekitCfg.room_token ||
-                      livekitCfg.livekit_client_token ||
-                      livekitCfg.access_token ||
-                      livekitCfg.token ||
-                      livekitCfg.livekit_token)) ||
-                  "";
-
-                if (!url || !accessToken) {
-                  this.markLiveAvatarFailed("Start payload", startJson || "Missing room_url/room_token");
-                  return;
-                }
-
-                this.liveavatar.sessionInfo = { url, access_token: accessToken };
-                this.setStatus("Connessione video...");
-
-                // Setup LiveKit room
-                this.loadScriptOnce(
-                  "LivekitClient",
-                  "https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js",
-                  () => {
-                    try {
-                      if (!window.LivekitClient || !window.LivekitClient.Room) {
-                        this.markLiveAvatarFailed("LiveKit", "LivekitClient non disponibile");
-                        return;
-                      }
-
-                      this.liveavatar.room = new window.LivekitClient.Room({
-                        adaptiveStream: false,
-                        dynacast: true,
-                        videoCaptureDefaults: {
-                          resolution: window.LivekitClient.VideoPresets.h720.resolution,
-                        },
-                      });
-
-                      this.liveavatar.mediaStream = new MediaStream();
-
-                      const RoomEvent = window.LivekitClient.RoomEvent || {};
-                      const on = (evt, fn) => {
-                        try {
-                          if (evt) this.liveavatar.room.on(evt, fn);
-                        } catch { }
-                      };
-
-                      on(RoomEvent.TrackSubscribed, (track) => {
-                        try {
-                          if (!track || !track.kind) return;
-                          if (track.mediaStreamTrack) {
-                            this.liveavatar.mediaStream.addTrack(track.mediaStreamTrack);
-                          }
-
-                          // Evita AbortError: non ricaricare/ri-playare il <video> quando arriva la track audio.
-                          // Agganciamo lo stream e facciamo play solo quando arriva la track video (o se non era agganciato).
-                          if (this.heygenVideo) {
-                            const needsAttach = this.heygenVideo.srcObject !== this.liveavatar.mediaStream;
-                            if (needsAttach) {
-                              this.heygenVideo.srcObject = this.liveavatar.mediaStream;
-                            }
-                            // audio gestito via mediaStream; mute controllato dall'UI
-                            this.heygenVideo.muted = !this.snippetAudioOn;
-
-                            if (track.kind === "video") {
-                              try {
-                                // play() ritorna una Promise; evitiamo chiamate multiple che portano AbortError
-                                this.heygenVideo.play?.();
-                              } catch { }
-                            }
-                          }
-
-                          if (track.kind === "video") this.setStatus("Video connesso");
-                          if (track.kind === "audio") this.setStatus("Audio connesso");
-                          if (this.loadingOverlay) this.loadingOverlay.classList.add("hidden");
-                        } catch (e) {
-                          console.warn("Track subscription error:", e);
-                        }
-                      });
-
-                      on(RoomEvent.TrackUnsubscribed, (track) => {
-                        try {
-                          const mt = track && track.mediaStreamTrack;
-                          if (mt && this.liveavatar.mediaStream) this.liveavatar.mediaStream.removeTrack(mt);
-                        } catch { }
-                      });
-
-                      // Server events topic: agent-response (docs)
-                      on(RoomEvent.DataReceived, (payload, participant, kind, topic) => {
-                        try {
-                          if (topic !== "agent-response") return;
-                          const dec = new TextDecoder();
-                          const txt = dec.decode(payload);
-                          const ev = txt ? JSON.parse(txt) : null;
-                          const t = ev && (ev.type || ev.event_type || ev.eventType);
-                          if (!t) return;
-                          if (t === "avatar.speak_started") this.isSpeaking = true;
-                          if (t === "avatar.speak_ended") this.isSpeaking = false;
-                        } catch { }
-                      });
-
-                      // Connetti (senza gestire Promise qui per regola no asincrono)
-                      try {
-                        this.liveavatar.room.connect(url, accessToken);
-                      } catch (e) {
-                        console.warn("LiveKit connect error:", e);
-                      }
-
-                      this.liveavatar.started = true;
-                      this.liveavatar.connecting = false;
-                      this.liveavatar.failed = false;
-                      this.setStatus("Connesso");
-                      if (typeof onReady === "function") onReady();
-                    } catch (e) {
-                      console.error("LiveAvatar session error:", e);
-                      this.markLiveAvatarFailed("LiveAvatar session", e);
-                    }
+                  if (!window.LivekitClient || !window.LivekitClient.Room) {
+                    this.markLiveAvatarFailed("LiveKit", "LivekitClient non disponibile");
+                    return;
                   }
-                );
-              },
-              (errJson) => {
-                console.error("LiveAvatar start error:", errJson);
-                this.markLiveAvatarFailed("Start", errJson || "LiveAvatar start failed");
+
+                  this.liveavatar.room = new window.LivekitClient.Room({
+                    adaptiveStream: false,
+                    dynacast: true,
+                    videoCaptureDefaults: {
+                      resolution: window.LivekitClient.VideoPresets.h720.resolution,
+                    },
+                  });
+
+                  this.liveavatar.mediaStream = new MediaStream();
+
+                  const RoomEvent = window.LivekitClient.RoomEvent || {};
+                  const on = (evt, fn) => {
+                    try {
+                      if (evt) this.liveavatar.room.on(evt, fn);
+                    } catch { }
+                  };
+
+                  on(RoomEvent.TrackSubscribed, (track) => {
+                    try {
+                      if (!track || !track.kind) return;
+                      if (track.mediaStreamTrack) {
+                        this.liveavatar.mediaStream.addTrack(track.mediaStreamTrack);
+                      }
+
+                      if (this.heygenVideo) {
+                        const needsAttach = this.heygenVideo.srcObject !== this.liveavatar.mediaStream;
+                        if (needsAttach) {
+                          this.heygenVideo.srcObject = this.liveavatar.mediaStream;
+                        }
+                        this.heygenVideo.muted = !this.snippetAudioOn;
+                        if (track.kind === "video") {
+                          try { this.heygenVideo.play?.(); } catch { }
+                        }
+                      }
+
+                      if (track.kind === "video") this.setStatus("Video connesso");
+                      if (track.kind === "audio") this.setStatus("Audio connesso");
+                      if (this.loadingOverlay) this.loadingOverlay.classList.add("hidden");
+                    } catch (e) {
+                      console.warn("Track subscription error:", e);
+                    }
+                  });
+
+                  on(RoomEvent.TrackUnsubscribed, (track) => {
+                    try {
+                      const mt = track && track.mediaStreamTrack;
+                      if (mt && this.liveavatar.mediaStream) this.liveavatar.mediaStream.removeTrack(mt);
+                    } catch { }
+                  });
+
+                  on(RoomEvent.DataReceived, (payload, participant, kind, topic) => {
+                    try {
+                      if (topic !== "agent-response") return;
+                      const dec = new TextDecoder();
+                      const txt = dec.decode(payload);
+                      const ev = txt ? JSON.parse(txt) : null;
+                      const t = ev && (ev.type || ev.event_type || ev.eventType);
+                      if (!t) return;
+                      if (t === "avatar.speak_started") this.isSpeaking = true;
+                      if (t === "avatar.speak_ended") this.isSpeaking = false;
+                    } catch { }
+                  });
+
+                  try {
+                    this.liveavatar.room.connect(url, accessToken);
+                  } catch (e) {
+                    console.warn("LiveKit connect error:", e);
+                  }
+
+                  this.liveavatar.started = true;
+                  this.liveavatar.connecting = false;
+                  this.liveavatar.failed = false;
+                  this.setStatus("Connesso");
+                  if (typeof onReady === "function") onReady();
+                } catch (e) {
+                  console.error("LiveAvatar session error:", e);
+                  this.markLiveAvatarFailed("LiveAvatar session", e);
+                }
               }
             );
           },
           (errJson) => {
             console.error("LiveAvatar token error:", errJson);
-            this.markLiveAvatarFailed("Token", errJson || "LiveAvatar token failed");
+            this.markLiveAvatarFailed("Start", errJson || "LiveAvatar start proxy failed");
           }
         );
       } catch (e) {
@@ -2225,16 +2160,14 @@ export default defineComponent({
 
     cleanup() {
       try {
-        // Chiudi sessione LiveAvatar lato API (best effort)
+        // Stop via proxy server-side (API key sempre sul server)
         if (this.liveavatar && this.liveavatar.sessionToken) {
+          const webComponentOrigin = window.__ENJOY_HEN_ORIGIN__ || window.location.origin;
           this.httpJson(
             "POST",
-            `${this.LIVEAVATAR_CONFIG.serverUrl}/v1/sessions/stop`,
-            {
-              "accept": "application/json",
-              "authorization": `Bearer ${this.liveavatar.sessionToken}`,
-            },
-            undefined,
+            `${webComponentOrigin}/api/liveavatar/stop`,
+            { "Content-Type": "application/json", "accept": "application/json" },
+            { session_token: this.liveavatar.sessionToken },
             () => { },
             () => { }
           );

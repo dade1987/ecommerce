@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\ChatTranscriptController;
 use App\Http\Controllers\Api\GoogleSpeechTranscriptionController;
 use App\Http\Controllers\Api\InterviewMindMapController;
 use App\Http\Controllers\Api\InterviewSuggestionController;
+use App\Http\Controllers\Api\LiveAvatarSessionController;
 use App\Http\Controllers\Api\NeuronTranslatorStreamController;
 use App\Http\Controllers\Api\NeuronWebsiteStreamController;
 use App\Http\Controllers\Api\OperatorFeedbackController;
@@ -152,6 +153,10 @@ Route::post('/whisper/transcribe', [WhisperTranscriptionController::class, 'tran
 Route::post('/google-speech/transcribe', [GoogleSpeechTranscriptionController::class, 'transcribe']);
 Route::post('/chatbot/email-transcript', [ChatTranscriptController::class, 'emailTranscript']);
 Route::get('/chatbot/history', [ChatTranscriptController::class, 'history']);
+
+// LiveAvatar proxy: API key solo server-side
+Route::post('/liveavatar/start', [LiveAvatarSessionController::class, 'start']);
+Route::post('/liveavatar/stop', [LiveAvatarSessionController::class, 'stop']);
 
 // Endpoint per servire immagini/risorse statiche con CORS
 Route::get('/static/{filename}', function (Request $request, $filename) {
