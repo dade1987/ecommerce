@@ -14,7 +14,7 @@ use function Safe\preg_match;
 class WhisperTranscriptionController extends Controller
 {
     /**
-     * Trascrive un chunk audio usando OpenAI Whisper.
+     * Trascrive un chunk audio usando Groq Whisper 3 Turbo.
      *
      * POST /api/whisper/transcribe
      * Form-data:
@@ -57,13 +57,13 @@ class WhisperTranscriptionController extends Controller
         }
 
         try {
-            $apiKey = config('openapi.key');
+            $apiKey = config('groq.key');
             if (! $apiKey) {
-                return response()->json(['error' => 'OpenAI API key mancante in configurazione.'], 500);
+                return response()->json(['error' => 'Groq API key mancante in configurazione.'], 500);
             }
 
             $client = new Client([
-                'base_uri' => 'https://api.openai.com/v1/',
+                'base_uri' => 'https://api.groq.com/openai/v1/',
                 'headers' => [
                     'Authorization' => 'Bearer '.$apiKey,
                 ],
@@ -119,14 +119,9 @@ class WhisperTranscriptionController extends Controller
                 ];
             }
 
-            // Prova il "miglior" modello disponibile in cascata:
-            // 1) gpt-4o-transcribe (se disponibile per l'account)
-            // 2) gpt-4o-mini-transcribe
-            // 3) whisper-1 (fallback sicuro)
+            // Usa Whisper 3 Turbo di Groq
             $modelsToTry = [
-                'gpt-4o-transcribe',
-                'gpt-4o-mini-transcribe',
-                'whisper-1',
+                'whisper-3-turbo',
             ];
 
             // Semplificazione del flusso quando sappiamo già che la lingua può essere
@@ -162,9 +157,8 @@ class WhisperTranscriptionController extends Controller
                     'contents' => $candidateModel,
                 ];
 
-                // I modelli GPT-* di trascrizione non supportano response_format=verbose_json:
-                // per loro usiamo "json"; per whisper-1 manteniamo "verbose_json"
-                $responseFormat = (strpos($candidateModel, 'gpt-4o') === 0) ? 'json' : 'verbose_json';
+                // Whisper 3 Turbo supporta verbose_json
+                $responseFormat = 'verbose_json';
                 $multipart[] = [
                     'name' => 'response_format',
                     'contents' => $responseFormat,
@@ -198,7 +192,7 @@ class WhisperTranscriptionController extends Controller
                     || str_contains(strtolower($errorMessage), 'unknown model');
 
                 // Se il modello non esiste / non è disponibile, logga e prova il successivo
-                if ($isModelMissingError && $candidateModel !== 'whisper-1') {
+                if ($isModelMissingError && $candidateModel !== 'whisper-3-turbo') {
                     Log::warning('WhisperTranscriptionController: modello non disponibile, fallback al successivo', [
                         'model' => $candidateModel,
                         'status' => $status,
@@ -211,7 +205,7 @@ class WhisperTranscriptionController extends Controller
                 // Per altri errori (rate limit, auth, ecc.) logghiamo ma non blocchiamo
                 // il flusso dell'applicazione: restituiamo semplicemente testo vuoto,
                 // così il frontend non vede un errore HTTP e il microfono non si blocca.
-                Log::error('OpenAI Whisper error', [
+                Log::error('Groq Whisper error', [
                     'model' => $candidateModel,
                     'status' => $status,
                     'body' => $body,
@@ -424,7 +418,7 @@ class WhisperTranscriptionController extends Controller
                     ? (string) $decodedError['error']['message']
                     : '';
 
-                Log::error('OpenAI Whisper error (parallel lingue forzate)', [
+                Log::error('Groq Whisper error (parallel lingue forzate)', [
                     'forced_language' => $forcedLanguage,
                     'status' => $status,
                     'body' => $body,
@@ -535,12 +529,20 @@ class WhisperTranscriptionController extends Controller
         }
 
         try {
-            $apiKey = config('openapi.key');
+            $apiKey = config('groq.key');
             if (! $apiKey) {
                 return true;
             }
 
-            $client = \OpenAI::client($apiKey);
+            $client = new Client([
+                'base_uri' => 'https://api.groq.com/openai/v1/',
+                'headers' => [
+                    'Authorization' => 'Bearer '.$apiKey,
+                    'Content-Type' => 'application/json',
+                ],
+                'http_errors' => false,
+                'timeout' => 30,
+            ]);
 
             // Costruiamo una descrizione testuale delle lingue consentite (es. "it, en")
             $allowedDesc = '';
@@ -548,34 +550,49 @@ class WhisperTranscriptionController extends Controller
                 $allowedDesc = implode(', ', $allowedLanguages);
             }
 
-            $response = $client->chat()->create([
-                'model' => 'gpt-4o-mini',
-                'temperature' => 0,
-                'max_tokens' => 2,
-                'messages' => [
-                    [
-                        'role' => 'system',
-                        'content' => 'You are a strict ASR quality checker for a bilingual interpreter. '
-                            .'Given a short automatic transcription, you MUST answer ONLY "OK" or "RETRY". '
-                            .'ALLOWED LANGUAGE CODES: ['.$allowedDesc.']. '
-                            .'Answer "OK" ONLY IF ALL of the following are true: '
-                            .'(1) the sentence is coherent and sounds like something a human would say in a conversation; '
-                            .'(2) the language of the text appears to be one of the allowed language codes (if the language is clearly different, answer "RETRY"); '
-                            .'(3) the content could plausibly belong to an ongoing call or dialog (reject obvious subtitles, credits, URLs, ads, boilerplate legal text, UI labels, etc.). '
-                            .'Answer "RETRY" for noise, random characters, truncated or repeated fragments, text in a clearly different language, or content that is obviously unrelated to a live conversation. '
-                            .'Do not explain, no extra words.',
-                    ],
-                    [
-                        'role' => 'user',
-                        'content' => $clean,
+            $response = $client->post('chat/completions', [
+                'json' => [
+                    'model' => 'llama-3.1-8b-instant',
+                    'temperature' => 0,
+                    'max_tokens' => 2,
+                    'messages' => [
+                        [
+                            'role' => 'system',
+                            'content' => 'You are a strict ASR quality checker for a bilingual interpreter. '
+                                .'Given a short automatic transcription, you MUST answer ONLY "OK" or "RETRY". '
+                                .'ALLOWED LANGUAGE CODES: ['.$allowedDesc.']. '
+                                .'Answer "OK" ONLY IF ALL of the following are true: '
+                                .'(1) the sentence is coherent and sounds like something a human would say in a conversation; '
+                                .'(2) the language of the text appears to be one of the allowed language codes (if the language is clearly different, answer "RETRY"); '
+                                .'(3) the content could plausibly belong to an ongoing call or dialog (reject obvious subtitles, credits, URLs, ads, boilerplate legal text, UI labels, etc.). '
+                                .'Answer "RETRY" for noise, random characters, truncated or repeated fragments, text in a clearly different language, or content that is obviously unrelated to a live conversation. '
+                                .'Do not explain, no extra words.',
+                        ],
+                        [
+                            'role' => 'user',
+                            'content' => $clean,
+                        ],
                     ],
                 ],
             ]);
 
-            $choice = $response->choices[0] ?? null;
+            $status = $response->getStatusCode();
+            $body = (string) $response->getBody();
+
+            if ($status < 200 || $status >= 300) {
+                Log::warning('Groq quality check error', [
+                    'status' => $status,
+                    'body' => $body,
+                ]);
+
+                return true;
+            }
+
+            $json = json_decode($body, true);
+            $choice = $json['choices'][0] ?? null;
             $content = '';
-            if ($choice && isset($choice->message->content)) {
-                $content = (string) $choice->message->content;
+            if ($choice && isset($choice['message']['content'])) {
+                $content = (string) $choice['message']['content'];
             }
 
             $normalized = strtolower(trim($content));
