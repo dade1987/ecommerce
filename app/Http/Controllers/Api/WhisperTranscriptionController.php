@@ -14,7 +14,7 @@ use function Safe\preg_match;
 class WhisperTranscriptionController extends Controller
 {
     /**
-     * Trascrive un chunk audio usando Groq Whisper 3 Turbo.
+     * Trascrive un chunk audio usando Groq Whisper Large V3 Turbo.
      *
      * POST /api/whisper/transcribe
      * Form-data:
@@ -119,9 +119,9 @@ class WhisperTranscriptionController extends Controller
                 ];
             }
 
-            // Usa Whisper 3 Turbo di Groq
+            // Usa Whisper Large V3 Turbo di Groq
             $modelsToTry = [
-                'whisper-3-turbo',
+                'whisper-large-v3-turbo',
             ];
 
             // Semplificazione del flusso quando sappiamo già che la lingua può essere
@@ -192,7 +192,7 @@ class WhisperTranscriptionController extends Controller
                     || str_contains(strtolower($errorMessage), 'unknown model');
 
                 // Se il modello non esiste / non è disponibile, logga e prova il successivo
-                if ($isModelMissingError && $candidateModel !== 'whisper-3-turbo') {
+                if ($isModelMissingError && $candidateModel !== 'whisper-large-v3-turbo') {
                     Log::warning('WhisperTranscriptionController: modello non disponibile, fallback al successivo', [
                         'model' => $candidateModel,
                         'status' => $status,
