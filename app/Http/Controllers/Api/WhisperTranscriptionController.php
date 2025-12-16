@@ -56,11 +56,10 @@ class WhisperTranscriptionController extends Controller
             }
         }
 
-        // TEMP: per stabilizzare il comportamento (e far tornare l'auto-pausa),
-        // inviamo UNA SOLA VOLTA a Whisper lasciando l'auto-rilevamento lingua.
-        // Quindi: ignoriamo qualsiasi lingua forzata dal frontend e disattiviamo
-        // la logica "forced languages" (multi-call / parallelo).
-        $forceAutoDetectLanguage = true;
+        // TEMP: inviamo UNA SOLA VOLTA a Whisper (niente forced languages / parallelo).
+        // La lingua viene auto-rilevata *solo* se il frontend non fornisce un hint.
+        // Se invece il frontend passa 'lang' (es. pulsante A/B), lo rispettiamo.
+        $forceAutoDetectLanguage = ! ($langHeader && trim((string) $langHeader) !== '');
         if ($forceAutoDetectLanguage) {
             $language = null;
         }

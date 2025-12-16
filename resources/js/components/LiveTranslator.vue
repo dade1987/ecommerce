@@ -153,20 +153,41 @@
                         </div>
                     </div>
 
-                    <!-- Pulsante microfono unico (auto-rilevamento lingua sorgente → traduzione in langB) -->
-                    <div class="mt-3">
-                        <button type="button" @click="toggleListeningForLang('A')" :disabled="!langB" class="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition
+                    <!-- Due pulsanti microfono: forza la lingua di trascrizione (call) -->
+                    <div class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <button type="button" @click="toggleListeningForLang('A')" :disabled="!langA || !langB"
+                            class="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition
                                 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 border"
-                            :class="isListening
+                            :class="isListening && activeSpeaker === 'A'
                                 ? 'bg-emerald-600 text-white border-emerald-400 shadow-lg shadow-emerald-500/30'
                                 : 'bg-slate-700 text-slate-100 border-slate-500 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed'">
                             <span
                                 class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-black/30 border border-slate-500">
                                 <span class="inline-block w-1.5 h-3 rounded-full"
-                                    :class="isListening ? 'bg-red-400 animate-pulse' : 'bg-slate-300'"></span>
+                                    :class="isListening && activeSpeaker === 'A' ? 'bg-red-400 animate-pulse' : 'bg-slate-300'"></span>
                             </span>
                             <span>
-                                {{ isListening ? ui.speakerAActive : ui.speakerASpeak }}
+                                {{ isListening && activeSpeaker === 'A'
+                                    ? ui.speakerAActive
+                                    : (langB ? (ui.speakerASpeak + ' (' + getLangLabel(langB) + ')') : ui.speakerASpeak) }}
+                            </span>
+                        </button>
+
+                        <button type="button" @click="toggleListeningForLang('B')" :disabled="!langA || !langB"
+                            class="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition
+                                focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 border"
+                            :class="isListening && activeSpeaker === 'B'
+                                ? 'bg-emerald-600 text-white border-emerald-400 shadow-lg shadow-emerald-500/30'
+                                : 'bg-slate-700 text-slate-100 border-slate-500 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed'">
+                            <span
+                                class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-black/30 border border-slate-500">
+                                <span class="inline-block w-1.5 h-3 rounded-full"
+                                    :class="isListening && activeSpeaker === 'B' ? 'bg-red-400 animate-pulse' : 'bg-slate-300'"></span>
+                            </span>
+                            <span>
+                                {{ isListening && activeSpeaker === 'B'
+                                    ? ui.speakerBActive
+                                    : (langA ? (ui.speakerBSpeak + ' (' + getLangLabel(langA) + ')') : ui.speakerBSpeak) }}
                             </span>
                         </button>
                     </div>
@@ -934,8 +955,8 @@ export default {
                     youtubeAutoResumeHint: '',
                     speakerAActive: 'Registrazione in corso',
                     speakerASpeak: 'Registra',
-                    speakerBActive: 'Parlante B attivo',
-                    speakerBSpeak: 'Parla Lingua B',
+                    speakerBActive: 'Registrazione in corso',
+                    speakerBSpeak: 'Registra',
                     selectLangAPlaceholder: '-- Seleziona la lingua dell\'interlocutore --',
                     selectLangBPlaceholder: '-- Seleziona lingua di traduzione --',
                     selectOptionPlaceholder: '-- Seleziona --',
@@ -1035,8 +1056,8 @@ export default {
                     youtubeAutoResumeHint: '',
                     speakerAActive: 'Recording…',
                     speakerASpeak: 'Record',
-                    speakerBActive: 'Speaker B active',
-                    speakerBSpeak: 'Speak Language B',
+                    speakerBActive: 'Recording…',
+                    speakerBSpeak: 'Record',
                     selectLangAPlaceholder: '-- Select interlocutor language --',
                     selectLangBPlaceholder: '-- Select translation language --',
                     selectOptionPlaceholder: '-- Select --',
@@ -2937,11 +2958,22 @@ export default {
                     return;
                 }
             } else {
-                // Modalità interprete standard: serve solo la lingua dell'utente (langB)
-                if (!this.langB) {
-                    this.statusMessage = this.ui.statusLangPairMissing;
-                    console.warn('⚠️ toggleListeningForLang: missing langB (user language)', {
+                // Tab "call": per trascrivere bene forziamo esplicitamente la lingua (A o B).
+                // Quindi servono entrambe le lingue selezionate (A e B).
+                if (!this.langA || !this.langB) {
+                    this.statusMessage = this.ui.statusSelectLangAB || this.ui.statusLangPairMissing;
+                    console.warn('⚠️ toggleListeningForLang: missing langA/langB', {
                         speaker,
+                        langA: this.langA,
+                        langB: this.langB,
+                    });
+                    return;
+                }
+                if (this.langA === this.langB) {
+                    this.statusMessage = this.ui.statusLangPairMissing;
+                    console.warn('⚠️ toggleListeningForLang: langA === langB', {
+                        speaker,
+                        langA: this.langA,
                         langB: this.langB,
                     });
                     return;
@@ -2976,14 +3008,19 @@ export default {
                     }
                 }
             } else {
-                // Nella tab "call" usiamo un solo microfono:
-                // - la lingua sorgente viene auto-rilevata dal motore (Whisper)
-                // - la lingua di destinazione è SEMPRE langB (lingua dell'utente)
+                // Tab "call": due pulsanti → forziamo lingua di input e target in base al parlante.
+                // - speaker A: input=langB → target=langA
+                // - speaker B: input=langA → target=langB
+                const langAObj = this.availableLanguages.find(l => l.code === this.langA);
                 const langBObj = this.availableLanguages.find(l => l.code === this.langB);
-                if (langBObj) {
-                    this.currentTargetLang = this.langB;
-                    // currentMicLang lo lasciamo vuoto per indicare "auto"
-                    this.currentMicLang = '';
+                if (langAObj && langBObj) {
+                    if (speaker === 'A') {
+                        this.currentMicLang = langBObj.micCode;
+                        this.currentTargetLang = this.langA;
+                    } else {
+                        this.currentMicLang = langAObj.micCode;
+                        this.currentTargetLang = this.langB;
+                    }
                 }
             }
 
