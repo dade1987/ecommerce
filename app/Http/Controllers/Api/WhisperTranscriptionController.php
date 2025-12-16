@@ -258,6 +258,10 @@ class WhisperTranscriptionController extends Controller
                 }
             }
 
+            // TEMP: disabilita il guard (rallenta e può bocciare pezzi validi).
+            // Quando lo riattiveremo, basterà impostare true.
+            $enableGuard = false;
+
             // Controllo grammaticale / allucinazioni / lingua con un modello leggero (gpt-4o-mini).
             // Il guard accetta la frase solo se:
             // - è coerente e "umana"
@@ -265,7 +269,7 @@ class WhisperTranscriptionController extends Controller
             // - non appare palesemente fuori contesto (sottotitoli random, disclaimer, spam, ecc.)
             // In caso di dubbio, chiediamo UNA SOLA VOLTA un retry della trascrizione;
             // se fallisce di nuovo, restituiamo testo vuoto.
-            if ($text !== '' && ! $this->isTranscriptionPlausible($text, $allowedLanguages)) {
+            if ($enableGuard && $text !== '' && ! $this->isTranscriptionPlausible($text, $allowedLanguages)) {
                 Log::info('WhisperTranscriptionController: trascrizione bocciata dal guard, tentativo di retry', [
                     'text_preview' => mb_substr($text, 0, 120),
                 ]);
