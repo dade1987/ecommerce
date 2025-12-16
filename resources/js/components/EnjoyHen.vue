@@ -464,6 +464,8 @@ import WhisperSpeechRecognition from "../utils/WhisperSpeechRecognition";
 export default defineComponent({
   name: "EnjoyHen",
   props: {
+    // Backward compatible: i vecchi attributi "heygen*" ora possono contenere anche config LiveAvatar.
+    // Se passi anche le props "liveAvatar*", queste hanno priorità.
     heygenApiKey: {
       type: String,
       default: "",
@@ -471,6 +473,14 @@ export default defineComponent({
     heygenServerUrl: {
       type: String,
       default: "https://api.heygen.com",
+    },
+    liveAvatarApiKey: {
+      type: String,
+      default: "",
+    },
+    liveAvatarServerUrl: {
+      type: String,
+      default: "https://api.liveavatar.com",
     },
     locale: {
       type: String,
@@ -523,17 +533,21 @@ export default defineComponent({
       recognition: null,
       audioCtx: null,
       currentEventSource: null,
-      HEYGEN_CONFIG: {
+      LIVEAVATAR_CONFIG: {
         apiKey: "",
-        serverUrl: "https://api.heygen.com",
+        serverUrl: "https://api.liveavatar.com",
       },
-      heygen: {
+      liveavatar: {
         sessionInfo: null,
         room: null,
         mediaStream: null,
         sessionToken: null,
         connecting: false,
         started: false,
+        failed: false,
+        failContext: "",
+        failMessage: "",
+        attempts: 0,
       },
       // URL della fonte principale (RAG sito) dell'ultima risposta
       lastSourceUrl: "",
@@ -561,8 +575,48 @@ export default defineComponent({
     } catch { }
   },
   methods: {
+    resetLiveAvatarFailure() {
+      try {
+        if (!this.liveavatar) return;
+        this.liveavatar.failed = false;
+        this.liveavatar.failContext = "";
+        this.liveavatar.failMessage = "";
+      } catch { }
+    },
+
+    markLiveAvatarFailed(context, detail) {
+      try {
+        if (this.liveavatar) {
+          this.liveavatar.failed = true;
+          this.liveavatar.failContext = context || "LiveAvatar";
+          this.liveavatar.failMessage = detail && typeof detail === "object"
+            ? (detail.message || detail.error || JSON.stringify(detail))
+            : String(detail || "");
+          this.liveavatar.connecting = false;
+        }
+      } catch { }
+
+      try {
+        this.avatarErrorSimple = "Errore LiveAvatar: riprova manualmente (nessun retry automatico).";
+        const ctx = context ? "[" + context + "] " : "";
+        const msg = detail && typeof detail === "object"
+          ? (detail.message || detail.error || JSON.stringify(detail))
+          : String(detail || "");
+        this.avatarErrorDetails = (ctx + msg).trim();
+      } catch { }
+
+      try {
+        this.setStatus("Errore LiveAvatar (retry disabilitato)");
+      } catch { }
+
+      try {
+        if (this.loadingOverlay) this.loadingOverlay.classList.add("hidden");
+      } catch { }
+    },
+
     onLauncherClick() {
       try {
+        this.resetLiveAvatarFailure();
         this.widgetOpen = true;
         this.snippetMenuOpen = false;
         this.snippetTextMode = false;
@@ -572,7 +626,7 @@ export default defineComponent({
         if (this.loadingOverlay) {
           this.loadingOverlay.classList.remove("hidden");
         }
-        this.ensureHeyGenSession().then(() => {
+        this.ensureLiveAvatarSession(true, () => {
           try {
             if (!this.introPlayed) {
               const greeting = this.getGreetingMessage
@@ -859,15 +913,10 @@ export default defineComponent({
           this.clearAvatarError();
         }
 
-        // Se esiste già una sessione HeyGen attiva, riaggancio lo stream al nuovo elemento <video>
-        if (
-          this.heygen &&
-          this.heygen.started &&
-          this.heygen.mediaStream &&
-          this.heygenVideo
-        ) {
+        // Se esiste già una sessione LiveAvatar attiva, riaggancio lo stream al nuovo elemento <video>
+        if (this.liveavatar && this.liveavatar.started && this.liveavatar.mediaStream && this.heygenVideo) {
           try {
-            this.heygenVideo.srcObject = this.heygen.mediaStream;
+            this.heygenVideo.srcObject = this.liveavatar.mediaStream;
             this.heygenVideo.muted = !this.snippetAudioOn;
             this.heygenVideo.play?.();
           } catch { }
@@ -877,13 +926,12 @@ export default defineComponent({
           return;
         }
 
-        // Se non c'è ancora una sessione attiva, avvio (o ri-avvio) la connessione HeyGen
+        // Se non c'è ancora una sessione attiva, avvio (o ri-avvio) la connessione LiveAvatar
         if (this.loadingOverlay) {
           this.loadingOverlay.classList.remove("hidden");
         }
-        if (this.ensureHeyGenSession) {
-          this.ensureHeyGenSession();
-        }
+        // Evita loop: se l'ultima connessione è fallita, non riprova automaticamente.
+        if (this.ensureLiveAvatarSession) this.ensureLiveAvatarSession(false);
       } catch { }
     },
 
@@ -967,17 +1015,30 @@ export default defineComponent({
       // Inizializza debug overlay
       this.initDebugOverlay(debugEnabled);
 
-      this.HEYGEN_CONFIG = {
-        apiKey: this.heygenApiKey || document.getElementById("enjoyHeyRoot")?.dataset?.heygenApiKey || "",
-        serverUrl: this.heygenServerUrl || document.getElementById("enjoyHeyRoot")?.dataset?.heygenServerUrl || "https://api.heygen.com",
+      const rootData = document.getElementById("enjoyHeyRoot")?.dataset || {};
+
+      // LiveAvatar config: priorità alle props liveAvatar*, fallback ai vecchi attributi heygen*
+      this.LIVEAVATAR_CONFIG = {
+        apiKey:
+          this.liveAvatarApiKey ||
+          rootData.liveavatarApiKey ||
+          this.heygenApiKey ||
+          rootData.heygenApiKey ||
+          "",
+        serverUrl:
+          this.liveAvatarServerUrl ||
+          rootData.liveavatarServerUrl ||
+          this.heygenServerUrl ||
+          rootData.heygenServerUrl ||
+          "https://api.liveavatar.com",
       };
 
-      console.log("[EnjoyHen] initComponent() HEYGEN_CONFIG:", {
-        apiKey: this.HEYGEN_CONFIG.apiKey?.substring(0, 10) + "...",
-        serverUrl: this.HEYGEN_CONFIG.serverUrl,
+      console.log("[EnjoyHen] initComponent() LIVEAVATAR_CONFIG:", {
+        apiKey: this.LIVEAVATAR_CONFIG.apiKey?.substring(0, 10) + "...",
+        serverUrl: this.LIVEAVATAR_CONFIG.serverUrl,
       });
 
-      this.heygen = {
+      this.liveavatar = {
         sessionInfo: null,
         room: null,
         mediaStream: null,
@@ -1005,19 +1066,19 @@ export default defineComponent({
             return;
           }
           console.log(`[EnjoyHen Console] Invio messaggio a HeyGen: "${text}"`);
-          this.heygenSendRepeat(text);
+          this.liveAvatarSpeakText(text);
         },
         interrupt: () => {
           console.log('[EnjoyHen Console] Interrompo il parlato corrente');
-          this.heygenInterrupt();
+          this.liveAvatarInterrupt();
         },
-        ensureSession: async () => {
-          console.log('[EnjoyHen Console] Assicuro che la sessione HeyGen sia attiva');
-          await this.ensureHeyGenSession();
+        ensureSession: () => {
+          console.log('[EnjoyHen Console] Assicuro che la sessione LiveAvatar sia attiva');
+          this.ensureLiveAvatarSession();
         },
-        stop: async () => {
-          console.log('[EnjoyHen Console] Fermo e chiudo la sessione HeyGen');
-          await this.cleanup();
+        stop: () => {
+          console.log('[EnjoyHen Console] Fermo e chiudo la sessione LiveAvatar');
+          this.cleanup();
         },
       };
 
@@ -1106,7 +1167,7 @@ export default defineComponent({
       } catch { }
     },
 
-    async sendTranscriptEmail() {
+    sendTranscriptEmail() {
       try {
         const isSnippet = import.meta.env.VITE_IS_WEB_COMPONENT || false;
         const email = isSnippet
@@ -1140,31 +1201,32 @@ export default defineComponent({
 
         const webComponentOrigin = window.__ENJOY_HEN_ORIGIN__ || window.location.origin;
         const endpoint = `/api/chatbot/email-transcript`;
-        const res = await fetch(`${webComponentOrigin}${endpoint}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, thread_id: tid }),
-        });
+        this.httpJson(
+          "POST",
+          `${webComponentOrigin}${endpoint}`,
+          { "Content-Type": "application/json" },
+          { email, thread_id: tid },
+          (js) => {
+            if (!js || js.ok !== true) {
+              const errorMsg = (js && js.error) || "Errore nell'invio dell'email.";
+              if (isSnippet) this.emailTranscriptStatus = errorMsg;
+              else if (this.emailTranscriptStatusHen) this.emailTranscriptStatusHen.textContent = errorMsg;
+              return;
+            }
 
-        const js = await res.json().catch(() => ({}));
-        if (!res.ok || js.ok !== true) {
-          const errorMsg = js.error || "Errore nell'invio dell'email.";
-          if (isSnippet) {
-            this.emailTranscriptStatus = errorMsg;
-          } else if (this.emailTranscriptStatusHen) {
-            this.emailTranscriptStatusHen.textContent = errorMsg;
+            const successMsg = "✓ Trascrizione inviata con successo.";
+            if (isSnippet) this.emailTranscriptStatus = successMsg;
+            else if (this.emailTranscriptStatusHen) this.emailTranscriptStatusHen.textContent = successMsg;
+
+            // Niente timer: chiudiamo subito (regola no setTimeout)
+            this.closeTranscriptModal();
+          },
+          () => {
+            const errorMsg = "Errore imprevisto durante l'invio.";
+            if (isSnippet) this.emailTranscriptStatus = errorMsg;
+            else if (this.emailTranscriptStatusHen) this.emailTranscriptStatusHen.textContent = errorMsg;
           }
-          return;
-        }
-
-        const successMsg = "✓ Trascrizione inviata con successo.";
-        if (isSnippet) {
-          this.emailTranscriptStatus = successMsg;
-        } else if (this.emailTranscriptStatusHen) {
-          this.emailTranscriptStatusHen.textContent = successMsg;
-        }
-
-        setTimeout(() => this.closeTranscriptModal(), 900);
+        );
       } catch {
         const errorMsg = "Errore imprevisto durante l'invio.";
         const isSnippet = import.meta.env.VITE_IS_WEB_COMPONENT || false;
@@ -1251,22 +1313,19 @@ export default defineComponent({
         add(this.debugClearBtn, "click", () => {
           if (this.debugContent) this.debugContent.innerHTML = "";
         });
-        add(this.debugCopyBtn, "click", async () => {
+        add(this.debugCopyBtn, "click", () => {
           try {
             const lines = Array.from(this.debugContent?.children || []).map(
               (n) => n.textContent || ""
             );
             const text = lines.join("\n");
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-              await navigator.clipboard.writeText(text);
-            } else {
-              const ta = document.createElement("textarea");
-              ta.value = text;
-              document.body.appendChild(ta);
-              ta.select();
-              document.execCommand("copy");
-              document.body.removeChild(ta);
-            }
+            // Evita Clipboard API (Promise): usa sempre il fallback sincrono.
+            const ta = document.createElement("textarea");
+            ta.value = text;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand("copy");
+            document.body.removeChild(ta);
             console.log("DEBUG: logs copied", { lines: lines.length });
           } catch (e) {
             console.error("DEBUG: copy failed", e);
@@ -1409,15 +1468,16 @@ export default defineComponent({
       if (this.startChatContainer) {
         this.startChatContainer.classList.add("hidden");
       }
-      this.ensureHeyGenSession();
+      this.resetLiveAvatarFailure();
+      this.ensureLiveAvatarSession(true);
     },
 
-    async onMicClick() {
+    onMicClick() {
       // Se l'avatar sta parlando, il bottone agisce come STOP (interrupt) e non avvia il microfono
       if (this.isSpeaking) {
         try {
           console.log("MIC: stop requested while speaking, interrupting avatar");
-          await this.interruptAvatarSpeech();
+          this.interruptAvatarSpeech();
         } catch { }
         return;
       }
@@ -1440,16 +1500,11 @@ export default defineComponent({
           this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         }
         if (this.audioCtx.state === "suspended") {
-          await this.audioCtx.resume();
+          // resume() restituisce una Promise: non la gestiamo qui (regola no asincrono)
+          try { this.audioCtx.resume(); } catch { }
         }
       } catch (e) {
         console.warn("AUDIO: failed to init/resume", e);
-      }
-
-      const ok = await this.ensureMicPermission();
-      if (!ok) {
-        alert("Permesso microfono negato. Abilitalo nelle impostazioni del browser.");
-        return;
       }
 
       try {
@@ -1575,27 +1630,6 @@ export default defineComponent({
       }
     },
 
-    async ensureMicPermission() {
-      try {
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return true;
-
-        console.log("MIC: requesting permission");
-        const stream = await navigator.mediaDevices.getUserMedia({
-          audio: { echoCancellation: true },
-        });
-
-        try {
-          stream.getTracks().forEach((t) => t.stop());
-        } catch { }
-
-        console.log("MIC: permission OK");
-        return true;
-      } catch (e) {
-        console.warn("Mic permission denied or error", e);
-        return false;
-      }
-    },
-
     setListeningUI(active) {
       if (active) {
         if (this.listeningBadge) {
@@ -1608,7 +1642,7 @@ export default defineComponent({
       }
     },
 
-    async onSend() {
+    onSend() {
       console.log("[EnjoyHen] onSend() called");
       const message = (this.textInput?.value || "").trim();
       console.log("[EnjoyHen] onSend() message:", message);
@@ -1628,7 +1662,7 @@ export default defineComponent({
         if (isSnippet && this.snippetMessagesOn) {
           this.snippetMessages.push({ role: "user", content: message });
         }
-        await this.startStream(message);
+        this.startStream(message);
       } catch (e) {
         console.error("Error starting stream:", e);
         this.setFeedback("❌ Errore nella comunicazione");
@@ -1638,7 +1672,7 @@ export default defineComponent({
       }
     },
 
-    async startStream(message) {
+    startStream(message) {
       console.log("[EnjoyHen] startStream() start", { message });
       if (!message || message.trim() === "") {
         console.warn("[EnjoyHen] startStream() empty message, returning");
@@ -1739,8 +1773,8 @@ export default defineComponent({
           if (text) {
             // In modalità testo snippet: SOLO chat testuale, niente speech HeyGen
             if (!isSnippet || !this.snippetTextMode) {
-              console.log("[EnjoyHen] sending to heygenSendRepeat");
-              this.heygenSendRepeat(text);
+              console.log("[EnjoyHen] sending to liveAvatarSpeakText");
+              this.liveAvatarSpeakText(text);
             }
             if (isSnippet) {
               // Messaggio testuale principale
@@ -1833,300 +1867,408 @@ export default defineComponent({
       } catch { }
     },
 
-    async ensureHeyGenSession() {
-      if (this.heygen.started || this.heygen.connecting) return;
-      this.heygen.connecting = true;
-
+    httpJson(method, url, headers, bodyObj, onOk, onErr) {
       try {
-        if (!this.HEYGEN_CONFIG.apiKey || !this.HEYGEN_CONFIG.serverUrl) {
-          this.setStatus("Config mancante");
-          throw new Error("HEYGEN config missing");
-        }
-
-        this.setStatus("Richiesta token...");
-
-        // Get token
-        const tokRes = await fetch(
-          `${this.HEYGEN_CONFIG.serverUrl}/v1/streaming.create_token`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "X-Api-Key": this.HEYGEN_CONFIG.apiKey,
-            },
+        const xhr = new XMLHttpRequest();
+        xhr.open(method, url, true);
+        try {
+          Object.keys(headers || {}).forEach((k) => xhr.setRequestHeader(k, headers[k]));
+        } catch { }
+        xhr.onreadystatechange = () => {
+          if (xhr.readyState !== 4) return;
+          let js = null;
+          try {
+            js = xhr.responseText ? JSON.parse(xhr.responseText) : null;
+          } catch { }
+          const ok = xhr.status >= 200 && xhr.status < 300;
+          if (ok) {
+            if (typeof onOk === "function") onOk(js, xhr);
+          } else {
+            if (typeof onErr === "function") onErr(js, xhr);
           }
-        );
-
-        const tokJson = await tokRes.json();
-        this.heygen.sessionToken = tokJson?.data?.token;
-        if (!this.heygen.sessionToken) throw new Error("No session token");
-
-        this.setStatus("Token OK");
-
-        // Create session
-        // Nota: usiamo VP8 per massima compatibilità (soprattutto su Firefox/Linux).
-        const body = {
-          quality: "high",
-          version: "v2",
-          video_encoding: "VP8",
         };
-        if (this.heygenAvatar) body.avatar_name = this.heygenAvatar;
-        if (this.heygenVoice) body.voice = { voice_id: this.heygenVoice, rate: 1.0 };
-
-        const newRes = await fetch(
-          `${this.HEYGEN_CONFIG.serverUrl}/v1/streaming.new`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${this.heygen.sessionToken}`,
-            },
-            body: JSON.stringify(body),
-          }
-        );
-
-        const newJson = await newRes.json();
-        this.heygen.sessionInfo = newJson?.data;
-        if (!this.heygen.sessionInfo?.session_id) throw new Error("No session info");
-
-        this.setStatus("Connessione video...");
-
-        // Setup LiveKit room
-        if (!window.LivekitClient) {
-          await this.loadLiveKit();
-        }
-
-        this.heygen.room = new window.LivekitClient.Room({
-          adaptiveStream: false,
-          dynacast: true,
-          videoCaptureDefaults: {
-            resolution: window.LivekitClient.VideoPresets.h720.resolution,
-          },
-        });
-
-        this.heygen.mediaStream = new MediaStream();
-
-        this.heygen.room.on(
-          window.LivekitClient.RoomEvent.TrackSubscribed,
-          async (track) => {
-            try {
-              if (track.kind === "video") {
-                this.heygen.mediaStream.addTrack(track.mediaStreamTrack);
-                if (this.heygenVideo) {
-                  this.heygenVideo.srcObject = this.heygen.mediaStream;
-                  await this.heygenVideo.play().catch(() => { });
-                }
-                this.setStatus("Video connesso");
-              }
-              if (track.kind === "audio") {
-                this.heygen.mediaStream.addTrack(track.mediaStreamTrack);
-                this.setStatus("Audio connesso");
-              }
-            } catch (e) {
-              console.warn("Track subscription error:", e);
-            }
-          }
-        );
-
-        this.heygen.room.on(
-          window.LivekitClient.RoomEvent.TrackUnsubscribed,
-          (track) => {
-            const mt = track.mediaStreamTrack;
-            if (mt) this.heygen.mediaStream.removeTrack(mt);
-          }
-        );
-
-        await this.heygen.room.prepareConnection(
-          this.heygen.sessionInfo.url,
-          this.heygen.sessionInfo.access_token
-        );
-
-        await fetch(`${this.HEYGEN_CONFIG.serverUrl}/v1/streaming.start`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${this.heygen.sessionToken}`,
-          },
-          body: JSON.stringify({ session_id: this.heygen.sessionInfo.session_id }),
-        });
-
-        await this.heygen.room.connect(
-          this.heygen.sessionInfo.url,
-          this.heygen.sessionInfo.access_token
-        );
-
-        if (this.heygenVideo?.srcObject && this.heygenVideo.paused) {
-          await this.heygenVideo.play();
-        }
-
-        this.heygen.started = true;
-        this.setStatus("Connesso");
-        this.loadingOverlay.classList.add("hidden");
+        xhr.onerror = () => {
+          if (typeof onErr === "function") onErr(null, xhr);
+        };
+        const payload = bodyObj !== undefined ? JSON.stringify(bodyObj) : null;
+        xhr.send(payload);
       } catch (e) {
-        console.error("HeyGen session error:", e);
-        this.setStatus("Errore connessione");
-        if (this.handleAvatarError) {
-          this.handleAvatarError("HeyGen session", e);
-        }
-      } finally {
-        this.heygen.connecting = false;
+        if (typeof onErr === "function") onErr({ error: e && e.message ? e.message : String(e) }, null);
       }
     },
 
-    async heygenSendRepeat(text) {
+    loadScriptOnce(globalName, url, done) {
       try {
-        await this.ensureHeyGenSession();
-        if (!this.heygen.sessionInfo?.session_id) return;
-
-        // L'avatar inizia un nuovo parlato: aggiorna lo stato UI
-        this.isSpeaking = true;
-
-        const response = await fetch(`${this.HEYGEN_CONFIG.serverUrl}/v1/streaming.task`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${this.heygen.sessionToken}`,
-          },
-          body: JSON.stringify({
-            session_id: this.heygen.sessionInfo.session_id,
-            text,
-            task_type: "repeat",
-          }),
-        });
-
-        // L'endpoint restituisce la durata del parlato in millisecondi:
-        // la usiamo per sapere per quanto tempo considerare l'avatar "in parlato".
-        try {
-          const payload = await response.json();
-          const durationMs = payload?.data?.duration_ms;
-          if (typeof durationMs === "number" && durationMs > 0) {
-            const safetyBuffer = 400; // piccolo margine oltre la durata dichiarata
-            const totalMs = durationMs + safetyBuffer;
-            this.speakingUntil = Date.now() + totalMs;
-            if (this.speakingTimerId) {
-              clearTimeout(this.speakingTimerId);
-            }
-            this.speakingTimerId = window.setTimeout(() => {
-              try {
-                // Se non è già stato interrotto manualmente, chiudi lo stato di parlato
-                if (this.isSpeaking) {
-                  this.isSpeaking = false;
-                }
-              } catch { }
-            }, totalMs);
-          }
-        } catch { }
-
-      } catch (e) {
-        console.error("HeyGen repeat failed:", e);
-        this.isSpeaking = false;
-        if (this.handleAvatarError) {
-          this.handleAvatarError("HeyGen speak", e);
+        if (window[globalName]) {
+          if (typeof done === "function") done();
+          return;
         }
+        const existing = document.querySelector(`script[data-enjoy-load="${globalName}"]`);
+        if (existing) {
+          existing.addEventListener("load", () => (typeof done === "function" ? done() : 0));
+          existing.addEventListener("error", () => (typeof done === "function" ? done() : 0));
+          return;
+        }
+        const s = document.createElement("script");
+        s.setAttribute("data-enjoy-load", globalName);
+        s.src = url;
+        s.onload = () => (typeof done === "function" ? done() : 0);
+        s.onerror = () => (typeof done === "function" ? done() : 0);
+        document.head.appendChild(s);
+      } catch {
+        if (typeof done === "function") done();
       }
     },
 
-    async interruptAvatarSpeech() {
+    liveAvatarPublishCommand(type, data) {
       try {
-        if (this.speakingTimerId) {
-          clearTimeout(this.speakingTimerId);
-          this.speakingTimerId = null;
+        const room = this.liveavatar && this.liveavatar.room;
+        const lp = room && room.localParticipant;
+        if (!room || !lp || typeof lp.publishData !== "function") {
+          console.warn("LIVEAVATAR: publishData non disponibile");
+          return;
         }
-        this.speakingUntil = null;
+        // FULL mode: la docs parla di "eventi" con data schema separato.
+        // Per compatibilità tra varianti, inviamo sia:
+        // - `type` (usato spesso nei docs LiveKit)
+        // - `event_type` (usato in alcune reference/SDK)
+        // - `data` come oggetto payload
+        // - e i campi appiattiti (es. `text`) perché alcune implementazioni li accettano così.
+        const payload = Object.assign(
+          { type, event_type: type, data: data || {} },
+          data || {}
+        );
+        const enc = new TextEncoder();
+        const bytes = enc.encode(JSON.stringify(payload));
+        // Topic per command events FULL mode: agent-control (docs LiveAvatar FULL Mode Events)
+        lp.publishData(bytes, { reliable: true, topic: "agent-control" });
+      } catch (e) {
+        console.warn("LIVEAVATAR: publish command failed", e);
+      }
+    },
 
-        // Chiede a HeyGen di interrompere il parlato corrente ma mantiene viva la sessione
-        try {
-          await this.heygenInterrupt();
-        } catch { }
+    liveAvatarSpeakText(text) {
+      try {
+        const t = (text || "").trim();
+        if (!t) return;
+        // Azione utente: possiamo riprovare anche dopo un fallimento
+        this.ensureLiveAvatarSession(true, () => {
+          try {
+            this.liveAvatarPublishCommand("avatar.speak_text", { text: t });
+          } catch { }
+        });
+      } catch { }
+    },
 
-        // Aggiorna immediatamente lo stato UI
+    liveAvatarInterrupt() {
+      try {
+        this.liveAvatarPublishCommand("avatar.interrupt", {});
+      } catch { }
+    },
+
+    interruptAvatarSpeech() {
+      try {
+        this.liveAvatarInterrupt();
+      } catch { }
+      try {
         this.isSpeaking = false;
       } catch { }
     },
-    async heygenInterrupt() {
-      // API di interruzione voce HeyGen: interrompe il parlato in corso senza chiudere la sessione.
+
+    // force=true: consente il retry ma solo su azione utente
+    ensureLiveAvatarSession(force, onReady) {
+      // Back-compat: se chiamata come ensureLiveAvatarSession(cb)
+      if (typeof force === "function") {
+        onReady = force;
+        force = false;
+      }
+      if (this.liveavatar.started || this.liveavatar.connecting) {
+        if (typeof onReady === "function") onReady();
+        return;
+      }
+      if (!force && this.liveavatar.failed) {
+        return;
+      }
+      this.liveavatar.connecting = true;
+      try { this.liveavatar.attempts = (this.liveavatar.attempts || 0) + 1; } catch { }
+
       try {
-        if (!this.heygen || !this.heygen.sessionInfo?.session_id) {
+        if (!this.LIVEAVATAR_CONFIG.apiKey || !this.LIVEAVATAR_CONFIG.serverUrl) {
+          this.setStatus("Config mancante");
+          this.markLiveAvatarFailed("Config", "LIVEAVATAR config missing");
           return;
         }
 
-        await fetch(`${this.HEYGEN_CONFIG.serverUrl}/v1/streaming.interrupt`, {
-          method: "POST",
-          headers: {
+        // Config avatar/voice/context via URL params (retro-compat: ?avatar= e ?voice=)
+        const urlParams = new URLSearchParams(window.location.search);
+        // Default temporanei richiesti
+        // NB: avatar_id è REQUIRED dalla API; se non arriva via querystring usiamo un placeholder.
+        const DEFAULT_AVATAR_ID = "073b60a9-89a8-45aa-8902-c358f64d2852";
+        const DEFAULT_CONTEXT_ID = "93061942-6ab3-41a9-b897-c99943e25b4f";
+
+        // NB: la documentazione usa UUID con trattini; non li modifichiamo.
+        const avatarId = (urlParams.get("avatar_id") || urlParams.get("avatar") || DEFAULT_AVATAR_ID || "").trim();
+        const voiceId = (urlParams.get("voice_id") || urlParams.get("voice") || "").trim();
+        const contextId = (urlParams.get("context_id") || urlParams.get("context") || DEFAULT_CONTEXT_ID || "").trim();
+
+        this.setStatus("Richiesta session token...");
+
+        const lang = (this.getBackendLocale && this.getBackendLocale()) || "it";
+        // Payload secondo docs (Quickstart / API reference): campi a livello root.
+        // Ref: `https://docs.liveavatar.com/docs/quick-start-guide`
+        const avatarPersona = {
+          context_id: contextId,
+          language: lang,
+        };
+        // NON inviare voice_id vuoto: la validazione lo considera "invalid length 0".
+        if (voiceId) {
+          avatarPersona.voice_id = voiceId;
+        }
+
+        const tokenBody = {
+          mode: "FULL",
+          avatar_id: avatarId,
+          avatar_persona: avatarPersona,
+        };
+
+        try {
+          console.log("[EnjoyHen] LiveAvatar /v1/sessions/token body:", {
+            mode: tokenBody.mode,
+            avatar_id: tokenBody.avatar_id,
+            avatar_persona: tokenBody.avatar_persona,
+          });
+        } catch { }
+
+        this.httpJson(
+          "POST",
+          `${this.LIVEAVATAR_CONFIG.serverUrl}/v1/sessions/token`,
+          {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${this.heygen.sessionToken || ""}`,
-            "X-Api-Key": this.HEYGEN_CONFIG.apiKey || "",
+            "accept": "application/json",
+            "X-API-KEY": this.LIVEAVATAR_CONFIG.apiKey,
           },
-          body: JSON.stringify({
-            session_id: this.heygen.sessionInfo.session_id,
-          }),
-        });
+          tokenBody,
+          (tokJson) => {
+            const sessionToken =
+              (tokJson && (tokJson.session_token || tokJson.sessionToken)) ||
+              (tokJson && tokJson.data && (tokJson.data.session_token || tokJson.data.sessionToken));
+            if (!sessionToken) {
+              this.markLiveAvatarFailed("Token", tokJson || "No session_token from LiveAvatar");
+              return;
+            }
+            this.liveavatar.sessionToken = sessionToken;
+            this.setStatus("Avvio sessione...");
+
+            this.httpJson(
+              "POST",
+              `${this.LIVEAVATAR_CONFIG.serverUrl}/v1/sessions/start`,
+              {
+                "accept": "application/json",
+                "authorization": `Bearer ${this.liveavatar.sessionToken}`,
+              },
+              undefined,
+              (startJson) => {
+                // Leggi dalla docs: la response contiene i parametri LiveKit per joinare la room.
+                // Logghiamo la risposta per poter adeguare i nomi campi senza "inventare".
+                try {
+                  console.log("[EnjoyHen] LiveAvatar /v1/sessions/start response:", startJson);
+                } catch { }
+
+                const startData = (startJson && startJson.data) || startJson || {};
+                const livekitCfg =
+                  (startData && (startData.livekit_config || startData.livekit || startData.room)) || {};
+
+                const url =
+                  (startData && (startData.room_url || startData.livekit_url || startData.url)) ||
+                  (livekitCfg && (livekitCfg.room_url || livekitCfg.livekit_url || livekitCfg.url)) ||
+                  "";
+
+                const accessToken =
+                  (startData &&
+                    (startData.room_token ||
+                      startData.livekit_client_token ||
+                      startData.access_token ||
+                      startData.token ||
+                      startData.livekit_token)) ||
+                  (livekitCfg &&
+                    (livekitCfg.room_token ||
+                      livekitCfg.livekit_client_token ||
+                      livekitCfg.access_token ||
+                      livekitCfg.token ||
+                      livekitCfg.livekit_token)) ||
+                  "";
+
+                if (!url || !accessToken) {
+                  this.markLiveAvatarFailed("Start payload", startJson || "Missing room_url/room_token");
+                  return;
+                }
+
+                this.liveavatar.sessionInfo = { url, access_token: accessToken };
+                this.setStatus("Connessione video...");
+
+                // Setup LiveKit room
+                this.loadScriptOnce(
+                  "LivekitClient",
+                  "https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js",
+                  () => {
+                    try {
+                      if (!window.LivekitClient || !window.LivekitClient.Room) {
+                        this.markLiveAvatarFailed("LiveKit", "LivekitClient non disponibile");
+                        return;
+                      }
+
+                      this.liveavatar.room = new window.LivekitClient.Room({
+                        adaptiveStream: false,
+                        dynacast: true,
+                        videoCaptureDefaults: {
+                          resolution: window.LivekitClient.VideoPresets.h720.resolution,
+                        },
+                      });
+
+                      this.liveavatar.mediaStream = new MediaStream();
+
+                      const RoomEvent = window.LivekitClient.RoomEvent || {};
+                      const on = (evt, fn) => {
+                        try {
+                          if (evt) this.liveavatar.room.on(evt, fn);
+                        } catch { }
+                      };
+
+                      on(RoomEvent.TrackSubscribed, (track) => {
+                        try {
+                          if (!track || !track.kind) return;
+                          if (track.mediaStreamTrack) {
+                            this.liveavatar.mediaStream.addTrack(track.mediaStreamTrack);
+                          }
+
+                          // Evita AbortError: non ricaricare/ri-playare il <video> quando arriva la track audio.
+                          // Agganciamo lo stream e facciamo play solo quando arriva la track video (o se non era agganciato).
+                          if (this.heygenVideo) {
+                            const needsAttach = this.heygenVideo.srcObject !== this.liveavatar.mediaStream;
+                            if (needsAttach) {
+                              this.heygenVideo.srcObject = this.liveavatar.mediaStream;
+                            }
+                            // audio gestito via mediaStream; mute controllato dall'UI
+                            this.heygenVideo.muted = !this.snippetAudioOn;
+
+                            if (track.kind === "video") {
+                              try {
+                                // play() ritorna una Promise; evitiamo chiamate multiple che portano AbortError
+                                this.heygenVideo.play?.();
+                              } catch { }
+                            }
+                          }
+
+                          if (track.kind === "video") this.setStatus("Video connesso");
+                          if (track.kind === "audio") this.setStatus("Audio connesso");
+                          if (this.loadingOverlay) this.loadingOverlay.classList.add("hidden");
+                        } catch (e) {
+                          console.warn("Track subscription error:", e);
+                        }
+                      });
+
+                      on(RoomEvent.TrackUnsubscribed, (track) => {
+                        try {
+                          const mt = track && track.mediaStreamTrack;
+                          if (mt && this.liveavatar.mediaStream) this.liveavatar.mediaStream.removeTrack(mt);
+                        } catch { }
+                      });
+
+                      // Server events topic: agent-response (docs)
+                      on(RoomEvent.DataReceived, (payload, participant, kind, topic) => {
+                        try {
+                          if (topic !== "agent-response") return;
+                          const dec = new TextDecoder();
+                          const txt = dec.decode(payload);
+                          const ev = txt ? JSON.parse(txt) : null;
+                          const t = ev && (ev.type || ev.event_type || ev.eventType);
+                          if (!t) return;
+                          if (t === "avatar.speak_started") this.isSpeaking = true;
+                          if (t === "avatar.speak_ended") this.isSpeaking = false;
+                        } catch { }
+                      });
+
+                      // Connetti (senza gestire Promise qui per regola no asincrono)
+                      try {
+                        this.liveavatar.room.connect(url, accessToken);
+                      } catch (e) {
+                        console.warn("LiveKit connect error:", e);
+                      }
+
+                      this.liveavatar.started = true;
+                      this.liveavatar.connecting = false;
+                      this.liveavatar.failed = false;
+                      this.setStatus("Connesso");
+                      if (typeof onReady === "function") onReady();
+                    } catch (e) {
+                      console.error("LiveAvatar session error:", e);
+                      this.markLiveAvatarFailed("LiveAvatar session", e);
+                    }
+                  }
+                );
+              },
+              (errJson) => {
+                console.error("LiveAvatar start error:", errJson);
+                this.markLiveAvatarFailed("Start", errJson || "LiveAvatar start failed");
+              }
+            );
+          },
+          (errJson) => {
+            console.error("LiveAvatar token error:", errJson);
+            this.markLiveAvatarFailed("Token", errJson || "LiveAvatar token failed");
+          }
+        );
       } catch (e) {
-        console.error("HeyGen interrupt failed:", e);
+        console.error("LiveAvatar session error:", e);
+        this.markLiveAvatarFailed("LiveAvatar session", e);
       }
     },
 
-    async cleanup() {
+    cleanup() {
       try {
-        if (this.heygen.sessionInfo?.session_id) {
-          await fetch(`${this.HEYGEN_CONFIG.serverUrl}/v1/streaming.stop`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${this.heygen.sessionToken}`,
+        // Chiudi sessione LiveAvatar lato API (best effort)
+        if (this.liveavatar && this.liveavatar.sessionToken) {
+          this.httpJson(
+            "POST",
+            `${this.LIVEAVATAR_CONFIG.serverUrl}/v1/sessions/stop`,
+            {
+              "accept": "application/json",
+              "authorization": `Bearer ${this.liveavatar.sessionToken}`,
             },
-            body: JSON.stringify({
-              session_id: this.heygen.sessionInfo.session_id,
-            }),
-          });
+            undefined,
+            () => { },
+            () => { }
+          );
         }
       } catch { }
 
       try {
-        if (this.heygen.room) this.heygen.room.disconnect();
+        if (this.liveavatar && this.liveavatar.room) this.liveavatar.room.disconnect();
       } catch { }
 
       if (this.heygenVideo) {
         try {
-          this.heygenVideo.pause();
+          this.heygenVideo.pause?.();
         } catch { }
-        this.heygenVideo.srcObject = null;
+        try {
+          this.heygenVideo.srcObject = null;
+        } catch { }
       }
 
-      // Dopo la chiusura esplicita (es. X del widget o beforeUnmount) la sessione
-      // non deve più risultare "started", altrimenti ensureHeyGenSession non rifà create_token/streaming.new.
       try {
-        if (this.heygen) {
-          this.heygen.started = false;
-          this.heygen.connecting = false;
-          this.heygen.sessionInfo = null;
-          this.heygen.mediaStream = null;
-          this.heygen.sessionToken = null;
-          this.heygen.room = null;
+        if (this.liveavatar) {
+          this.liveavatar.started = false;
+          this.liveavatar.connecting = false;
+          this.liveavatar.sessionInfo = null;
+          this.liveavatar.mediaStream = null;
+          this.liveavatar.sessionToken = null;
+          this.liveavatar.room = null;
         }
       } catch { }
 
-      // Reset stato di parlato e relativo timer
       try {
-        if (this.speakingTimerId) {
-          clearTimeout(this.speakingTimerId);
-          this.speakingTimerId = null;
-        }
         this.isSpeaking = false;
-        this.speakingUntil = null;
       } catch { }
-    },
-
-    loadLiveKit() {
-      return new Promise((resolve) => {
-        if (window.LivekitClient) return resolve();
-        const s = document.createElement("script");
-        s.src = "https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js";
-        s.async = true;
-        s.onload = () => resolve();
-        s.onerror = () => resolve();
-        document.head.appendChild(s);
-      });
     },
 
     stripHtml(html) {
@@ -2143,7 +2285,7 @@ export default defineComponent({
     handleAvatarError(context, error) {
       try {
         const base =
-          "Si è verificato un errore tecnico, sto riavviando l'assistente.";
+          "Si è verificato un errore tecnico. Riprova manualmente (nessun retry automatico).";
         this.avatarErrorSimple = base;
         let detail = "";
         if (error && typeof error === "object") {
@@ -2153,7 +2295,7 @@ export default defineComponent({
         }
         const ctx = context ? "[" + context + "] " : "";
         this.avatarErrorDetails = ctx + detail;
-        this.setStatus("Errore, riavvio in corso...");
+        this.setStatus("Errore (retry disabilitato)");
       } catch { }
 
       try {
@@ -2162,23 +2304,7 @@ export default defineComponent({
         }
       } catch { }
 
-      try {
-        if (this.cleanup) {
-          this.cleanup();
-        }
-      } catch { }
-
-      try {
-        if (this.resumeAvatarVideo && this.$nextTick) {
-          this.$nextTick(() => {
-            try {
-              this.resumeAvatarVideo();
-            } catch { }
-          });
-        } else if (this.ensureHeyGenSession) {
-          this.ensureHeyGenSession();
-        }
-      } catch { }
+      // IMPORTANTE: non riavviare automaticamente, evita loop di richieste token.
     },
 
     setStatus(status) {

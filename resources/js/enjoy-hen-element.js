@@ -4,12 +4,14 @@
  * 
  * Uso di base:
  * <script src="https://cavalliniservice.com/js/enjoyHen.standalone.js"></script>
- * <enjoy-hen team-slug="mio-team" heygen-api-key="..." heygen-server-url="..."></enjoy-hen>
+ * <enjoy-hen team-slug="mio-team" live-avatar-api-key="..." live-avatar-server-url="..."></enjoy-hen>
  * 
  * Attributi supportati:
  * - team-slug: (REQUIRED) Lo slug del team da usare per le richieste API
- * - heygen-api-key: API key per HeyGen
- * - heygen-server-url: URL del server HeyGen
+ * - live-avatar-api-key: API key per LiveAvatar
+ * - live-avatar-server-url: URL del server LiveAvatar
+ * - heygen-api-key: (legacy) API key (fallback)
+ * - heygen-server-url: (legacy) URL server (fallback)
  * - locale: Lingua (default: it-IT)
  * - team-logo: URL del logo del team
  */
@@ -48,6 +50,14 @@ const componentWithProps = {
         heygenServerUrl: {
             type: String,
             default: "https://api.heygen.com"
+        },
+        liveAvatarApiKey: {
+            type: String,
+            default: ""
+        },
+        liveAvatarServerUrl: {
+            type: String,
+            default: "https://api.liveavatar.com"
         },
         locale: {
             type: String,

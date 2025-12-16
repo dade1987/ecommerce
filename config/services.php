@@ -68,4 +68,9 @@ return [
         'server_url' => env('HEYGEN_SERVER_URL', 'https://api.heygen.com'),
     ],
 
+    'liveavatar' => [
+        'api_key' => env('LIVEAVATAR_API_KEY'),
+        'server_url' => env('LIVEAVATAR_SERVER_URL', 'https://api.liveavatar.com'),
+    ],
+
 ];

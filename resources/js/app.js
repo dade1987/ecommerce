@@ -24,6 +24,8 @@ const propsHen = {}
 if (rootElHen) {
   propsHen.heygenApiKey = rootElHen.dataset.heygenApiKey || ''
   propsHen.heygenServerUrl = rootElHen.dataset.heygenServerUrl || 'https://api.heygen.com'
+  propsHen.liveAvatarApiKey = rootElHen.dataset.liveavatarApiKey || ''
+  propsHen.liveAvatarServerUrl = rootElHen.dataset.liveavatarServerUrl || 'https://api.liveavatar.com'
   propsHen.locale = rootElHen.dataset.locale || 'it-IT'
   propsHen.teamLogo = rootElHen.dataset.teamLogo || '/images/logoai.jpeg'
 
