@@ -103,31 +103,47 @@ class WhisperTranscriptionController extends Controller
                 'allowed_languages' => $allowedLanguages,
             ]);
 
-            // Costruisce la base dei parametri multipart (senza il modello/response_format, che proveremo a scegliere)
-            $multipartBase = [
-                [
-                    'name' => 'file',
-                    'contents' => fopen($audio->getRealPath(), 'r'),
-                    'filename' => $originalName,
-                    'headers' => [
-                        'Content-Type' => $contentType,
+            // IMPORTANTISSIMO:
+            // Non riusare mai lo stesso handle fopen() tra più richieste (retry),
+            // perché Guzzle può chiuderlo dopo la prima POST → "resource (closed)".
+            // Quindi costruiamo il multipart aprendo un NUOVO stream ad ogni chiamata.
+            $buildMultipart = function (string $model, string $responseFormat = 'verbose_json') use ($audio, $originalName, $contentType, $language): array {
+                $multipart = [
+                    [
+                        'name' => 'file',
+                        'contents' => fopen($audio->getRealPath(), 'r'),
+                        'filename' => $originalName,
+                        'headers' => [
+                            'Content-Type' => $contentType,
+                        ],
                     ],
-                ],
-                // Temperature a zero per ridurre al minimo le allucinazioni
-                [
-                    'name' => 'temperature',
-                    'contents' => '0',
-                ],
-            ];
-
-            // Aggiunge il parametro language solo se specificato.
-            // In modalità auto-detect (TEMP) NON lo inviamo mai.
-            if ($language !== null) {
-                $multipartBase[] = [
-                    'name' => 'language',
-                    'contents' => $language,
+                    // Temperature a zero per ridurre al minimo le allucinazioni
+                    [
+                        'name' => 'temperature',
+                        'contents' => '0',
+                    ],
                 ];
-            }
+
+                // In modalità auto-detect (TEMP) NON lo inviamo mai; altrimenti solo se specificato.
+                if ($language !== null) {
+                    $multipart[] = [
+                        'name' => 'language',
+                        'contents' => $language,
+                    ];
+                }
+
+                $multipart[] = [
+                    'name' => 'model',
+                    'contents' => $model,
+                ];
+
+                $multipart[] = [
+                    'name' => 'response_format',
+                    'contents' => $responseFormat,
+                ];
+
+                return $multipart;
+            };
 
             // Usa Whisper Large V3 Turbo di Groq
             $modelsToTry = [
@@ -142,21 +158,12 @@ class WhisperTranscriptionController extends Controller
             $body = '';
             $status = 0;
             $usedModel = null;
-            $multipartForRetry = null;
+            $responseFormatForRetry = 'verbose_json';
 
             foreach ($modelsToTry as $candidateModel) {
-                $multipart = $multipartBase;
-                $multipart[] = [
-                    'name' => 'model',
-                    'contents' => $candidateModel,
-                ];
-
-                // Whisper 3 Turbo supporta verbose_json
+                // Whisper Large V3 Turbo: usiamo verbose_json per mantenere compatibilità
                 $responseFormat = 'verbose_json';
-                $multipart[] = [
-                    'name' => 'response_format',
-                    'contents' => $responseFormat,
-                ];
+                $multipart = $buildMultipart($candidateModel, $responseFormat);
 
                 $resp = $client->post('audio/transcriptions', [
                     'multipart' => $multipart,
@@ -168,7 +175,7 @@ class WhisperTranscriptionController extends Controller
                 if ($status >= 200 && $status < 300) {
                     $response = $resp;
                     $usedModel = $candidateModel;
-                    $multipartForRetry = $multipart;
+                    $responseFormatForRetry = $responseFormat;
                     break;
                 }
 
@@ -233,7 +240,7 @@ class WhisperTranscriptionController extends Controller
                 ]);
 
                 $retryResponse = $client->post('audio/transcriptions', [
-                    'multipart' => $multipartForRetry ?? $multipartBase,
+                    'multipart' => $buildMultipart($usedModel, $responseFormatForRetry),
                 ]);
 
                 $retryStatus = $retryResponse->getStatusCode();
@@ -266,7 +273,7 @@ class WhisperTranscriptionController extends Controller
                 // Secondo tentativo: nuova chiamata Whisper con gli stessi parametri
                 // (stesso modello scelto, stessa configurazione)
                 $retryResponse = $client->post('audio/transcriptions', [
-                    'multipart' => $multipartForRetry ?? $multipartBase,
+                    'multipart' => $buildMultipart($usedModel, $responseFormatForRetry),
                 ]);
 
                 $retryStatus = $retryResponse->getStatusCode();
