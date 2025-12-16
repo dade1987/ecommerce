@@ -1011,7 +1011,12 @@ export default defineComponent({
       // Inizializza debug overlay
       this.initDebugOverlay(debugEnabled);
 
-      const rootData = document.getElementById("enjoyHeyRoot")?.dataset || {};
+      // In full layout: #enjoyHeyRoot contiene i data-* server-side (Blade).
+      // In webcomponent/snippet: #enjoyHeyRoot potrebbe non esistere, quindi usiamo anche il dataset del root del componente.
+      const rootData =
+        document.getElementById("enjoyHeyRoot")?.dataset ||
+        (this.$el && this.$el.dataset ? this.$el.dataset : {}) ||
+        {};
 
       // LiveAvatar config: priorità alle props liveAvatar*, fallback ai vecchi attributi heygen*
       this.LIVEAVATAR_CONFIG = {
