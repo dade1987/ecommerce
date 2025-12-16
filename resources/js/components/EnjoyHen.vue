@@ -1948,6 +1948,8 @@ export default defineComponent({
       try {
         const t = (text || "").trim();
         if (!t) return;
+        // Imposta isSpeaking immediatamente per mostrare il tasto di stop subito
+        this.isSpeaking = true;
         // Azione utente: possiamo riprovare anche dopo un fallimento
         this.ensureLiveAvatarSession(true, () => {
           try {
