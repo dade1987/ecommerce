@@ -14,7 +14,7 @@ use function Safe\preg_match;
 class WhisperTranscriptionController extends Controller
 {
     /**
-     * Trascrive un chunk audio usando Groq Whisper Large V3 Turbo.
+     * Trascrive un chunk audio usando Groq Whisper Large V3.
      *
      * POST /api/whisper/transcribe
      * Form-data:
@@ -144,9 +144,9 @@ class WhisperTranscriptionController extends Controller
                 return $multipart;
             };
 
-            // Usa Whisper Large V3 Turbo di Groq
+            // Usa Whisper Large V3 di Groq
             $modelsToTry = [
-                'whisper-large-v3-turbo',
+                'whisper-large-v3',
             ];
 
             // TEMP: disabilitiamo le lingue forzate (multi-call/parallelo).
@@ -160,7 +160,7 @@ class WhisperTranscriptionController extends Controller
             $responseFormatForRetry = 'verbose_json';
 
             foreach ($modelsToTry as $candidateModel) {
-                // Whisper Large V3 Turbo: usiamo verbose_json per mantenere compatibilità
+                // Whisper Large V3: usiamo verbose_json per avere segmenti + metriche qualità
                 $responseFormat = 'verbose_json';
                 $multipart = $buildMultipart($candidateModel, $responseFormat);
 
@@ -192,7 +192,7 @@ class WhisperTranscriptionController extends Controller
                     || str_contains(strtolower($errorMessage), 'unknown model');
 
                 // Se il modello non esiste / non è disponibile, logga e prova il successivo
-                if ($isModelMissingError && $candidateModel !== 'whisper-large-v3-turbo') {
+                if ($isModelMissingError) {
                     Log::warning('WhisperTranscriptionController: modello non disponibile, fallback al successivo', [
                         'model' => $candidateModel,
                         'status' => $status,
@@ -231,6 +231,15 @@ class WhisperTranscriptionController extends Controller
             // Applica i filtri di qualità sui segmenti Whisper
             $text = $this->extractHighQualityTextFromWhisperResponse($json);
 
+            // Guard "leggero" basato SOLO su metriche Whisper (no LLM).
+            // Se le metriche indicano bassa qualità, scartiamo e facciamo 1 retry.
+            if ($text !== '' && ! $this->isWhisperSegmentsQualityAcceptable($json)) {
+                Log::info('WhisperTranscriptionController: trascrizione scartata per metriche qualità (prima chiamata), retry', [
+                    'text_preview' => mb_substr($text, 0, 120),
+                ]);
+                $text = '';
+            }
+
             // Se dopo i filtri la trascrizione risulta vuota, proviamo UNA SOLA VOLTA
             // a reinviare l'audio a Whisper (stesso modello e stessi parametri).
             if ($text === '') {
@@ -248,6 +257,12 @@ class WhisperTranscriptionController extends Controller
                 if ($retryStatus >= 200 && $retryStatus < 300) {
                     $retryJson = json_decode($retryBody, true);
                     $text = $this->extractHighQualityTextFromWhisperResponse($retryJson);
+                    if ($text !== '' && ! $this->isWhisperSegmentsQualityAcceptable($retryJson)) {
+                        Log::info('WhisperTranscriptionController: trascrizione scartata per metriche qualità (retry)', [
+                            'text_preview' => mb_substr($text, 0, 120),
+                        ]);
+                        $text = '';
+                    }
                 } else {
                     Log::error('WhisperTranscriptionController: errore nel retry Whisper (text vuoto)', [
                         'status' => $retryStatus,
@@ -257,8 +272,8 @@ class WhisperTranscriptionController extends Controller
                 }
             }
 
-            // TEMP: disabilita il guard (rallenta e può bocciare pezzi validi).
-            // Quando lo riattiveremo, basterà impostare true.
+            // TEMP: disabilita il guard LLM (rallenta e può bocciare pezzi validi).
+            // Manteniamo invece il guard basato su metriche Whisper (vedi sopra).
             $enableGuard = false;
 
             // Controllo grammaticale / allucinazioni / lingua con un modello leggero (gpt-4o-mini).
@@ -517,6 +532,101 @@ class WhisperTranscriptionController extends Controller
         }
 
         return $text;
+    }
+
+    /**
+     * Guard basato su metriche native di Whisper (segmenti):
+     * - avg_logprob: più vicino a 0 = meglio
+     * - no_speech_prob: vicino a 1 = probabile silenzio/non-voce
+     * - compression_ratio: valori troppo alti suggeriscono output anomalo/compresso
+     *
+     * Se non rispetta gli standard → consideriamo la trascrizione "sospetta".
+     */
+    private function isWhisperSegmentsQualityAcceptable(mixed $json): bool
+    {
+        if (! is_array($json) || ! isset($json['segments']) || ! is_array($json['segments'])) {
+            // Se non abbiamo metriche, non blocchiamo (meglio restituire testo che nulla).
+            return true;
+        }
+
+        $segments = $json['segments'];
+        $count = 0;
+        $bad = 0;
+
+        $avgLogprobSum = 0.0;
+        $avgLogprobCount = 0;
+        $maxNoSpeech = 0.0;
+        $maxCompression = 0.0;
+
+        foreach ($segments as $segment) {
+            if (! is_array($segment)) {
+                continue;
+            }
+
+            $segmentText = isset($segment['text']) ? trim((string) $segment['text']) : '';
+            if ($segmentText === '') {
+                continue;
+            }
+
+            $count++;
+
+            $avgLogprob = $segment['avg_logprob'] ?? null;
+            $noSpeechProb = $segment['no_speech_prob'] ?? null;
+            $compressionRatio = $segment['compression_ratio'] ?? null;
+
+            if (is_numeric($avgLogprob)) {
+                $avgLogprobSum += (float) $avgLogprob;
+                $avgLogprobCount++;
+            }
+
+            if (is_numeric($noSpeechProb)) {
+                $maxNoSpeech = max($maxNoSpeech, (float) $noSpeechProb);
+            }
+
+            if (is_numeric($compressionRatio)) {
+                $maxCompression = max($maxCompression, (float) $compressionRatio);
+            }
+
+            // Regole pratiche:
+            // - avg_logprob < -0.8 => bassa confidenza
+            // - no_speech_prob > 0.7 => probabilmente non voce
+            // - compression_ratio > 2.6 => output anomalo (ripetizioni/word boundaries strane)
+            $isBad =
+                (is_numeric($avgLogprob) && (float) $avgLogprob < -0.8)
+                || (is_numeric($noSpeechProb) && (float) $noSpeechProb > 0.7)
+                || (is_numeric($compressionRatio) && (float) $compressionRatio > 2.6);
+
+            if ($isBad) {
+                $bad++;
+            }
+        }
+
+        if ($count === 0) {
+            return false;
+        }
+
+        $badRatio = $bad / $count;
+        $avgLogprobAvg = $avgLogprobCount > 0 ? ($avgLogprobSum / $avgLogprobCount) : null;
+
+        // Decisione finale:
+        // - se >50% segmenti sospetti → scarta
+        // - se max no_speech_prob altissimo → scarta
+        // - se avg logprob medio molto negativo → scarta
+        // - se compression_ratio troppo alto → scarta
+        if ($badRatio > 0.5) {
+            return false;
+        }
+        if ($maxNoSpeech >= 0.85) {
+            return false;
+        }
+        if ($avgLogprobAvg !== null && $avgLogprobAvg < -0.9) {
+            return false;
+        }
+        if ($maxCompression >= 3.0) {
+            return false;
+        }
+
+        return true;
     }
 
     /**
