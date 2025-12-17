@@ -1851,7 +1851,15 @@ export default defineComponent({
       try {
         const txt = fullText || "";
         if (!txt) return "";
-        return txt.replace(/^RAG_SOURCE_URL:.*$/gm, "").trim();
+        // Alcune risposte possono includere il marker inline (non a inizio riga) o senza newline.
+        // Rimuoviamo quindi sia:
+        // - la riga completa (se presente)
+        // - eventuali occorrenze inline "RAG_SOURCE_URL: <url>"
+        // - e il token "RAG_SOURCE_URL:" se resta appeso
+        const withoutLines = txt.replace(/^\s*RAG_SOURCE_URL:.*$/gmi, "");
+        const withoutInline = withoutLines.replace(/RAG_SOURCE_URL:\s*https?:\/\/\S+/gmi, "");
+        const withoutToken = withoutInline.replace(/RAG_SOURCE_URL:\s*/gmi, "");
+        return withoutToken.replace(/\s{2,}/g, " ").trim();
       } catch {
         return fullText || "";
       }
