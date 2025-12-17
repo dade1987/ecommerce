@@ -37,58 +37,90 @@ class GroqWhisperTranscriptionProvider implements SpeechTranscriptionProviderInt
         $originalName = $audio->getClientOriginalName() ?: 'audio.webm';
         $contentType = $this->guessContentType($originalName);
 
-        $response = $client->post('audio/transcriptions', [
-            'multipart' => [
-                [
-                    'name' => 'file',
-                    'contents' => fopen($audio->getRealPath(), 'r'),
-                    'filename' => $originalName,
-                    'headers' => [
-                        'Content-Type' => $contentType,
+        $lastError = null;
+        for ($attempt = 1; $attempt <= 2; $attempt++) {
+            try {
+                $response = $client->post('audio/transcriptions', [
+                    'multipart' => [
+                        [
+                            'name' => 'file',
+                            'contents' => fopen($audio->getRealPath(), 'r'),
+                            'filename' => $originalName,
+                            'headers' => [
+                                'Content-Type' => $contentType,
+                            ],
+                        ],
+                        [
+                            'name' => 'model',
+                            'contents' => $model,
+                        ],
+                        [
+                            'name' => 'temperature',
+                            'contents' => '0',
+                        ],
+                        [
+                            'name' => 'response_format',
+                            'contents' => 'verbose_json',
+                        ],
+                        [
+                            'name' => 'language',
+                            'contents' => $language,
+                        ],
                     ],
-                ],
-                [
-                    'name' => 'model',
-                    'contents' => $model,
-                ],
-                [
-                    'name' => 'temperature',
-                    'contents' => '0',
-                ],
-                [
-                    'name' => 'response_format',
-                    'contents' => 'verbose_json',
-                ],
-                [
-                    'name' => 'language',
-                    'contents' => $language,
-                ],
-            ],
-        ]);
+                ]);
 
-        $status = $response->getStatusCode();
-        $body = (string) $response->getBody();
+                $status = $response->getStatusCode();
+                $body = (string) $response->getBody();
 
-        if ($status < 200 || $status >= 300) {
-            Log::error('Groq Whisper error', [
-                'status' => $status,
-                'body' => mb_substr($body, 0, 2000),
-            ]);
+                if ($status < 200 || $status >= 300) {
+                    Log::error('Groq Whisper error', [
+                        'status' => $status,
+                        'body' => mb_substr($body, 0, 2000),
+                    ]);
 
-            $decoded = json_decode($body, true);
-            $message = '';
-            if (is_array($decoded) && isset($decoded['error']['message'])) {
-                $message = (string) $decoded['error']['message'];
-            } else {
-                $message = mb_substr($body, 0, 500);
+                    $decoded = json_decode($body, true);
+                    $message = '';
+                    if (is_array($decoded) && isset($decoded['error']['message'])) {
+                        $message = (string) $decoded['error']['message'];
+                    } else {
+                        $message = mb_substr($body, 0, 500);
+                    }
+
+                    throw new \RuntimeException('Errore Whisper Groq: '.$message);
+                }
+
+                $json = json_decode($body, true);
+                $text = (string) (($json['text'] ?? '') ?: '');
+                $text = trim($text);
+
+                if ($text === '') {
+                    return '';
+                }
+
+                if (OpenAiWhisperTranscriptionProvider::shouldRejectTranscriptionQuality(is_array($json) ? $json : [])) {
+                    Log::warning('Groq Whisper transcription rejected by quality guard', [
+                        'attempt' => $attempt,
+                        'provider' => 'groq_whisper',
+                        'language' => $language,
+                        'preview' => mb_substr($text, 0, 160),
+                    ]);
+                    if ($attempt < 2) {
+                        continue;
+                    }
+                    throw new \RuntimeException('TRANSCRIPTION_REJECTED: qualità bassa (avg_logprob/no_speech_prob/compression_ratio)');
+                }
+
+                return $text;
+            } catch (\Throwable $e) {
+                $lastError = $e;
+                if ($attempt < 2) {
+                    continue;
+                }
+                throw $e;
             }
-
-            throw new \RuntimeException('Errore Whisper Groq: '.$message);
         }
 
-        $json = json_decode($body, true);
-
-        return (string) ($json['text'] ?? '');
+        throw new \RuntimeException('Errore Whisper Groq: '.$lastError?->getMessage());
     }
 
     private function guessContentType(string $originalName): string

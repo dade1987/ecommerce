@@ -58,6 +58,22 @@ class WhisperTranscriptionController extends Controller
             return response()->json([
                 'text' => $text,
             ]);
+        } catch (\RuntimeException $e) {
+            // Quality-guard: trascrizione scartata -> 422 (non 500) per evitare che il client la usi.
+            if (str_starts_with($e->getMessage(), 'TRANSCRIPTION_REJECTED:')) {
+                Log::warning('WhisperTranscriptionController: transcription rejected', [
+                    'message' => $e->getMessage(),
+                    'language' => $language,
+                    'provider' => (string) config('speech.transcription.provider', 'openai_whisper'),
+                ]);
+
+                return response()->json([
+                    'error' => 'transcription_rejected',
+                    'message' => $e->getMessage(),
+                ], 422);
+            }
+
+            throw $e;
         } catch (\Throwable $e) {
             Log::error('WhisperTranscriptionController.transcribe error', [
                 'error' => $e->getMessage(),

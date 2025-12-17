@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use GuzzleHttp\Client;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use function Safe\json_decode;
 
 class LiveAvatarSessionController extends Controller
 {
@@ -68,6 +69,7 @@ class LiveAvatarSessionController extends Controller
 
             if ($tokStatus < 200 || $tokStatus >= 300) {
                 Log::warning('LiveAvatar token failed', ['status' => $tokStatus, 'body' => $tokBody]);
+
                 return response()->json([
                     'code' => 5001,
                     'data' => $tokJson ?: null,
@@ -104,6 +106,7 @@ class LiveAvatarSessionController extends Controller
 
             if ($startStatus < 200 || $startStatus >= 300) {
                 Log::warning('LiveAvatar start failed', ['status' => $startStatus, 'body' => $startBody]);
+
                 return response()->json([
                     'code' => 5003,
                     'data' => $startJson ?: null,
@@ -165,6 +168,7 @@ class LiveAvatarSessionController extends Controller
 
             if ($status < 200 || $status >= 300) {
                 Log::warning('LiveAvatar stop failed', ['status' => $status, 'body' => $body]);
+
                 return response()->json([
                     'code' => 5006,
                     'data' => $json ?: null,
@@ -184,4 +188,3 @@ class LiveAvatarSessionController extends Controller
         }
     }
 }
-
