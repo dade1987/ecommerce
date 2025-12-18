@@ -3,6 +3,7 @@
 namespace App\Filament\Fabricator\PageBlocks;
 
 use Filament\Forms\Components\Builder\Block;
+use Filament\Forms\Components\TextInput;
 use Illuminate\Contracts\View\View;
 use Z3d0X\FilamentFabricator\PageBlocks\PageBlock;
 
@@ -13,7 +14,11 @@ class CavalliniService extends PageBlock
         return Block::make('cavalliniservice')
             ->label('CavalliniService (EnjoyTalk 3D)')
             ->schema([
-                // Nessun campo per ora: blocco “plug & play”
+                TextInput::make('team_slug')
+                    ->label('Team Slug')
+                    ->required()
+                    ->default('cavalliniservice')
+                    ->helperText('Lo slug del team da usare per le richieste API'),
             ]);
     }
 
