@@ -7,29 +7,38 @@
 
     <!-- Floating launcher bubble (snippet mode, visibile solo quando il widget è chiuso) -->
     <button v-if="isWebComponent && !widgetOpen" id="talkLauncherBtn"
-      class="enjoytalk-launcher-wow fixed z-[9999] bottom-[calc(1.25rem+env(safe-area-inset-bottom))] right-[calc(1.25rem+env(safe-area-inset-right))] w-16 h-16 rounded-full backdrop-blur text-white shadow-lg border border-white/20 flex items-center justify-center"
-      aria-label="Apri l'assistente AI per le ricerche" @click="onLauncherClick">
+      class="enjoytalk-launcher-wow fixed z-[9999] bottom-[calc(1.25rem+env(safe-area-inset-bottom))] right-[calc(1.25rem+env(safe-area-inset-right))] h-14 px-4 rounded-full backdrop-blur text-white shadow-lg border border-white/20 flex items-center gap-3"
+      aria-label="Apri Assistente virtuale AI (Ricerche e servizi)" @click="onLauncherClick">
       <!-- Glow + ping (solo CSS) -->
       <span class="pointer-events-none absolute inset-0 rounded-full enjoytalk-launcher-pulse"></span>
       <span class="pointer-events-none absolute inset-0 rounded-full enjoytalk-launcher-ping"></span>
 
-      <!-- Label “capisci che devi aprirlo” -->
-      <span
-        class="pointer-events-none absolute right-full mr-3 max-w-[240px] whitespace-normal rounded-2xl px-3.5 py-2.5 text-[12px] leading-tight text-white border border-white/15 shadow-xl enjoytalk-launcher-label">
-        <span class="block text-[10px] uppercase tracking-wider text-white/85">Aprimi</span>
-        <span class="block font-extrabold">Ti assisto in ricerche &amp; servizi</span>
+      <!-- Icon (AI assistant) -->
+      <span class="relative z-10 flex items-center justify-center w-9 h-9 rounded-full bg-white/10 border border-white/15">
+        <svg class="w-5 h-5 enjoytalk-launcher-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path
+            d="M9 18h6m-8-6V9a5 5 0 0 1 10 0v3m-11 0h12v3a3 3 0 0 1-3 3H9a3 3 0 0 1-3-3v-3Z"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          <path d="M10 11h.01M14 11h.01" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+          <path
+            d="M12 3v2M6.5 5.5 8 7M17.5 5.5 16 7"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+            opacity="0.9" />
+        </svg>
       </span>
 
-      <!-- Icon -->
-      <span class="relative z-10 flex items-center justify-center w-full h-full">
-        <svg class="w-7 h-7 enjoytalk-launcher-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path d="M10.5 18a7.5 7.5 0 1 1 5.06-13.02A7.5 7.5 0 0 1 10.5 18Z" stroke="currentColor" stroke-width="2"
-            stroke-linecap="round" stroke-linejoin="round" />
-          <path d="M16.1 16.1 21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-            stroke-linejoin="round" />
-          <path
-            d="M8.2 8.8l.7-1.6 1.6-.7-1.6-.7-.7-1.6-.7 1.6-1.6.7 1.6.7.7 1.6ZM13 12l.5-1.1 1.1-.5-1.1-.5L13 8.8l-.5 1.1-1.1.5 1.1.5.5 1.1Z"
-            fill="currentColor" opacity="0.9" />
+      <!-- Copy (orizzontale) -->
+      <span class="relative z-10 text-left leading-tight">
+        <span class="flex items-center gap-2">
+          <span class="text-[12px] font-extrabold tracking-tight">Assistente virtuale AI</span>
+          <span class="enjoytalk-ai-badge text-[10px] font-black tracking-widest uppercase px-1.5 py-0.5 rounded-full border border-white/20">AI</span>
+        </span>
+        <span class="block text-[11px] font-semibold text-white/85">Ricerche &amp; Servizi</span>
+      </span>
+
+      <span class="relative z-10 ml-1 text-white/90">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M9 18 15 12 9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
       </span>
     </button>
