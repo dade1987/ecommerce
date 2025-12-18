@@ -7,9 +7,30 @@
 
     <!-- Floating launcher bubble (snippet mode, visibile solo quando il widget è chiuso) -->
     <button v-if="isWebComponent && !widgetOpen" id="talkLauncherBtn"
-      class="fixed z-[9999] bottom-4 right-4 w-14 h-14 rounded-full bg-emerald-600/90 backdrop-blur text-white shadow-lg border border-emerald-300/80 flex items-center justify-center"
-      @click="onLauncherClick">
-      💬
+      class="enjoytalk-launcher-wow fixed z-[9999] bottom-4 right-4 w-16 h-16 rounded-full backdrop-blur text-white shadow-lg border border-white/20 flex items-center justify-center"
+      aria-label="Apri l'assistente AI per le ricerche" @click="onLauncherClick">
+      <!-- Glow + ping (solo CSS) -->
+      <span class="pointer-events-none absolute inset-0 rounded-full enjoytalk-launcher-pulse"></span>
+      <span class="pointer-events-none absolute inset-0 rounded-full enjoytalk-launcher-ping"></span>
+
+      <!-- Label “capisci che devi aprirlo” -->
+      <span
+        class="pointer-events-none absolute right-full mr-3 max-w-[220px] whitespace-normal rounded-2xl px-3 py-2 text-[11px] leading-tight font-semibold text-white/95 border border-white/15 shadow-xl bg-slate-950/70 backdrop-blur enjoytalk-launcher-label">
+        Assistente AI • Ricerche &amp; Servizi
+      </span>
+
+      <!-- Icon -->
+      <span class="relative z-10 flex items-center justify-center w-full h-full">
+        <svg class="w-7 h-7 enjoytalk-launcher-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M10.5 18a7.5 7.5 0 1 1 5.06-13.02A7.5 7.5 0 0 1 10.5 18Z" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round" />
+          <path d="M16.1 16.1 21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round" />
+          <path
+            d="M8.2 8.8l.7-1.6 1.6-.7-1.6-.7-.7-1.6-.7 1.6-1.6.7 1.6.7.7 1.6ZM13 12l.5-1.1 1.1-.5-1.1-.5L13 8.8l-.5 1.1-1.1.5 1.1.5.5 1.1Z"
+            fill="currentColor" opacity="0.9" />
+        </svg>
+      </span>
     </button>
 
     <!-- Contenuto principale: full layout oppure widget snippet fisso in basso a destra -->
