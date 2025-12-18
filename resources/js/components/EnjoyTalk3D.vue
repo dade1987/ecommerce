@@ -708,31 +708,9 @@ export default defineComponent({
     },
     openCalendlyModal(url) {
       try {
-        const calendlyUrl = (url || "").trim();
-        if (!calendlyUrl) {
-          try {
-            console.warn("[EnjoyTalk3D] calendly_open_no_url");
-          } catch { }
-          return false;
-        }
-
-        const w = typeof window !== "undefined" ? window : {};
-        if (!w.Calendly || typeof w.Calendly.initPopupWidget !== "function") {
-          try {
-            console.warn("[EnjoyTalk3D] calendly_open_not_available", { hasCalendly: !!w.Calendly });
-          } catch { }
-          return false;
-        }
-
-        w.Calendly.initPopupWidget({ url: calendlyUrl });
-        try {
-          console.log("[EnjoyTalk3D] calendly_open_ok", { url: calendlyUrl });
-        } catch { }
-        return true;
-      } catch (e) {
-        try {
-          console.error("[EnjoyTalk3D] calendly_open_error", e);
-        } catch { }
+        // Wrapper Options API: chiama la funzione esposta da setup()
+        return this._openCalendlyModal ? this._openCalendlyModal(url) : false;
+      } catch {
         return false;
       }
     },
@@ -3608,6 +3586,42 @@ export default defineComponent({
       }
       try {
         instance.proxy._sendToTts = sendToTts;
+      } catch { }
+
+      // Funzione openCalendlyModal esposta da setup() (per Composition API)
+      function openCalendlyModal(url) {
+        try {
+          const calendlyUrl = (url || "").trim();
+          if (!calendlyUrl) {
+            try {
+              console.warn("[EnjoyTalk3D] calendly_open_no_url");
+            } catch { }
+            return false;
+          }
+
+          const w = typeof window !== "undefined" ? window : {};
+          if (!w.Calendly || typeof w.Calendly.initPopupWidget !== "function") {
+            try {
+              console.warn("[EnjoyTalk3D] calendly_open_not_available", { hasCalendly: !!w.Calendly });
+            } catch { }
+            return false;
+          }
+
+          w.Calendly.initPopupWidget({ url: calendlyUrl });
+          try {
+            console.log("[EnjoyTalk3D] calendly_open_ok", { url: calendlyUrl });
+          } catch { }
+          return true;
+        } catch (e) {
+          try {
+            console.error("[EnjoyTalk3D] calendly_open_error", e);
+          } catch { }
+          return false;
+        }
+      }
+      try {
+        instance.proxy.openCalendlyModal = openCalendlyModal;
+        instance.proxy._openCalendlyModal = openCalendlyModal;
       } catch { }
 
       async function processTtsQueue() {
