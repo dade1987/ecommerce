@@ -708,71 +708,31 @@ export default defineComponent({
     },
     openCalendlyModal(url) {
       try {
+        const calendlyUrl = (url || "").trim();
+        if (!calendlyUrl) {
+          try {
+            console.warn("[EnjoyTalk3D] calendly_open_no_url");
+          } catch { }
+          return false;
+        }
+
         const w = typeof window !== "undefined" ? window : {};
-        const u = (url || "").trim();
+        if (!w.Calendly || typeof w.Calendly.initPopupWidget !== "function") {
+          try {
+            console.warn("[EnjoyTalk3D] calendly_open_not_available", { hasCalendly: !!w.Calendly });
+          } catch { }
+          return false;
+        }
+
+        w.Calendly.initPopupWidget({ url: calendlyUrl });
         try {
-          console.log("[EnjoyTalk3D] calendly_open_attempt", this.debugSnapshot({ url: u || "(empty)" }));
+          console.log("[EnjoyTalk3D] calendly_open_ok", { url: calendlyUrl });
         } catch { }
-
-        // 1) Preferito: Livewire slideover già usato dal sito
+        return true;
+      } catch (e) {
         try {
-          const lw = (() => {
-            try {
-              // alcune pagine espongono Livewire come globale non-enumerable
-              // eslint-disable-next-line no-undef
-              if (typeof Livewire !== "undefined") return Livewire;
-            } catch { }
-            return w.Livewire || null;
-          })();
-
-          if (lw) {
-            if (typeof lw.dispatch === "function") {
-              lw.dispatch("open-calendar-slideover");
-            } else if (typeof lw.emit === "function") {
-              lw.emit("open-calendar-slideover");
-            } else {
-              throw new Error("Livewire present but no dispatch/emit");
-            }
-            try {
-              typeof w.gtag !== "undefined" &&
-                w.gtag("event", "cta_click", {
-                  event_category: "engagement",
-                  event_label: "primary_cta_calendly",
-                });
-            } catch (e) {
-              console.warn("[EnjoyTalk3D] gtag_failed", e);
-            }
-            try {
-              console.log("[EnjoyTalk3D] calendly_open_livewire_dispatched");
-            } catch { }
-            return true;
-          }
-        } catch (e) {
-          try {
-            console.warn("[EnjoyTalk3D] calendly_open_livewire_failed", e);
-          } catch { }
-        }
-
-        // 2) Fallback: Calendly popup widget ufficiale (se presente)
-        const C = w.Calendly || null;
-        if (C && typeof C.initPopupWidget === "function" && u) {
-          C.initPopupWidget({ url: u });
-          try {
-            console.log("[EnjoyTalk3D] calendly_open_calendly_widget_ok");
-          } catch { }
-          return true;
-        }
-
-        // 3) Ultimo fallback: tab (solo se ho URL)
-        if (u) {
-          w.open(u, "_blank", "noopener,noreferrer");
-          try {
-            console.log("[EnjoyTalk3D] calendly_open_window_open_fallback");
-          } catch { }
-          return true;
-        }
-        return false;
-      } catch {
+          console.error("[EnjoyTalk3D] calendly_open_error", e);
+        } catch { }
         return false;
       }
     },
