@@ -172,6 +172,18 @@ class WebsiteAssistantAgent extends Agent
             }
         }
 
+        // Nota tool-level per team specifici (non "forza" comportamenti: chiarisce solo quali tool esistono)
+        // Serve a prevenire errori tipo tool_use_failed quando il modello tenta di chiamare tool non disponibili.
+        if (strtolower((string) $this->teamSlug) === 'cavalliniservice') {
+            $baseInstructions .= <<<'TXT'
+
+
+NOTA IMPORTANTE (team cavalliniservice):
+- Per questo team esistono SOLO questi tool: `searchSite`, `fallback`.
+- Non provare mai a chiamare altri tool (es. `getProductInfo`, `getAddressInfo`, `getAvailableTimes`, `createOrder`, `submitUserData`, `getFAQs`) perché non sono disponibili.
+TXT;
+        }
+
         // Comandi speciali per controllare in modo NON ambiguo quali tool usare.
         $baseInstructions .= <<<'TXT'
 
