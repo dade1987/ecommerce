@@ -520,7 +520,7 @@ export default defineComponent({
                 })();
 
                 const welcome =
-                  `Ciao! Sono il tuo Assistente AI su ${device} (Browser ${browser}), pronto per cercare nel sito o prenotare un appuntamento in un istante!`;
+                  `Ciao! Sono il tuo Assistente AI. Vedo con piacere che usi un dispositivo ${device} su ${browser}. Sono pronto per cercare informazioni nel sito o prenotare un appuntamento in un istante!`;
 
                 // Deve dirlo ESATTAMENTE così: TTS locale, non risposta del backend
                 if (this._sendToTts) {
@@ -669,25 +669,42 @@ export default defineComponent({
     },
     openLastBookingUrl() {
       try {
-        if (!this.lastBookingUrl) return;
-        // Preferisci sempre il modal Calendly (overlay in-page)
-        const ok = this.openCalendlyModal
-          ? this.openCalendlyModal(this.lastBookingUrl)
-          : false;
-        if (!ok) {
-          // fallback estremo
-          window.open(this.lastBookingUrl, "_blank", "noopener,noreferrer");
-        }
+        // Apri lo slideover Calendly Livewire (come il bottone del sito)
+        // NB: non è un popup, quindi funziona anche da voice callback.
+        this.openCalendlyModal && this.openCalendlyModal(this.lastBookingUrl);
       } catch { }
     },
     openCalendlyModal(url) {
       try {
+        // 1) Preferito: Livewire slideover già usato dal sito
+        try {
+          if (typeof window !== "undefined" && window.Livewire && typeof window.Livewire.dispatch === "function") {
+            window.Livewire.dispatch("open-calendar-slideover");
+            try {
+              typeof window.gtag !== "undefined" &&
+                window.gtag("event", "cta_click", {
+                  event_category: "engagement",
+                  event_label: "primary_cta_calendly",
+                });
+            } catch { }
+            return true;
+          }
+        } catch { }
+
+        // 2) Fallback: Calendly popup widget ufficiale (se presente)
         const u = (url || "").trim();
-        if (!u) return false;
         const C = typeof window !== "undefined" ? window.Calendly : null;
-        if (!C || typeof C.initPopupWidget !== "function") return false;
-        C.initPopupWidget({ url: u });
-        return true;
+        if (C && typeof C.initPopupWidget === "function" && u) {
+          C.initPopupWidget({ url: u });
+          return true;
+        }
+
+        // 3) Ultimo fallback: tab
+        if (u) {
+          window.open(u, "_blank", "noopener,noreferrer");
+          return true;
+        }
+        return false;
       } catch {
         return false;
       }
@@ -2847,9 +2864,14 @@ export default defineComponent({
                       try {
                         vm.lastBookingUrl = calendlyUrl;
                       } catch { }
-                      // Da voce il popup può essere bloccato: preparo il pulsante e lo dico in TTS
+                      // Apri direttamente lo slideover Calendly Livewire (come bottone)
                       try {
-                        vm?._sendToTts?.("Perfetto: ti ho preparato il pulsante Calendly. Premi per aprire la prenotazione.");
+                        const ok = vm.openCalendlyModal ? vm.openCalendlyModal(calendlyUrl) : false;
+                        if (ok) {
+                          vm?._sendToTts?.("Perfetto, ti apro subito il calendario per prenotare.");
+                        } else {
+                          vm?._sendToTts?.("Calendly non è disponibile su questa pagina.");
+                        }
                       } catch { }
                     } else {
                       try {
