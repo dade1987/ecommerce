@@ -19,6 +19,10 @@ class CavalliniService extends PageBlock
                     ->required()
                     ->default('cavalliniservice')
                     ->helperText('Lo slug del team da usare per le richieste API'),
+                TextInput::make('calendly_url')
+                    ->label('Calendly URL')
+                    ->url()
+                    ->helperText('URL del calendario Calendly per prenotare appuntamenti'),
             ]);
     }
 
