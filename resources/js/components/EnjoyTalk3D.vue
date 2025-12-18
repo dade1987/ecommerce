@@ -951,7 +951,7 @@ export default defineComponent({
       const uuid = urlParams.get("uuid");
       const locale = props.locale || "it-IT";
       // DEBUG SEMPRE ATTIVO (anche in webcomponent remoto / shadow DOM)
-      const debugEnabled = true;
+      const debugEnabled = false;
       const assistantsEnabled = urlParams.get("assistants") === "1";
       // rootEl già risolto dal ref/instance
       const ua = navigator.userAgent || "";
