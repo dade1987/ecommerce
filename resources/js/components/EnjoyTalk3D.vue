@@ -2889,7 +2889,9 @@ export default defineComponent({
                     } catch { }
                     return;
                   }
-                  const normalized = low.indexOf("cerca nel sito") === 0 ? safe : ("cerca nel sito " + safe);
+                  // NON forziamo più "cerca nel sito" anche in modalità voce.
+                  // La modalità "solo sito" viene gestita lato server a livello di tools esposti all'LLM.
+                  const normalized = safe;
                   vm.startStream
                     ? vm.startStream(normalized)
                     : startStream(normalized);
