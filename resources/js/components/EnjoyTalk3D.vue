@@ -5,8 +5,8 @@
     isWebComponent ? 'bg-transparent' : 'w-full bg-[#0f172a] pb-[96px] sm:pb-0'
   ]">
 
-    <!-- Floating launcher bubble (snippet mode, visibile solo quando il widget è chiuso) -->
-    <button v-if="isWebComponent && !widgetOpen" id="talkLauncherBtn"
+    <!-- Floating launcher bubble (snippet mode, visibile solo quando il widget è chiuso e l'avatar è pronto) -->
+    <button v-if="isWebComponent && !widgetOpen && launcherVisible" id="talkLauncherBtn"
       class="enjoytalk-launcher-wow fixed z-[9999] bottom-[calc(1.25rem+env(safe-area-inset-bottom))] right-[calc(1.25rem+env(safe-area-inset-right))] h-16 px-5 rounded-full backdrop-blur text-white shadow-lg border border-white/20 flex items-center gap-3"
       aria-label="Apri Assistente virtuale AI (Ricerche e servizi)" @click="onLauncherClick">
       <!-- Glow + ping (solo CSS) -->
@@ -388,6 +388,12 @@ export default defineComponent({
       advancedLipsyncOn: false,
       // stato snippet/webcomponent
       widgetOpen: true,
+      // In snippet/webcomponent: mostra la bubble solo quando l'avatar ha finito di caricare
+      launcherVisible: false,
+      // In snippet/webcomponent: apri automaticamente il widget quando l'avatar è pronto
+      autoOpenOnAvatarReady: true,
+      // In snippet/webcomponent: apri automaticamente solo 1 volta ogni 7 giorni
+      autoOpenCooldownDays: 7,
       introPlayed: false,
       snippetMenuOpen: false,
       snippetTextMode: false,
@@ -405,6 +411,7 @@ export default defineComponent({
       // In modalità webcomponent il widget parte chiuso, mostrato solo come bubble
       if (import.meta.env.VITE_IS_WEB_COMPONENT) {
         this.widgetOpen = false;
+        this.launcherVisible = false;
       }
       // Inietta gli stili CSS dopo che il componente è montato
       // injectStylesIfNeeded()
@@ -445,6 +452,66 @@ export default defineComponent({
     } catch { }
   },
   methods: {
+    // Cookie helpers (sync)
+    getCookieValue(name) {
+      try {
+        const n = String(name || "");
+        if (!n) return "";
+        const parts = String(document.cookie || "").split(";");
+        for (let i = 0; i < parts.length; i++) {
+          const p = parts[i].trim();
+          if (!p) continue;
+          if (p.indexOf(n + "=") === 0) {
+            return decodeURIComponent(p.substring((n + "=").length));
+          }
+        }
+      } catch { }
+      return "";
+    },
+    setCookieValue(name, value, maxAgeSeconds) {
+      try {
+        const n = String(name || "");
+        if (!n) return;
+        const v = encodeURIComponent(String(value || ""));
+        const maxAge = parseInt(String(maxAgeSeconds || 0), 10);
+        const attrs = [
+          `${n}=${v}`,
+          "path=/",
+        ];
+        if (isFinite(maxAge) && maxAge > 0) {
+          attrs.push(`max-age=${maxAge}`);
+        }
+        // best-effort secure defaults
+        try {
+          if (typeof window !== "undefined" && window.location && window.location.protocol === "https:") {
+            attrs.push("secure");
+          }
+        } catch { }
+        // SameSite Lax è ok per widget sullo stesso dominio
+        attrs.push("samesite=lax");
+        document.cookie = attrs.join("; ");
+      } catch { }
+    },
+    shouldAutoOpenThisWeek() {
+      try {
+        const isSnippet = import.meta.env.VITE_IS_WEB_COMPONENT || false;
+        if (!isSnippet) return false;
+        if (!this.autoOpenOnAvatarReady) return false;
+
+        const slug = String(this.teamSlug || "team").toLowerCase().replace(/[^a-z0-9_-]/g, "_");
+        const cookieName = `enjoytalk_autoopen_${slug}`;
+        const existing = this.getCookieValue(cookieName);
+        if (existing) return false;
+
+        const days = parseInt(String(this.autoOpenCooldownDays || 7), 10);
+        const seconds = (isFinite(days) && days > 0 ? days : 7) * 24 * 60 * 60;
+        // Marca subito (così vale "prima visita della settimana" anche se chiude subito)
+        this.setCookieValue(cookieName, "1", seconds);
+        return true;
+      } catch {
+        return false;
+      }
+    },
     // Wrappers Options API per funzioni operative
     startStream(message) {
       try {
@@ -546,7 +613,7 @@ export default defineComponent({
                 })();
 
                 const welcome =
-                  `Ciao! Sono il tuo Assistente AI. Vedo con piacere che usi un dispositivo ${device} su ${browser}. Sono pronto per cercare informazioni nel sito o prenotare un appuntamento in un istante!`;
+                  `Ciao! Sono il tuo Assistente AI. Stai usando un dispositivo ${device} su ${browser}. Posso rispondere a voce in tempo reale e aprirti la prenotazione con un solo click.`;
 
                 // Deve dirlo ESATTAMENTE così: TTS locale, non risposta del backend
                 if (this._sendToTts) {
@@ -5077,6 +5144,30 @@ export default defineComponent({
               if (loadingOverlay) {
                 loadingOverlay.classList.add("hidden");
               }
+
+              // In modalità snippet/webcomponent:
+              // - l'icona/launcher deve restare nascosta finché l'avatar non è pronto
+              // - appena l'avatar è pronto, apri automaticamente il widget (come click sull'icona)
+              try {
+                const vmInst = instance && instance.proxy ? instance.proxy : null;
+                const isSnippet = import.meta.env.VITE_IS_WEB_COMPONENT || false;
+                if (isSnippet && vmInst) {
+                  vmInst.launcherVisible = true;
+                  // Auto-open: solo 1 volta ogni 7 giorni (cookie), e solo quando l'avatar è pronto
+                  const shouldAuto = typeof vmInst.shouldAutoOpenThisWeek === "function"
+                    ? vmInst.shouldAutoOpenThisWeek()
+                    : false;
+                  if (shouldAuto && !vmInst.widgetOpen) {
+                    // Simula il click sull'icona (usa la stessa logica, incluso intro TTS)
+                    if (typeof vmInst.onLauncherClick === "function") {
+                      vmInst.onLauncherClick();
+                    } else {
+                      vmInst.widgetOpen = true;
+                    }
+                  }
+                }
+              } catch { }
+
               // Mostra il bottone "Conversa con Me" solo in layout full
               if (!isWebComponent && conversaBtnContainer) {
                 conversaBtnContainer.classList.remove("hidden");
