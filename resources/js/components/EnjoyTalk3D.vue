@@ -1918,7 +1918,7 @@ export default defineComponent({
       }
 
       function sanitizeForTts(input) {
-        const vmInst = getCurrentInstance()?.proxy || {};
+        const vmInst = instance && instance.proxy ? instance.proxy : {};
         let t = vmInst.stripHtml
           ? vmInst.stripHtml(input || "")
           : stripHtml(input || "");
@@ -2187,7 +2187,7 @@ export default defineComponent({
             // Estrai URL principale della fonte (RAG sito) dalla risposta completa
             const primaryUrl = extractPrimarySourceUrl(collected);
             try {
-              const vmInst = getCurrentInstance()?.proxy;
+              const vmInst = instance && instance.proxy ? instance.proxy : null;
               if (vmInst) {
                 vmInst.lastSourceUrl = primaryUrl || "";
               }
@@ -2713,7 +2713,7 @@ export default defineComponent({
         }
 
         try {
-          const vm = getCurrentInstance()?.proxy || {};
+          const vm = instance && instance.proxy ? instance.proxy : {};
 
           // Nuova richiesta vocale in modalità avatar: nascondi il bottone della fonte precedente
           try {
@@ -3441,7 +3441,7 @@ export default defineComponent({
       }
 
       function checkForTtsChunks() {
-        const vmInst = getCurrentInstance()?.proxy || {};
+        const vmInst = instance && instance.proxy ? instance.proxy : {};
         const clean = vmInst.stripHtml
           ? vmInst.stripHtml(ttsBuffer)
           : stripHtml(ttsBuffer);
@@ -3564,7 +3564,7 @@ export default defineComponent({
       }
 
       function sendToTts(text) {
-        const vmInst = getCurrentInstance()?.proxy || {};
+        const vmInst = instance && instance.proxy ? instance.proxy : {};
         const norm = vmInst.sanitizeForTts
           ? vmInst.sanitizeForTts(text)
           : sanitizeForTts(text);
@@ -3658,7 +3658,7 @@ export default defineComponent({
       } catch { }
 
       function sendToTtsIfNew() {
-        const vmInst = getCurrentInstance()?.proxy || {};
+        const vmInst = instance && instance.proxy ? instance.proxy : {};
         const clean = vmInst.stripHtml
           ? vmInst.stripHtml(bufferText)
           : stripHtml(bufferText);
@@ -4988,7 +4988,7 @@ export default defineComponent({
 
               // In modalità snippet: frase di benvenuto presa dal welcome_message del team
               try {
-                const vmInst = getCurrentInstance()?.proxy;
+                const vmInst = instance && instance.proxy ? instance.proxy : null;
                 const isSnippet = import.meta.env.VITE_IS_WEB_COMPONENT || false;
                 // IMPORTANTISSIMO: non far partire il benvenuto mentre il widget è chiuso (altrimenti l'utente non lo sente)
                 if (isSnippet && vmInst && vmInst.widgetOpen && !vmInst.introPlayed) {
