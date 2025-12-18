@@ -14,16 +14,14 @@
       <span class="pointer-events-none absolute inset-0 rounded-full enjoytalk-launcher-ping"></span>
 
       <!-- Icon (AI assistant) -->
-      <span class="relative z-10 flex items-center justify-center w-10 h-10 rounded-full bg-white/10 border border-white/15">
+      <span
+        class="relative z-10 flex items-center justify-center w-10 h-10 rounded-full bg-white/10 border border-white/15">
         <svg class="w-6 h-6 enjoytalk-launcher-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path
-            d="M9 18h6m-8-6V9a5 5 0 0 1 10 0v3m-11 0h12v3a3 3 0 0 1-3 3H9a3 3 0 0 1-3-3v-3Z"
-            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          <path d="M9 18h6m-8-6V9a5 5 0 0 1 10 0v3m-11 0h12v3a3 3 0 0 1-3 3H9a3 3 0 0 1-3-3v-3Z" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
           <path d="M10 11h.01M14 11h.01" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
-          <path
-            d="M12 3v2M6.5 5.5 8 7M17.5 5.5 16 7"
-            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-            opacity="0.9" />
+          <path d="M12 3v2M6.5 5.5 8 7M17.5 5.5 16 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round" opacity="0.9" />
         </svg>
       </span>
 
@@ -31,14 +29,16 @@
       <span class="relative z-10 text-left leading-tight">
         <span class="flex items-center gap-2">
           <span class="text-[14px] font-extrabold tracking-tight">Assistente virtuale AI</span>
-          <span class="enjoytalk-ai-badge text-[11px] font-black tracking-widest uppercase px-2 py-0.5 rounded-full border border-white/20">AI</span>
+          <span
+            class="enjoytalk-ai-badge text-[11px] font-black tracking-widest uppercase px-2 py-0.5 rounded-full border border-white/20">AI</span>
         </span>
         <span class="block text-[12px] font-semibold text-white/85">Ricerche &amp; Servizi</span>
       </span>
 
       <span class="relative z-10 ml-1 text-white/90">
         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path d="M9 18 15 12 9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          <path d="M9 18 15 12 9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round" />
         </svg>
       </span>
     </button>
@@ -76,6 +76,16 @@
                 <button type="button" @click="openLastSourceUrl"
                   class="inline-flex items-center gap-1 px-4 py-2 rounded-full bg-rose-600 hover:bg-rose-700 text-white text-[11px] font-semibold shadow-md border border-rose-300">
                   <span>Vai alla pagina da cui ho preso queste informazioni</span>
+                  <span class="text-xs">↗</span>
+                </button>
+              </div>
+
+              <!-- Prenotazione (solo snippet/webcomponent): CTA cliccabile per evitare popup block da voce -->
+              <div v-if="isWebComponent && !snippetTextMode && lastBookingUrl"
+                class="mt-3 mb-2 flex justify-center pointer-events-auto">
+                <button type="button" @click="openLastBookingUrl"
+                  class="inline-flex items-center gap-1 px-4 py-2 rounded-full bg-sky-500 hover:bg-sky-600 text-white text-[11px] font-semibold shadow-md border border-sky-200">
+                  <span>Prenota un appuntamento (Calendly)</span>
                   <span class="text-xs">↗</span>
                 </button>
               </div>
@@ -386,6 +396,8 @@ export default defineComponent({
       snippetInput: "",
       // URL della fonte principale (RAG sito) dell'ultima risposta
       lastSourceUrl: "",
+      // URL prenotazione (Calendly) pronto per click (evita popup block da voice)
+      lastBookingUrl: "",
     };
   },
   mounted() {
@@ -654,6 +666,31 @@ export default defineComponent({
         if (!this.lastSourceUrl) return;
         window.open(this.lastSourceUrl, "_blank", "noopener,noreferrer");
       } catch { }
+    },
+    openLastBookingUrl() {
+      try {
+        if (!this.lastBookingUrl) return;
+        // Preferisci sempre il modal Calendly (overlay in-page)
+        const ok = this.openCalendlyModal
+          ? this.openCalendlyModal(this.lastBookingUrl)
+          : false;
+        if (!ok) {
+          // fallback estremo
+          window.open(this.lastBookingUrl, "_blank", "noopener,noreferrer");
+        }
+      } catch { }
+    },
+    openCalendlyModal(url) {
+      try {
+        const u = (url || "").trim();
+        if (!u) return false;
+        const C = typeof window !== "undefined" ? window.Calendly : null;
+        if (!C || typeof C.initPopupWidget !== "function") return false;
+        C.initPopupWidget({ url: u });
+        return true;
+      } catch {
+        return false;
+      }
     },
     sendSnippetInput() {
       try {
@@ -2256,8 +2293,21 @@ export default defineComponent({
             instance?.proxy?._sendToTts?.("Prenotazione non configurata: manca il link Calendly.");
             return true;
           }
-          window.open(calendlyUrl, "_blank", "noopener,noreferrer");
-          instance?.proxy?._sendToTts?.("Perfetto, ti apro subito la prenotazione.");
+          // Apri il MODAL Calendly (overlay in-page), come il bottone
+          try {
+            instance.proxy.lastBookingUrl = calendlyUrl;
+          } catch { }
+
+          const ok = instance?.proxy?.openCalendlyModal
+            ? instance.proxy.openCalendlyModal(calendlyUrl)
+            : false;
+
+          if (!ok) {
+            instance?.proxy?._sendToTts?.("Calendly non è disponibile su questa pagina: non trovo lo script del widget.");
+            return true;
+          }
+
+          instance?.proxy?._sendToTts?.("Perfetto, ti apro subito il calendario per prenotare.");
           return true;
         } catch {
           return false;
@@ -2795,10 +2845,11 @@ export default defineComponent({
                   if (isBooking) {
                     if (calendlyUrl) {
                       try {
-                        window.open(calendlyUrl, "_blank", "noopener,noreferrer");
+                        vm.lastBookingUrl = calendlyUrl;
                       } catch { }
+                      // Da voce il popup può essere bloccato: preparo il pulsante e lo dico in TTS
                       try {
-                        vm?._sendToTts?.("Perfetto, ti apro subito la prenotazione.");
+                        vm?._sendToTts?.("Perfetto: ti ho preparato il pulsante Calendly. Premi per aprire la prenotazione.");
                       } catch { }
                     } else {
                       try {
