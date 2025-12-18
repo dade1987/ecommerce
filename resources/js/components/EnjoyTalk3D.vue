@@ -366,6 +366,10 @@ export default defineComponent({
       type: String,
       default: "/images/68f78ddb4530fb061a1349d5.glb",
     },
+    calendlyUrl: {
+      type: String,
+      default: "",
+    },
   },
   data() {
     return {
@@ -478,13 +482,41 @@ export default defineComponent({
             this.closeWidget && this.closeWidget();
           } else {
             this.widgetOpen = true;
-            // Come EnjoyHen: al primo open, invia il greeting (server risponde col benvenuto del teamSlug)
             try {
               if (!this.introPlayed) {
-                const greeting = this.getGreetingMessage
-                  ? this.getGreetingMessage()
-                  : "Buongiorno";
-                this.startStream && this.startStream(greeting);
+                const ua = (typeof navigator !== "undefined" && navigator.userAgent) ? navigator.userAgent : "";
+                const device = (() => {
+                  try {
+                    if (/iPad|Tablet/i.test(ua)) return "Tablet";
+                    if (/Mobi|Android|iPhone/i.test(ua)) return "Mobile";
+                    return "Desktop";
+                  } catch {
+                    return "Desktop";
+                  }
+                })();
+                const browser = (() => {
+                  try {
+                    if (/Edg\//.test(ua)) return "Edge";
+                    if (/OPR\//.test(ua)) return "Opera";
+                    if (/Chrome\//.test(ua) && !/Edg\//.test(ua)) return "Chrome";
+                    if (/Firefox\//.test(ua)) return "Firefox";
+                    if (/Safari\//.test(ua) && !/Chrome\//.test(ua) && !/Edg\//.test(ua)) return "Safari";
+                    return "Browser";
+                  } catch {
+                    return "Browser";
+                  }
+                })();
+
+                const welcome =
+                  `Ciao! Sono il tuo Assistente AI su ${device} (Browser ${browser}), pronto per cercare nel sito o prenotare un appuntamento in un istante!`;
+
+                // Deve dirlo ESATTAMENTE così: TTS locale, non risposta del backend
+                if (this._sendToTts) {
+                  this._sendToTts(welcome);
+                } else if (this.startStream) {
+                  // fallback estremo (non garantisce frase identica)
+                  this.startStream(welcome);
+                }
                 this.introPlayed = true;
               }
             } catch { }
@@ -793,6 +825,7 @@ export default defineComponent({
       const chatPanel = $id("chatPanel");
       const chatMessagesEl = $id("chatMessages");
       const teamSlug = props.teamSlug || window.location.pathname.split("/").pop();
+      const calendlyUrl = (props.calendlyUrl || "").trim();
       const urlParams = new URLSearchParams(window.location.search);
       const uuid = urlParams.get("uuid");
       const locale = props.locale || "it-IT";
@@ -2191,56 +2224,94 @@ export default defineComponent({
         instance.proxy.startStream = startStream;
       } catch { }
 
+      const isBookingIntent = (txt) => {
+        try {
+          const t = String(txt || "").toLowerCase();
+          return (
+            t.indexOf("prenot") !== -1 ||
+            t.indexOf("appuntamento") !== -1 ||
+            t.indexOf("calendly") !== -1
+          );
+        } catch {
+          return false;
+        }
+      };
+
+      const normalizeForCavalliniService = (raw) => {
+        const msg = String(raw || "").trim();
+        if (!msg) return "";
+        const low = msg.toLowerCase();
+
+        // Blocca esplicitamente il database: per cavalliniservice solo RAG sito o prenotazione
+        if (low.indexOf("cerca nel database") === 0) return "__BLOCK_DATABASE__";
+
+        // Forza sempre la modalità "cerca nel sito" (così l'agent usa SOLO searchSite)
+        if (low.indexOf("cerca nel sito") === 0) return msg;
+        return "cerca nel sito " + msg;
+      };
+
+      const openCalendlyIfPossible = () => {
+        try {
+          if (!calendlyUrl) {
+            instance?.proxy?._sendToTts?.("Prenotazione non configurata: manca il link Calendly.");
+            return true;
+          }
+          window.open(calendlyUrl, "_blank", "noopener,noreferrer");
+          instance?.proxy?._sendToTts?.("Perfetto, ti apro subito la prenotazione.");
+          return true;
+        } catch {
+          return false;
+        }
+      };
+
       const onSend = async () => {
+        const raw = (input?.value || "").trim();
+        if (!raw) return;
+
         if (conversaBtnContainer) {
           conversaBtnContainer.classList.add("hidden");
         }
-        // In chatMode, append user message immediately
-        if (chatMode) {
-          const message = (input?.value || "").trim();
-          if (message) {
-            chatMessagesData.push({ role: "user", content: message });
-            renderChatMessages();
+
+        // Restrizioni speciali per cavalliniservice: solo sito + prenotazione
+        let messageToSend = raw;
+        if (String(teamSlug || "").toLowerCase() === "cavalliniservice") {
+          if (isBookingIntent(raw)) {
+            openCalendlyIfPossible();
+            input.value = "";
+            return;
+          }
+          messageToSend = normalizeForCavalliniService(raw);
+          if (messageToSend === "__BLOCK_DATABASE__") {
+            instance?.proxy?._sendToTts?.("Posso solo cercare nel sito o prenotare un appuntamento.");
+            input.value = "";
+            return;
           }
         }
+
+        // In chatMode, append user message immediately (mostra ciò che ha scritto l'utente, non il prefisso)
+        if (chatMode) {
+          chatMessagesData.push({ role: "user", content: raw });
+          renderChatMessages();
+        }
+
         try {
           if (!audioCtx)
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
           if (audioCtx.state === "suspended") await audioCtx.resume();
         } catch { }
+
         try {
-          instance.proxy.startStream(input.value);
+          instance.proxy.startStream(messageToSend);
         } catch {
-          startStream(input.value);
+          startStream(messageToSend);
         }
         input.value = "";
       };
+
       $id("sendBtn")?.addEventListener("click", onSend);
       $id("textInput")?.addEventListener("keyup", async (e) => {
         if (e.key === "Enter") {
-          if (conversaBtnContainer) {
-            conversaBtnContainer.classList.add("hidden");
-          }
-          try {
-            if (!audioCtx)
-              audioCtx = new (window.AudioContext ||
-                window.webkitAudioContext)();
-            if (audioCtx.state === "suspended") await audioCtx.resume();
-          } catch { }
-          // In chatMode, append user message immediately also on ENTER
-          if (chatMode) {
-            const message = (input?.value || "").trim();
-            if (message) {
-              chatMessagesData.push({ role: "user", content: message });
-              renderChatMessages();
-            }
-          }
-          try {
-            instance.proxy.startStream(input.value);
-          } catch {
-            startStream(input.value);
-          }
-          input.value = "";
+          await onSend();
         }
       });
 
@@ -2713,6 +2784,42 @@ export default defineComponent({
               // Invia la frase trascritta nel flusso di conversazione Neuron,
               // come faceva prima il risultato di WebSpeech.
               try {
+                // Restrizioni speciali per cavalliniservice: solo sito + prenotazione
+                const slugLow = String(teamSlug || "").toLowerCase();
+                if (slugLow === "cavalliniservice") {
+                  const low = safe.toLowerCase();
+                  const isBooking =
+                    low.indexOf("prenot") !== -1 ||
+                    low.indexOf("appuntamento") !== -1 ||
+                    low.indexOf("calendly") !== -1;
+                  if (isBooking) {
+                    if (calendlyUrl) {
+                      try {
+                        window.open(calendlyUrl, "_blank", "noopener,noreferrer");
+                      } catch { }
+                      try {
+                        vm?._sendToTts?.("Perfetto, ti apro subito la prenotazione.");
+                      } catch { }
+                    } else {
+                      try {
+                        vm?._sendToTts?.("Prenotazione non configurata: manca il link Calendly.");
+                      } catch { }
+                    }
+                    return;
+                  }
+                  if (low.indexOf("cerca nel database") === 0) {
+                    try {
+                      vm?._sendToTts?.("Posso solo cercare nel sito o prenotare un appuntamento.");
+                    } catch { }
+                    return;
+                  }
+                  const normalized = low.indexOf("cerca nel sito") === 0 ? safe : ("cerca nel sito " + safe);
+                  vm.startStream
+                    ? vm.startStream(normalized)
+                    : startStream(normalized);
+                  return;
+                }
+
                 vm.startStream
                   ? vm.startStream(safe)
                   : startStream(safe);

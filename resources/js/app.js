@@ -17,6 +17,9 @@ if (rootEl) {
   if (rootEl.dataset.teamSlug) {
     props.teamSlug = rootEl.dataset.teamSlug
   }
+  if (rootEl.dataset.calendlyUrl) {
+    props.calendlyUrl = rootEl.dataset.calendlyUrl
+  }
 
   createApp(EnjoyTalk3D, props).mount('#enjoyTalkRoot')
 }

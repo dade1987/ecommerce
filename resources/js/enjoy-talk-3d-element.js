@@ -8,6 +8,7 @@
  * 
  * Attributi supportati:
  * - team-slug: (REQUIRED) Lo slug del team da usare per le richieste API
+ * - calendly-url: (OPTIONAL) URL Calendly per prenotazioni
  */
 
 import { defineCustomElement } from 'vue'
@@ -40,6 +41,11 @@ const componentWithProps = {
     },
     glbUrl: {
       type: String,
+      default: ""
+    },
+    calendlyUrl: {
+      type: String,
+      required: false,
       default: ""
     }
   },
