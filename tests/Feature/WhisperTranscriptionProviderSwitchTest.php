@@ -59,3 +59,4 @@ class WhisperTranscriptionProviderSwitchTest extends TestCase
         ]);
     }
 }
+

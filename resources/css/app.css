@@ -9,8 +9,9 @@
 @layer components {
   /* Launcher “wow” per EnjoyTalk3D (web component / snippet) */
   .enjoytalk-launcher-wow {
-    background: linear-gradient(135deg, rgba(102, 126, 234, 0.95) 0%, rgba(16, 185, 129, 0.95) 100%);
-    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.35), 0 8px 25px rgba(16, 185, 129, 0.25);
+    /* Palette come bottone hero (blu/viola) */
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.98) 0%, rgba(118, 75, 162, 0.98) 100%);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.45);
     animation: enjoytalk-pulse-glow 2.8s ease-in-out infinite;
     transform: translateZ(0);
     overflow: visible;
@@ -27,7 +28,7 @@
       from 180deg,
       rgba(102, 126, 234, 0) 0%,
       rgba(102, 126, 234, 0.55) 20%,
-      rgba(16, 185, 129, 0.55) 55%,
+      rgba(118, 75, 162, 0.55) 55%,
       rgba(102, 126, 234, 0) 100%
     );
     filter: blur(10px);
@@ -55,13 +56,31 @@
   }
 
   .enjoytalk-launcher-ping {
-    background: radial-gradient(circle, rgba(102, 126, 234, 0.35) 0%, rgba(16, 185, 129, 0.2) 55%, transparent 70%);
+    background: radial-gradient(circle, rgba(102, 126, 234, 0.35) 0%, rgba(118, 75, 162, 0.22) 55%, transparent 70%);
     opacity: 0.55;
     animation: enjoytalk-ping 2.6s cubic-bezier(0, 0, 0.2, 1) infinite;
   }
 
   .enjoytalk-launcher-label {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.92) 0%, rgba(118, 75, 162, 0.9) 100%);
+    box-shadow: 0 12px 35px rgba(102, 126, 234, 0.35);
     animation: enjoytalk-label-breathe 3.2s ease-in-out infinite;
+    position: relative;
+    transform: translateX(0);
+  }
+
+  .enjoytalk-launcher-label::after {
+    /* freccina verso il bottone */
+    content: "";
+    position: absolute;
+    top: 50%;
+    right: -7px;
+    width: 14px;
+    height: 14px;
+    transform: translateY(-50%) rotate(45deg);
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.92) 0%, rgba(118, 75, 162, 0.9) 100%);
+    border-right: 1px solid rgba(255, 255, 255, 0.18);
+    border-top: 1px solid rgba(255, 255, 255, 0.18);
   }
 
   .enjoytalk-launcher-icon {
@@ -69,23 +88,23 @@
   }
 
   .enjoytalk-launcher-wow:hover {
-    box-shadow: 0 15px 35px rgba(102, 126, 234, 0.55), 0 15px 35px rgba(16, 185, 129, 0.35);
+    box-shadow: 0 15px 35px rgba(102, 126, 234, 0.65);
     transform: translateY(-4px) scale(1.04);
   }
 
   .enjoytalk-launcher-wow:hover .enjoytalk-launcher-label {
-    background: rgba(2, 6, 23, 0.82);
     border-color: rgba(255, 255, 255, 0.25);
-    transform: translateX(-2px);
+    box-shadow: 0 16px 45px rgba(102, 126, 234, 0.45);
+    transform: translateX(-3px);
   }
 
   @keyframes enjoytalk-pulse-glow {
     0%,
     100% {
-      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.35), 0 8px 25px rgba(16, 185, 129, 0.25);
+      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.45);
     }
     50% {
-      box-shadow: 0 12px 35px rgba(102, 126, 234, 0.65), 0 12px 35px rgba(16, 185, 129, 0.45);
+      box-shadow: 0 12px 35px rgba(102, 126, 234, 0.75);
     }
   }
 

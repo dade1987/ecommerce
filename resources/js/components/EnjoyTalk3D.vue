@@ -7,7 +7,7 @@
 
     <!-- Floating launcher bubble (snippet mode, visibile solo quando il widget è chiuso) -->
     <button v-if="isWebComponent && !widgetOpen" id="talkLauncherBtn"
-      class="enjoytalk-launcher-wow fixed z-[9999] bottom-4 right-4 w-16 h-16 rounded-full backdrop-blur text-white shadow-lg border border-white/20 flex items-center justify-center"
+      class="enjoytalk-launcher-wow fixed z-[9999] bottom-[calc(1.25rem+env(safe-area-inset-bottom))] right-[calc(1.25rem+env(safe-area-inset-right))] w-16 h-16 rounded-full backdrop-blur text-white shadow-lg border border-white/20 flex items-center justify-center"
       aria-label="Apri l'assistente AI per le ricerche" @click="onLauncherClick">
       <!-- Glow + ping (solo CSS) -->
       <span class="pointer-events-none absolute inset-0 rounded-full enjoytalk-launcher-pulse"></span>
@@ -15,8 +15,9 @@
 
       <!-- Label “capisci che devi aprirlo” -->
       <span
-        class="pointer-events-none absolute right-full mr-3 max-w-[220px] whitespace-normal rounded-2xl px-3 py-2 text-[11px] leading-tight font-semibold text-white/95 border border-white/15 shadow-xl bg-slate-950/70 backdrop-blur enjoytalk-launcher-label">
-        Assistente AI • Ricerche &amp; Servizi
+        class="pointer-events-none absolute right-full mr-3 max-w-[240px] whitespace-normal rounded-2xl px-3.5 py-2.5 text-[12px] leading-tight text-white border border-white/15 shadow-xl enjoytalk-launcher-label">
+        <span class="block text-[10px] uppercase tracking-wider text-white/85">Aprimi</span>
+        <span class="block font-extrabold">Ti assisto in ricerche &amp; servizi</span>
       </span>
 
       <!-- Icon -->
