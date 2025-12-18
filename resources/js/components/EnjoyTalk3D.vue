@@ -7,15 +7,15 @@
 
     <!-- Floating launcher bubble (snippet mode, visibile solo quando il widget è chiuso) -->
     <button v-if="isWebComponent && !widgetOpen" id="talkLauncherBtn"
-      class="enjoytalk-launcher-wow fixed z-[9999] bottom-[calc(1.25rem+env(safe-area-inset-bottom))] right-[calc(1.25rem+env(safe-area-inset-right))] h-14 px-4 rounded-full backdrop-blur text-white shadow-lg border border-white/20 flex items-center gap-3"
+      class="enjoytalk-launcher-wow fixed z-[9999] bottom-[calc(1.25rem+env(safe-area-inset-bottom))] right-[calc(1.25rem+env(safe-area-inset-right))] h-16 px-5 rounded-full backdrop-blur text-white shadow-lg border border-white/20 flex items-center gap-3"
       aria-label="Apri Assistente virtuale AI (Ricerche e servizi)" @click="onLauncherClick">
       <!-- Glow + ping (solo CSS) -->
       <span class="pointer-events-none absolute inset-0 rounded-full enjoytalk-launcher-pulse"></span>
       <span class="pointer-events-none absolute inset-0 rounded-full enjoytalk-launcher-ping"></span>
 
       <!-- Icon (AI assistant) -->
-      <span class="relative z-10 flex items-center justify-center w-9 h-9 rounded-full bg-white/10 border border-white/15">
-        <svg class="w-5 h-5 enjoytalk-launcher-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <span class="relative z-10 flex items-center justify-center w-10 h-10 rounded-full bg-white/10 border border-white/15">
+        <svg class="w-6 h-6 enjoytalk-launcher-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path
             d="M9 18h6m-8-6V9a5 5 0 0 1 10 0v3m-11 0h12v3a3 3 0 0 1-3 3H9a3 3 0 0 1-3-3v-3Z"
             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
@@ -30,10 +30,10 @@
       <!-- Copy (orizzontale) -->
       <span class="relative z-10 text-left leading-tight">
         <span class="flex items-center gap-2">
-          <span class="text-[12px] font-extrabold tracking-tight">Assistente virtuale AI</span>
-          <span class="enjoytalk-ai-badge text-[10px] font-black tracking-widest uppercase px-1.5 py-0.5 rounded-full border border-white/20">AI</span>
+          <span class="text-[14px] font-extrabold tracking-tight">Assistente virtuale AI</span>
+          <span class="enjoytalk-ai-badge text-[11px] font-black tracking-widest uppercase px-2 py-0.5 rounded-full border border-white/20">AI</span>
         </span>
-        <span class="block text-[11px] font-semibold text-white/85">Ricerche &amp; Servizi</span>
+        <span class="block text-[12px] font-semibold text-white/85">Ricerche &amp; Servizi</span>
       </span>
 
       <span class="relative z-10 ml-1 text-white/90">
@@ -478,6 +478,16 @@ export default defineComponent({
             this.closeWidget && this.closeWidget();
           } else {
             this.widgetOpen = true;
+            // Come EnjoyHen: al primo open, invia il greeting (server risponde col benvenuto del teamSlug)
+            try {
+              if (!this.introPlayed) {
+                const greeting = this.getGreetingMessage
+                  ? this.getGreetingMessage()
+                  : "Buongiorno";
+                this.startStream && this.startStream(greeting);
+                this.introPlayed = true;
+              }
+            } catch { }
           }
         } else {
           // In layout full, per sicurezza, si limita ad aprire
@@ -4762,7 +4772,8 @@ export default defineComponent({
               try {
                 const vmInst = getCurrentInstance()?.proxy;
                 const isSnippet = import.meta.env.VITE_IS_WEB_COMPONENT || false;
-                if (isSnippet && vmInst && !vmInst.introPlayed) {
+                // IMPORTANTISSIMO: non far partire il benvenuto mentre il widget è chiuso (altrimenti l'utente non lo sente)
+                if (isSnippet && vmInst && vmInst.widgetOpen && !vmInst.introPlayed) {
                   try {
                     const greeting = vmInst.getGreetingMessage
                       ? vmInst.getGreetingMessage()
