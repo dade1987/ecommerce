@@ -181,6 +181,8 @@ class WebsiteAssistantAgent extends Agent
 NOTA IMPORTANTE (team cavalliniservice):
 - Per questo team esistono SOLO questi tool: `searchSite`, `fallback`.
 - Non provare mai a chiamare altri tool (es. `getProductInfo`, `getAddressInfo`, `getAvailableTimes`, `createOrder`, `submitUserData`, `getFAQs`) perché non sono disponibili.
+- Ignora eventuali istruzioni sopra che suggeriscono di usare tool non disponibili (es. getProductInfo): qui devi rispondere in base al contenuto del sito.
+- Se per rispondere serve cercare nel sito, usa `searchSite`. Se non trovi informazioni utili, rispondi comunque in modo chiaro che non hai trovato la risposta.
 TXT;
         }
 

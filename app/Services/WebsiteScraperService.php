@@ -137,17 +137,57 @@ class WebsiteScraperService
             @$dom->loadHTML($html);
 
             // Rimuovi script e style
-            foreach ($dom->getElementsByTagName('script') as $node) {
-                $node->parentNode->removeChild($node);
+            // NOTE: getElementsByTagName() ritorna una NodeList "live": rimuovere nodi mentre si itera
+            // può far saltare elementi. Convertiamo prima in array.
+            $scripts = [];
+            foreach ($dom->getElementsByTagName('script') as $n) {
+                $scripts[] = $n;
             }
-            foreach ($dom->getElementsByTagName('style') as $node) {
-                $node->parentNode->removeChild($node);
+            foreach ($scripts as $node) {
+                try {
+                    $node->parentNode?->removeChild($node);
+                } catch (\Throwable) {
+                    // ignore
+                }
+            }
+
+            $styles = [];
+            foreach ($dom->getElementsByTagName('style') as $n) {
+                $styles[] = $n;
+            }
+            foreach ($styles as $node) {
+                try {
+                    $node->parentNode?->removeChild($node);
+                } catch (\Throwable) {
+                    // ignore
+                }
+            }
+
+            // Rimuovi anche noscript (spesso contiene fallback/JS)
+            $noscripts = [];
+            foreach ($dom->getElementsByTagName('noscript') as $n) {
+                $noscripts[] = $n;
+            }
+            foreach ($noscripts as $node) {
+                try {
+                    $node->parentNode?->removeChild($node);
+                } catch (\Throwable) {
+                    // ignore
+                }
             }
 
             $body = $dom->getElementsByTagName('body')->item(0);
             $plainText = $body ? strip_tags($dom->saveHTML($body)) : strip_tags($html);
 
             // Pulisci spazi multipli
+            $plainText = preg_replace('/\s+/', ' ', $plainText);
+            $plainText = trim($plainText);
+
+            // Ulteriore pulizia: rimuovi blob tipici di cookie/banner che possono finire come testo
+            // (es. snippet iubenda che a volte resta anche dopo rimozione script).
+            $plainText = preg_replace('/\bvar\s+_iub\b[\s\S]{0,2000}/i', ' ', $plainText);
+            $plainText = preg_replace('/\b_iub\.csConfiguration\b[\s\S]{0,2000}/i', ' ', $plainText);
+            $plainText = preg_replace('/cookiePolicyId"\s*:\s*"\d+"/i', ' ', $plainText);
             $plainText = preg_replace('/\s+/', ' ', $plainText);
             $plainText = trim($plainText);
 
