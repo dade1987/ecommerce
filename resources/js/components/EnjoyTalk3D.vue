@@ -484,6 +484,29 @@ export default defineComponent({
       } catch { }
       return "Buongiorno";
     },
+    debugSnapshot(extra) {
+      try {
+        const e = extra && typeof extra === "object" ? extra : {};
+        const w = typeof window !== "undefined" ? window : {};
+        const ua = (typeof navigator !== "undefined" && navigator.userAgent) ? navigator.userAgent : "";
+        return {
+          widgetOpen: !!this.widgetOpen,
+          introPlayed: !!this.introPlayed,
+          snippetAudioOn: !!this.snippetAudioOn,
+          teamSlug: this.teamSlug,
+          calendlyUrl: this.calendlyUrl,
+          hasSendToTts: typeof this._sendToTts === "function",
+          hasLivewire: !!w.Livewire,
+          hasLivewireDispatch: !!(w.Livewire && typeof w.Livewire.dispatch === "function"),
+          hasLivewireEmit: !!(w.Livewire && typeof w.Livewire.emit === "function"),
+          hasCalendly: !!w.Calendly,
+          ua,
+          ...e,
+        };
+      } catch {
+        return { error: "debugSnapshot_failed" };
+      }
+    },
     // Toggle widget snippet (bubble ↔ widget)
     onLauncherClick() {
       try {
@@ -494,6 +517,9 @@ export default defineComponent({
             this.closeWidget && this.closeWidget();
           } else {
             this.widgetOpen = true;
+            try {
+              console.log("[EnjoyTalk3D] launcher_open", this.debugSnapshot({ source: "launcher" }));
+            } catch { }
             try {
               if (!this.introPlayed) {
                 const ua = (typeof navigator !== "undefined" && navigator.userAgent) ? navigator.userAgent : "";
@@ -524,8 +550,14 @@ export default defineComponent({
 
                 // Deve dirlo ESATTAMENTE così: TTS locale, non risposta del backend
                 if (this._sendToTts) {
+                  try {
+                    console.log("[EnjoyTalk3D] welcome_tts_send", this.debugSnapshot({ len: welcome.length }));
+                  } catch { }
                   this._sendToTts(welcome);
                 } else if (this.startStream) {
+                  try {
+                    console.warn("[EnjoyTalk3D] _sendToTts_missing_fallback_startStream", this.debugSnapshot());
+                  } catch { }
                   // fallback estremo (non garantisce frase identica)
                   this.startStream(welcome);
                 }
@@ -676,32 +708,59 @@ export default defineComponent({
     },
     openCalendlyModal(url) {
       try {
+        const w = typeof window !== "undefined" ? window : {};
+        const u = (url || "").trim();
+        try {
+          console.log("[EnjoyTalk3D] calendly_open_attempt", this.debugSnapshot({ url: u || "(empty)" }));
+        } catch { }
+
         // 1) Preferito: Livewire slideover già usato dal sito
         try {
-          if (typeof window !== "undefined" && window.Livewire && typeof window.Livewire.dispatch === "function") {
-            window.Livewire.dispatch("open-calendar-slideover");
+          if (w.Livewire) {
+            if (typeof w.Livewire.dispatch === "function") {
+              w.Livewire.dispatch("open-calendar-slideover");
+            } else if (typeof w.Livewire.emit === "function") {
+              // compat v2
+              w.Livewire.emit("open-calendar-slideover");
+            } else {
+              throw new Error("Livewire present but no dispatch/emit");
+            }
             try {
-              typeof window.gtag !== "undefined" &&
-                window.gtag("event", "cta_click", {
+              typeof w.gtag !== "undefined" &&
+                w.gtag("event", "cta_click", {
                   event_category: "engagement",
                   event_label: "primary_cta_calendly",
                 });
+            } catch (e) {
+              console.warn("[EnjoyTalk3D] gtag_failed", e);
+            }
+            try {
+              console.log("[EnjoyTalk3D] calendly_open_livewire_dispatched");
             } catch { }
             return true;
           }
-        } catch { }
+        } catch (e) {
+          try {
+            console.warn("[EnjoyTalk3D] calendly_open_livewire_failed", e);
+          } catch { }
+        }
 
         // 2) Fallback: Calendly popup widget ufficiale (se presente)
-        const u = (url || "").trim();
-        const C = typeof window !== "undefined" ? window.Calendly : null;
+        const C = w.Calendly || null;
         if (C && typeof C.initPopupWidget === "function" && u) {
           C.initPopupWidget({ url: u });
+          try {
+            console.log("[EnjoyTalk3D] calendly_open_calendly_widget_ok");
+          } catch { }
           return true;
         }
 
         // 3) Ultimo fallback: tab
         if (u) {
-          window.open(u, "_blank", "noopener,noreferrer");
+          w.open(u, "_blank", "noopener,noreferrer");
+          try {
+            console.log("[EnjoyTalk3D] calendly_open_window_open_fallback");
+          } catch { }
           return true;
         }
         return false;
@@ -883,7 +942,19 @@ export default defineComponent({
       const urlParams = new URLSearchParams(window.location.search);
       const uuid = urlParams.get("uuid");
       const locale = props.locale || "it-IT";
-      const debugEnabled = urlParams.get("debug") === "1";
+      const debugEnabled = (() => {
+        try {
+          if (urlParams.get("debug") === "1") return true;
+        } catch { }
+        try {
+          return (
+            typeof window !== "undefined" &&
+            window.localStorage &&
+            window.localStorage.getItem("enjoyTalkDebug") === "1"
+          );
+        } catch { }
+        return false;
+      })();
       const assistantsEnabled = urlParams.get("assistants") === "1";
       // rootEl già risolto dal ref/instance
       const ua = navigator.userAgent || "";
@@ -2315,6 +2386,10 @@ export default defineComponent({
             instance.proxy.lastBookingUrl = calendlyUrl;
           } catch { }
 
+          try {
+            console.log("[EnjoyTalk3D] booking_intent_text", { teamSlug, calendlyUrl });
+          } catch { }
+
           const ok = instance?.proxy?.openCalendlyModal
             ? instance.proxy.openCalendlyModal(calendlyUrl)
             : false;
@@ -2866,6 +2941,9 @@ export default defineComponent({
                       } catch { }
                       // Apri direttamente lo slideover Calendly Livewire (come bottone)
                       try {
+                        try {
+                          console.log("[EnjoyTalk3D] booking_intent_voice", { teamSlug, calendlyUrl, transcript: safe });
+                        } catch { }
                         const ok = vm.openCalendlyModal ? vm.openCalendlyModal(calendlyUrl) : false;
                         if (ok) {
                           vm?._sendToTts?.("Perfetto, ti apro subito il calendario per prenotare.");
