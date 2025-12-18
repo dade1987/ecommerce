@@ -716,12 +716,20 @@ export default defineComponent({
 
         // 1) Preferito: Livewire slideover già usato dal sito
         try {
-          if (w.Livewire) {
-            if (typeof w.Livewire.dispatch === "function") {
-              w.Livewire.dispatch("open-calendar-slideover");
-            } else if (typeof w.Livewire.emit === "function") {
-              // compat v2
-              w.Livewire.emit("open-calendar-slideover");
+          const lw = (() => {
+            try {
+              // alcune pagine espongono Livewire come globale non-enumerable
+              // eslint-disable-next-line no-undef
+              if (typeof Livewire !== "undefined") return Livewire;
+            } catch { }
+            return w.Livewire || null;
+          })();
+
+          if (lw) {
+            if (typeof lw.dispatch === "function") {
+              lw.dispatch("open-calendar-slideover");
+            } else if (typeof lw.emit === "function") {
+              lw.emit("open-calendar-slideover");
             } else {
               throw new Error("Livewire present but no dispatch/emit");
             }
@@ -755,7 +763,7 @@ export default defineComponent({
           return true;
         }
 
-        // 3) Ultimo fallback: tab
+        // 3) Ultimo fallback: tab (solo se ho URL)
         if (u) {
           w.open(u, "_blank", "noopener,noreferrer");
           try {
@@ -942,19 +950,8 @@ export default defineComponent({
       const urlParams = new URLSearchParams(window.location.search);
       const uuid = urlParams.get("uuid");
       const locale = props.locale || "it-IT";
-      const debugEnabled = (() => {
-        try {
-          if (urlParams.get("debug") === "1") return true;
-        } catch { }
-        try {
-          return (
-            typeof window !== "undefined" &&
-            window.localStorage &&
-            window.localStorage.getItem("enjoyTalkDebug") === "1"
-          );
-        } catch { }
-        return false;
-      })();
+      // DEBUG SEMPRE ATTIVO (anche in webcomponent remoto / shadow DOM)
+      const debugEnabled = true;
       const assistantsEnabled = urlParams.get("assistants") === "1";
       // rootEl già risolto dal ref/instance
       const ua = navigator.userAgent || "";
@@ -1841,11 +1838,13 @@ export default defineComponent({
       let currentTalkingAnimation = null;
       let talkingAnimationActive = false;
 
-      const debugOverlay = document.getElementById("debugOverlay");
-      const debugContent = document.getElementById("debugContent");
-      const debugCloseBtn = document.getElementById("debugClose");
-      const debugClearBtn = document.getElementById("debugClear");
-      const debugCopyBtn = document.getElementById("debugCopy");
+      // IMPORTANT: in Shadow DOM document.getElementById NON vede gli elementi del componente.
+      // Usiamo sempre $id() che punta a rootEl.querySelector().
+      const debugOverlay = $id("debugOverlay");
+      const debugContent = $id("debugContent");
+      const debugCloseBtn = $id("debugClose");
+      const debugClearBtn = $id("debugClear");
+      const debugCopyBtn = $id("debugCopy");
       const originalConsole = {
         log: console.log,
         warn: console.warn,
@@ -2377,25 +2376,20 @@ export default defineComponent({
 
       const openCalendlyIfPossible = () => {
         try {
-          if (!calendlyUrl) {
-            instance?.proxy?._sendToTts?.("Prenotazione non configurata: manca il link Calendly.");
-            return true;
-          }
-          // Apri il MODAL Calendly (overlay in-page), come il bottone
-          try {
-            instance.proxy.lastBookingUrl = calendlyUrl;
-          } catch { }
+          // Per lo slideover Livewire NON serve avere l'URL qui: l'app lo conosce già.
+          // Se abbiamo anche un URL, lo teniamo come fallback.
+          try { instance.proxy.lastBookingUrl = calendlyUrl || ""; } catch { }
 
           try {
             console.log("[EnjoyTalk3D] booking_intent_text", { teamSlug, calendlyUrl });
           } catch { }
 
           const ok = instance?.proxy?.openCalendlyModal
-            ? instance.proxy.openCalendlyModal(calendlyUrl)
+            ? instance.proxy.openCalendlyModal(calendlyUrl || "")
             : false;
 
           if (!ok) {
-            instance?.proxy?._sendToTts?.("Calendly non è disponibile su questa pagina: non trovo lo script del widget.");
+            instance?.proxy?._sendToTts?.("Calendario non disponibile su questa pagina.");
             return true;
           }
 
@@ -2935,27 +2929,19 @@ export default defineComponent({
                     low.indexOf("appuntamento") !== -1 ||
                     low.indexOf("calendly") !== -1;
                   if (isBooking) {
-                    if (calendlyUrl) {
+                    try { vm.lastBookingUrl = calendlyUrl || ""; } catch { }
+                    // Apri direttamente lo slideover Livewire (non serve URL)
+                    try {
                       try {
-                        vm.lastBookingUrl = calendlyUrl;
+                        console.log("[EnjoyTalk3D] booking_intent_voice", { teamSlug, calendlyUrl, transcript: safe });
                       } catch { }
-                      // Apri direttamente lo slideover Calendly Livewire (come bottone)
-                      try {
-                        try {
-                          console.log("[EnjoyTalk3D] booking_intent_voice", { teamSlug, calendlyUrl, transcript: safe });
-                        } catch { }
-                        const ok = vm.openCalendlyModal ? vm.openCalendlyModal(calendlyUrl) : false;
-                        if (ok) {
-                          vm?._sendToTts?.("Perfetto, ti apro subito il calendario per prenotare.");
-                        } else {
-                          vm?._sendToTts?.("Calendly non è disponibile su questa pagina.");
-                        }
-                      } catch { }
-                    } else {
-                      try {
-                        vm?._sendToTts?.("Prenotazione non configurata: manca il link Calendly.");
-                      } catch { }
-                    }
+                      const ok = vm.openCalendlyModal ? vm.openCalendlyModal(calendlyUrl || "") : false;
+                      if (ok) {
+                        vm?._sendToTts?.("Perfetto, ti apro subito il calendario per prenotare.");
+                      } else {
+                        vm?._sendToTts?.("Calendario non disponibile su questa pagina.");
+                      }
+                    } catch { }
                     return;
                   }
                   if (low.indexOf("cerca nel database") === 0) {
