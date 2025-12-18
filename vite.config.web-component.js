@@ -13,6 +13,7 @@ export default defineConfig({
         'process.env.NODE_ENV': JSON.stringify('production'),
         'process.env': '({})',
         'import.meta.env.VITE_IS_WEB_COMPONENT': true,
+        '__VUE_PROD_DEVTOOLS__': true, // Abilita Vue DevTools anche in produzione
     },
     css: {
         postcss: './postcss.config.js'

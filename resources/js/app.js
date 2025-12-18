@@ -21,7 +21,9 @@ if (rootEl) {
     props.calendlyUrl = rootEl.dataset.calendlyUrl
   }
 
-  createApp(EnjoyTalk3D, props).mount('#enjoyTalkRoot')
+  const app = createApp(EnjoyTalk3D, props)
+  app.config.devtools = true
+  app.mount('#enjoyTalkRoot')
 }
 
 // EnjoyHen mount
@@ -34,7 +36,9 @@ if (rootElHen) {
   propsHen.locale = rootElHen.dataset.locale || 'it-IT'
   propsHen.teamLogo = rootElHen.dataset.teamLogo || '/images/logoai.jpeg'
 
-  createApp(EnjoyHen, propsHen).mount('#enjoyHeyRoot')
+  const appHen = createApp(EnjoyHen, propsHen)
+  appHen.config.devtools = true
+  appHen.mount('#enjoyHeyRoot')
 }
 
 // LiveTranslator mount (Voice Translator block)
@@ -43,6 +47,8 @@ if (rootElTranslator) {
   const propsTranslator = {}
   propsTranslator.locale = rootElTranslator.dataset.locale || 'it-IT'
 
-  createApp(LiveTranslator, propsTranslator).mount('#voiceTranslatorRoot')
+  const appTranslator = createApp(LiveTranslator, propsTranslator)
+  appTranslator.config.devtools = true
+  appTranslator.mount('#voiceTranslatorRoot')
 }
 
