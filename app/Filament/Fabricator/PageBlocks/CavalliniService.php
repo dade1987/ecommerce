@@ -27,4 +27,3 @@ class CavalliniService extends PageBlock
         return view('components.filament-fabricator.page-blocks.cavalliniservice');
     }
 }
-

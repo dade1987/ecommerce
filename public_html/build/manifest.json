@@ -1,10 +1,6 @@
 {
   "resources/css/app.css": {
-<<<<<<< HEAD
-    "file": "assets/app-afa8ac1e.css",
-=======
-    "file": "assets/app-f2490a59.css",
->>>>>>> de970a7 (avatar cavalliniservice)
+    "file": "assets/app-e3e2b5ed.css",
     "isEntry": true,
     "src": "resources/css/app.css"
   },
@@ -21,11 +17,7 @@
     "css": [
       "assets/app-a02fc6a2.css"
     ],
-<<<<<<< HEAD
-    "file": "assets/app-07ba41e2.js",
-=======
-    "file": "assets/app-b0fd5b82.js",
->>>>>>> de970a7 (avatar cavalliniservice)
+    "file": "assets/app-3adc3931.js",
     "isEntry": true,
     "src": "resources/js/app.js"
   }
