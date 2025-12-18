@@ -2307,9 +2307,10 @@ export default defineComponent({
         // Blocca esplicitamente il database: per cavalliniservice solo RAG sito o prenotazione
         if (low.indexOf("cerca nel database") === 0) return "__BLOCK_DATABASE__";
 
-        // Forza sempre la modalità "cerca nel sito" (così l'agent usa SOLO searchSite)
-        if (low.indexOf("cerca nel sito") === 0) return msg;
-        return "cerca nel sito " + msg;
+        // NON forziamo più "cerca nel sito" su ogni messaggio.
+        // La modalità "solo sito" viene gestita lato server a livello di tools esposti all'LLM.
+        // Se l'utente scrive già "cerca nel sito ..." lo lasciamo passare invariato.
+        return msg;
       };
 
       const openCalendlyIfPossible = () => {

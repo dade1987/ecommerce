@@ -220,16 +220,29 @@ TXT;
      */
     protected function tools(): array
     {
-        $toolsList = [
-            $this->createGetProductInfoTool(),
-            $this->createGetAddressInfoTool(),
-            $this->createGetAvailableTimesTool(),
-            $this->createCreateOrderTool(),
-            $this->createSubmitUserDataTool(),
-            $this->createGetFAQsTool(),
-            $this->createSearchSiteTool(),
-            $this->createFallbackTool(),
-        ];
+        // Per cavalliniservice vogliamo una modalità "solo sito" reale, a livello di tools esposti all'LLM.
+        // In questo modo:
+        // - l'LLM può rispondere normalmente (senza essere forzato a fare searchSite su OGNI messaggio),
+        // - e quando serve può usare searchSite (RAG) senza poter interrogare direttamente il DB applicativo.
+        $teamSlug = strtolower((string) ($this->teamSlug ?? ''));
+
+        if ($teamSlug === 'cavalliniservice') {
+            $toolsList = [
+                $this->createSearchSiteTool(),
+                $this->createFallbackTool(),
+            ];
+        } else {
+            $toolsList = [
+                $this->createGetProductInfoTool(),
+                $this->createGetAddressInfoTool(),
+                $this->createGetAvailableTimesTool(),
+                $this->createCreateOrderTool(),
+                $this->createSubmitUserDataTool(),
+                $this->createGetFAQsTool(),
+                $this->createSearchSiteTool(),
+                $this->createFallbackTool(),
+            ];
+        }
 
         Log::debug('WebsiteAssistantAgent.tools', [
             'tools_count' => count($toolsList),
