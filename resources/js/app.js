@@ -14,6 +14,9 @@ if (rootEl) {
   props.heygenServerUrl = rootEl.dataset.heygenServerUrl || 'https://api.heygen.com'
   props.locale = rootEl.dataset.locale || 'it-IT'
   props.teamLogo = rootEl.dataset.teamLogo || '/images/logoai.jpeg'
+  if (rootEl.dataset.teamSlug) {
+    props.teamSlug = rootEl.dataset.teamSlug
+  }
 
   createApp(EnjoyTalk3D, props).mount('#enjoyTalkRoot')
 }

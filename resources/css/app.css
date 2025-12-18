@@ -4,5 +4,134 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-@tailwind typography
+@tailwind typography;
+
+@layer components {
+  /* Launcher “wow” per EnjoyTalk3D (web component / snippet) */
+  .enjoytalk-launcher-wow {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.95) 0%, rgba(16, 185, 129, 0.95) 100%);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.35), 0 8px 25px rgba(16, 185, 129, 0.25);
+    animation: enjoytalk-pulse-glow 2.8s ease-in-out infinite;
+    transform: translateZ(0);
+    overflow: visible;
+    position: relative;
+    z-index: 0;
+  }
+
+  .enjoytalk-launcher-wow::before {
+    content: "";
+    position: absolute;
+    inset: -10px;
+    border-radius: 9999px;
+    background: conic-gradient(
+      from 180deg,
+      rgba(102, 126, 234, 0) 0%,
+      rgba(102, 126, 234, 0.55) 20%,
+      rgba(16, 185, 129, 0.55) 55%,
+      rgba(102, 126, 234, 0) 100%
+    );
+    filter: blur(10px);
+    opacity: 0.95;
+    z-index: -2;
+    animation: enjoytalk-rotate-glow 4s linear infinite;
+    pointer-events: none;
+  }
+
+  .enjoytalk-launcher-wow::after {
+    content: "";
+    position: absolute;
+    inset: -2px;
+    border-radius: 9999px;
+    background: radial-gradient(circle at 25% 25%, rgba(255, 255, 255, 0.35) 0%, transparent 60%);
+    opacity: 0.8;
+    z-index: -1;
+    pointer-events: none;
+  }
+
+  .enjoytalk-launcher-pulse {
+    background: radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.28) 0%, transparent 62%);
+    opacity: 0.35;
+    animation: enjoytalk-soft-pulse 2.2s ease-in-out infinite;
+  }
+
+  .enjoytalk-launcher-ping {
+    background: radial-gradient(circle, rgba(102, 126, 234, 0.35) 0%, rgba(16, 185, 129, 0.2) 55%, transparent 70%);
+    opacity: 0.55;
+    animation: enjoytalk-ping 2.6s cubic-bezier(0, 0, 0.2, 1) infinite;
+  }
+
+  .enjoytalk-launcher-label {
+    animation: enjoytalk-label-breathe 3.2s ease-in-out infinite;
+  }
+
+  .enjoytalk-launcher-icon {
+    filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.35));
+  }
+
+  .enjoytalk-launcher-wow:hover {
+    box-shadow: 0 15px 35px rgba(102, 126, 234, 0.55), 0 15px 35px rgba(16, 185, 129, 0.35);
+    transform: translateY(-4px) scale(1.04);
+  }
+
+  .enjoytalk-launcher-wow:hover .enjoytalk-launcher-label {
+    background: rgba(2, 6, 23, 0.82);
+    border-color: rgba(255, 255, 255, 0.25);
+    transform: translateX(-2px);
+  }
+
+  @keyframes enjoytalk-pulse-glow {
+    0%,
+    100% {
+      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.35), 0 8px 25px rgba(16, 185, 129, 0.25);
+    }
+    50% {
+      box-shadow: 0 12px 35px rgba(102, 126, 234, 0.65), 0 12px 35px rgba(16, 185, 129, 0.45);
+    }
+  }
+
+  @keyframes enjoytalk-rotate-glow {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+
+  @keyframes enjoytalk-soft-pulse {
+    0%,
+    100% {
+      opacity: 0.28;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.5;
+      transform: scale(1.02);
+    }
+  }
+
+  @keyframes enjoytalk-ping {
+    0% {
+      transform: scale(1);
+      opacity: 0.55;
+    }
+    75%,
+    100% {
+      transform: scale(1.6);
+      opacity: 0;
+    }
+  }
+
+  @keyframes enjoytalk-label-breathe {
+    0%,
+    100% {
+      opacity: 0.92;
+      transform: translateX(0);
+    }
+    50% {
+      opacity: 1;
+      transform: translateX(-1px);
+    }
+  }
+}
 
