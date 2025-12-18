@@ -129,21 +129,59 @@ class NeuronWebsiteStreamController extends Controller
 
                 // Streaming nativo da Neuron
                 $fullContent = '';
+                $chunksTotal = 0;
+                $textChunks = 0;
+                $emptyTextChunks = 0;
+                $nonStringChunks = 0;
+                $nonStringTypes = [];
 
                 // Streaming nativo con history già caricata dal memory provider
                 $stream = $agent->stream(new UserMessage($userInput));
 
                 foreach ($stream as $chunk) {
+                    $chunksTotal++;
                     // Se il chunk non è un oggetto di tool call, è testo
                     if (is_string($chunk)) {
+                        $textChunks++;
+                        if ($chunk === '') {
+                            $emptyTextChunks++;
+                        }
                         $fullContent .= $chunk;
                         $flush(['token' => $chunk]);
+                    } else {
+                        $nonStringChunks++;
+                        $t = is_object($chunk) ? get_class($chunk) : gettype($chunk);
+                        if (count($nonStringTypes) < 5) {
+                            $nonStringTypes[] = $t;
+                        }
                     }
                 }
 
                 // Se il contenuto è vuoto, usa un messaggio di fallback
                 if (empty($fullContent)) {
                     $fullContent = 'Mi dispiace, non sono riuscito a generare una risposta.';
+                }
+
+                // Debug mirato: quando succede la "risposta vuota", logga cosa è arrivato dallo stream
+                try {
+                    if (strtolower((string) $teamSlug) === 'cavalliniservice') {
+                        Log::warning('NeuronWebsiteStreamController.empty_or_weird_stream', [
+                            'thread_id' => $streamThreadId,
+                            'team_slug' => $teamSlug,
+                            'user_input_preview' => mb_substr($userInput, 0, 300),
+                            'website_content_length' => isset($websiteContent) ? strlen((string) $websiteContent) : null,
+                            'chunks_total' => $chunksTotal,
+                            'text_chunks' => $textChunks,
+                            'empty_text_chunks' => $emptyTextChunks,
+                            'non_string_chunks' => $nonStringChunks,
+                            'non_string_types_sample' => $nonStringTypes,
+                            'final_content_length' => strlen($fullContent),
+                        ]);
+                    }
+                } catch (\Throwable $e) {
+                    Log::warning('NeuronWebsiteStreamController.stream debug log failed', [
+                        'error' => $e->getMessage(),
+                    ]);
                 }
 
                 Log::info('NeuronWebsiteStreamController: Response completed', [

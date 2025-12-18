@@ -2077,6 +2077,8 @@ export default defineComponent({
         let sseRetryCount = 0;
         let evtSource = null;
         let sseConnectWatchdog = null;
+        // Se arrivano solo token vuoti (o solo thread_id) e poi basta, rispondi con fallback.
+        let receivedContentToken = false;
         if (!chatMode) {
           if (!ttsTick) {
             ttsTick = setInterval(() => {
@@ -2086,11 +2088,29 @@ export default defineComponent({
             }, 120);
           }
         }
+
+        function handleNoAnswerFallback() {
+          try {
+            const msg = "Mi dispiace, non so rispondere a questa domanda.";
+            if (!chatMode) {
+              try {
+                sendToTts(msg);
+              } catch { }
+              return;
+            }
+            try {
+              chatMessagesData.push({ role: "assistant", content: msg });
+              renderChatMessages();
+            } catch { }
+          } catch { }
+        }
+
         function bindSse() {
           evtSource.addEventListener("message", (e) => {
             try {
               const data = JSON.parse(e.data);
-              if (data.token) {
+              // IMPORTANTE: gestisci anche token vuoti (""), quindi non usare la truthiness.
+              if (data && Object.prototype.hasOwnProperty.call(data, "token")) {
                 try {
                   const tok = JSON.parse(data.token);
                   if (tok && tok.thread_id) {
@@ -2104,6 +2124,13 @@ export default defineComponent({
                     return;
                   }
                 } catch { }
+
+                const tokenStr = String(data.token || "");
+                if (tokenStr === "") {
+                  // Token vuoto: ignora (non è contenuto utile)
+                  return;
+                }
+                receivedContentToken = true;
                 if (firstToken) {
                   firstToken = false;
                   if (thinkingBubble) thinkingBubble.classList.add("hidden");
@@ -2123,15 +2150,15 @@ export default defineComponent({
                     chatStreamingIndex = chatMessagesData.length - 1;
                   }
                 }
-                collected += data.token;
+                collected += tokenStr;
                 if (!chatMode) {
-                  ttsBuffer += data.token;
+                  ttsBuffer += tokenStr;
                   checkForTtsChunks();
                 } else {
                   // Streaming nativo Neuron → aggiorna testo in tempo reale
                   if (chatStreamingIndex >= 0) {
                     try {
-                      chatMessagesData[chatStreamingIndex].content += data.token;
+                      chatMessagesData[chatStreamingIndex].content += tokenStr;
                       renderChatMessages();
                     } catch { }
                   }
@@ -2184,6 +2211,11 @@ export default defineComponent({
               } catch { }
               ttsTick = null;
             }
+
+            // Stream chiuso senza contenuto: fallback.
+            if (!done && !receivedContentToken) {
+              handleNoAnswerFallback();
+            }
           });
           evtSource.addEventListener("done", () => {
             try {
@@ -2229,6 +2261,10 @@ export default defineComponent({
                 } catch { }
                 ttsTick = null;
               }
+              // Solo token vuoti / nessun contenuto: fallback.
+              if (!receivedContentToken) {
+                handleNoAnswerFallback();
+              }
             } else {
               // Chat-only: stream già applicato; aggiungi l'URL di fonte principale (se presente)
               if (chatStreamingIndex >= 0 && chatStreamingIndex < chatMessagesData.length) {
@@ -2244,6 +2280,10 @@ export default defineComponent({
               }
               // finalizza indice
               chatStreamingIndex = -1;
+              // Solo token vuoti / nessun contenuto: fallback.
+              if (!receivedContentToken) {
+                handleNoAnswerFallback();
+              }
             }
           });
         }

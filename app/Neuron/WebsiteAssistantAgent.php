@@ -224,6 +224,27 @@ TXT;
             'effective_locale' => $locale,
         ]);
 
+        // DEBUG mirato: per cavalliniservice logghiamo il prompt che viene mandato al modello.
+        // Attenzione: può essere lungo. Logghiamo hash + preview troncato.
+        try {
+            if (strtolower((string) $this->teamSlug) === 'cavalliniservice') {
+                $maxPreviewChars = 6000;
+                $preview = mb_substr($baseInstructions, 0, $maxPreviewChars);
+                Log::info('WebsiteAssistantAgent.prompt_sent', [
+                    'team_slug' => (string) $this->teamSlug,
+                    'activity_uuid' => $this->activityUuid,
+                    'effective_locale' => $locale,
+                    'prompt_length' => strlen($baseInstructions),
+                    'prompt_sha1' => sha1($baseInstructions),
+                    'prompt_preview' => $preview,
+                ]);
+            }
+        } catch (\Throwable $e) {
+            Log::warning('WebsiteAssistantAgent.prompt_sent log failed', [
+                'error' => $e->getMessage(),
+            ]);
+        }
+
         return $baseInstructions;
     }
 
