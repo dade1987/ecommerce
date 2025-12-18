@@ -14,6 +14,7 @@ use function Safe\json_decode;
 use function Safe\json_encode;
 use function Safe\ob_flush;
 use function Safe\preg_split;
+use function Safe\set_time_limit;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -42,12 +43,22 @@ class NeuronWebsiteStreamController extends Controller
         $scraperService = new \App\Services\WebsiteScraperService($client);
 
         $response = new StreamedResponse(function () use ($userInput, $teamSlug, $locale, $activityUuid, $scraperService) {
+            // Evita timeout PHP “standard” su stream lunghi (SSE)
+            try {
+                set_time_limit(0);
+                @ignore_user_abort(true);
+            } catch (\Throwable) {
+                // ignore
+            }
+
             $flush = function (array $payload, string $event = 'message') {
                 echo "event: {$event}\n";
                 echo 'data: '.json_encode($payload, JSON_UNESCAPED_UNICODE)."\n\n";
                 @ob_flush();
                 @flush();
             };
+
+            $startedAt = microtime(true);
 
             $streamThreadId = (string) (request()->query('thread_id') ?: str()->uuid());
 
@@ -146,8 +157,11 @@ class NeuronWebsiteStreamController extends Controller
                         if ($chunk === '') {
                             $emptyTextChunks++;
                         }
-                        $fullContent .= $chunk;
-                        $flush(['token' => $chunk]);
+                        // Non inviare token vuoti al client (evita "risposta vuota" lato frontend)
+                        if ($chunk !== '') {
+                            $fullContent .= $chunk;
+                            $flush(['token' => $chunk]);
+                        }
                     } else {
                         $nonStringChunks++;
                         $t = is_object($chunk) ? get_class($chunk) : gettype($chunk);
@@ -160,6 +174,8 @@ class NeuronWebsiteStreamController extends Controller
                 // Se il contenuto è vuoto, usa un messaggio di fallback
                 if (empty($fullContent)) {
                     $fullContent = 'Mi dispiace, non sono riuscito a generare una risposta.';
+                    // IMPORTANTISSIMO: se lo stream non ha prodotto testo, invia il fallback al client
+                    $this->streamTextByWord($fullContent, $flush);
                 }
 
                 // Debug mirato: quando succede la "risposta vuota", logga cosa è arrivato dallo stream
@@ -169,7 +185,7 @@ class NeuronWebsiteStreamController extends Controller
                             'thread_id' => $streamThreadId,
                             'team_slug' => $teamSlug,
                             'user_input_preview' => mb_substr($userInput, 0, 300),
-                            'website_content_length' => isset($websiteContent) ? strlen((string) $websiteContent) : null,
+                            'website_content_length' => strlen($websiteContent),
                             'chunks_total' => $chunksTotal,
                             'text_chunks' => $textChunks,
                             'empty_text_chunks' => $emptyTextChunks,
@@ -184,9 +200,28 @@ class NeuronWebsiteStreamController extends Controller
                     ]);
                 }
 
+                // Log della risposta finale (preview troncato) per debugging
+                try {
+                    if (strtolower((string) $teamSlug) === 'cavalliniservice') {
+                        Log::info('NeuronWebsiteStreamController.response_text', [
+                            'thread_id' => $streamThreadId,
+                            'team_slug' => $teamSlug,
+                            'content_length' => strlen($fullContent),
+                            'content_sha1' => sha1($fullContent),
+                            'content_preview' => mb_substr($fullContent, 0, 2000),
+                        ]);
+                    }
+                } catch (\Throwable $e) {
+                    Log::warning('NeuronWebsiteStreamController.response_text log failed', [
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+
                 Log::info('NeuronWebsiteStreamController: Response completed', [
                     'thread_id' => $streamThreadId,
                     'content_length' => strlen($fullContent),
+                    'duration_ms' => (int) round((microtime(true) - $startedAt) * 1000),
+                    'connection_aborted' => function_exists('connection_aborted') ? connection_aborted() : null,
                 ]);
 
                 $flush(['token' => ''], 'done');
