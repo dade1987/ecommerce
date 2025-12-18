@@ -225,13 +225,39 @@ export default class WhisperSpeechRecognition {
             });
 
             if (!resp.ok) {
-                this._emitError('whisper_http_error', `Errore HTTP Whisper: ${resp.status}`);
+                // Prova a leggere il body per distinguere i casi di rejection (422) dal resto.
+                // In particolare, il backend può riconoscere bassa qualità e rispondere:
+                // { error: "transcription_rejected", message: "TRANSCRIPTION_REJECTED: ..." } con HTTP 422
+                let errorJson = {};
+                try {
+                    errorJson = await resp.json();
+                } catch {
+                    errorJson = {};
+                }
+
+                if (resp.status === 422 && errorJson && errorJson.error === 'transcription_rejected') {
+                    this._emitError('transcription_rejected', errorJson.message || 'Trascrizione non valida.');
+                    return;
+                }
+
+                this._emitError(
+                    'whisper_http_error',
+                    (errorJson && (errorJson.message || errorJson.error))
+                        ? `Errore Whisper: ${errorJson.message || errorJson.error}`
+                        : `Errore HTTP Whisper: ${resp.status}`
+                );
                 return;
             }
 
             const json = await resp.json().catch(() => ({}));
+            if (json && json.error) {
+                this._emitError('whisper_api_error', json.message || json.error);
+                return;
+            }
             const text = (json.text || '').trim();
             if (!text) {
+                // Trascrizione vuota: trattiamola come "non ho capito" (il chiamante mostrerà/TTS il messaggio)
+                this._emitError('transcription_empty', 'Trascrizione vuota.');
                 return;
             }
 

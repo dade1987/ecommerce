@@ -1922,8 +1922,10 @@ export default defineComponent({
         let t = vmInst.stripHtml
           ? vmInst.stripHtml(input || "")
           : stripHtml(input || "");
-        // Rimuovi eventuale riga tecnica del marker URL
-        t = t.replace(/^RAG_SOURCE_URL:.*$/gm, "");
+        // Rimuovi marker tecnico RAG_SOURCE_URL (sia su riga dedicata che inline)
+        t = t.replace(/^\s*RAG_SOURCE_URL:.*$/gmi, "");
+        t = t.replace(/RAG_SOURCE_URL:\s*https?:\/\/\S+/gmi, "");
+        t = t.replace(/RAG_SOURCE_URL:\s*/gmi, "");
         t = t.replace(/\*\*(.*?)\*\*/g, "$1");
         t = t.replace(/\*(.*?)\*/g, "$1");
         t = t.replace(/`+/g, "");
@@ -1982,6 +1984,20 @@ export default defineComponent({
           return match ? match[0] : "";
         } catch {
           return "";
+        }
+      }
+
+      // Rimuove dalla risposta qualsiasi riga/occorrenza tecnica "RAG_SOURCE_URL: ..."
+      function removeSourceMarker(fullText) {
+        try {
+          const txt = fullText || "";
+          if (!txt) return "";
+          const withoutLines = txt.replace(/^\s*RAG_SOURCE_URL:.*$/gmi, "");
+          const withoutInline = withoutLines.replace(/RAG_SOURCE_URL:\s*https?:\/\/\S+/gmi, "");
+          const withoutToken = withoutInline.replace(/RAG_SOURCE_URL:\s*/gmi, "");
+          return withoutToken;
+        } catch {
+          return fullText || "";
         }
       }
 
@@ -2195,7 +2211,9 @@ export default defineComponent({
 
             if (!chatMode) {
               if (ttsBuffer.trim().length > 0) {
-                const remainingText = stripHtml(ttsBuffer).trim();
+                // IMPORTANTISSIMO: rimuovi marker tecnico RAG_SOURCE_URL prima di inviare al TTS
+                const cleanedTts = removeSourceMarker(ttsBuffer);
+                const remainingText = stripHtml(cleanedTts).trim();
                 if (remainingText.length > 0) {
                   console.log(
                     "TTS: Sending remaining text:",
@@ -2213,8 +2231,15 @@ export default defineComponent({
               }
             } else {
               // Chat-only: stream già applicato; aggiungi l'URL di fonte principale (se presente)
-              if (primaryUrl && chatStreamingIndex >= 0 && chatStreamingIndex < chatMessagesData.length) {
-                chatMessagesData[chatStreamingIndex].sourceUrl = primaryUrl;
+              if (chatStreamingIndex >= 0 && chatStreamingIndex < chatMessagesData.length) {
+                if (primaryUrl) {
+                  chatMessagesData[chatStreamingIndex].sourceUrl = primaryUrl;
+                }
+                // Rimuovi marker tecnico dal testo mostrato in chat
+                try {
+                  chatMessagesData[chatStreamingIndex].content =
+                    removeSourceMarker(chatMessagesData[chatStreamingIndex].content || "");
+                } catch { }
                 renderChatMessages();
               }
               // finalizza indice
@@ -2758,6 +2783,27 @@ export default defineComponent({
             );
             isListening = false;
             setListeningUI(false);
+
+            // Se la trascrizione viene rigettata (es. qualità bassa) o fallisce per qualunque motivo,
+            // avvisa l'utente via TTS che non hai capito la domanda.
+            try {
+              const vm = instance && instance.proxy ? instance.proxy : {};
+              const errCode = (e && (e.error || e.code)) ? String(e.error || e.code) : "";
+              if (vm && typeof vm._sendToTts === "function") {
+                // Qualsiasi errore di trascrizione: messaggio corto, parlato.
+                if (
+                  errCode === "transcription_rejected" ||
+                  errCode === "transcription_empty" ||
+                  errCode === "whisper_http_error" ||
+                  errCode === "whisper_api_error" ||
+                  errCode === "whisper_error" ||
+                  errCode === "start_error"
+                ) {
+                  vm._sendToTts("Scusa, non ho capito la domanda. Puoi ripetere?");
+                }
+              }
+            } catch { }
+
             try {
               if (audioCtx && audioCtx.state === "suspended") {
                 await audioCtx.resume();
@@ -2814,6 +2860,13 @@ export default defineComponent({
                 console.warn(
                   "WHISPER: final transcript empty, not starting stream"
                 );
+                // Anche se non è un errore "tecnico", per l'utente è un "non capito".
+                try {
+                  const vm = instance && instance.proxy ? instance.proxy : {};
+                  if (vm && typeof vm._sendToTts === "function") {
+                    vm._sendToTts("Scusa, non ho capito la domanda. Puoi ripetere?");
+                  }
+                } catch { }
                 return;
               }
 
