@@ -98,25 +98,58 @@
                     </p>
                 </div>
 
-                <div class="flex flex-col items-center gap-1 text-slate-300">
-                    <label class="flex items-center gap-2 text-[13px] cursor-pointer select-none">
+                <div class="flex flex-col items-center gap-2 text-slate-300">
+                    <!-- Switch (solo TAB Call): solo trascrizione vs traduzione -->
+                    <div class="flex flex-col items-center gap-1">
+                        <label class="flex items-center gap-2 text-[13px] cursor-pointer select-none">
+                            <input type="checkbox" v-model="callTranslationEnabled"
+                                @change="onCallTranslationModeChange"
+                                class="h-3.5 w-3.5 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
+                            <span>Traduzione</span>
+                        </label>
+                        <div class="text-[10px] text-slate-400">
+                            {{ callTranslationEnabled ? 'Trascrizione + traduzione' : 'Solo trascrizione' }}
+                        </div>
+                    </div>
+
+                    <!-- Doppiaggio (solo se la traduzione è attiva nella tab Call) -->
+                    <label v-if="callTranslationEnabled"
+                        class="flex items-center gap-2 text-[13px] cursor-pointer select-none">
                         <input type="checkbox" v-model="readTranslationEnabledCall"
                             class="h-3.5 w-3.5 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
                         <span>{{ ui.dubbingLabel }}</span>
                     </label>
-                    <div class="flex flex-col items-center gap-1 text-[11px] mt-1 w-full px-4">
-                        <div class="flex items-center justify-between w-full">
-                            <label class="flex items-center gap-1 cursor-pointer select-none">
-                                <input type="checkbox" v-model="callAutoPauseEnabled"
-                                    class="h-3 w-3 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
-                                <span>{{ ui.youtubeAutoPauseLabel }}</span>
-                            </label>
-                            <span class="text-[10px] text-slate-400">
-                                {{ whisperSilenceMs }} ms
-                            </span>
+
+                    <!-- Slider VAD (TAB Call): pausa (ms) + soglia rumore (RMS) -->
+                    <div class="mt-1 w-full px-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 w-full">
+                            <div class="flex flex-col gap-1">
+                                <div class="flex items-center justify-between w-full">
+                                    <label class="flex items-center gap-1 cursor-pointer select-none">
+                                        <input type="checkbox" v-model="callAutoPauseEnabled"
+                                            class="h-3 w-3 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
+                                        <span>{{ ui.youtubeAutoPauseLabel }}</span>
+                                    </label>
+                                    <span class="text-[10px] text-slate-400">
+                                        {{ whisperSilenceMs }} ms
+                                    </span>
+                                </div>
+                                <input type="range" min="400" max="2000" step="100" v-model.number="whisperSilenceMs"
+                                    @input="applyWhisperVadSettings" class="w-full accent-emerald-500" />
+                            </div>
+
+                            <div class="flex flex-col gap-1">
+                                <div class="flex items-center justify-between w-full">
+                                    <span class="text-[11px] text-slate-300">Soglia rumore</span>
+                                    <span class="text-[10px] text-slate-400">
+                                        {{ Number(whisperNoiseThreshold || 0).toFixed(3) }}
+                                    </span>
+                                </div>
+                                <input type="range" min="0.005" max="0.08" step="0.001"
+                                    v-model.number="whisperNoiseThreshold" @input="applyWhisperVadSettings"
+                                    class="w-full accent-emerald-500" />
+                            </div>
                         </div>
-                        <input type="range" min="400" max="2000" step="100" v-model.number="whisperSilenceMs"
-                            class="w-full accent-emerald-500" />
                     </div>
                 </div>
 
@@ -155,8 +188,7 @@
 
                     <!-- Due pulsanti microfono: forza la lingua di trascrizione (call) -->
                     <div class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <button type="button" @click="toggleListeningForLang('A')" :disabled="!langA || !langB"
-                            class="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition
+                        <button type="button" @click="toggleListeningForLang('A')" :disabled="!langA || !langB" class="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition
                                 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 border"
                             :class="isListening && activeSpeaker === 'A'
                                 ? 'bg-emerald-600 text-white border-emerald-400 shadow-lg shadow-emerald-500/30'
@@ -173,8 +205,7 @@
                             </span>
                         </button>
 
-                        <button type="button" @click="toggleListeningForLang('B')" :disabled="!langA || !langB"
-                            class="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition
+                        <button type="button" @click="toggleListeningForLang('B')" :disabled="!langA || !langB" class="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition
                                 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 border"
                             :class="isListening && activeSpeaker === 'B'
                                 ? 'bg-emerald-600 text-white border-emerald-400 shadow-lg shadow-emerald-500/30'
@@ -194,7 +225,8 @@
                 </div>
                 <div class="mt-4 space-y-6">
                     <!-- Righe principali: originale, traduzione, suggerimenti affiancati -->
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+                    <div class="grid grid-cols-1 gap-4 md:gap-6"
+                        :class="callTranslationEnabled ? 'lg:grid-cols-3' : 'lg:grid-cols-2'">
                         <div class="flex flex-col gap-2">
                             <div class="flex items-center justify-between">
                                 <span class="text-base md:text-lg font-semibold text-slate-100">
@@ -223,7 +255,7 @@
                             </div>
                         </div>
 
-                        <div class="flex flex-col gap-2">
+                        <div v-if="callTranslationEnabled" class="flex flex-col gap-2">
                             <div class="flex items-center justify-between">
                                 <span class="text-base md:text-lg font-semibold text-slate-100">
                                     {{ ui.translationTitle }}
@@ -339,9 +371,10 @@
 
                     <!-- CV e strumenti call: stessa griglia (2 colonne sotto Testo originale + Traduzione) -->
                     <div class="border-t border-slate-700 pt-4" v-if="!isMobileLowPower">
-                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 items-start">
+                        <div class="grid grid-cols-1 gap-4 md:gap-6 items-start"
+                            :class="callTranslationEnabled ? 'lg:grid-cols-3' : 'lg:grid-cols-2'">
                             <!-- Sezione CV: occupa le stesse 2 colonne di Testo originale + Traduzione -->
-                            <div class="lg:col-span-2 space-y-3">
+                            <div :class="callTranslationEnabled ? 'lg:col-span-2 space-y-3' : 'space-y-3'">
                                 <div>
                                     <h2 class="text-sm font-semibold text-slate-100">
                                         {{ ui.cvSectionTitle }}
@@ -816,6 +849,8 @@ export default {
             // Doppiaggio (TTS) indipendente per tab
             readTranslationEnabledCall: false,
             readTranslationEnabledYoutube: true,
+            // TAB call: default SOLO trascrizione (traduzione disattiva)
+            callTranslationEnabled: false,
             // Auto-pausa basata sul silenzio (sia per modalità call che YouTube)
             callAutoPauseEnabled: true,
             youtubeAutoPauseEnabled: true,
@@ -823,6 +858,8 @@ export default {
             // Durata (ms) di silenzio che chiude un segmento dei motori backend (Whisper / Google)
             // e fa scattare l'auto-pausa quando abilitata. Default: 800ms (pausa naturale di conversazione).
             whisperSilenceMs: 700,
+            // Soglia RMS VAD per considerare "voce" (più alta = più tollerante al rumore).
+            whisperNoiseThreshold: 0.03,
             ttsQueue: [],
             isTtsPlaying: false,
             wasListeningBeforeTts: false,
@@ -1695,9 +1732,11 @@ export default {
         },
         // Doppiaggio effettivo in base alla tab
         readTranslationEnabledEffective() {
-            return this.activeTab === 'youtube'
-                ? this.readTranslationEnabledYoutube
-                : this.readTranslationEnabledCall;
+            if (this.activeTab === 'youtube') {
+                return this.readTranslationEnabledYoutube;
+            }
+            // TAB call: se la traduzione è disattiva, il TTS non ha senso
+            return this.callTranslationEnabled ? this.readTranslationEnabledCall : false;
         },
         displayOriginalText: {
             get() {
@@ -1810,6 +1849,47 @@ export default {
         }
     },
     methods: {
+        applyWhisperVadSettings() {
+            try {
+                if (!this.recognition || typeof this.recognition !== 'object') {
+                    return;
+                }
+                if (Object.prototype.hasOwnProperty.call(this.recognition, '_silenceMs')) {
+                    const silenceMs = (typeof this.whisperSilenceMs === 'number' && this.whisperSilenceMs > 0)
+                        ? this.whisperSilenceMs
+                        : 600;
+                    this.recognition._silenceMs = silenceMs;
+                }
+                if (Object.prototype.hasOwnProperty.call(this.recognition, '_silenceThreshold')) {
+                    const noiseThr = (typeof this.whisperNoiseThreshold === 'number' && this.whisperNoiseThreshold > 0)
+                        ? this.whisperNoiseThreshold
+                        : 0.03;
+                    this.recognition._silenceThreshold = noiseThr;
+                }
+            } catch {
+                // ignore
+            }
+        },
+
+        onCallTranslationModeChange() {
+            // Default: solo trascrizione. Se disattivo la traduzione, resetto stato e TTS.
+            if (!this.callTranslationEnabled) {
+                this.readTranslationEnabledCall = false;
+                this.translationStreaming = '';
+                this.translationTokens = [];
+                this.translationSegments = [];
+                this.pendingTranslationQueue = [];
+                this.translationThreadId = null;
+                try {
+                    if (this.currentStream && typeof this.currentStream.close === 'function') {
+                        this.currentStream.close();
+                    }
+                } catch {
+                    // ignore
+                }
+                this.currentStream = null;
+            }
+        },
         debugLog(...args) {
             try {
                 const ts = new Date().toISOString();
@@ -2090,15 +2170,17 @@ export default {
                 return;
             }
 
-            // Traduci solo la parte nuova (mantenendo eventuali trattini e punteggiatura)
-            this.startTranslationStream(newText, {
-                commit: true,
-                mergeLast: false,
-                shouldEnqueueTts: false,
-                // Per testo incollato/scritto a mano NON aggiungiamo "- " noi:
-                // se l'utente vuole i trattini, li mette già nel testo originale.
-                addDash: false,
-            });
+            // Traduci solo se la traduzione è attiva nella tab Call
+            if (this.activeTab === 'youtube' || this.callTranslationEnabled) {
+                this.startTranslationStream(newText, {
+                    commit: true,
+                    mergeLast: false,
+                    shouldEnqueueTts: false,
+                    // Per testo incollato/scritto a mano NON aggiungiamo "- " noi:
+                    // se l'utente vuole i trattini, li mette già nel testo originale.
+                    addDash: false,
+                });
+            }
 
             this.originalTextBeforeManualEdit = '';
         },
@@ -2676,18 +2758,22 @@ export default {
                                         : phraseWithDash;
                                     this.originalInterim = '';
 
-                                    // Traduzione sempre immediata a fine frase, in qualunque tab.
-                                    this.debugLog('WebSpeech onresult: starting translation', {
-                                        text: clean.substring(0, 50),
-                                    });
-                                    console.log('📤 WebSpeech onresult: starting translation', {
-                                        ts: new Date().toISOString(),
-                                        text: clean.substring(0, 50),
-                                    });
-                                    this.startTranslationStream(clean, {
-                                        commit: true,
-                                        mergeLast: false,
-                                    });
+                                    // Traduzione:
+                                    // - sempre in tab YouTube
+                                    // - in tab Call solo se abilitata (altrimenti solo trascrizione)
+                                    if (this.activeTab === 'youtube' || this.callTranslationEnabled) {
+                                        this.debugLog('WebSpeech onresult: starting translation', {
+                                            text: clean.substring(0, 50),
+                                        });
+                                        console.log('📤 WebSpeech onresult: starting translation', {
+                                            ts: new Date().toISOString(),
+                                            text: clean.substring(0, 50),
+                                        });
+                                        this.startTranslationStream(clean, {
+                                            commit: true,
+                                            mergeLast: false,
+                                        });
+                                    }
 
                                     // In modalità YouTube, se il doppiaggio è disattivato,
                                     // dopo aver inviato l'audio per la trascrizione possiamo
@@ -2723,10 +2809,10 @@ export default {
                             this.scrollToBottom('originalBox');
                         });
                         // Mentre parli, usa l'interim per una traduzione incrementale
-                        // solo su desktop e solo nella modalità "call":
+                        // solo su desktop e solo nella modalità "call" (e solo se traduzione attiva):
                         // - su mobile low-power saltiamo lo streaming
                         // - in modalità YouTube vogliamo traduzione SOLO a fine frase
-                        if (interim && !this.isMobileLowPower && this.activeTab === 'call') {
+                        if (interim && !this.isMobileLowPower && this.activeTab === 'call' && this.callTranslationEnabled) {
                             this.debugLog('WebSpeech onresult: starting preview translation', {
                                 interim: interim.substring(0, 50),
                             });
@@ -3171,6 +3257,15 @@ export default {
                         this.recognition._silenceMs = silenceMs;
                     }
 
+                    // Propaga anche la soglia RMS (rumore) per il VAD.
+                    let noiseThr = 0.03;
+                    if (typeof this.whisperNoiseThreshold === 'number' && this.whisperNoiseThreshold > 0) {
+                        noiseThr = this.whisperNoiseThreshold;
+                    }
+                    if (Object.prototype.hasOwnProperty.call(this.recognition, '_silenceThreshold')) {
+                        this.recognition._silenceThreshold = noiseThr;
+                    }
+
                     // Configura la callback di auto-pausa basata sul silenzio: simula il click
                     // sul bottone pausa (stopListeningInternal) senza cambiare il flusso:
                     // lo stop esplicito del mic è sempre ciò che scatena la trascrizione.
@@ -3337,26 +3432,32 @@ export default {
             // Su mobile low-power: se c'è una frase in sospeso (pendingMobileOriginalText),
             // traduciamola una sola volta quando l'utente spegne il microfono.
             if (this.isMobileLowPower && this.pendingMobileOriginalText && this.mobileCurrentTranslationIndex !== null) {
-                const pendingText = this.pendingMobileOriginalText;
-                const pendingIndex = this.mobileCurrentTranslationIndex;
-                this.pendingMobileOriginalText = '';
+                // Se siamo nella tab call e la traduzione è disattiva, non tradurre nulla.
+                if (this.activeTab === 'call' && !this.callTranslationEnabled) {
+                    this.pendingMobileOriginalText = '';
+                    this.mobileCurrentTranslationIndex = null;
+                } else {
+                    const pendingText = this.pendingMobileOriginalText;
+                    const pendingIndex = this.mobileCurrentTranslationIndex;
+                    this.pendingMobileOriginalText = '';
 
-                this.debugLog('stopListeningInternal: MOBILE translating pending phrase on stop', {
-                    pendingText: pendingText.substring(0, 50),
-                    mobileCurrentTranslationIndex: pendingIndex,
-                });
-                console.log('📝 stopListeningInternal: MOBILE translating pending phrase on stop', {
-                    ts: new Date().toISOString(),
-                    pendingText: pendingText.substring(0, 50),
-                    mobileCurrentTranslationIndex: pendingIndex,
-                });
+                    this.debugLog('stopListeningInternal: MOBILE translating pending phrase on stop', {
+                        pendingText: pendingText.substring(0, 50),
+                        mobileCurrentTranslationIndex: pendingIndex,
+                    });
+                    console.log('📝 stopListeningInternal: MOBILE translating pending phrase on stop', {
+                        ts: new Date().toISOString(),
+                        pendingText: pendingText.substring(0, 50),
+                        mobileCurrentTranslationIndex: pendingIndex,
+                    });
 
-                this.startTranslationStream(pendingText, {
-                    commit: true,
-                    mergeLast: false,
-                    mergeIndex: pendingIndex,
-                    shouldEnqueueTts: true,
-                });
+                    this.startTranslationStream(pendingText, {
+                        commit: true,
+                        mergeLast: false,
+                        mergeIndex: pendingIndex,
+                        shouldEnqueueTts: true,
+                    });
+                }
             }
 
             if (this.recognition) {
@@ -3454,6 +3555,10 @@ export default {
         },
 
         startTranslationStream(textSegment, options = { commit: true, mergeLast: false, mergeIndex: null, shouldEnqueueTts: true, addDash: true }) {
+            // Tab call: se l'utente ha scelto "solo trascrizione", non avviare traduzioni.
+            if (this.activeTab === 'call' && !this.callTranslationEnabled) {
+                return;
+            }
             const safeText = ((textSegment || '').trim());
             if (!safeText) {
                 this.debugLog('startTranslationStream: empty text, skipping', {
@@ -4385,6 +4490,9 @@ export default {
         },
 
         maybeStartPreviewTranslation(interimText) {
+            if (this.activeTab === 'call' && !this.callTranslationEnabled) {
+                return;
+            }
             const text = ((interimText || '').trim()).toLowerCase();
             if (!text || text.length < 4) {
                 return;
