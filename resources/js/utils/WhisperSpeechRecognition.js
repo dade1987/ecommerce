@@ -523,9 +523,12 @@ export default class WhisperSpeechRecognition {
                         // una callback onAutoPause(), notifichiamolo una sola volta.
                         // Richiediamo anche che ci sia stata VOCE reale (_segmentHasVoice)
                         // prima della pausa, così non scatta mai su segmenti completamente vuoti.
+                        // Inoltre: se non abbiamo ancora accumulato abbastanza "banda voce",
+                        // NON interrompiamo la registrazione per inviare (evita stop inutili).
                         if (!this._autoPauseFired &&
                             typeof this.onAutoPause === 'function' &&
                             this._segmentHasVoice &&
+                            this._voiceBandMs >= (this._minVoiceBandMsToSend || 500) &&
                             silentFor >= this._silenceMs) {
                             this._autoPauseFired = true;
                             try {
