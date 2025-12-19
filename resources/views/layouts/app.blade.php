@@ -12,7 +12,21 @@
     <link rel="icon" href="{{ asset('images/logo15.png') }}" type="image/jpeg">
     <link rel="apple-touch-icon" href="{{ asset('images/logo15.png') }}">
 
-    
+
+
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-YRPCVKJJK3"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+
+        function gtag() {
+            dataLayer.push(arguments);
+        }
+        gtag('js', new Date());
+
+        gtag('config', 'G-YRPCVKJJK3');
+    </script>
+
 
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-D7G8J1GF0M"></script>
@@ -110,7 +124,7 @@ In your html page, add the snippet and call gtag_report_conversion when someone 
     </script>
     @stack('structured-data')
 
-   
+
 
 </head>
 
@@ -159,7 +173,9 @@ In your html page, add the snippet and call gtag_report_conversion when someone 
                 }
 
                 if (typeof Calendly !== 'undefined' && Calendly.initPopupWidget) {
-                    Calendly.initPopupWidget({ url: calendlyUrl });
+                    Calendly.initPopupWidget({
+                        url: calendlyUrl
+                    });
                 } else {
                     console.error('Calendly widget non caricato correttamente.');
                 }
