@@ -67,8 +67,8 @@ export default class WhisperSpeechRecognition {
         // in base alle pause.
         this.singleSegmentMode = false;
 
-        // Requisito: inviare SOLO se c'è almeno 1 secondo di frequenze vocali.
-        this._minVoiceBandMsToSend = 1000;
+        // Requisito: inviare SOLO se c'è almeno ~0.5s di frequenze vocali.
+        this._minVoiceBandMsToSend = 500;
     }
 
     async start() {

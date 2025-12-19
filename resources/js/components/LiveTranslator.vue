@@ -896,7 +896,10 @@ export default {
             whisperSilenceMs: 700,
             // Soglia RMS VAD per considerare "voce" (più alta = più tollerante al rumore).
             whisperNoiseThreshold: 0.03,
-            ttsQueue: [],
+            // Code TTS per canale (in earphones mode L/R), per evitare sovrapposizioni
+            ttsQueueByChannel: { left: [], right: [], center: [] },
+            ttsPlayingByChannel: { left: false, right: false, center: false },
+            // Flag aggregato: true se QUALSIASI canale sta riproducendo
             isTtsPlaying: false,
             wasListeningBeforeTts: false,
             lastSpeakerBeforeTts: null,
@@ -2675,7 +2678,10 @@ export default {
                         !!this.pendingAutoResumeSpeakerAfterTts &&
                         !this.isListening &&
                         !this.isTtsPlaying &&
-                        (!this.ttsQueue || this.ttsQueue.length === 0) &&
+                        (!this.ttsQueueByChannel ||
+                            ((this.ttsQueueByChannel.left || []).length === 0 &&
+                                (this.ttsQueueByChannel.right || []).length === 0 &&
+                                (this.ttsQueueByChannel.center || []).length === 0)) &&
                         !this.currentStream;
 
                     if (shouldAutoResumeCallAfterTtsFallback) {
@@ -4109,23 +4115,34 @@ export default {
                 text: safe.substring(0, 50),
                 locale,
                 channel,
-                queueLengthBefore: this.ttsQueue.length,
+                queueLengthBefore: this.ttsQueueByChannel && (this.ttsQueueByChannel[channel] || [])
+                    ? (this.ttsQueueByChannel[channel] || []).length
+                    : 0,
             });
             console.log('🔊 enqueueTranslationForTts: adding to queue', {
                 ts: new Date().toISOString(),
                 text: safe.substring(0, 50),
                 locale,
                 channel,
-                queueLengthBefore: this.ttsQueue.length,
+                queueLengthBefore: this.ttsQueueByChannel && (this.ttsQueueByChannel[channel] || [])
+                    ? (this.ttsQueueByChannel[channel] || []).length
+                    : 0,
             });
 
-            this.ttsQueue.push({
+            const ch = channel || 'center';
+            if (!this.ttsQueueByChannel) {
+                this.ttsQueueByChannel = { left: [], right: [], center: [] };
+            }
+            if (!this.ttsQueueByChannel[ch]) {
+                this.ttsQueueByChannel[ch] = [];
+            }
+            this.ttsQueueByChannel[ch].push({
                 text: safe,
                 locale,
-                channel,
+                channel: ch,
             });
 
-            this.processTtsQueue();
+            this.processTtsQueue(ch);
         },
 
         getEarphonesChannelForTargetLang(langCode) {
@@ -4195,38 +4212,77 @@ export default {
             return this.$refs.ttsAudioCenter;
         },
 
-        async processTtsQueue() {
+        updateIsTtsPlaying() {
+            try {
+                const playing = this.ttsPlayingByChannel || {};
+                this.isTtsPlaying = !!(playing.left || playing.right || playing.center);
+            } catch {
+                // ignore
+            }
+        },
+
+        async processTtsQueue(channel = 'center') {
             this.debugLog('processTtsQueue START', {
+                channel,
                 isTtsPlaying: this.isTtsPlaying,
-                queueLength: this.ttsQueue.length,
+                queueLengths: this.ttsQueueByChannel
+                    ? {
+                        left: (this.ttsQueueByChannel.left || []).length,
+                        right: (this.ttsQueueByChannel.right || []).length,
+                        center: (this.ttsQueueByChannel.center || []).length,
+                    }
+                    : {},
                 activeTab: this.activeTab,
             });
             console.log('🔊 processTtsQueue START', {
                 ts: new Date().toISOString(),
+                channel,
                 isTtsPlaying: this.isTtsPlaying,
-                queueLength: this.ttsQueue.length,
+                queueLengths: this.ttsQueueByChannel
+                    ? {
+                        left: (this.ttsQueueByChannel.left || []).length,
+                        right: (this.ttsQueueByChannel.right || []).length,
+                        center: (this.ttsQueueByChannel.center || []).length,
+                    }
+                    : {},
                 activeTab: this.activeTab,
             });
 
-            if (this.isTtsPlaying) {
-                this.debugLog('processTtsQueue: TTS already playing, skipping', {});
-                console.log('⏸️ processTtsQueue: TTS already playing, skipping', {
+            if (!this.ttsQueueByChannel) {
+                this.ttsQueueByChannel = { left: [], right: [], center: [] };
+            }
+            if (!this.ttsPlayingByChannel) {
+                this.ttsPlayingByChannel = { left: false, right: false, center: false };
+            }
+
+            const ch = channel || 'center';
+            if (this.ttsPlayingByChannel[ch]) {
+                this.updateIsTtsPlaying();
+                this.debugLog('processTtsQueue: channel already playing, skipping', { channel: ch });
+                console.log('⏸️ processTtsQueue: channel already playing, skipping', {
                     ts: new Date().toISOString(),
+                    channel: ch,
                 });
                 return;
             }
 
-            const next = this.ttsQueue.shift();
+            const queue = this.ttsQueueByChannel[ch] || [];
+            const next = queue.shift();
+            this.ttsQueueByChannel[ch] = queue;
             if (!next) {
-                this.debugLog('processTtsQueue: queue empty, exiting', {});
+                this.updateIsTtsPlaying();
+                this.debugLog('processTtsQueue: queue empty, exiting', { channel: ch });
                 console.log('✅ processTtsQueue: queue empty, exiting', {
                     ts: new Date().toISOString(),
+                    channel: ch,
                 });
                 return;
             }
 
-            this.isTtsPlaying = true;
+            this.ttsPlayingByChannel[ch] = true;
+            this.updateIsTtsPlaying();
             this.debugLog('processTtsQueue: processing item', {
+                channel: ch,
                 text: next.text.substring(0, 50),
                 locale: next.locale,
                 wasListening: this.isListening,
@@ -4234,6 +4290,7 @@ export default {
             });
             console.log('🔊 processTtsQueue: processing item', {
                 ts: new Date().toISOString(),
+                channel: ch,
                 text: next.text.substring(0, 50),
                 locale: next.locale,
                 wasListening: this.isListening,
@@ -4295,8 +4352,9 @@ export default {
                         statusText: res.statusText,
                     });
                     // Se fallisce, passa oltre senza bloccare la coda
-                    this.isTtsPlaying = false;
-                    this.processTtsQueue();
+                    this.ttsPlayingByChannel[ch] = false;
+                    this.updateIsTtsPlaying();
+                    this.processTtsQueue(ch);
                     return;
                 }
 
@@ -4312,7 +4370,7 @@ export default {
 
                 // Se possibile, inizializza routing audio (per modalità auricolari L/R)
                 const routingOk = this.ensureTtsAudioRouting();
-                const audio = routingOk ? this.getTtsAudioElementForChannel(next.channel) : null;
+                const audio = routingOk ? this.getTtsAudioElementForChannel(ch) : null;
                 const audioEl = audio || new Audio(url);
                 if (audio && typeof audio === 'object') {
                     try {
@@ -4328,6 +4386,7 @@ export default {
 
                 audioEl.onended = () => {
                     this.debugLog('processTtsQueue: audio playback ended', {
+                        channel: ch,
                         shouldResume: this.wasListeningBeforeTts,
                         speaker: this.lastSpeakerBeforeTts,
                         activeTab: this.activeTab,
@@ -4347,7 +4406,8 @@ export default {
                     const speaker = this.lastSpeakerBeforeTts;
                     this.wasListeningBeforeTts = false;
                     this.lastSpeakerBeforeTts = null;
-                    this.isTtsPlaying = false;
+                    this.ttsPlayingByChannel[ch] = false;
+                    this.updateIsTtsPlaying();
 
                     // In modalità call: se NON siamo in modalità auricolari e l'auto-pausa ha spento il mic,
                     // riaccendilo solo dopo la lettura TTS.
@@ -4384,7 +4444,7 @@ export default {
                         this.toggleListeningForLang(speaker);
                     }
 
-                    this.processTtsQueue();
+                    this.processTtsQueue(ch);
                 };
 
                 audioEl.onerror = (err) => {
@@ -4404,7 +4464,8 @@ export default {
                     const speaker = this.lastSpeakerBeforeTts;
                     this.wasListeningBeforeTts = false;
                     this.lastSpeakerBeforeTts = null;
-                    this.isTtsPlaying = false;
+                    this.ttsPlayingByChannel[ch] = false;
+                    this.updateIsTtsPlaying();
 
                     // In modalità call: se NON siamo in modalità auricolari e l'auto-pausa ha spento il mic,
                     // riaccendilo solo dopo la lettura TTS.
@@ -4420,7 +4481,7 @@ export default {
                         this.toggleListeningForLang(speaker);
                     }
 
-                    this.processTtsQueue();
+                    this.processTtsQueue(ch);
                 };
 
                 try {
@@ -4447,8 +4508,9 @@ export default {
                         stack: err?.stack,
                     });
                     URL.revokeObjectURL(url);
-                    this.isTtsPlaying = false;
-                    this.processTtsQueue();
+                    this.ttsPlayingByChannel[ch] = false;
+                    this.updateIsTtsPlaying();
+                    this.processTtsQueue(ch);
                 }
             } catch (err) {
                 this.debugLog('processTtsQueue: ERROR', {
@@ -4463,8 +4525,9 @@ export default {
                     errorMessage: err?.message,
                     stack: err?.stack,
                 });
-                this.isTtsPlaying = false;
-                this.processTtsQueue();
+                this.ttsPlayingByChannel[ch] = false;
+                this.updateIsTtsPlaying();
+                this.processTtsQueue(ch);
             }
         },
 
