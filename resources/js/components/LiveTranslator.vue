@@ -115,6 +115,32 @@
                                 class="h-3.5 w-3.5 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
                             <span>{{ ui.dubbingLabel }}</span>
                         </label>
+
+                        <!-- Modalità auricolari (solo se il dubbing è attivo) -->
+                        <div v-if="callTranslationEnabled && readTranslationEnabledCall"
+                            class="flex items-center gap-2 text-[13px] select-none">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" v-model="earphonesModeEnabledCall"
+                                    class="h-3.5 w-3.5 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
+                                <span>{{ ui.earphonesModeLabel }}</span>
+                            </label>
+
+                            <div class="relative group">
+                                <button type="button"
+                                    class="h-5 w-5 inline-flex items-center justify-center rounded-full border border-slate-600 text-[11px] text-slate-200 bg-slate-800 hover:bg-slate-700">
+                                    ?
+                                </button>
+                                <div
+                                    class="pointer-events-none absolute left-1/2 top-full z-30 mt-2 w-[280px] -translate-x-1/2 rounded-lg border border-slate-600 bg-slate-900/95 p-3 text-[11px] text-slate-200 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                                    <div class="text-[11px] font-semibold text-slate-100 mb-1">
+                                        {{ ui.earphonesModeHelpTitle }}
+                                    </div>
+                                    <div class="text-slate-200 leading-snug">
+                                        {{ ui.earphonesModeHelpBody }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="text-[10px] text-slate-400 text-center">
@@ -784,6 +810,11 @@
             </div>
         </div>
     </div>
+
+    <!-- Audio elements per routing TTS (modalità auricolari) -->
+    <audio ref="ttsAudioLeft" class="hidden" preload="none" playsinline></audio>
+    <audio ref="ttsAudioRight" class="hidden" preload="none" playsinline></audio>
+    <audio ref="ttsAudioCenter" class="hidden" preload="none" playsinline></audio>
 </template>
 
 <script>
@@ -854,6 +885,8 @@ export default {
             readTranslationEnabledYoutube: true,
             // TAB call: default SOLO trascrizione (traduzione disattiva)
             callTranslationEnabled: false,
+            // TAB call: modalità auricolari (output TTS su canale L/R)
+            earphonesModeEnabledCall: false,
             // Auto-pausa basata sul silenzio (sia per modalità call che YouTube)
             callAutoPauseEnabled: true,
             youtubeAutoPauseEnabled: true,
@@ -867,6 +900,9 @@ export default {
             isTtsPlaying: false,
             wasListeningBeforeTts: false,
             lastSpeakerBeforeTts: null,
+            // Routing audio per modalità auricolari (inizializzato lazy)
+            ttsAudioContext: null,
+            ttsAudioRoutingReady: false,
             translationThreadId: null,
             // Coda per traduzioni finali quando uno stream è ancora attivo
             pendingTranslationQueue: [],
@@ -965,6 +1001,9 @@ export default {
                     googleCloudLabel: 'Usa Gemini (compatibile con tutti i browser)',
                     dubbingLabel: 'Leggi la traduzione (doppiaggio)',
                     backgroundNoiseLabel: 'Quantità di rumore di fondo',
+                    earphonesModeLabel: 'Modalità auricolari',
+                    earphonesModeHelpTitle: 'Come funziona',
+                    earphonesModeHelpBody: 'Usa due auricolari: a sinistra si sente la traduzione nella lingua A, a destra nella lingua B. La lettura parte a fine frase e le frasi vengono accodate (non blocca il microfono).',
                     originalTitle: 'Testo originale',
                     originalSubtitle: 'Riconosciuto dal microfono',
                     originalPlaceholder: 'Inizia a parlare per vedere qui la trascrizione in tempo reale.',
@@ -1067,6 +1106,9 @@ export default {
                     googleCloudLabel: 'Use Gemini (compatible with all browsers)',
                     dubbingLabel: 'Read the translation aloud (dubbing)',
                     backgroundNoiseLabel: 'Background noise level',
+                    earphonesModeLabel: 'Earphones mode',
+                    earphonesModeHelpTitle: 'How it works',
+                    earphonesModeHelpBody: 'Use two earphones: left plays the translation in language A, right plays it in language B. Reading starts at the end of each sentence and sentences are queued (it does not stop the microphone).',
                     originalTitle: 'Original text',
                     originalSubtitle: 'Recognised from microphone',
                     originalPlaceholder: 'Start speaking to see the real-time transcription here.',
@@ -1743,6 +1785,14 @@ export default {
             // TAB call: se la traduzione è disattiva, il TTS non ha senso
             return this.callTranslationEnabled ? this.readTranslationEnabledCall : false;
         },
+        earphonesModeEffective() {
+            return (
+                this.activeTab === 'call' &&
+                this.callTranslationEnabled &&
+                this.readTranslationEnabledCall &&
+                this.earphonesModeEnabledCall
+            );
+        },
         displayOriginalText: {
             get() {
                 const base = this.originalConfirmed || '';
@@ -1803,6 +1853,12 @@ export default {
         },
     },
     watch: {
+        readTranslationEnabledCall(newVal) {
+            // Se spengo il dubbing, spengo anche la modalità auricolari
+            if (!newVal) {
+                this.earphonesModeEnabledCall = false;
+            }
+        },
         youtubeUrl() {
             this.maybeAutoLoadYoutubePlayer();
         },
@@ -1880,6 +1936,7 @@ export default {
             // Default: solo trascrizione. Se disattivo la traduzione, resetto stato e TTS.
             if (!this.callTranslationEnabled) {
                 this.readTranslationEnabledCall = false;
+                this.earphonesModeEnabledCall = false;
                 this.translationStreaming = '';
                 this.translationTokens = [];
                 this.translationSegments = [];
@@ -2481,6 +2538,34 @@ export default {
                         activeSpeaker: this.activeSpeaker,
                         activeTab: this.activeTab,
                     });
+
+                    // In modalità call: qualsiasi errore (es. Whisper 4xx/5xx) NON deve bloccare la registrazione.
+                    // Se stavamo aspettando un resume post-autoPause, ripartiamo subito.
+                    try {
+                        if (this.activeTab === 'call') {
+                            const speaker =
+                                this.pendingAutoResumeSpeaker ||
+                                this.pendingAutoResumeSpeakerAfterTts ||
+                                this.activeSpeaker;
+                            this.pendingAutoResumeSpeaker = null;
+                            this.pendingAutoResumeSpeakerAfterTts = null;
+
+                            if (speaker && !this.isListening) {
+                                this.debugLog('WebSpeech onerror: auto-resuming mic after error', {
+                                    speaker,
+                                    errorCode,
+                                });
+                                console.log('▶️ WebSpeech onerror: auto-resuming mic after error', {
+                                    ts: new Date().toISOString(),
+                                    speaker,
+                                    errorCode,
+                                });
+                                this.toggleListeningForLang(speaker);
+                            }
+                        }
+                    } catch {
+                        // ignore
+                    }
                 };
 
                 this.recognition.onend = () => {
@@ -2553,8 +2638,8 @@ export default {
                         isBackendEngine &&
                         this.activeTab === 'call' &&
                         this.callAutoPauseEnabled &&
-                        !this.readTranslationEnabledCall &&
-                        !!this.pendingAutoResumeSpeaker;
+                        (!!this.pendingAutoResumeSpeaker) &&
+                        (!this.readTranslationEnabledCall || this.earphonesModeEffective);
 
                     if (shouldAutoResumeCall) {
                         const speaker = this.pendingAutoResumeSpeaker;
@@ -2575,6 +2660,44 @@ export default {
                                 error: String(err),
                             });
                             console.error('❌ WebSpeech onend: error auto-resuming mic', {
+                                ts: new Date().toISOString(),
+                                error: String(err),
+                            });
+                        }
+                    }
+
+                    // Caso importante: TTS attivo (modalità normale) ma Whisper ha restituito testo vuoto/filtrato
+                    // → non parte nessun TTS, quindi NON dobbiamo rimanere bloccati in attesa di pendingAutoResumeSpeakerAfterTts.
+                    const shouldAutoResumeCallAfterTtsFallback =
+                        isBackendEngine &&
+                        this.activeTab === 'call' &&
+                        this.callAutoPauseEnabled &&
+                        !!this.pendingAutoResumeSpeakerAfterTts &&
+                        !this.isListening &&
+                        !this.isTtsPlaying &&
+                        (!this.ttsQueue || this.ttsQueue.length === 0) &&
+                        !this.currentStream;
+
+                    if (shouldAutoResumeCallAfterTtsFallback) {
+                        const speaker = this.pendingAutoResumeSpeakerAfterTts;
+                        this.pendingAutoResumeSpeakerAfterTts = null;
+                        this.pendingAutoResumeSpeaker = null;
+
+                        this.debugLog('WebSpeech onend: fallback auto-resume (no TTS started / empty text)', {
+                            speaker,
+                        });
+                        console.log('▶️ WebSpeech onend: fallback auto-resume (no TTS started / empty text)', {
+                            ts: new Date().toISOString(),
+                            speaker,
+                        });
+
+                        try {
+                            this.toggleListeningForLang(speaker);
+                        } catch (err) {
+                            this.debugLog('WebSpeech onend: error fallback auto-resuming mic', {
+                                error: String(err),
+                            });
+                            console.error('❌ WebSpeech onend: error fallback auto-resuming mic', {
                                 ts: new Date().toISOString(),
                                 error: String(err),
                             });
@@ -2979,8 +3102,8 @@ export default {
                 useGoogleEffective: this.useGoogleEffective,
             });
 
-            // Non registrare mentre il TTS sta leggendo
-            if (this.isTtsPlaying) {
+            // Non registrare mentre il TTS sta leggendo (tranne modalità auricolari: non blocca il microfono)
+            if (this.isTtsPlaying && !this.earphonesModeEffective) {
                 this.debugLog('toggleListeningForLang: TTS is playing, ignore mic toggle', {
                     speaker,
                     langA: this.langA,
@@ -3291,10 +3414,14 @@ export default {
                                     const tabBefore = self.activeTab;
 
                                     // In modalità call distinguiamo due casi:
-                                    // - TTS disattivato → auto-riaccendi subito il mic dopo lo stop (gestito in onend)
-                                    // - TTS attivo      → riaccendi il mic solo dopo la lettura TTS
+                                    // - modalità auricolari → riaccendi subito il mic anche se il TTS sta parlando (non bloccare)
+                                    // - TTS disattivato     → auto-riaccendi subito il mic dopo lo stop (gestito in onend)
+                                    // - TTS attivo          → riaccendi il mic solo dopo la lettura TTS
                                     if (tabBefore === 'call') {
-                                        if (!self.readTranslationEnabledCall) {
+                                        if (self.earphonesModeEnabledCall) {
+                                            self.pendingAutoResumeSpeaker = speakerBefore;
+                                            self.pendingAutoResumeSpeakerAfterTts = null;
+                                        } else if (!self.readTranslationEnabledCall) {
                                             self.pendingAutoResumeSpeaker = speakerBefore;
                                         } else {
                                             self.pendingAutoResumeSpeakerAfterTts = speakerBefore;
@@ -3976,25 +4103,96 @@ export default {
             }
 
             const locale = this.getLocaleForLangCode(langCode || this.currentTargetLang || this.langB || 'en');
+            const channel = this.getEarphonesChannelForTargetLang(langCode);
 
             this.debugLog('enqueueTranslationForTts: adding to queue', {
                 text: safe.substring(0, 50),
                 locale,
+                channel,
                 queueLengthBefore: this.ttsQueue.length,
             });
             console.log('🔊 enqueueTranslationForTts: adding to queue', {
                 ts: new Date().toISOString(),
                 text: safe.substring(0, 50),
                 locale,
+                channel,
                 queueLengthBefore: this.ttsQueue.length,
             });
 
             this.ttsQueue.push({
                 text: safe,
                 locale,
+                channel,
             });
 
             this.processTtsQueue();
+        },
+
+        getEarphonesChannelForTargetLang(langCode) {
+            if (!this.earphonesModeEffective) {
+                return 'center';
+            }
+            const target = (langCode || '').toLowerCase();
+            const a = (this.langA || '').toLowerCase();
+            const b = (this.langB || '').toLowerCase();
+            // Coerente con UI: a sinistra la lingua B, a destra la lingua A
+            if (target && b && target === b) return 'left';
+            if (target && a && target === a) return 'right';
+            return 'center';
+        },
+
+        ensureTtsAudioRouting() {
+            if (this.ttsAudioRoutingReady) {
+                return true;
+            }
+
+            try {
+                const Ctx = window.AudioContext || window.webkitAudioContext;
+                if (!Ctx) {
+                    return false;
+                }
+
+                if (!this.ttsAudioContext) {
+                    this.ttsAudioContext = new Ctx();
+                }
+
+                const elLeft = this.$refs.ttsAudioLeft;
+                const elRight = this.$refs.ttsAudioRight;
+                const elCenter = this.$refs.ttsAudioCenter;
+
+                if (!elLeft || !elRight || !elCenter) {
+                    return false;
+                }
+
+                const ctx = this.ttsAudioContext;
+
+                const srcLeft = ctx.createMediaElementSource(elLeft);
+                const srcRight = ctx.createMediaElementSource(elRight);
+                const srcCenter = ctx.createMediaElementSource(elCenter);
+
+                const panLeft = ctx.createStereoPanner();
+                const panRight = ctx.createStereoPanner();
+                const panCenter = ctx.createStereoPanner();
+
+                panLeft.pan.value = -1;
+                panRight.pan.value = 1;
+                panCenter.pan.value = 0;
+
+                srcLeft.connect(panLeft).connect(ctx.destination);
+                srcRight.connect(panRight).connect(ctx.destination);
+                srcCenter.connect(panCenter).connect(ctx.destination);
+
+                this.ttsAudioRoutingReady = true;
+                return true;
+            } catch {
+                return false;
+            }
+        },
+
+        getTtsAudioElementForChannel(channel) {
+            if (channel === 'left') return this.$refs.ttsAudioLeft;
+            if (channel === 'right') return this.$refs.ttsAudioRight;
+            return this.$refs.ttsAudioCenter;
         },
 
         async processTtsQueue() {
@@ -4050,7 +4248,7 @@ export default {
             // Se il microfono è attivo, mettilo in pausa mentre il TTS parla
             this.wasListeningBeforeTts = this.isListening;
             this.lastSpeakerBeforeTts = this.activeSpeaker;
-            if (this.wasListeningBeforeTts) {
+            if (this.wasListeningBeforeTts && !this.earphonesModeEffective) {
                 this.debugLog('processTtsQueue: stopping listening for TTS', {
                     wasListening: this.wasListeningBeforeTts,
                     lastSpeaker: this.lastSpeakerBeforeTts,
@@ -4111,14 +4309,30 @@ export default {
                 });
                 const blob = await res.blob();
                 const url = URL.createObjectURL(blob);
-                const audio = new Audio(url);
 
-                audio.onended = () => {
+                // Se possibile, inizializza routing audio (per modalità auricolari L/R)
+                const routingOk = this.ensureTtsAudioRouting();
+                const audio = routingOk ? this.getTtsAudioElementForChannel(next.channel) : null;
+                const audioEl = audio || new Audio(url);
+                if (audio && typeof audio === 'object') {
+                    try {
+                        // resume context (alcuni browser lo richiedono dopo gesture)
+                        if (this.ttsAudioContext && this.ttsAudioContext.state === 'suspended') {
+                            await this.ttsAudioContext.resume();
+                        }
+                    } catch {
+                        // ignore
+                    }
+                    audio.src = url;
+                }
+
+                audioEl.onended = () => {
                     this.debugLog('processTtsQueue: audio playback ended', {
                         shouldResume: this.wasListeningBeforeTts,
                         speaker: this.lastSpeakerBeforeTts,
                         activeTab: this.activeTab,
                         youtubeAutoResumeEnabled: this.youtubeAutoResumeEnabled,
+                        earphonesModeEffective: this.earphonesModeEffective,
                     });
                     console.log('✅ processTtsQueue: audio playback ended', {
                         ts: new Date().toISOString(),
@@ -4126,6 +4340,7 @@ export default {
                         speaker: this.lastSpeakerBeforeTts,
                         activeTab: this.activeTab,
                         youtubeAutoResumeEnabled: this.youtubeAutoResumeEnabled,
+                        earphonesModeEffective: this.earphonesModeEffective,
                     });
                     URL.revokeObjectURL(url);
                     const shouldResume = this.wasListeningBeforeTts;
@@ -4134,7 +4349,23 @@ export default {
                     this.lastSpeakerBeforeTts = null;
                     this.isTtsPlaying = false;
 
-                    if (this.activeTab === 'youtube') {
+                    // In modalità call: se NON siamo in modalità auricolari e l'auto-pausa ha spento il mic,
+                    // riaccendilo solo dopo la lettura TTS.
+                    if (!this.earphonesModeEffective && this.activeTab === 'call' && this.pendingAutoResumeSpeakerAfterTts && !this.isListening) {
+                        const resumeSpeaker = this.pendingAutoResumeSpeakerAfterTts;
+                        this.pendingAutoResumeSpeakerAfterTts = null;
+
+                        this.debugLog('processTtsQueue: resuming CALL listening after TTS (auto-pause)', {
+                            speaker: resumeSpeaker,
+                            earphonesModeEffective: this.earphonesModeEffective,
+                        });
+                        console.log('▶️ processTtsQueue: resuming CALL listening after TTS (auto-pause)', {
+                            ts: new Date().toISOString(),
+                            speaker: resumeSpeaker,
+                            earphonesModeEffective: this.earphonesModeEffective,
+                        });
+                        this.toggleListeningForLang(resumeSpeaker);
+                    } else if (this.activeTab === 'youtube') {
                         if (this.youtubeAutoResumeEnabled) {
                             this.debugLog('processTtsQueue: resuming YouTube listening', {});
                             console.log('▶️ processTtsQueue: resuming YouTube listening', {
@@ -4142,19 +4373,7 @@ export default {
                             });
                             this.toggleListeningForLang('A');
                         }
-                    } else if (this.activeTab === 'call' && this.pendingAutoResumeSpeakerAfterTts) {
-                        const resumeSpeaker = this.pendingAutoResumeSpeakerAfterTts;
-                        this.pendingAutoResumeSpeakerAfterTts = null;
-
-                        this.debugLog('processTtsQueue: resuming CALL listening after TTS (auto-pause)', {
-                            speaker: resumeSpeaker,
-                        });
-                        console.log('▶️ processTtsQueue: resuming CALL listening after TTS (auto-pause)', {
-                            ts: new Date().toISOString(),
-                            speaker: resumeSpeaker,
-                        });
-                        this.toggleListeningForLang(resumeSpeaker);
-                    } else if (shouldResume && speaker) {
+                    } else if (!this.earphonesModeEffective && shouldResume && speaker && !this.isListening) {
                         this.debugLog('processTtsQueue: resuming listening', {
                             speaker,
                         });
@@ -4168,7 +4387,7 @@ export default {
                     this.processTtsQueue();
                 };
 
-                audio.onerror = (err) => {
+                audioEl.onerror = (err) => {
                     this.debugLog('processTtsQueue: audio playback error', {
                         error: String(err),
                         shouldResume: this.wasListeningBeforeTts,
@@ -4187,11 +4406,17 @@ export default {
                     this.lastSpeakerBeforeTts = null;
                     this.isTtsPlaying = false;
 
-                    if (this.activeTab === 'youtube') {
+                    // In modalità call: se NON siamo in modalità auricolari e l'auto-pausa ha spento il mic,
+                    // riaccendilo solo dopo la lettura TTS.
+                    if (!this.earphonesModeEffective && this.activeTab === 'call' && this.pendingAutoResumeSpeakerAfterTts && !this.isListening) {
+                        const resumeSpeaker = this.pendingAutoResumeSpeakerAfterTts;
+                        this.pendingAutoResumeSpeakerAfterTts = null;
+                        this.toggleListeningForLang(resumeSpeaker);
+                    } else if (this.activeTab === 'youtube') {
                         if (this.youtubeAutoResumeEnabled) {
                             this.toggleListeningForLang('A');
                         }
-                    } else if (shouldResume && speaker) {
+                    } else if (!this.earphonesModeEffective && shouldResume && speaker && !this.isListening) {
                         this.toggleListeningForLang(speaker);
                     }
 
@@ -4203,7 +4428,7 @@ export default {
                     console.log('▶️ processTtsQueue: calling audio.play()', {
                         ts: new Date().toISOString(),
                     });
-                    await audio.play();
+                    await audioEl.play();
                     this.debugLog('processTtsQueue: audio.play() success', {});
                     console.log('✅ processTtsQueue: audio.play() success', {
                         ts: new Date().toISOString(),

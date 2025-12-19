@@ -51,6 +51,9 @@ export default class WhisperSpeechRecognition {
         this._segmentStartedAt = 0;
         this._lastNonSilentAt = 0;
         this._segmentHasVoice = false;
+        // Tempo totale (ms) in cui rileviamo banda voce (80–4000 Hz) nel segmento corrente
+        this._voiceBandMs = 0;
+        this._lastVadFrameAt = 0;
 
         // Callback opzionale usata dal chiamante per auto-pausa basata sul silenzio.
         // Non viene usata internamente per fermare la registrazione: serve solo a
@@ -63,6 +66,9 @@ export default class WhisperSpeechRecognition {
         // modalità YouTube dove non vogliamo la segmentazione automatica
         // in base alle pause.
         this.singleSegmentMode = false;
+
+        // Requisito: inviare SOLO se c'è almeno 1 secondo di frequenze vocali.
+        this._minVoiceBandMsToSend = 1000;
     }
 
     async start() {
@@ -258,7 +264,13 @@ export default class WhisperSpeechRecognition {
             }
 
             const json = await resp.json().catch(() => ({}));
-            const text = (json.text || '').trim();
+            const rawText = (json.text || '').trim();
+            if (!rawText) {
+                return;
+            }
+
+            // Normalizza: rimuovi prefissi tipo "- " o "• " che spesso arrivano da liste/closing credits.
+            const text = rawText.replace(/^\s*[-–•]\s+/, '').trim();
             if (!text) {
                 return;
             }
@@ -281,6 +293,20 @@ export default class WhisperSpeechRecognition {
                 /^[\d\s\*\!\?\#\~\-\_\.\,\;\:\"\'\(\)\[\]\{\}]+$/.test(text)
             ) {
                 console.log('🚫 WhisperSpeechRecognition: testo filtrato (pattern comune)', { text });
+                return;
+            }
+
+            // Pattern da scartare (closing credits / filler)
+            if (
+                lower.includes('grazie per la visione') ||
+                // "grazie." / "grazie a tutti." (anche con punteggiatura)
+                /^\s*grazie(?:\s+a\s+tutti)?[\s\!\.\,]*$/.test(lower) ||
+                // "sigh" isolato o con punteggiatura/emoji-like
+                /^sigh[\s\!\.\,\-–•]*$/.test(lower) ||
+                // "ssssshhh" / "ssshhh" (filler) anche con punteggiatura
+                /^\s*s{3,}h{2,}[\s\!\.\,\-–•]*$/.test(lower)
+            ) {
+                console.log('🚫 WhisperSpeechRecognition: testo filtrato (closing/filler)', { text });
                 return;
             }
 
@@ -367,6 +393,8 @@ export default class WhisperSpeechRecognition {
         this._lastNonSilentAt = now;
         this._segmentHasVoice = false;
         this._autoPauseFired = false;
+        this._voiceBandMs = 0;
+        this._lastVadFrameAt = now;
 
         this._recorder.ondataavailable = (event) => {
             if (!event.data || event.data.size === 0) {
@@ -375,17 +403,15 @@ export default class WhisperSpeechRecognition {
             this._chunks.push(event.data);
         };
 
-            this._recorder.onstop = () => {
+        this._recorder.onstop = () => {
             const blob = this._buildFinalBlob();
 
             // Invia il segmento solo se ha senso:
-            // - in modalità multi-segmento: solo se è stata rilevata VOCE reale (_segmentHasVoice)
-            // - in singleSegmentMode: evita solo chunk completamente vuoti; il filtro
-            //   su voce reale viene già applicato PRIMA a livello di VAD e nel backend Whisper.
+            // - invia SOLO se abbiamo rilevato frequenze compatibili con voce umana
+            //   per almeno 1 secondo nel segmento corrente.
             const shouldSend =
-                this.singleSegmentMode
-                    ? !!(blob && blob.size > 0)
-                    : this._segmentHasVoice;
+                !!(blob && blob.size > 0)
+                && (this._voiceBandMs >= (this._minVoiceBandMsToSend || 1000));
 
             if (shouldSend) {
                 this._handleChunk(blob);
@@ -462,9 +488,17 @@ export default class WhisperSpeechRecognition {
 
                 const nowTs = performance.now ? performance.now() : Date.now();
 
+                const prevTs = this._lastVadFrameAt || nowTs;
+                const dt = Math.max(0, nowTs - prevTs);
+                this._lastVadFrameAt = nowTs;
+
+                // Consideriamo "voce" SOLO quando:
+                // - RMS sopra soglia
+                // - energia nella banda tipica della voce (80–4000 Hz)
                 if (rms > this._silenceThreshold && hasVoiceBandEnergy) {
                     this._lastNonSilentAt = nowTs;
                     this._segmentHasVoice = true;
+                    this._voiceBandMs += dt;
                 }
 
                 const elapsedSegment = nowTs - this._segmentStartedAt;
