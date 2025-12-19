@@ -98,33 +98,34 @@
                     </p>
                 </div>
 
-                <div class="flex flex-col items-center gap-2 text-slate-300">
-                    <!-- Switch (solo TAB Call): solo trascrizione vs traduzione -->
-                    <div class="flex flex-col items-center gap-1">
+                <div class="flex flex-col items-center gap-3 text-slate-300">
+                    <!-- Switch + dubbing sulla stessa riga -->
+                    <div class="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
                         <label class="flex items-center gap-2 text-[13px] cursor-pointer select-none">
                             <input type="checkbox" v-model="callTranslationEnabled"
                                 @change="onCallTranslationModeChange"
                                 class="h-3.5 w-3.5 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
                             <span>Traduzione</span>
                         </label>
-                        <div class="text-[10px] text-slate-400">
-                            {{ callTranslationEnabled ? 'Trascrizione + traduzione' : 'Solo trascrizione' }}
-                        </div>
+
+                        <!-- Doppiaggio (solo se la traduzione è attiva nella tab Call) -->
+                        <label v-if="callTranslationEnabled"
+                            class="flex items-center gap-2 text-[13px] cursor-pointer select-none">
+                            <input type="checkbox" v-model="readTranslationEnabledCall"
+                                class="h-3.5 w-3.5 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
+                            <span>{{ ui.dubbingLabel }}</span>
+                        </label>
                     </div>
 
-                    <!-- Doppiaggio (solo se la traduzione è attiva nella tab Call) -->
-                    <label v-if="callTranslationEnabled"
-                        class="flex items-center gap-2 text-[13px] cursor-pointer select-none">
-                        <input type="checkbox" v-model="readTranslationEnabledCall"
-                            class="h-3.5 w-3.5 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
-                        <span>{{ ui.dubbingLabel }}</span>
-                    </label>
+                    <div class="text-[10px] text-slate-400 text-center">
+                        {{ callTranslationEnabled ? 'Trascrizione + traduzione' : 'Solo trascrizione' }}
+                    </div>
 
-                    <!-- Slider VAD (TAB Call): pausa (ms) + soglia rumore (RMS) -->
+                    <!-- Slider VAD (TAB Call): pausa (ms) + quantità di rumore di fondo (RMS) -->
                     <div class="mt-1 w-full px-4">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3 w-full">
                             <div class="flex flex-col gap-1">
-                                <div class="flex items-center justify-between w-full">
+                                <div class="flex items-center justify-between w-full min-h-[20px]">
                                     <label class="flex items-center gap-1 cursor-pointer select-none">
                                         <input type="checkbox" v-model="callAutoPauseEnabled"
                                             class="h-3 w-3 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
@@ -139,8 +140,10 @@
                             </div>
 
                             <div class="flex flex-col gap-1">
-                                <div class="flex items-center justify-between w-full">
-                                    <span class="text-[11px] text-slate-300">Soglia rumore</span>
+                                <div class="flex items-center justify-between w-full min-h-[20px]">
+                                    <span class="text-[11px] text-slate-300">
+                                        {{ ui.backgroundNoiseLabel }}
+                                    </span>
                                     <span class="text-[10px] text-slate-400">
                                         {{ Number(whisperNoiseThreshold || 0).toFixed(3) }}
                                     </span>
@@ -961,6 +964,7 @@ export default {
                     whisperSingleSegmentLabel: 'Invia l’audio solo quando spengo il microfono (meno chiamate, frasi più complete)',
                     googleCloudLabel: 'Usa Gemini (compatibile con tutti i browser)',
                     dubbingLabel: 'Leggi la traduzione (doppiaggio)',
+                    backgroundNoiseLabel: 'Quantità di rumore di fondo',
                     originalTitle: 'Testo originale',
                     originalSubtitle: 'Riconosciuto dal microfono',
                     originalPlaceholder: 'Inizia a parlare per vedere qui la trascrizione in tempo reale.',
@@ -1062,6 +1066,7 @@ export default {
                     whisperSingleSegmentLabel: 'Send audio only when I stop the microphone (fewer calls, more complete sentences)',
                     googleCloudLabel: 'Use Gemini (compatible with all browsers)',
                     dubbingLabel: 'Read the translation aloud (dubbing)',
+                    backgroundNoiseLabel: 'Background noise level',
                     originalTitle: 'Original text',
                     originalSubtitle: 'Recognised from microphone',
                     originalPlaceholder: 'Start speaking to see the real-time transcription here.',
