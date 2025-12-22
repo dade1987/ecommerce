@@ -2,21 +2,22 @@
 
 namespace App\Filament\Resources;
 
-use App\Models\Tag;
-use Filament\Forms;
-use Filament\Tables;
+use App\Filament\Resources\ArticleResource\Pages;
 use App\Models\Article;
-use Filament\Forms\Set;
+use App\Models\Tag;
+use Awcodes\Curator\Components\Forms\CuratorPicker;
+use Filament\Forms;
+use Filament\Forms\Components\Actions\Action;
+use Filament\Forms\Components\Section;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Form;
+use Filament\Forms\Set;
+use Filament\Resources\Resource;
+use Filament\Tables;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Support\Str;
 use function Safe\json_decode;
-use Filament\Resources\Resource;
-use Filament\Forms\Components\Select;
-use Filament\Tables\Filters\SelectFilter;
-use Filament\Forms\Components\Actions\Action;
-use App\Filament\Resources\ArticleResource\Pages;
-use Awcodes\Curator\Components\Forms\CuratorPicker;
 
 class ArticleResource extends Resource
 {
@@ -79,6 +80,33 @@ class ArticleResource extends Resource
                                 $set('content', $generatedContent);
                             })
                     ),
+
+                Section::make('SEO')
+                    ->schema([
+                        Forms\Components\TextInput::make('meta_title')
+                            ->label('Meta title')
+                            ->maxLength(255),
+                        Forms\Components\Textarea::make('meta_description')
+                            ->label('Meta description')
+                            ->columnSpanFull(),
+                        Forms\Components\Textarea::make('meta_keywords')
+                            ->label('Meta keywords (comma-separated)')
+                            ->columnSpanFull(),
+                        Forms\Components\TextInput::make('og_title')
+                            ->label('OG title')
+                            ->maxLength(255),
+                        Forms\Components\Textarea::make('og_description')
+                            ->label('OG description')
+                            ->columnSpanFull(),
+                        Forms\Components\TextInput::make('twitter_title')
+                            ->label('Twitter title')
+                            ->maxLength(255),
+                        Forms\Components\Textarea::make('twitter_description')
+                            ->label('Twitter description')
+                            ->columnSpanFull(),
+                    ])
+                    ->collapsed()
+                    ->columnSpanFull(),
 
                 CuratorPicker::make('featured_image_id')
                     ->relationship('featuredImage', 'id')
@@ -157,7 +185,7 @@ class ArticleResource extends Resource
             ->defaultSort('id', 'desc') // Ordine discendente per ID
             ->filters([
                 SelectFilter::make('tags')
-                ->relationship('tags', 'name')
+                ->relationship('tags', 'name'),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
