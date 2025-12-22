@@ -33,4 +33,16 @@ class MenuItemUrlResolverTest extends TestCase
         // Assert
         $this->assertSame('https://altro-dominio.test/x', $url);
     }
+
+    public function test_resolve_href_works_with_relative_string(): void
+    {
+        // Arrange
+        config(['app.url' => 'https://example.test']);
+
+        // Act
+        $url = app(MenuItemUrlResolver::class)->resolveHref('/foo');
+
+        // Assert
+        $this->assertSame('https://example.test/foo', $url);
+    }
 }

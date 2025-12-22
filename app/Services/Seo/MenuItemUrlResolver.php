@@ -11,6 +11,13 @@ class MenuItemUrlResolver
     {
         $rawHref = $menuItem->href;
         $href = trim(is_string($rawHref) ? $rawHref : '');
+
+        return $this->resolveHref($href);
+    }
+
+    public function resolveHref(string $href): string
+    {
+        $href = trim($href);
         if ($href === '') {
             throw new \InvalidArgumentException('MenuItem href mancante.');
         }

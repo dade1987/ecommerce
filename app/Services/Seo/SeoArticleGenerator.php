@@ -3,13 +3,11 @@
 namespace App\Services\Seo;
 
 use App\Models\Article;
-use App\Models\MenuItem;
 use App\Models\Tag;
 use Awcodes\Curator\Models\Media;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use Modules\WebScraper\Services\WebScraperService;
 use OpenAI;
 use function Safe\json_decode;
 use function Safe\json_encode;
@@ -18,11 +16,11 @@ class SeoArticleGenerator
 {
     public function __construct(
         protected MenuItemUrlResolver $urlResolver,
-        protected WebScraperService $scraper,
+        protected PageSourceWithScriptsFetcher $pageFetcher,
     ) {
     }
 
-    public function generate(MenuItem $menuItem, string $keyword): Article
+    public function generate(string $targetHref, string $keyword): Article
     {
         $apiKeyConfig = config('openapi.key');
         $apiKey = is_string($apiKeyConfig) ? $apiKeyConfig : '';
@@ -35,16 +33,26 @@ class SeoArticleGenerator
             throw new \InvalidArgumentException('Keyword vuota.');
         }
 
-        $targetUrl = $this->urlResolver->resolve($menuItem);
-        $targetHref = is_string($menuItem->href) ? $menuItem->href : '';
-
-        $scraped = $this->scraper->scrape($targetUrl);
-        if (isset($scraped['error'])) {
-            throw new \RuntimeException('Errore scraping URL: '.$scraped['error']);
+        $targetHref = trim($targetHref);
+        if ($targetHref === '') {
+            throw new \InvalidArgumentException('URL target vuoto.');
         }
 
-        $pageTitle = (string) ($scraped['metadata']['title'] ?? '');
-        $pageDesc = (string) ($scraped['metadata']['description'] ?? '');
+        $targetUrl = $this->urlResolver->resolveHref($targetHref);
+
+        $scraped = $this->pageFetcher->fetch($targetHref);
+        if (isset($scraped['error'])) {
+            throw new \RuntimeException('Errore scraping (include JS sources): '.$scraped['error']);
+        }
+
+        $metadata = $scraped['metadata'] ?? [];
+        $metadata = is_array($metadata) ? $metadata : [];
+
+        $pageTitleRaw = $metadata['title'] ?? '';
+        $pageDescRaw = $metadata['description'] ?? '';
+        $pageTitle = is_string($pageTitleRaw) ? $pageTitleRaw : '';
+        $pageDesc = is_string($pageDescRaw) ? $pageDescRaw : '';
+
         $pageHeadings = [];
         if (isset($scraped['content']) && is_array($scraped['content'])) {
             $headings = $scraped['content']['headings'] ?? [];
@@ -52,7 +60,8 @@ class SeoArticleGenerator
                 $pageHeadings = $headings;
             }
         }
-        $main = (string) ($scraped['content']['main'] ?? '');
+        $mainRaw = (isset($scraped['content']) && is_array($scraped['content'])) ? ($scraped['content']['main'] ?? '') : '';
+        $main = is_string($mainRaw) ? $mainRaw : '';
         $main = mb_substr($main, 0, 8000);
 
         $client = OpenAI::client($apiKey);

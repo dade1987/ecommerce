@@ -3,10 +3,9 @@
 namespace App\Filament\Resources\ArticleResource\Pages;
 
 use App\Filament\Resources\ArticleResource;
-use App\Models\Menu;
-use App\Models\MenuItem;
 use App\Services\Seo\CsvKeywordExtractor;
 use App\Services\Seo\KeywordRelevanceService;
+use App\Services\Seo\MenuItemUrlResolver;
 use App\Services\Seo\SeoArticleGenerator;
 use Filament\Actions;
 use Filament\Actions\Action as HeaderAction;
@@ -16,6 +15,7 @@ use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Wizard;
 use Filament\Forms\Components\Wizard\Step;
 use Filament\Forms\Set;
@@ -41,52 +41,26 @@ class ListArticles extends ListRecords
                         Step::make('Pagina + CSV')
                             ->description('Scegli la pagina target e carica il CSV con le keyword')
                             ->schema([
-                                Select::make('menu_id')
-                                    ->label('Menu')
-                                    ->options(fn (): array => Menu::query()->orderBy('name')->pluck('name', 'id')->toArray())
-                                    ->searchable()
+                                TextInput::make('target_href')
+                                    ->label('URL target (relativo o assoluto)')
+                                    ->helperText('Esempio: /landing/prodotto oppure https://dominio.tld/landing/prodotto')
                                     ->required()
-                                    ->live(),
-
-                                Select::make('menu_item_id')
-                                    ->label('Voce menu (pagina target)')
-                                    ->options(function (callable $get): array {
-                                        $menuId = $get('menu_id');
-                                        if (! $menuId) {
-                                            return [];
-                                        }
-
-                                        return MenuItem::query()
-                                            ->where('menu_id', $menuId)
-                                            ->orderBy('sort')
-                                            ->pluck('name', 'id')
-                                            ->toArray();
-                                    })
-                                    ->searchable()
-                                    ->required()
-                                    ->live(),
+                                    ->live(onBlur: true),
 
                                 Placeholder::make('target_url_preview')
                                     ->label('URL target (preview)')
-                                    ->content(function (callable $get): string {
-                                        $menuItemId = (int) ($get('menu_item_id') ?? 0);
-                                        if ($menuItemId <= 0) {
-                                            return '—';
-                                        }
-                                        $item = MenuItem::query()->find($menuItemId);
-                                        if (! $item) {
+                                    ->content(function (callable $get, MenuItemUrlResolver $resolver): string {
+                                        $href = $get('target_href');
+                                        $href = is_string($href) ? trim($href) : '';
+                                        if ($href === '') {
                                             return '—';
                                         }
 
-                                        $baseConfig = config('app.url');
-                                        $base = is_string($baseConfig) ? $baseConfig : '';
-
-                                        $href = is_string($item->href) ? $item->href : '';
-                                        if (preg_match('#^https?://#i', $href) === 1) {
-                                            return $href;
+                                        try {
+                                            return $resolver->resolveHref($href);
+                                        } catch (\Throwable $e) {
+                                            return 'URL non valido: '.$e->getMessage();
                                         }
-
-                                        return rtrim($base, '/').'/'.ltrim($href, '/');
                                     }),
 
                                 FileUpload::make('csv_file')
@@ -130,11 +104,12 @@ class ListArticles extends ListRecords
                                         ->label('Analizza e suggerisci keyword')
                                         ->icon('heroicon-o-magnifying-glass')
                                         ->action(function (Set $set, callable $get, CsvKeywordExtractor $extractor, KeywordRelevanceService $relevance) {
-                                            $menuItemId = (int) ($get('menu_item_id') ?? 0);
+                                            $targetHref = $get('target_href');
+                                            $targetHref = is_string($targetHref) ? trim($targetHref) : '';
                                             $csv = $get('csv_file');
 
-                                            if ($menuItemId <= 0) {
-                                                Notification::make()->title('Seleziona una voce menu prima di analizzare.')->warning()->send();
+                                            if ($targetHref === '') {
+                                                Notification::make()->title('Inserisci un URL target prima di analizzare.')->warning()->send();
 
                                                 return;
                                             }
@@ -149,15 +124,8 @@ class ListArticles extends ListRecords
                                             $keywords = $extractor->extractFromPath($csv->getRealPath());
                                             $set('csv_keywords', $keywords);
 
-                                            $menuItem = MenuItem::query()->find($menuItemId);
-                                            if (! $menuItem) {
-                                                Notification::make()->title('Voce menu non trovata.')->danger()->send();
-
-                                                return;
-                                            }
-
                                             try {
-                                                $suggestions = $relevance->suggest($menuItem, $keywords);
+                                                $suggestions = $relevance->suggest($targetHref, $keywords);
                                             } catch (\Throwable $e) {
                                                 Notification::make()
                                                     ->title('Errore analisi')
@@ -197,7 +165,12 @@ class ListArticles extends ListRecords
                                                 ->success()
                                                 ->send();
                                         })
-                                        ->disabled(fn (callable $get) => ! $get('menu_item_id') || ! $get('csv_file')),
+                                        ->disabled(function (callable $get): bool {
+                                            $href = $get('target_href');
+                                            $href = is_string($href) ? trim($href) : '';
+
+                                            return $href === '' || ! $get('csv_file');
+                                        }),
                                 ]),
                             ]),
 
@@ -217,18 +190,12 @@ class ListArticles extends ListRecords
                     ])->columnSpanFull(),
                 ])
                 ->action(function (array $data, SeoArticleGenerator $generator) {
-                    $menuItemId = (int) ($data['menu_item_id'] ?? 0);
+                    $targetHref = $data['target_href'] ?? '';
+                    $targetHref = is_string($targetHref) ? trim($targetHref) : '';
                     $keywords = $data['selected_keywords'] ?? [];
 
-                    if ($menuItemId <= 0 || ! is_array($keywords) || empty($keywords)) {
-                        Notification::make()->title('Dati mancanti: seleziona pagina e keyword.')->danger()->send();
-
-                        return;
-                    }
-
-                    $menuItem = MenuItem::query()->find($menuItemId);
-                    if (! $menuItem) {
-                        Notification::make()->title('Voce menu non trovata.')->danger()->send();
+                    if ($targetHref === '' || ! is_array($keywords) || empty($keywords)) {
+                        Notification::make()->title('Dati mancanti: inserisci URL target e seleziona keyword.')->danger()->send();
 
                         return;
                     }
@@ -242,7 +209,7 @@ class ListArticles extends ListRecords
 
                     foreach ($keywords as $kw) {
                         try {
-                            $article = $generator->generate($menuItem, $kw);
+                            $article = $generator->generate($targetHref, $kw);
                             $created++;
 
                             if ($firstEditUrl === null) {

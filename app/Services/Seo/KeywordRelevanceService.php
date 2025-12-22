@@ -2,15 +2,13 @@
 
 namespace App\Services\Seo;
 
-use App\Models\MenuItem;
 use Modules\WebScraper\Services\AiAnalyzerService;
-use Modules\WebScraper\Services\WebScraperService;
 use function Safe\json_decode;
 
 class KeywordRelevanceService
 {
     public function __construct(
-        protected WebScraperService $scraper,
+        protected PageSourceWithScriptsFetcher $pageFetcher,
         protected AiAnalyzerService $aiAnalyzer,
         protected MenuItemUrlResolver $urlResolver,
     ) {
@@ -20,7 +18,7 @@ class KeywordRelevanceService
      * @param array<int, string> $keywords
      * @return array<int, array{keyword:string, score:int, reason:string}>
      */
-    public function suggest(MenuItem $menuItem, array $keywords): array
+    public function suggest(string $targetHref, array $keywords): array
     {
         $keywords = array_values(array_filter(array_map('strval', $keywords), fn ($k) => trim($k) !== ''));
         $keywords = array_values(array_unique($keywords));
@@ -29,8 +27,8 @@ class KeywordRelevanceService
             return [];
         }
 
-        $url = $this->urlResolver->resolve($menuItem);
-        $scraped = $this->scraper->scrape($url);
+        $url = $this->urlResolver->resolveHref($targetHref);
+        $scraped = $this->pageFetcher->fetch($targetHref);
 
         if (isset($scraped['error'])) {
             throw new \RuntimeException('Errore scraping URL: '.$scraped['error']);
