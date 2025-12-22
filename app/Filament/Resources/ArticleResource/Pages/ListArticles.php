@@ -21,6 +21,7 @@ use Filament\Forms\Components\Wizard\Step;
 use Filament\Forms\Set;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use function Safe\preg_match;
 
@@ -120,8 +121,36 @@ class ListArticles extends ListRecords
                                                 return;
                                             }
 
-                                            /** @var TemporaryUploadedFile $csv */
-                                            $keywords = $extractor->extractFromPath($csv->getRealPath());
+                                            // Filament FileUpload può tornare: TemporaryUploadedFile, string, oppure array (single-file wrapped)
+                                            $csvFile = $csv;
+                                            if (is_array($csvFile)) {
+                                                $csvFile = reset($csvFile) ?: null;
+                                            }
+
+                                            $csvPath = null;
+                                            if ($csvFile instanceof TemporaryUploadedFile) {
+                                                $csvPath = $csvFile->getRealPath();
+                                            } elseif (is_string($csvFile)) {
+                                                // Se è un path assoluto temporaneo (storeFiles(false) in alcuni setup)
+                                                if (is_file($csvFile)) {
+                                                    $csvPath = $csvFile;
+                                                } elseif (Storage::disk('local')->exists($csvFile)) {
+                                                    // Se è stato salvato su disco local (pattern già usato in CustomerResource)
+                                                    $csvPath = Storage::disk('local')->path($csvFile);
+                                                }
+                                            }
+
+                                            if (! is_string($csvPath) || $csvPath === '' || ! is_file($csvPath)) {
+                                                Notification::make()
+                                                    ->title('CSV non valido')
+                                                    ->body('Non riesco a leggere il file caricato. Riprova a ricaricare il CSV.')
+                                                    ->danger()
+                                                    ->send();
+
+                                                return;
+                                            }
+
+                                            $keywords = $extractor->extractFromPath($csvPath);
                                             $set('csv_keywords', $keywords);
 
                                             try {
