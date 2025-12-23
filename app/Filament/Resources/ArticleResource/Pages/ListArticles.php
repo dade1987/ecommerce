@@ -21,7 +21,6 @@ use Filament\Forms\Components\Wizard\Step;
 use Filament\Forms\Set;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
-use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use function Safe\preg_match;
@@ -243,23 +242,21 @@ class ListArticles extends ListRecords
                     $keywords = array_values(array_unique(array_filter(array_map('strval', $keywords), fn ($k) => trim($k) !== '')));
                     $queued = count($keywords);
 
-                    // Unlimited: dispatch UN job che crea placeholder + dispatcha i job per keyword
-                    Bus::dispatch(function () use ($keywords, $targetHref) {
-                        foreach ($keywords as $kw) {
-                            $kw = trim((string) $kw);
-                            if ($kw === '') {
-                                continue;
-                            }
-                            GenerateSeoArticleFromKeywordJob::dispatch(
-                                targetHref: $targetHref,
-                                keyword: $kw
-                            );
+                    // Un job per keyword: enqueue rapido, lavoro pesante in coda
+                    foreach ($keywords as $kw) {
+                        $kw = trim((string) $kw);
+                        if ($kw === '') {
+                            continue;
                         }
-                    });
+                        GenerateSeoArticleFromKeywordJob::dispatch(
+                            targetHref: $targetHref,
+                            keyword: $kw
+                        );
+                    }
 
                     $notif = Notification::make()
                         ->title("Messi in coda {$queued} articoli")
-                        ->body('Generazione illimitata in coda: i placeholder compariranno in lista e verranno aggiornati quando i job finiscono.')
+                        ->body('Generazione in coda: ogni keyword è un job e creerà il suo articolo (placeholder subito nel job).')
                         ->success();
 
                     $notif->send();

@@ -47,8 +47,16 @@ class KeywordRelevanceService
 Hai una lista di keyword (inclusa sotto) e il contenuto della pagina di destinazione.
 Seleziona le keyword che sono:
 - direttamente correlate alla pagina, oppure
-- indirettamente correlate ma “agganciabili” con un posizionamento marketing (es: se la pagina parla di interprete virtuale, puoi intercettare anche chi cerca “traduttore arabo italiano” spiegando che l’interprete virtuale può essere usato per quel caso d’uso).
-Scarta solo le keyword totalmente fuori contesto.
+- indirettamente correlate ma “agganciabili” con un posizionamento marketing credibile (es: se la pagina parla di interprete virtuale, puoi intercettare anche chi cerca “traduttore arabo italiano” spiegando che l’interprete virtuale può essere usato per quel caso d’uso).
+Scarta SOLO le keyword totalmente fuori contesto o ingannevoli.
+
+IMPORTANTE (modalità ampia):
+- Includi anche keyword con match parziale/adiacente (long-tail, lingue, sinonimi, casi d’uso vicini) se l’articolo può colmare il gap senza promettere cose false.
+- Usa lo score per riflettere il tipo:
+  - 80-100: match diretto
+  - 50-79: correlata ma non perfetta
+  - 30-49: “adattabile/agganciabile” (va bene includerla se è sensata)
+- Se trovi almeno 20 keyword sensate, restituiscine almeno 20 (non limitarti solo alle perfette).
 
 Vincoli:
 - Puoi scegliere SOLO keyword presenti nella lista.

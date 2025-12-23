@@ -11,6 +11,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class GenerateSeoArticleFromKeywordJob implements ShouldQueue
 {
@@ -25,7 +26,19 @@ class GenerateSeoArticleFromKeywordJob implements ShouldQueue
     public function handle(SeoArticleGenerator $generator): void
     {
         try {
-            $article = $generator->generate($this->targetHref, $this->keyword);
+            // Crea SEMPRE un record per keyword (così ne vedi uno per job anche se fallisce)
+            $kw = trim($this->keyword);
+            $placeholderTitle = $kw !== '' ? "In generazione: {$kw}" : 'In generazione';
+            $placeholderSlug = Str::slug('in-generazione-'.$kw.'-'.Str::random(6));
+
+            $article = Article::create([
+                'title' => $placeholderTitle,
+                'slug' => $placeholderSlug,
+                'summary' => 'Generazione in corso…',
+                'content' => "Generazione in coda.\n\nKeyword: {$this->keyword}\nTarget: {$this->targetHref}",
+            ]);
+
+            $generator->generateInto($article, $this->targetHref, $this->keyword);
 
             try {
                 $tag = Tag::firstOrCreate(
@@ -41,6 +54,18 @@ class GenerateSeoArticleFromKeywordJob implements ShouldQueue
                 'keyword' => $this->keyword,
                 'error' => $e->getMessage(),
             ]);
+
+            // Se esiste un placeholder creato prima dell'errore, renderlo “diagnosticabile”
+            try {
+                if (isset($article) && $article instanceof Article) {
+                    $article->update([
+                        'summary' => 'Errore generazione: '.$e->getMessage(),
+                        'content' => "Errore durante la generazione automatica.\n\nKeyword: {$this->keyword}\n\nDettagli: {$e->getMessage()}",
+                    ]);
+                }
+            } catch (\Throwable $inner) {
+                // non bloccare
+            }
         }
     }
 }
