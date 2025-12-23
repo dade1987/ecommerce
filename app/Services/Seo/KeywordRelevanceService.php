@@ -45,7 +45,10 @@ class KeywordRelevanceService
 
         $query = <<<PROMPT
 Hai una lista di keyword (inclusa sotto) e il contenuto della pagina di destinazione.
-Seleziona SOLO le keyword realmente correlate a questa pagina e scarta le altre.
+Seleziona le keyword che sono:
+- direttamente correlate alla pagina, oppure
+- indirettamente correlate ma “agganciabili” con un posizionamento marketing (es: se la pagina parla di interprete virtuale, puoi intercettare anche chi cerca “traduttore arabo italiano” spiegando che l’interprete virtuale può essere usato per quel caso d’uso).
+Scarta solo le keyword totalmente fuori contesto.
 
 Vincoli:
 - Puoi scegliere SOLO keyword presenti nella lista.

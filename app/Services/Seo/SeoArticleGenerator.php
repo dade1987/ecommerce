@@ -3,7 +3,6 @@
 namespace App\Services\Seo;
 
 use App\Models\Article;
-use App\Models\Tag;
 use Awcodes\Curator\Models\Media;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
@@ -112,6 +111,7 @@ SYS,
                             'Inserisci una sezione FAQ (3-5 domande) se pertinente',
                             'Inserisci una CTA finale che invita a visitare la pagina target',
                             'Inserisci link in markdown (es: [Testo](/percorso))',
+                            'Se la keyword NON è una corrispondenza perfetta con la pagina target, adatta l’articolo in modo credibile: spiega come la soluzione della pagina target può coprire quel bisogno (es. “traduttore arabo italiano” → interprete virtuale con supporto multilingua) senza fare promesse false.',
                         ],
                     ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
                 ],
@@ -196,17 +196,64 @@ SYS,
             'twitter_description' => (string) ($data['twitter_description'] ?? null),
         ]);
 
-        // Tag di default (riuso pattern esistente del job)
+        return $article;
+    }
+
+    public function generateInto(Article $article, string $targetHref, string $keyword): void
+    {
+        $generated = $this->generate($targetHref, $keyword);
+
+        // Copia i campi sul record placeholder (mantiene id stabile)
+        $generatedSlugAttr = $generated->getAttribute('slug');
+        $generatedSlug = is_string($generatedSlugAttr) ? $generatedSlugAttr : '';
+
+        $article->update([
+            'title' => $generated->title,
+            'slug' => $this->makeUniqueSlug($generatedSlug, (int) $article->id),
+            'content' => $generated->content,
+            'summary' => $generated->summary,
+            'featured_image_id' => $generated->featured_image_id,
+            'meta_title' => $generated->meta_title,
+            'meta_description' => $generated->meta_description,
+            'meta_keywords' => $generated->meta_keywords,
+            'og_title' => $generated->og_title,
+            'og_description' => $generated->og_description,
+            'twitter_title' => $generated->twitter_title,
+            'twitter_description' => $generated->twitter_description,
+        ]);
+
+        // Elimina il record temporaneo creato da generate()
         try {
-            $tag = Tag::firstOrCreate(
-                ['slug' => 'articolo-smart'],
-                ['name' => 'Articolo Smart']
-            );
-            $article->tags()->syncWithoutDetaching([$tag->id]);
+            $generated->delete();
         } catch (\Throwable $e) {
-            // Non bloccare la creazione articolo se il tagging fallisce
+            // non bloccare
+        }
+    }
+
+    private function makeUniqueSlug(string $slug, int $currentArticleId): string
+    {
+        $slug = trim($slug);
+        if ($slug === '') {
+            $slug = 'articolo-'.$currentArticleId;
         }
 
-        return $article;
+        $base = $slug;
+        $i = 2;
+
+        while (
+            Article::query()
+                ->where('slug', $slug)
+                ->where('id', '!=', $currentArticleId)
+                ->exists()
+        ) {
+            $slug = $base.'-'.$i;
+            $i++;
+            if ($i > 50) {
+                $slug = $base.'-'.$currentArticleId;
+                break;
+            }
+        }
+
+        return $slug;
     }
 }

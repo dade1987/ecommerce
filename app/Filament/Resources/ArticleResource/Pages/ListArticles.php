@@ -3,10 +3,11 @@
 namespace App\Filament\Resources\ArticleResource\Pages;
 
 use App\Filament\Resources\ArticleResource;
+use App\Jobs\GenerateSeoArticleFromKeywordJob;
+use App\Models\Article;
 use App\Services\Seo\CsvKeywordExtractor;
 use App\Services\Seo\KeywordRelevanceService;
 use App\Services\Seo\MenuItemUrlResolver;
-use App\Services\Seo\SeoArticleGenerator;
 use Filament\Actions;
 use Filament\Actions\Action as HeaderAction;
 use Filament\Forms\Components\Actions\Action as FormAction;
@@ -22,6 +23,7 @@ use Filament\Forms\Set;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use function Safe\preg_match;
 
@@ -218,7 +220,7 @@ class ListArticles extends ListRecords
                             ]),
                     ])->columnSpanFull(),
                 ])
-                ->action(function (array $data, SeoArticleGenerator $generator) {
+                ->action(function (array $data) {
                     $targetHref = $data['target_href'] ?? '';
                     $targetHref = is_string($targetHref) ? trim($targetHref) : '';
                     $keywords = $data['selected_keywords'] ?? [];
@@ -232,49 +234,49 @@ class ListArticles extends ListRecords
                     $keywords = array_values(array_unique(array_filter(array_map('strval', $keywords), fn ($k) => trim($k) !== '')));
                     $keywords = array_slice($keywords, 0, 10);
 
-                    $created = 0;
-                    $errors = [];
+                    $queued = 0;
                     $firstEditUrl = null;
 
                     foreach ($keywords as $kw) {
-                        try {
-                            $article = $generator->generate($targetHref, $kw);
-                            $created++;
+                        // Crea placeholder subito visibile in lista
+                        $placeholderTitle = "In generazione: {$kw}";
+                        $placeholderSlug = Str::slug("in-generazione-{$kw}-".Str::random(6));
 
-                            if ($firstEditUrl === null) {
-                                $firstEditUrl = ArticleResource::getUrl('edit', ['record' => $article]);
-                            }
-                        } catch (\Throwable $e) {
-                            $errors[] = "{$kw}: {$e->getMessage()}";
-                        }
-                    }
+                        $article = Article::create([
+                            'title' => $placeholderTitle,
+                            'slug' => $placeholderSlug,
+                            'summary' => 'Generazione in corso…',
+                            'content' => "Generazione in coda.\n\nKeyword: {$kw}\nTarget: {$targetHref}",
+                        ]);
 
-                    if ($created > 0) {
-                        $n = $created;
-                        $notif = Notification::make()
-                            ->title("Creati {$n} articoli")
-                            ->success();
-
-                        if ($firstEditUrl) {
-                            $notif->body('Apri il primo articolo per verificare contenuto e SEO.')
-                                ->actions([
-                                    \Filament\Notifications\Actions\Action::make('open_first')
-                                        ->label('Apri primo articolo')
-                                        ->url($firstEditUrl)
-                                        ->button(),
-                                ]);
+                        if ($firstEditUrl === null) {
+                            $firstEditUrl = ArticleResource::getUrl('edit', ['record' => $article]);
                         }
 
-                        $notif->send();
+                        GenerateSeoArticleFromKeywordJob::dispatch(
+                            articleId: (int) $article->id,
+                            targetHref: $targetHref,
+                            keyword: $kw
+                        );
+
+                        $queued++;
                     }
 
-                    if (! empty($errors)) {
-                        Notification::make()
-                            ->title('Alcuni articoli non sono stati generati')
-                            ->body(implode("\n", array_slice($errors, 0, 5)))
-                            ->warning()
-                            ->send();
+                    $notif = Notification::make()
+                        ->title("Messi in coda {$queued} articoli")
+                        ->body('I record placeholder sono già in lista. Verranno aggiornati quando i job di coda finiscono.')
+                        ->success();
+
+                    if ($firstEditUrl) {
+                        $notif->actions([
+                            \Filament\Notifications\Actions\Action::make('open_first')
+                                ->label('Apri primo placeholder')
+                                ->url($firstEditUrl)
+                                ->button(),
+                        ]);
                     }
+
+                    $notif->send();
                 }),
         ];
     }
