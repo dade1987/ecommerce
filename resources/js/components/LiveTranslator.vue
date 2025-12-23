@@ -1,61 +1,89 @@
 <template>
     <div
-        class="w-full min-h-screen bg-slate-900 text-slate-100 flex items-stretch justify-center px-2 md:px-6 py-4 md:py-8">
-        <div class="w-full bg-slate-800/80 border border-slate-700 rounded-2xl shadow-2xl p-4 md:p-8 flex flex-col">
-            <div class="flex items-center justify-between gap-4 mb-4 md:mb-6">
-                <div>
-                    <h1 class="text-2xl md:text-3xl font-semibold tracking-tight">
+        class="relative w-full h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-slate-100 flex items-stretch justify-center px-3 md:px-5 py-3 md:py-5 overflow-hidden">
+        <!-- Ambient background glow - più intenso -->
+        <div class="pointer-events-none fixed inset-0 overflow-hidden">
+            <div
+                class="absolute -top-20 -right-20 h-[400px] w-[400px] rounded-full bg-emerald-500/25 blur-[100px] animate-pulse">
+            </div>
+            <div class="absolute -bottom-20 -left-20 h-[400px] w-[400px] rounded-full bg-cyan-500/20 blur-[100px] animate-pulse"
+                style="animation-delay: 1s;"></div>
+            <div
+                class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[600px] w-[600px] rounded-full bg-indigo-500/10 blur-[120px]">
+            </div>
+        </div>
+
+        <div
+            class="relative w-full max-w-7xl h-full bg-slate-900/60 backdrop-blur-2xl border border-slate-700/40 rounded-2xl shadow-[0_30px_100px_-20px_rgba(0,0,0,0.9)] p-4 md:p-5 flex flex-col overflow-hidden">
+            <!-- Hero Header - COMPATTO con status LIVE -->
+            <div class="mb-3 md:mb-4 flex items-center justify-between gap-4 flex-shrink-0">
+                <div class="min-w-0">
+                    <h1
+                        class="text-xl md:text-2xl lg:text-3xl font-black tracking-tight bg-gradient-to-r from-white via-emerald-300 to-cyan-300 bg-clip-text text-transparent truncate">
                         {{ ui.title }}
                     </h1>
+                    <p class="text-[11px] md:text-xs text-slate-400 mt-0.5 hidden md:block truncate">
+                        {{ ui.subtitle }}
+                    </p>
+                </div>
+                <!-- Status pill LIVE -->
+                <div class="flex items-center gap-2 flex-shrink-0">
+                    <span v-if="isListening"
+                        class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/50 text-emerald-300 text-[10px] font-black uppercase tracking-wider">
+                        <span class="relative h-2 w-2">
+                            <span class="absolute inset-0 rounded-full bg-emerald-400 animate-ping"></span>
+                            <span class="relative block h-2 w-2 rounded-full bg-emerald-400"></span>
+                        </span>
+                        LIVE
+                    </span>
                 </div>
             </div>
 
-            <!-- Tabs -->
-            <div class="mb-6 border-b border-slate-700 pb-2">
-                <div class="text-[11px] uppercase tracking-[0.2em] text-slate-400 mb-2">
+            <!-- Tabs - COMPATTI -->
+            <div class="mb-3 md:mb-4 flex-shrink-0">
+                <div class="text-[10px] uppercase tracking-wider text-slate-500 mb-1.5 font-semibold">
                     {{ ui.modeLabel }}
                 </div>
-                <div class="inline-flex rounded-xl bg-slate-900/70 p-1 shadow-inner shadow-black/40 text-sm">
+                <div
+                    class="inline-flex rounded-xl bg-slate-950/80 backdrop-blur-sm p-1 shadow-inner shadow-black/60 border border-slate-700/50">
                     <button type="button"
-                        class="relative px-4 py-2 rounded-lg font-semibold transition-all duration-150 flex items-center gap-2"
+                        class="relative px-3 py-2 rounded-lg font-semibold transition-all duration-200 flex items-center gap-2 group"
                         :class="activeTab === 'call'
-                            ? 'bg-emerald-500/10 text-emerald-200 shadow-[0_0_0_1px_rgba(16,185,129,0.6)]'
-                            : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/80'"
+                            ? 'bg-gradient-to-r from-emerald-500/25 to-cyan-500/15 text-emerald-100 shadow-[0_0_0_1px_rgba(16,185,129,0.5)]'
+                            : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60'"
                         @click="setActiveTab('call')">
-                        <span class="inline-flex h-5 w-5 items-center justify-center rounded-full border text-[11px]"
+                        <span
+                            class="relative inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-black transition-all duration-200"
                             :class="activeTab === 'call'
-                                ? 'border-emerald-400 bg-emerald-500/20 text-emerald-200'
-                                : 'border-slate-500 bg-slate-800 text-slate-300'">
+                                ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/60'
+                                : 'bg-slate-700/50 text-slate-400'">
                             A
                         </span>
-                        <span class="flex flex-col items-start leading-tight">
-                            <span class="text-[11px] uppercase tracking-wide">
+                        <span class="flex flex-col items-start leading-none min-h-[22px]">
+                            <span class="text-[11px] uppercase tracking-wider font-bold leading-none">
                                 {{ ui.tabCallTitle }}
                             </span>
-                            <span class="hidden md:inline text-[11px] text-slate-400">
-                                {{ ui.tabCallSubtitle }}
-                            </span>
+                            <!-- Placeholder per allineare l'altezza con la tab YouTube -->
+                            <span class="text-[9px] leading-none mt-0.5 opacity-0">—</span>
                         </span>
                     </button>
 
                     <button type="button"
-                        class="relative px-4 py-2 rounded-lg font-semibold transition-all duration-150 flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+                        class="relative px-3 py-2 rounded-lg font-semibold transition-all duration-200 flex items-center gap-2 group disabled:opacity-40 disabled:cursor-not-allowed"
                         :disabled="isYoutubeTabDisabled" :class="activeTab === 'youtube'
-                            ? 'bg-emerald-500/10 text-emerald-200 shadow-[0_0_0_1px_rgba(16,185,129,0.6)]'
-                            : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/80'"
+                            ? 'bg-gradient-to-r from-emerald-500/25 to-cyan-500/15 text-emerald-100 shadow-[0_0_0_1px_rgba(16,185,129,0.5)]'
+                            : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60'"
                         @click="setActiveTab('youtube')">
-                        <span class="inline-flex h-5 w-5 items-center justify-center rounded-full border text-[11px]"
+                        <span
+                            class="relative inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-black transition-all duration-200"
                             :class="activeTab === 'youtube'
-                                ? 'border-emerald-400 bg-emerald-500/20 text-emerald-200'
-                                : 'border-slate-500 bg-slate-800 text-slate-300'">
+                                ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/60'
+                                : 'bg-slate-700/50 text-slate-400'">
                             ▶
                         </span>
-                        <span class="flex flex-col items-start leading-tight">
-                            <span class="text-[11px] uppercase tracking-wide">
+                        <span class="flex flex-col items-start leading-none min-h-[22px]">
+                            <span class="text-[11px] uppercase tracking-wider font-bold leading-none">
                                 {{ ui.tabYoutubeTitle }}
-                            </span>
-                            <span class="hidden md:inline text-[11px] text-slate-400">
-                                {{ ui.tabYoutubeSubtitle }}
                             </span>
                         </span>
                     </button>
@@ -63,400 +91,605 @@
             </div>
 
             <!-- TAB 1: Interprete e Suggeritore Call Lavoro -->
-            <div v-if="activeTab === 'call'" class="flex flex-col gap-3 mb-6">
+            <div v-if="activeTab === 'call'" class="flex flex-col gap-3 flex-1 min-h-0">
                 <p v-if="statusMessage" class="text-xs text-slate-300 text-center">
                     {{ statusMessage }}
                 </p>
 
-                <!-- Pannello debug: pulsante + finestra log copiabile -->
-                <div class="flex justify-end">
-                    <button type="button" @click="showDebugPanel = !showDebugPanel"
-                        class="px-2 py-1 rounded-md text-[10px] font-mono border border-slate-600 text-slate-300 bg-slate-900/70 hover:bg-slate-800">
-                        {{ showDebugPanel ? ui.debugCloseLabel : ui.debugOpenLabel }}
-                    </button>
-                </div>
-                <div v-if="showDebugPanel" class="border border-slate-700 rounded-lg bg-slate-900/80 p-2 space-y-1">
-                    <div class="flex justify-between items-center">
-                        <span class="text-[10px] text-slate-400">{{ ui.debugTitle }}</span>
-                        <button type="button" @click="copyDebugLogs"
-                            class="px-2 py-0.5 rounded-md text-[10px] font-mono border border-slate-600 text-slate-200 bg-slate-800 hover:bg-slate-700">
-                            {{ ui.debugCopyLabel }}
-                        </button>
-                    </div>
-                    <textarea readonly
-                        class="w-full h-40 text-[10px] md:text-xs font-mono bg-transparent text-slate-200 resize-none outline-none"
-                        :value="debugLogs.join('\n')"></textarea>
-                    <p v-if="debugCopyStatus" class="text-[10px] text-emerald-300">
-                        {{ debugCopyStatus }}
-                    </p>
-                </div>
-
-                <div class="flex flex-col items-center gap-3 text-slate-300">
-                    <!-- Switch + dubbing sulla stessa riga -->
-                    <div class="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
-                        <label class="flex items-center gap-2 text-[13px] cursor-pointer select-none">
-                            <input type="checkbox" v-model="callTranslationEnabled"
-                                @change="onCallTranslationModeChange"
-                                class="h-3.5 w-3.5 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
-                            <span>{{ ui.enableTranslationLabel }}</span>
-                        </label>
-
-                        <!-- Registrazione call: nasconde suggerimenti + strumenti -->
-                        <label class="flex items-center gap-2 text-[13px] cursor-pointer select-none">
-                            <input type="checkbox" v-model="recordWorkCallEnabled"
-                                class="h-3.5 w-3.5 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
-                            <span>{{ ui.recordWorkCallLabel }}</span>
-                        </label>
-
-                        <!-- Doppiaggio (solo se la traduzione è attiva nella tab Call) -->
-                        <label v-if="callTranslationEnabled"
-                            class="flex items-center gap-2 text-[13px] cursor-pointer select-none">
-                            <input type="checkbox" v-model="readTranslationEnabledCall"
-                                class="h-3.5 w-3.5 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
-                            <span>{{ ui.dubbingLabel }}</span>
-                        </label>
-
-                        <!-- Modalità auricolari (solo se il dubbing è attivo) -->
-                        <div v-if="callTranslationEnabled && readTranslationEnabledCall"
-                            class="flex items-center gap-2 text-[13px] select-none">
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <input type="checkbox" v-model="earphonesModeEnabledCall"
-                                    class="h-3.5 w-3.5 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
-                                <span>{{ ui.earphonesModeLabel }}</span>
-                            </label>
-
-                            <div class="relative group">
-                                <button type="button"
-                                    class="h-5 w-5 inline-flex items-center justify-center rounded-full border border-slate-600 text-[11px] text-slate-200 bg-slate-800 hover:bg-slate-700">
-                                    ?
-                                </button>
+                <!-- MOBILE: layout “full screen” (2 record + 2 riquadri 50/50) -->
+                <template v-if="isMobileLowPower">
+                    <!-- Switch essenziali -->
+                    <div class="flex items-center justify-center gap-4 text-xs text-slate-200 flex-shrink-0">
+                        <label class="inline-flex items-center gap-2 cursor-pointer select-none">
+                            <span class="relative">
+                                <input type="checkbox" v-model="callTranslationEnabled"
+                                    @change="onCallTranslationModeChange" class="sr-only peer" />
                                 <div
-                                    class="pointer-events-none absolute left-1/2 top-full z-30 mt-2 w-[280px] -translate-x-1/2 rounded-lg border border-slate-600 bg-slate-900/95 p-3 text-[11px] text-slate-200 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-                                    <div class="text-[11px] font-semibold text-slate-100 mb-1">
-                                        {{ ui.earphonesModeHelpTitle }}
-                                    </div>
-                                    <div class="text-slate-200 leading-snug">
-                                        {{ ui.earphonesModeHelpBody }}
-                                    </div>
+                                    class="w-10 h-5 bg-slate-700 rounded-full peer peer-checked:bg-emerald-500 transition-colors">
+                                </div>
+                                <div
+                                    class="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-5 shadow">
+                                </div>
+                            </span>
+                            <span class="font-semibold">{{ ui.enableTranslationLabel }}</span>
+                        </label>
+
+                        <label v-if="callTranslationEnabled"
+                            class="inline-flex items-center gap-2 cursor-pointer select-none">
+                            <span class="relative">
+                                <input type="checkbox" v-model="readTranslationEnabledCall" class="sr-only peer" />
+                                <div
+                                    class="w-10 h-5 bg-slate-700 rounded-full peer peer-checked:bg-emerald-500 transition-colors">
+                                </div>
+                                <div
+                                    class="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-5 shadow">
+                                </div>
+                            </span>
+                            <span class="font-semibold">{{ ui.dubbingLabel }}</span>
+                        </label>
+                    </div>
+
+                    <!-- Impostazioni (chiuse di default) -->
+                    <details
+                        class="rounded-xl border border-slate-700/50 bg-slate-900/40 px-3 py-2 text-slate-200 flex-shrink-0">
+                        <summary class="cursor-pointer text-xs font-semibold text-slate-300">
+                            Impostazioni
+                        </summary>
+                        <div class="mt-3 space-y-3">
+                            <div class="grid grid-cols-1 gap-3">
+                                <div class="flex flex-col gap-2">
+                                    <label class="text-xs font-semibold text-emerald-400">
+                                        {{ ui.langBLabel }} <span class="text-red-400">*</span>
+                                    </label>
+                                    <select v-model="langB" @change="onLanguagePairChange"
+                                        class="w-full bg-slate-800/90 border border-slate-600/60 text-sm rounded-xl px-4 py-3 focus:outline-none focus:ring-4 focus:ring-emerald-500/30 transition-all"
+                                        :class="langB ? 'text-slate-100' : 'text-slate-300'">
+                                        <option value="">{{ ui.selectLangBPlaceholder }}</option>
+                                        <option v-for="opt in availableLanguages" :key="opt.code" :value="opt.code">
+                                            {{ opt.label }}
+                                        </option>
+                                    </select>
+                                </div>
+                                <div class="flex flex-col gap-2">
+                                    <label class="text-xs font-semibold text-slate-200">
+                                        {{ ui.langALabel }}
+                                    </label>
+                                    <select v-model="langA" @change="onLanguagePairChange"
+                                        class="w-full bg-slate-800/90 border border-slate-600/60 text-sm rounded-xl px-4 py-3 focus:outline-none focus:ring-4 focus:ring-emerald-500/30 transition-all text-slate-100">
+                                        <option value="">{{ ui.selectLangAPlaceholder }}</option>
+                                        <option v-for="opt in availableLanguages" :key="'a-' + opt.code"
+                                            :value="opt.code">
+                                            {{ opt.label }}
+                                        </option>
+                                    </select>
                                 </div>
                             </div>
-                        </div>
-                    </div>
 
-                    <div class="text-[10px] text-slate-400 text-center">
-                        {{ callTranslationEnabled ? 'Trascrizione + traduzione' : 'Solo trascrizione' }}
-                    </div>
-
-                    <!-- Slider VAD (TAB Call): pausa (ms) + quantità di rumore di fondo (RMS) -->
-                    <div class="mt-1 w-full px-4">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 w-full">
-                            <div class="flex flex-col gap-1">
-                                <div class="flex items-center justify-between w-full min-h-[22px]">
-                                    <label
-                                        class="flex items-center gap-2 cursor-pointer select-none text-[11px] md:text-xs text-slate-300">
-                                        <input type="checkbox" v-model="callAutoPauseEnabled"
-                                            class="h-3 w-3 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
-                                        <span class="leading-none">{{ ui.youtubeAutoPauseLabel }}</span>
-                                    </label>
-                                    <span class="text-[11px] md:text-xs text-slate-400 tabular-nums leading-none">
-                                        {{ whisperSilenceMs }} ms
-                                    </span>
+                            <div class="grid grid-cols-1 gap-3">
+                                <div class="flex items-center justify-between text-[11px] text-slate-300">
+                                    <span>{{ ui.youtubeAutoPauseLabel }}</span>
+                                    <span class="tabular-nums text-slate-400">{{ whisperSilenceMs }} ms</span>
                                 </div>
                                 <input type="range" min="400" max="2000" step="100" v-model.number="whisperSilenceMs"
                                     @input="applyWhisperVadSettings" class="w-full accent-emerald-500" />
-                            </div>
-
-                            <div class="flex flex-col gap-1">
-                                <div class="flex items-center justify-between w-full min-h-[22px]">
-                                    <span class="text-[11px] md:text-xs text-slate-300 leading-none">
-                                        {{ ui.backgroundNoiseLabel }}
-                                    </span>
-                                    <span class="text-[11px] md:text-xs text-slate-400 tabular-nums leading-none">
-                                        {{ Number(whisperNoiseThreshold || 0).toFixed(3) }}
-                                    </span>
+                                <div class="flex items-center justify-between text-[11px] text-slate-300">
+                                    <span>{{ ui.backgroundNoiseLabel }}</span>
+                                    <span class="tabular-nums text-slate-400">{{ Number(whisperNoiseThreshold ||
+                                        0).toFixed(3) }}</span>
                                 </div>
                                 <input type="range" min="0.005" max="0.08" step="0.001"
                                     v-model.number="whisperNoiseThreshold" @input="applyWhisperVadSettings"
                                     class="w-full accent-emerald-500" />
                             </div>
                         </div>
-                    </div>
-                </div>
+                    </details>
 
-                <!-- Selettori lingue: metà pagina + metà pagina (traduzione prima, poi seconda lingua) -->
-                <div class="w-full">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <!-- Lingua di traduzione (langB) -->
-                        <div class="flex flex-col gap-2">
-                            <label class="text-xs font-semibold text-emerald-400">
-                                {{ ui.langBLabel }} <span class="text-red-400">*</span>
-                            </label>
-                            <select v-model="langB" @change="onLanguagePairChange"
-                                class="w-full bg-slate-800 border text-sm rounded-md px-3 py-2 focus:outline-none focus:ring-2"
-                                :class="langB ? 'border-slate-600 focus:ring-emerald-500' : 'border-red-500 focus:ring-red-500'">
-                                <option value="">{{ ui.selectLangBPlaceholder }}</option>
-                                <option v-for="opt in availableLanguages" :key="opt.code" :value="opt.code">
-                                    {{ opt.label }}
-                                </option>
-                            </select>
-                        </div>
-
-                        <!-- Seconda lingua consentita (langA) -->
-                        <div class="flex flex-col gap-2">
-                            <label class="text-xs font-semibold text-slate-200">
-                                {{ ui.langALabel }}
-                            </label>
-                            <select v-model="langA" @change="onLanguagePairChange"
-                                class="w-full bg-slate-800 border text-sm rounded-md px-3 py-2 focus:outline-none focus:ring-2 border-slate-600 focus:ring-emerald-500">
-                                <option value="">{{ ui.selectLangAPlaceholder }}</option>
-                                <option v-for="opt in availableLanguages" :key="'a-' + opt.code" :value="opt.code">
-                                    {{ opt.label }}
-                                </option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- Due pulsanti microfono: forza la lingua di trascrizione (call) -->
-                    <div class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <button type="button" @click="toggleListeningForLang('A')" :disabled="!langA || !langB" class="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition
-                                focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 border"
+                    <!-- 2 bottoni record: compatti, chiari come recording (icona mic + lingua) -->
+                    <div class="grid grid-cols-2 gap-2 flex-shrink-0">
+                        <button type="button" @click="toggleListeningForLang('A')" :disabled="!langA || !langB"
+                            class="relative w-full h-[9vh] min-h-[60px] max-h-[76px] rounded-2xl border transition-all duration-300"
                             :class="isListening && activeSpeaker === 'A'
-                                ? 'bg-emerald-600 text-white border-emerald-400 shadow-lg shadow-emerald-500/30'
-                                : 'bg-slate-700 text-slate-100 border-slate-500 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed'">
-                            <span
-                                class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-black/30 border border-slate-500">
-                                <span class="inline-block w-1.5 h-3 rounded-full"
-                                    :class="isListening && activeSpeaker === 'A' ? 'bg-red-400 animate-pulse' : 'bg-slate-300'"></span>
-                            </span>
-                            <span>
-                                {{ isListening && activeSpeaker === 'A'
-                                    ? ui.speakerAActive
-                                    : (langB ? (ui.speakerASpeak + ' (' + getLangLabel(langB) + ')') : ui.speakerASpeak) }}
+                                ? 'bg-gradient-to-r from-emerald-500 to-cyan-500 text-white border-emerald-400 shadow-[0_0_22px_rgba(16,185,129,0.45)]'
+                                : 'bg-slate-800/70 text-slate-100 border-slate-600/50 hover:border-emerald-500/60 disabled:opacity-40 disabled:cursor-not-allowed'">
+                            <span v-if="isListening && activeSpeaker === 'A'" :key="'pulse-a-' + recordPulseKeyA"
+                                class="absolute inset-0 rounded-2xl bg-emerald-400/30 animate-ping-once"></span>
+                            <span class="relative h-full w-full flex items-center justify-center gap-2.5 px-3">
+                                <span
+                                    class="inline-flex h-9 w-9 items-center justify-center rounded-full bg-black/25 border border-white/15">
+                                    <span class="inline-block w-2 h-5 rounded-full"
+                                        :class="isListening && activeSpeaker === 'A' ? 'bg-red-400 animate-pulse' : 'bg-slate-300'"></span>
+                                </span>
+                                <span class="text-sm font-bold truncate">
+                                    {{ getLangLabel(langB) || '—' }}
+                                </span>
                             </span>
                         </button>
 
-                        <button type="button" @click="toggleListeningForLang('B')" :disabled="!langA || !langB" class="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition
-                                focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 border"
+                        <button type="button" @click="toggleListeningForLang('B')" :disabled="!langA || !langB"
+                            class="relative w-full h-[9vh] min-h-[60px] max-h-[76px] rounded-2xl border transition-all duration-300"
                             :class="isListening && activeSpeaker === 'B'
-                                ? 'bg-emerald-600 text-white border-emerald-400 shadow-lg shadow-emerald-500/30'
-                                : 'bg-slate-700 text-slate-100 border-slate-500 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed'">
-                            <span
-                                class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-black/30 border border-slate-500">
-                                <span class="inline-block w-1.5 h-3 rounded-full"
-                                    :class="isListening && activeSpeaker === 'B' ? 'bg-red-400 animate-pulse' : 'bg-slate-300'"></span>
-                            </span>
-                            <span>
-                                {{ isListening && activeSpeaker === 'B'
-                                    ? ui.speakerBActive
-                                    : (langA ? (ui.speakerBSpeak + ' (' + getLangLabel(langA) + ')') : ui.speakerBSpeak) }}
+                                ? 'bg-gradient-to-r from-emerald-500 to-cyan-500 text-white border-emerald-400 shadow-[0_0_22px_rgba(16,185,129,0.45)]'
+                                : 'bg-slate-800/70 text-slate-100 border-slate-600/50 hover:border-emerald-500/60 disabled:opacity-40 disabled:cursor-not-allowed'">
+                            <span v-if="isListening && activeSpeaker === 'B'" :key="'pulse-b-' + recordPulseKeyB"
+                                class="absolute inset-0 rounded-2xl bg-emerald-400/30 animate-ping-once"></span>
+                            <span class="relative h-full w-full flex items-center justify-center gap-2.5 px-3">
+                                <span
+                                    class="inline-flex h-9 w-9 items-center justify-center rounded-full bg-black/25 border border-white/15">
+                                    <span class="inline-block w-2 h-5 rounded-full"
+                                        :class="isListening && activeSpeaker === 'B' ? 'bg-red-400 animate-pulse' : 'bg-slate-300'"></span>
+                                </span>
+                                <span class="text-sm font-bold truncate">
+                                    {{ getLangLabel(langA) || '—' }}
+                                </span>
                             </span>
                         </button>
                     </div>
-                </div>
-                <div class="mt-4 space-y-6">
-                    <!-- Righe principali: originale, traduzione, suggerimenti affiancati -->
-                    <div class="grid grid-cols-1 gap-4 md:gap-6" :class="callMainGridClass">
-                        <div class="flex flex-col gap-2">
-                            <div class="flex items-center justify-between">
-                                <span class="text-base md:text-lg font-semibold text-slate-100">
-                                    {{ ui.originalTitle }}
-                                </span>
-                                <div class="flex items-center gap-2">
-                                    <button type="button"
-                                        class="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] md:text-[11px] font-medium border border-slate-600 text-slate-100 bg-slate-800 hover:bg-slate-700 transition"
-                                        @click="copyTranscript">
-                                        <span>{{ ui.transcriptCopyLabel }}</span>
-                                    </button>
-                                    <button type="button"
-                                        class="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] md:text-[11px] font-medium border border-slate-600 text-slate-100 bg-slate-800 hover:bg-slate-700 transition"
-                                        @click="exportTranscriptPdf">
-                                        <span>{{ ui.transcriptExportPdfLabel }}</span>
-                                    </button>
-                                </div>
+
+                    <!-- 2 riquadri: occupano tutto lo spazio restante (50/50 altezza) -->
+                    <div class="flex-1 min-h-0 grid grid-rows-2 gap-2 overflow-hidden">
+                        <div class="min-h-0 rounded-2xl border border-slate-700/50 bg-slate-950/40 overflow-hidden flex flex-col"
+                            :class="(isListening && callPrimaryFocusTarget === 'original') ? 'ring-2 ring-emerald-400/35 focus-wow' : ''">
+                            <div class="px-3 py-2 text-[11px] font-semibold text-slate-300 flex-shrink-0">
+                                {{ ui.originalTitle }}
                             </div>
                             <div ref="originalBox"
-                                class="h-[100px] md:min-h-[260px] md:max-h-[420px] rounded-xl border border-slate-700 bg-slate-900/60 p-4 text-sm md:text-base lg:text-lg overflow-y-auto leading-relaxed">
+                                class="flex-1 min-h-0 overflow-y-auto px-3 pb-3 text-sm text-slate-100">
                                 <div ref="originalEditable" contenteditable="true"
-                                    class="w-full h-full bg-transparent text-sm md:text-base lg:text-lg text-slate-100 outline-none whitespace-pre-wrap"
-                                    @focus="onOriginalFocus" @blur="onOriginalBlurInternal"
-                                    @input="onOriginalEditableInput">
-                                </div>
+                                    class="w-full h-full outline-none whitespace-pre-wrap" @focus="onOriginalFocus"
+                                    @blur="onOriginalBlurInternal" @input="onOriginalEditableInput"></div>
                             </div>
                         </div>
 
-                        <div v-if="callTranslationEnabled" class="flex flex-col gap-2">
-                            <div class="flex items-center justify-between">
-                                <span class="text-base md:text-lg font-semibold text-slate-100">
-                                    {{ ui.translationTitle }}
-                                </span>
-                                <div class="flex items-center gap-2">
-                                    <button type="button"
-                                        class="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] md:text-[11px] font-medium border border-slate-600 text-slate-100 bg-slate-800 hover:bg-slate-700 transition"
-                                        @click="copyTranslation">
-                                        <span>{{ ui.translationCopyLabel }}</span>
-                                    </button>
-                                    <button type="button"
-                                        class="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] md:text-[11px] font-medium border border-slate-600 text-slate-100 bg-slate-800 hover:bg-slate-700 transition"
-                                        @click="exportTranscriptPdf('translation')">
-                                        <span>{{ ui.translationExportPdfLabel }}</span>
-                                    </button>
-                                    <span v-if="isTtsLoading"
-                                        class="text-[11px] md:text-xs text-emerald-300 italic ml-1 hidden md:inline">
-                                        {{ ui.ttsLoadingMessage }}
-                                    </span>
-                                </div>
+                        <div v-if="callTranslationEnabled"
+                            class="min-h-0 rounded-2xl border border-slate-700/50 bg-slate-950/40 overflow-hidden flex flex-col"
+                            :class="(isListening && callPrimaryFocusTarget === 'translation') ? 'ring-2 ring-cyan-400/35 focus-wow' : ''">
+                            <div class="px-3 py-2 text-[11px] font-semibold text-slate-300 flex-shrink-0">
+                                {{ ui.translationTitle }}
                             </div>
                             <div ref="translationBox"
-                                class="h-[100px] md:min-h-[260px] md:max-h-[420px] rounded-xl border border-slate-700 bg-slate-900/60 p-4 text-sm md:text-base lg:text-lg overflow-y-auto leading-relaxed">
-                                <div v-if="!hasAnyTranslation" class="text-slate-500 text-xs md:text-sm">
+                                class="flex-1 min-h-0 overflow-y-auto px-3 pb-3 text-sm text-slate-100">
+                                <div v-if="!hasAnyTranslation"
+                                    class="h-full flex items-center justify-center text-xs text-slate-500/70">
                                     {{ ui.translationPlaceholder }}
                                 </div>
-                                <div v-else class="space-y-2">
-                                    <!-- Frasi già tradotte (segmenti fissi) -->
-                                    <div v-for="(seg, idx) in translationSegments" :key="'seg-' + idx"
+                                <div v-else class="space-y-1">
+                                    <div v-for="(seg, idx) in translationSegments" :key="'m-seg-' + idx"
                                         class="whitespace-pre-wrap">
                                         {{ seg }}
                                     </div>
                                 </div>
-                                <!-- Frase corrente in streaming, aggiornata token per token con manipolazione diretta DOM -->
                                 <div ref="translationLiveContainer" class="whitespace-pre-wrap"></div>
                             </div>
                         </div>
-                        <div class="flex flex-col gap-2" v-if="!isMobileLowPower && recordWorkCallEnabled">
-                            <div class="flex items-center justify-between gap-4">
-                                <div>
-                                    <h2 class="text-base md:text-lg font-semibold text-slate-100">
-                                        {{ ui.suggestionsTitle }}
-                                        <span v-if="langB" class="text-sm text-emerald-400">
-                                            ({{ langB.toUpperCase() }})
-                                        </span>
-                                    </h2>
-                                </div>
-                                <div v-if="cvText && langB" class="flex items-center gap-2">
+                        <div v-else
+                            class="min-h-0 rounded-2xl border border-slate-700/50 bg-slate-950/40 overflow-hidden flex items-center justify-center text-xs text-slate-500/70">
+                            Traduzione disattivata
+                        </div>
+                    </div>
+                </template>
+
+                <!-- DESKTOP: layout completo -->
+                <template v-else>
+                    <div class="flex flex-col items-center gap-2 text-slate-300">
+                        <!-- Toggle switches - più moderni delle checkbox -->
+                        <div class="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+                            <!-- Abilita traduzione -->
+                            <label class="inline-flex items-center gap-2 cursor-pointer select-none text-xs">
+                                <span class="relative">
+                                    <input type="checkbox" v-model="callTranslationEnabled"
+                                        @change="onCallTranslationModeChange" class="sr-only peer" />
+                                    <div
+                                        class="w-9 h-5 bg-slate-700 rounded-full peer peer-checked:bg-emerald-500 transition-colors">
+                                    </div>
+                                    <div
+                                        class="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-4 shadow">
+                                    </div>
+                                </span>
+                                <span class="font-medium text-slate-200">{{ ui.enableTranslationLabel }}</span>
+                            </label>
+
+                            <!-- Registrazione call (solo desktop) -->
+                            <label v-if="!isMobileLowPower"
+                                class="inline-flex items-center gap-2 cursor-pointer select-none text-xs">
+                                <span class="relative">
+                                    <input type="checkbox" v-model="recordWorkCallEnabled" class="sr-only peer" />
+                                    <div
+                                        class="w-9 h-5 bg-slate-700 rounded-full peer peer-checked:bg-emerald-500 transition-colors">
+                                    </div>
+                                    <div
+                                        class="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-4 shadow">
+                                    </div>
+                                </span>
+                                <span class="font-medium text-slate-200">{{ ui.recordWorkCallLabel }}</span>
+                            </label>
+
+                            <!-- Doppiaggio -->
+                            <label v-if="callTranslationEnabled"
+                                class="inline-flex items-center gap-2 cursor-pointer select-none text-xs">
+                                <span class="relative">
+                                    <input type="checkbox" v-model="readTranslationEnabledCall" class="sr-only peer" />
+                                    <div
+                                        class="w-9 h-5 bg-slate-700 rounded-full peer peer-checked:bg-emerald-500 transition-colors">
+                                    </div>
+                                    <div
+                                        class="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-4 shadow">
+                                    </div>
+                                </span>
+                                <span class="text-slate-200">{{ ui.dubbingLabel }}</span>
+                            </label>
+
+                            <!-- Modalità auricolari (solo desktop, disabilitato su Android) -->
+                            <div v-if="!isMobileLowPower && callTranslationEnabled && readTranslationEnabledCall"
+                                class="inline-flex items-center gap-2 text-xs">
+                                <label class="inline-flex items-center gap-2 select-none"
+                                    :class="isAndroid ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'">
+                                    <span class="relative">
+                                        <input type="checkbox" v-model="earphonesModeEnabledCall" :disabled="isAndroid"
+                                            class="sr-only peer" />
+                                        <div
+                                            class="w-9 h-5 bg-slate-700 rounded-full peer peer-checked:bg-emerald-500 peer-disabled:bg-slate-800 transition-colors">
+                                        </div>
+                                        <div
+                                            class="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-4 peer-disabled:bg-slate-400 shadow">
+                                        </div>
+                                    </span>
+                                    <span class="text-slate-200">{{ ui.earphonesModeLabel }}</span>
+                                </label>
+                                <div class="relative group">
                                     <button type="button"
-                                        class="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] md:text-xs font-semibold border border-emerald-500 text-emerald-100 bg-emerald-800 hover:bg-emerald-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                                        :disabled="isLoadingSuggestion" @click="onRequestSuggestionsClick">
-                                        <span>
-                                            {{ isLoadingSuggestion ? '...' : ui.suggestionsButton }}
-                                        </span>
-                                    </button>
+                                        class="h-4 w-4 inline-flex items-center justify-center rounded-full border border-slate-600 text-[9px] text-slate-300 bg-slate-800 hover:bg-slate-700">?</button>
+                                    <div
+                                        class="pointer-events-none absolute left-1/2 top-full z-30 mt-2 w-[280px] -translate-x-1/2 rounded-lg border border-slate-600 bg-slate-900/95 p-2.5 text-[10px] text-slate-200 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <div class="font-semibold text-slate-100 mb-1">{{ ui.earphonesModeHelpTitle }}
+                                        </div>
+                                        <div class="leading-snug">{{ ui.earphonesModeHelpBody }}</div>
+                                        <div v-if="isAndroid"
+                                            class="mt-2 pt-2 border-t border-slate-700 text-amber-300">
+                                            ⚠️ {{ ui.earphonesModeAndroidWarning }}
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
+                        </div>
 
-                            <div ref="suggestionsBox"
-                                class="h-[100px] md:min-h-[260px] md:max-h-[420px] rounded-xl border border-slate-700 bg-slate-900/70 p-4 text-xs md:text-sm lg:text-base overflow-y-auto space-y-3 leading-relaxed">
-                                <div v-if="!cvText" class="text-xs md:text-sm text-slate-500">
-                                    {{ ui.suggestionsNoCv }}
+                        <div class="text-[10px] text-slate-400 text-center">
+                            {{ callTranslationEnabled ? 'Trascrizione + traduzione' : 'Solo trascrizione' }}
+                        </div>
+
+                        <!-- Slider VAD (TAB Call): pausa (ms) + quantità di rumore di fondo (RMS) -->
+                        <div class="mt-1 w-full px-4">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 w-full">
+                                <div class="flex flex-col gap-1">
+                                    <div class="flex items-center justify-between w-full min-h-[22px]">
+                                        <label
+                                            class="flex items-center gap-2 cursor-pointer select-none text-[11px] md:text-xs text-slate-300">
+                                            <input type="checkbox" v-model="callAutoPauseEnabled"
+                                                class="h-3 w-3 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
+                                            <span class="leading-none">{{ ui.youtubeAutoPauseLabel }}</span>
+                                        </label>
+                                        <span class="text-[11px] md:text-xs text-slate-400 tabular-nums leading-none">
+                                            {{ whisperSilenceMs }} ms
+                                        </span>
+                                    </div>
+                                    <input type="range" min="400" max="2000" step="100"
+                                        v-model.number="whisperSilenceMs" @input="applyWhisperVadSettings"
+                                        class="w-full accent-emerald-500" />
                                 </div>
 
-                                <div v-else-if="!langB" class="text-xs md:text-sm text-slate-500">
-                                    {{ ui.suggestionsNoLangs }}
-                                </div>
-
-                                <div v-else>
-                                    <p v-if="isLoadingSuggestion" class="text-xs md:text-sm text-emerald-300 mb-2">
-                                        {{ ui.suggestionsLoading }}
-                                    </p>
-
-                                    <div v-if="suggestions.length === 0 && !isLoadingSuggestion"
-                                        class="text-xs md:text-sm text-slate-500">
-                                        {{ ui.suggestionsEmpty }}
+                                <div class="flex flex-col gap-1">
+                                    <div class="flex items-center justify-between w-full min-h-[22px]">
+                                        <span class="text-[11px] md:text-xs text-slate-300 leading-none">
+                                            {{ ui.backgroundNoiseLabel }}
+                                        </span>
+                                        <span class="text-[11px] md:text-xs text-slate-400 tabular-nums leading-none">
+                                            {{ Number(whisperNoiseThreshold || 0).toFixed(3) }}
+                                        </span>
                                     </div>
-
-                                    <div v-for="(item, idx) in suggestions" :key="idx"
-                                        class="rounded-lg border border-slate-700 bg-slate-900/80 p-3 md:p-4 space-y-2 mb-2">
-                                        <div class="text-[11px] md:text-xs text-slate-400">
-                                            {{ ui.suggestionRefersTo }}
-                                            <span class="italic text-slate-300">
-                                                "{{ item.utterancePreview }}"
-                                            </span>
-                                        </div>
-                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                            <div class="space-y-1">
-                                                <div class="text-[11px] md:text-xs font-semibold text-slate-200">
-                                                    {{ getLangLabel(item.langA) }}
-                                                </div>
-                                                <div
-                                                    class="text-xs md:text-sm text-slate-100 whitespace-pre-wrap leading-relaxed">
-                                                    {{ item.suggestionLangA }}
-                                                </div>
-                                            </div>
-                                            <div class="space-y-1">
-                                                <div class="text-[11px] md:text-xs font-semibold text-slate-200">
-                                                    {{ getLangLabel(item.langB) }}
-                                                </div>
-                                                <div
-                                                    class="text-xs md:text-sm text-slate-100 whitespace-pre-wrap leading-relaxed">
-                                                    {{ item.suggestionLangB }}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
+                                    <input type="range" min="0.005" max="0.08" step="0.001"
+                                        v-model.number="whisperNoiseThreshold" @input="applyWhisperVadSettings"
+                                        class="w-full accent-emerald-500" />
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- CV e strumenti call: stessa griglia (2 colonne sotto Testo originale + Traduzione) -->
-                    <div class="border-t border-slate-700 pt-4" v-if="showWorkCallTools">
-                        <div class="grid grid-cols-1 gap-4 md:gap-6 items-start"
-                            :class="callTranslationEnabled ? 'lg:grid-cols-3' : 'lg:grid-cols-2'">
-                            <!-- Sezione CV: occupa le stesse 2 colonne di Testo originale + Traduzione -->
-                            <div :class="callTranslationEnabled ? 'lg:col-span-2 space-y-3' : 'space-y-3'">
-                                <div>
-                                    <h2 class="text-sm font-semibold text-slate-100">
-                                        {{ ui.cvSectionTitle }}
-                                    </h2>
-                                    <p class="text-[11px] text-slate-300 mt-1">
-                                        {{ ui.cvSectionDescription }}
-                                    </p>
+                    <!-- Selettori lingue: metà pagina + metà pagina (traduzione prima, poi seconda lingua) -->
+                    <div class="w-full">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <!-- Lingua di traduzione (langB) -->
+                            <div class="flex flex-col gap-2">
+                                <label class="text-xs font-semibold text-emerald-400">
+                                    {{ ui.langBLabel }} <span class="text-red-400">*</span>
+                                </label>
+                                <select v-model="langB" @change="onLanguagePairChange"
+                                    class="w-full bg-slate-800/90 backdrop-blur-sm border-2 text-sm rounded-xl px-4 py-3 focus:outline-none focus:ring-4 focus:ring-emerald-500/30 transition-all duration-200 font-medium shadow-sm"
+                                    :class="langB ? 'border-slate-600/50 focus:border-emerald-500/50 text-slate-100' : 'border-red-500/60 focus:border-red-400 text-slate-300'">
+                                    <option value="">{{ ui.selectLangBPlaceholder }}</option>
+                                    <option v-for="opt in availableLanguages" :key="opt.code" :value="opt.code">
+                                        {{ opt.label }}
+                                    </option>
+                                </select>
+                            </div>
+
+                            <!-- Seconda lingua consentita (langA) -->
+                            <div class="flex flex-col gap-2">
+                                <label class="text-xs font-semibold text-slate-200">
+                                    {{ ui.langALabel }}
+                                </label>
+                                <select v-model="langA" @change="onLanguagePairChange"
+                                    class="w-full bg-slate-800/90 backdrop-blur-sm border-2 text-sm rounded-xl px-4 py-3 focus:outline-none focus:ring-4 focus:ring-emerald-500/30 transition-all duration-200 font-medium shadow-sm border-slate-600/50 focus:border-emerald-500/50 text-slate-100">
+                                    <option value="">{{ ui.selectLangAPlaceholder }}</option>
+                                    <option v-for="opt in availableLanguages" :key="'a-' + opt.code" :value="opt.code">
+                                        {{ opt.label }}
+                                    </option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Due pulsanti microfono WOW -->
+                        <div class="mt-2 grid grid-cols-2 gap-2">
+                            <button type="button" @click="toggleListeningForLang('A')" :disabled="!langA || !langB"
+                                class="group relative w-full inline-flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl text-xs font-bold transition-all duration-300 focus:outline-none border-2 transform hover:scale-[1.02] active:scale-[0.98]"
+                                :class="isListening && activeSpeaker === 'A'
+                                    ? 'bg-gradient-to-r from-emerald-500 to-cyan-500 text-white border-emerald-400 shadow-[0_0_30px_rgba(16,185,129,0.5)]'
+                                    : 'bg-slate-800/90 text-slate-200 border-slate-600/50 hover:border-emerald-500/60 hover:bg-slate-750 hover:shadow-lg disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100'">
+                                <span v-if="isListening && activeSpeaker === 'A'" :key="'pulse-a-' + recordPulseKeyA"
+                                    class="absolute inset-0 rounded-xl bg-emerald-400/30 animate-ping-once"></span>
+                                <span
+                                    class="relative inline-flex h-8 w-8 items-center justify-center rounded-full transition-all duration-300"
+                                    :class="isListening && activeSpeaker === 'A' ? 'bg-white/20 shadow-inner' : 'bg-black/30 border border-slate-500/40'">
+                                    <span class="inline-block w-2 h-5 rounded-full transition-all duration-300"
+                                        :class="isListening && activeSpeaker === 'A' ? 'bg-red-400 shadow-[0_0_15px_rgba(248,113,113,0.8)] animate-pulse' : 'bg-slate-400 group-hover:bg-emerald-400'"></span>
+                                </span>
+                                <span class="relative truncate text-[11px]">{{ isListening && activeSpeaker === 'A' ?
+                                    ui.speakerAActive : (langB ? (ui.speakerASpeak + ' (' + getLangLabel(langB) + ')') :
+                                        ui.speakerASpeak) }}</span>
+                            </button>
+
+                            <button type="button" @click="toggleListeningForLang('B')" :disabled="!langA || !langB"
+                                class="group relative w-full inline-flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl text-xs font-bold transition-all duration-300 focus:outline-none border-2 transform hover:scale-[1.02] active:scale-[0.98]"
+                                :class="isListening && activeSpeaker === 'B'
+                                    ? 'bg-gradient-to-r from-emerald-500 to-cyan-500 text-white border-emerald-400 shadow-[0_0_30px_rgba(16,185,129,0.5)]'
+                                    : 'bg-slate-800/90 text-slate-200 border-slate-600/50 hover:border-emerald-500/60 hover:bg-slate-750 hover:shadow-lg disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100'">
+                                <span v-if="isListening && activeSpeaker === 'B'" :key="'pulse-b-' + recordPulseKeyB"
+                                    class="absolute inset-0 rounded-xl bg-emerald-400/30 animate-ping-once"></span>
+                                <span
+                                    class="relative inline-flex h-8 w-8 items-center justify-center rounded-full transition-all duration-300"
+                                    :class="isListening && activeSpeaker === 'B' ? 'bg-white/20 shadow-inner' : 'bg-black/30 border border-slate-500/40'">
+                                    <span class="inline-block w-2 h-5 rounded-full transition-all duration-300"
+                                        :class="isListening && activeSpeaker === 'B' ? 'bg-red-400 shadow-[0_0_15px_rgba(248,113,113,0.8)] animate-pulse' : 'bg-slate-400 group-hover:bg-emerald-400'"></span>
+                                </span>
+                                <span class="relative truncate text-[11px]">{{ isListening && activeSpeaker === 'B' ?
+                                    ui.speakerBActive : (langA ? (ui.speakerBSpeak + ' (' + getLangLabel(langA) + ')') :
+                                        ui.speakerBSpeak) }}</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="mt-2 flex-1 flex flex-col min-h-0 overflow-hidden">
+                        <!-- Righe principali: originale, traduzione - occupano TUTTO lo spazio -->
+                        <div class="grid grid-cols-1 gap-3 flex-1 min-h-0" :class="callMainGridClass">
+                            <div class="flex flex-col gap-1 min-h-0 animate-fadeInUp" style="animation-delay: 0.1s;">
+                                <div class="flex items-center justify-between flex-shrink-0">
+                                    <span class="text-sm font-semibold text-slate-100 flex items-center gap-2">
+                                        {{ ui.originalTitle }}
+                                        <span v-if="isListening"
+                                            class="inline-flex h-2 w-2 rounded-full bg-red-500 animate-pulse"></span>
+                                    </span>
+                                    <div class="flex items-center gap-1">
+                                        <button type="button"
+                                            class="px-2 py-0.5 rounded text-[9px] font-medium border border-slate-700/50 text-slate-400 bg-slate-800/60 hover:bg-slate-700 hover:text-slate-200 hover:border-slate-600 transition-all duration-200"
+                                            @click="copyTranscript">{{ ui.transcriptCopyLabel }}</button>
+                                        <button type="button"
+                                            class="px-2 py-0.5 rounded text-[9px] font-medium border border-slate-700/50 text-slate-400 bg-slate-800/60 hover:bg-slate-700 hover:text-slate-200 hover:border-slate-600 transition-all duration-200"
+                                            @click="exportTranscriptPdf">{{ ui.transcriptExportPdfLabel }}</button>
+                                    </div>
                                 </div>
-                                <div class="rounded-xl border border-slate-700 bg-slate-900/80 p-4 text-xs space-y-3">
-                                    <label class="block text-sm font-medium text-slate-200 mb-2">
-                                        {{ ui.cvUploadLabel }}
-                                    </label>
-                                    <input type="file" accept=".txt,.md,.rtf,.pdf"
-                                        class="block w-full text-sm text-slate-200 file:text-sm file:px-4 file:py-2 file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-600 file:text-white file:cursor-pointer file:font-semibold cursor-pointer hover:file:bg-emerald-500 transition"
-                                        @change="onCvFileChange" />
-                                    <p class="text-xs text-slate-400 mt-3">
-                                        {{ ui.cvUploadHint }}
-                                    </p>
+                                <div ref="originalBox"
+                                    class="flex-1 min-h-0 rounded-xl border border-slate-700/40 bg-gradient-to-b from-slate-900/95 to-slate-950/95 p-4 text-sm md:text-base overflow-y-auto leading-relaxed transition-all duration-300"
+                                    :class="(activeTab === 'call' && isListening && callPrimaryFocusTarget === 'original') ? 'ring-2 ring-emerald-400/40 border-emerald-400/50 focus-wow' : ''">
+                                    <div ref="originalEditable" contenteditable="true"
+                                        class="w-full h-full bg-transparent text-sm md:text-base text-slate-100 outline-none whitespace-pre-wrap"
+                                        @focus="onOriginalFocus" @blur="onOriginalBlurInternal"
+                                        @input="onOriginalEditableInput">
+                                    </div>
                                 </div>
                             </div>
 
-                            <!-- Bottoni strumenti call: colonna a destra (come la colonna Suggerimenti) -->
-                            <div class="flex flex-col gap-3 items-stretch lg:items-end">
-                                <button type="button"
-                                    class="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg text-sm md:text-base font-semibold border-2 border-sky-400 text-sky-100 bg-gradient-to-r from-sky-700 to-sky-800 hover:from-sky-600 hover:to-sky-700 hover:border-sky-300 shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed w-full md:w-[250px]"
-                                    :disabled="isMindMapLoading" @click="onToggleMindMapClick">
-                                    <span>
-                                        {{ isMindMapLoading ? '...' : ui.mindMapButton }}
+                            <div v-if="callTranslationEnabled" class="flex flex-col gap-1 min-h-0 animate-fadeInUp"
+                                style="animation-delay: 0.2s;">
+                                <div class="flex items-center justify-between flex-shrink-0">
+                                    <span class="text-sm font-semibold text-slate-100 flex items-center gap-2">
+                                        {{ ui.translationTitle }}
+                                        <span v-if="isTtsLoading"
+                                            class="inline-flex h-2 w-2 rounded-full bg-cyan-400 animate-ping"></span>
                                     </span>
-                                </button>
-                                <button type="button"
-                                    class="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg text-sm md:text-base font-semibold border-2 border-purple-400 text-purple-100 bg-gradient-to-r from-purple-700 to-purple-800 hover:from-purple-600 hover:to-purple-700 hover:border-purple-300 shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed w-full md:w-[250px]"
-                                    :disabled="isNextCallLoading" @click="openNextCallModal">
-                                    <span>
-                                        {{ isNextCallLoading ? '...' : ui.nextCallButton }}
-                                    </span>
-                                </button>
-                                <button type="button"
-                                    class="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg text-sm md:text-base font-semibold border-2 border-amber-400 text-amber-100 bg-gradient-to-r from-amber-700 to-amber-800 hover:from-amber-600 hover:to-amber-700 hover:border-amber-300 shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed w-full md:w-[250px]"
-                                    :disabled="isClarifyIntentLoading" @click="onClarifyIntentClick">
-                                    <span>
-                                        {{ isClarifyIntentLoading ? '...' : ui.clarifyIntentButton }}
-                                    </span>
-                                </button>
+                                    <div class="flex items-center gap-1">
+                                        <button type="button"
+                                            class="px-2 py-0.5 rounded text-[9px] font-medium border border-slate-700/50 text-slate-400 bg-slate-800/60 hover:bg-slate-700 hover:text-slate-200 hover:border-slate-600 transition-all duration-200"
+                                            @click="copyTranslation">{{ ui.translationCopyLabel }}</button>
+                                        <button type="button"
+                                            class="px-2 py-0.5 rounded text-[9px] font-medium border border-slate-700/50 text-slate-400 bg-slate-800/60 hover:bg-slate-700 hover:text-slate-200 hover:border-slate-600 transition-all duration-200"
+                                            @click="exportTranscriptPdf('translation')">{{ ui.translationExportPdfLabel
+                                            }}</button>
+                                    </div>
+                                </div>
+                                <div ref="translationBox"
+                                    class="flex-1 min-h-0 rounded-xl border border-slate-700/40 bg-gradient-to-b from-slate-900/95 to-slate-950/95 p-4 text-sm md:text-base overflow-y-auto leading-relaxed transition-all duration-300"
+                                    :class="(activeTab === 'call' && isListening && callPrimaryFocusTarget === 'translation') ? 'ring-2 ring-cyan-400/40 border-cyan-400/50 focus-wow' : (isTtsLoading ? 'ring-2 ring-cyan-500/30 border-cyan-500/40' : '')">
+                                    <div v-if="!hasAnyTranslation"
+                                        class="flex flex-col items-center justify-center h-full text-slate-500/50">
+                                        <svg class="w-12 h-12 mb-3 opacity-30 animate-float" fill="none"
+                                            stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                                d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129">
+                                            </path>
+                                        </svg>
+                                        <p class="text-xs text-center">{{ ui.translationPlaceholder }}</p>
+                                    </div>
+                                    <div v-else class="space-y-1">
+                                        <div v-for="(seg, idx) in translationSegments" :key="'seg-' + idx"
+                                            class="whitespace-pre-wrap animate-fadeIn">{{ seg }}</div>
+                                    </div>
+                                    <div ref="translationLiveContainer" class="whitespace-pre-wrap"></div>
+                                </div>
+                            </div>
+                            <div class="flex flex-col gap-2 min-h-0" v-if="!isMobileLowPower && recordWorkCallEnabled">
+                                <div class="flex items-center justify-between gap-4">
+                                    <div>
+                                        <h2 class="text-base md:text-lg font-semibold text-slate-100">
+                                            {{ ui.suggestionsTitle }}
+                                            <span v-if="langB" class="text-sm text-emerald-400">
+                                                ({{ langB.toUpperCase() }})
+                                            </span>
+                                        </h2>
+                                    </div>
+                                    <div v-if="cvText && langB" class="flex items-center gap-2">
+                                        <button type="button"
+                                            class="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] md:text-xs font-semibold border border-emerald-500 text-emerald-100 bg-emerald-800 hover:bg-emerald-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                            :disabled="isLoadingSuggestion" @click="onRequestSuggestionsClick">
+                                            <span>
+                                                {{ isLoadingSuggestion ? '...' : ui.suggestionsButton }}
+                                            </span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div ref="suggestionsBox"
+                                    class="flex-1 min-h-0 rounded-xl border border-slate-700 bg-slate-900/70 p-4 text-xs md:text-sm lg:text-base overflow-y-auto space-y-3 leading-relaxed">
+                                    <div v-if="!cvText" class="text-xs md:text-sm text-slate-500">
+                                        {{ ui.suggestionsNoCv }}
+                                    </div>
+
+                                    <div v-else-if="!langB" class="text-xs md:text-sm text-slate-500">
+                                        {{ ui.suggestionsNoLangs }}
+                                    </div>
+
+                                    <div v-else>
+                                        <p v-if="isLoadingSuggestion" class="text-xs md:text-sm text-emerald-300 mb-2">
+                                            {{ ui.suggestionsLoading }}
+                                        </p>
+
+                                        <div v-if="suggestions.length === 0 && !isLoadingSuggestion"
+                                            class="text-xs md:text-sm text-slate-500">
+                                            {{ ui.suggestionsEmpty }}
+                                        </div>
+
+                                        <div v-for="(item, idx) in suggestions" :key="idx"
+                                            class="rounded-lg border border-slate-700 bg-slate-900/80 p-3 md:p-4 space-y-2 mb-2">
+                                            <div class="text-[11px] md:text-xs text-slate-400">
+                                                {{ ui.suggestionRefersTo }}
+                                                <span class="italic text-slate-300">
+                                                    "{{ item.utterancePreview }}"
+                                                </span>
+                                            </div>
+                                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                <div class="space-y-1">
+                                                    <div class="text-[11px] md:text-xs font-semibold text-slate-200">
+                                                        {{ getLangLabel(item.langA) }}
+                                                    </div>
+                                                    <div
+                                                        class="text-xs md:text-sm text-slate-100 whitespace-pre-wrap leading-relaxed">
+                                                        {{ item.suggestionLangA }}
+                                                    </div>
+                                                </div>
+                                                <div class="space-y-1">
+                                                    <div class="text-[11px] md:text-xs font-semibold text-slate-200">
+                                                        {{ getLangLabel(item.langB) }}
+                                                    </div>
+                                                    <div
+                                                        class="text-xs md:text-sm text-slate-100 whitespace-pre-wrap leading-relaxed">
+                                                        {{ item.suggestionLangB }}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                </div>
                             </div>
                         </div>
+
+                        <!-- CV e strumenti call: stessa griglia (2 colonne sotto Testo originale + Traduzione) -->
+                        <div class="pt-4" v-if="showWorkCallTools">
+                            <div class="grid grid-cols-1 gap-4 md:gap-6 items-start"
+                                :class="callTranslationEnabled ? 'lg:grid-cols-3' : 'lg:grid-cols-2'">
+                                <!-- Sezione CV: occupa le stesse 2 colonne di Testo originale + Traduzione -->
+                                <div :class="callTranslationEnabled ? 'lg:col-span-2 space-y-3' : 'space-y-3'">
+                                    <div>
+                                        <h2 class="text-sm font-semibold text-slate-100">
+                                            {{ ui.cvSectionTitle }}
+                                        </h2>
+                                        <p class="text-[11px] text-slate-300 mt-1">
+                                            {{ ui.cvSectionDescription }}
+                                        </p>
+                                    </div>
+                                    <div
+                                        class="rounded-xl border border-slate-700 bg-slate-900/80 p-4 text-xs space-y-3">
+                                        <label class="block text-sm font-medium text-slate-200 mb-2">
+                                            {{ ui.cvUploadLabel }}
+                                        </label>
+                                        <input type="file" accept=".txt,.md,.rtf,.pdf"
+                                            class="block w-full text-sm text-slate-200 file:text-sm file:px-4 file:py-2 file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-600 file:text-white file:cursor-pointer file:font-semibold cursor-pointer hover:file:bg-emerald-500 transition"
+                                            @change="onCvFileChange" />
+                                        <p class="text-xs text-slate-400 mt-3">
+                                            {{ ui.cvUploadHint }}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <!-- Bottoni strumenti call: colonna a destra (come la colonna Suggerimenti) -->
+                                <div class="flex flex-col gap-3 items-stretch lg:items-end">
+                                    <button type="button"
+                                        class="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg text-sm md:text-base font-semibold border-2 border-sky-400 text-sky-100 bg-gradient-to-r from-sky-700 to-sky-800 hover:from-sky-600 hover:to-sky-700 hover:border-sky-300 shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed w-full md:w-[250px]"
+                                        :disabled="isMindMapLoading" @click="onToggleMindMapClick">
+                                        <span>
+                                            {{ isMindMapLoading ? '...' : ui.mindMapButton }}
+                                        </span>
+                                    </button>
+                                    <button type="button"
+                                        class="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg text-sm md:text-base font-semibold border-2 border-purple-400 text-purple-100 bg-gradient-to-r from-purple-700 to-purple-800 hover:from-purple-600 hover:to-purple-700 hover:border-purple-300 shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed w-full md:w-[250px]"
+                                        :disabled="isNextCallLoading" @click="openNextCallModal">
+                                        <span>
+                                            {{ isNextCallLoading ? '...' : ui.nextCallButton }}
+                                        </span>
+                                    </button>
+                                    <button type="button"
+                                        class="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg text-sm md:text-base font-semibold border-2 border-amber-400 text-amber-100 bg-gradient-to-r from-amber-700 to-amber-800 hover:from-amber-600 hover:to-amber-700 hover:border-amber-300 shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed w-full md:w-[250px]"
+                                        :disabled="isClarifyIntentLoading" @click="onClarifyIntentClick">
+                                        <span>
+                                            {{ isClarifyIntentLoading ? '...' : ui.clarifyIntentButton }}
+                                        </span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+
+                <!-- Debug panel in fondo -->
+                <div class="mt-3 flex-shrink-0">
+                    <button type="button" @click="showDebugPanel = !showDebugPanel"
+                        class="text-[10px] text-slate-500 hover:text-slate-300 transition">
+                        {{ showDebugPanel ? ui.debugCloseLabel : ui.debugOpenLabel }}
+                    </button>
+                    <div v-if="showDebugPanel" class="mt-1 border border-slate-700/50 rounded-lg bg-slate-900/80 p-2">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-[9px] text-slate-500">{{ ui.debugTitle }}</span>
+                            <button type="button" @click="copyDebugLogs"
+                                class="px-1.5 py-0.5 rounded text-[9px] border border-slate-600 text-slate-400 bg-slate-800 hover:bg-slate-700">{{
+                                    ui.debugCopyLabel }}</button>
+                        </div>
+                        <textarea readonly
+                            class="w-full h-24 text-[9px] font-mono bg-transparent text-slate-400 resize-none outline-none"
+                            :value="debugLogs.join('\n')"></textarea>
+                        <p v-if="debugCopyStatus" class="text-[9px] text-emerald-300">{{ debugCopyStatus }}</p>
                     </div>
                 </div>
 
             </div>
 
             <!-- TAB 2: Traduttore Video Youtube -->
-            <div v-else class="flex flex-col gap-4">
+            <div v-else class="flex flex-col gap-3 flex-1 min-h-0 overflow-hidden">
                 <p v-if="statusMessage" class="text-xs text-slate-300 text-center">
                     {{ statusMessage }}
                 </p>
@@ -514,9 +747,9 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-3 flex-1 min-h-0">
                     <!-- Colonna impostazioni video -->
-                    <div class="lg:col-span-1 space-y-3">
+                    <div class="lg:col-span-1 space-y-3 min-h-0">
                         <div class="space-y-2">
                             <label class="text-xs font-semibold text-emerald-400">
                                 {{ ui.youtubeUrlLabel }}
@@ -588,9 +821,10 @@
                     </div>
 
                     <!-- Colonna video + pannelli di traduzione riutilizzati -->
-                    <div class="lg:col-span-2 space-y-4">
+                    <div class="lg:col-span-2 flex flex-col gap-3 min-h-0">
+                        <!-- Video: grande ma sempre dentro viewport (vh + min/max) -->
                         <div
-                            class="aspect-video w-full rounded-xl border border-slate-700 bg-black overflow-hidden flex items-center justify-center">
+                            class="w-full h-[34vh] md:h-[40vh] lg:h-[44vh] min-h-[220px] md:min-h-[260px] max-h-[520px] rounded-xl border border-slate-700 bg-black overflow-hidden flex items-center justify-center flex-shrink-0">
                             <div v-if="!youtubeVideoId" class="text-xs text-slate-400 px-4 text-center">
                                 {{ ui.youtubePlayerPlaceholder }}
                             </div>
@@ -598,15 +832,15 @@
                         </div>
 
                         <!-- Riutilizzo pannelli originale/traduzione (solo layout) -->
-                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                            <div class="flex flex-col gap-2">
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 flex-1 min-h-0">
+                            <div class="flex flex-col gap-1 min-h-0">
                                 <div class="flex items-center justify-between">
                                     <span class="text-sm md:text-base font-semibold text-slate-100">
                                         {{ ui.youtubeOriginalTitle }}
                                     </span>
                                 </div>
                                 <div ref="originalBox"
-                                    class="h-[120px] md:h-[200px] rounded-xl border border-slate-700 bg-slate-900/60 p-3 text-xs md:text-sm overflow-y-auto leading-relaxed">
+                                    class="flex-1 min-h-0 rounded-xl border border-slate-700 bg-slate-900/60 p-3 text-sm md:text-base overflow-y-auto leading-relaxed">
                                     <p v-if="!displayOriginalText" class="text-slate-500 text-xs md:text-sm">
                                         {{ ui.youtubeOriginalPlaceholder }}
                                     </p>
@@ -615,7 +849,7 @@
                                     </p>
                                 </div>
                             </div>
-                            <div class="flex flex-col gap-2">
+                            <div class="flex flex-col gap-1 min-h-0">
                                 <div class="flex items-center justify-between">
                                     <span class="text-sm md:text-base font-semibold text-slate-100">
                                         {{ ui.youtubeTranslationTitle }}
@@ -626,7 +860,7 @@
                                     </span>
                                 </div>
                                 <div ref="translationBox"
-                                    class="h-[120px] md:h-[200px] rounded-xl border border-slate-700 bg-slate-900/60 p-3 text-xs md:text-sm overflow-y-auto leading-relaxed">
+                                    class="flex-1 min-h-0 rounded-xl border border-slate-700 bg-slate-900/60 p-3 text-sm md:text-base overflow-y-auto leading-relaxed">
                                     <div v-if="!hasAnyTranslation" class="text-slate-500 text-xs md:text-sm">
                                         {{ ui.youtubeTranslationPlaceholder }}
                                     </div>
@@ -639,12 +873,13 @@
                                     </div>
                                 </div>
                             </div>
-                            <div v-if="lastBackendAudioUrl" class="mt-1 text-[11px] text-slate-400 italic break-all">
-                                <a :href="lastBackendAudioUrl" download="backend-audio.webm"
-                                    class="underline hover:text-emerald-300">
-                                    {{ ui.downloadBackendAudioLabel }}
-                                </a>
-                            </div>
+                        </div>
+                        <div v-if="lastBackendAudioUrl"
+                            class="text-[11px] text-slate-400 italic break-all flex-shrink-0">
+                            <a :href="lastBackendAudioUrl" download="backend-audio.webm"
+                                class="underline hover:text-emerald-300">
+                                {{ ui.downloadBackendAudioLabel }}
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -881,14 +1116,18 @@ export default {
             isChromeWithWebSpeech: true,
 
             // Doppiaggio (TTS) indipendente per tab
-            readTranslationEnabledCall: false,
+            // Default TRUE: è un interprete virtuale, deve tradurre e parlare!
+            readTranslationEnabledCall: true,
             readTranslationEnabledYoutube: true,
-            // TAB call: default SOLO trascrizione (traduzione disattiva)
-            callTranslationEnabled: false,
+            // TAB call: default TRUE (è un interprete, deve tradurre!)
+            callTranslationEnabled: true,
             // TAB call: modalità auricolari (output TTS su canale L/R)
             earphonesModeEnabledCall: false,
             // TAB call: registrazione call (nasconde suggerimenti/strumenti per focus)
             recordWorkCallEnabled: false,
+            // Animazione record: key incrementale per far partire la pulse SOLO una volta a ogni start
+            recordPulseKeyA: 0,
+            recordPulseKeyB: 0,
             // Auto-pausa basata sul silenzio (sia per modalità call che YouTube)
             callAutoPauseEnabled: true,
             youtubeAutoPauseEnabled: true,
@@ -992,6 +1231,15 @@ export default {
         };
     },
     computed: {
+        isAndroid() {
+            if (typeof navigator === 'undefined') return false;
+            return /android/i.test(navigator.userAgent);
+        },
+        callPrimaryFocusTarget() {
+            // UX: se sei in "solo trascrizione" il focus WOW deve stare sull'originale.
+            // Se la traduzione è attiva, il focus WOW deve stare sulla traduzione.
+            return this.callTranslationEnabled ? 'translation' : 'original';
+        },
         showWorkCallTools() {
             return !this.isMobileLowPower && this.recordWorkCallEnabled;
         },
@@ -1026,6 +1274,7 @@ export default {
                     earphonesModeLabel: 'Modalità auricolari',
                     earphonesModeHelpTitle: 'Come funziona',
                     earphonesModeHelpBody: 'Usa due auricolari: a sinistra si sente la traduzione nella lingua A, a destra nella lingua B. La lettura parte a fine frase e le frasi vengono accodate (non blocca il microfono).',
+                    earphonesModeAndroidWarning: 'Su Android questa funzione non è disponibile: il sistema operativo non permette di separare l\'audio sui due canali con cuffie normali. Stiamo studiando una soluzione.',
                     originalTitle: 'Testo originale',
                     originalSubtitle: 'Riconosciuto dal microfono',
                     originalPlaceholder: 'Inizia a parlare per vedere qui la trascrizione in tempo reale.',
@@ -1088,6 +1337,7 @@ export default {
                     tabCallTitle: 'Interprete & CV',
                     tabCallSubtitle: 'Call di lavoro in tempo reale',
                     tabYoutubeTitle: 'YouTube Interprete',
+                    youtubeDesktopOnlyLabel: 'Solo desktop',
                     tabYoutubeSubtitle: 'Video + traduzione frase per frase',
                     translationPlaceholder: 'La traduzione apparirà qui man mano che parli.',
                     youtubePlayerPlaceholder: 'Incolla un URL di YouTube e seleziona le lingue a sinistra: il player si carica automaticamente.',
@@ -1132,6 +1382,7 @@ export default {
                     earphonesModeLabel: 'Earphones mode',
                     earphonesModeHelpTitle: 'How it works',
                     earphonesModeHelpBody: 'Use two earphones: left plays the translation in language A, right plays it in language B. Reading starts at the end of each sentence and sentences are queued (it does not stop the microphone).',
+                    earphonesModeAndroidWarning: 'On Android this feature is not available: the operating system does not allow separating audio on both channels with regular headphones. We are working on a solution.',
                     originalTitle: 'Original text',
                     originalSubtitle: 'Recognised from microphone',
                     originalPlaceholder: 'Start speaking to see the real-time transcription here.',
@@ -1194,6 +1445,7 @@ export default {
                     tabCallTitle: 'Interpreter & CV',
                     tabCallSubtitle: 'Real-time work call',
                     tabYoutubeTitle: 'YouTube Interpreter',
+                    youtubeDesktopOnlyLabel: 'Desktop only',
                     tabYoutubeSubtitle: 'Video + phrase-by-phrase translation',
                     youtubeMobileWarning: 'On this mobile device the browser cannot handle video translation as well as on desktop. For the full YouTube Interpreter experience, use a PC or Mac (ideally with Chrome).',
                     clarifyIntentButton: 'Clarify interlocutor intent',
@@ -2307,6 +2559,12 @@ export default {
 
                 this.isMobileLowPower = !!(isMobileUa || isSmallViewport || isCoarsePointer);
 
+                // UX: su mobile nascondiamo/forziamo OFF features “desktop-only”
+                if (this.isMobileLowPower) {
+                    this.recordWorkCallEnabled = false;
+                    this.earphonesModeEnabledCall = false;
+                }
+
                 this.debugLog('detectMobileLowPower', {
                     isMobileLowPower: this.isMobileLowPower,
                     ua,
@@ -3231,6 +3489,12 @@ export default {
 
             // Imposta lingua di input e di destinazione in base al parlante
             this.activeSpeaker = speaker;
+            // Trigger “pulse” una sola volta: cambiamo la key così il DOM si ricrea e l'animazione riparte.
+            if (speaker === 'A') {
+                this.recordPulseKeyA = (this.recordPulseKeyA || 0) + 1;
+            } else if (speaker === 'B') {
+                this.recordPulseKeyB = (this.recordPulseKeyB || 0) + 1;
+            }
             if (this.activeTab === 'youtube') {
                 // Nella tab YouTube usiamo le lingue specifiche del video
                 if (speaker === 'A') {
@@ -5661,3 +5925,130 @@ export default {
     },
 };
 </script>
+
+<style scoped>
+/* Animazioni WOW */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes float {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-8px);
+    }
+}
+
+@keyframes glow {
+
+    0%,
+    100% {
+        box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
+    }
+
+    50% {
+        box-shadow: 0 0 25px rgba(16, 185, 129, 0.5);
+    }
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: -200% 0;
+    }
+
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+@keyframes pingOnce {
+    0% {
+        transform: scale(1);
+        opacity: 0.35;
+    }
+
+    70% {
+        transform: scale(1.35);
+        opacity: 0.12;
+    }
+
+    100% {
+        transform: scale(1.55);
+        opacity: 0;
+    }
+}
+
+.animate-fadeInUp {
+    animation: fadeInUp 0.4s ease-out both;
+}
+
+.animate-fadeIn {
+    animation: fadeIn 0.3s ease-out both;
+}
+
+.animate-float {
+    animation: float 3s ease-in-out infinite;
+}
+
+.animate-glow {
+    animation: glow 2s ease-in-out infinite;
+}
+
+.animate-ping-once {
+    animation: pingOnce 700ms ease-out 1;
+}
+
+/* WOW focus per il pannello “primario” durante la registrazione */
+.focus-wow {
+    animation: glow 1.6s ease-in-out infinite;
+}
+
+/* Effetto shimmer per loading */
+.shimmer {
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+}
+
+/* Transizioni fluide per tutti i bottoni */
+button {
+    transition: all 0.2s ease-out;
+}
+
+button:active {
+    transform: scale(0.97);
+}
+
+/* Glow sui toggle quando attivi */
+input:checked+div {
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
+}
+
+/* Pulse per indicatori live */
+.live-indicator {
+    animation: pulse 1.5s ease-in-out infinite;
+}
+</style>
