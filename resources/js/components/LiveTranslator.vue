@@ -68,13 +68,6 @@
                     {{ statusMessage }}
                 </p>
 
-                <!-- Avviso: modalità offline in arrivo -->
-                <div
-                    class="w-full rounded-lg border border-amber-500/40 bg-amber-900/20 px-3 py-2 text-[11px] md:text-xs text-amber-100 flex items-start gap-2">
-                    <span class="mt-0.5 text-sm">⏳</span>
-                    <span>{{ ui.offlineNotice }}</span>
-                </div>
-
                 <!-- Pannello debug: pulsante + finestra log copiabile -->
                 <div class="flex justify-end">
                     <button type="button" @click="showDebugPanel = !showDebugPanel"
@@ -105,7 +98,14 @@
                             <input type="checkbox" v-model="callTranslationEnabled"
                                 @change="onCallTranslationModeChange"
                                 class="h-3.5 w-3.5 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
-                            <span>Traduzione</span>
+                            <span>{{ ui.enableTranslationLabel }}</span>
+                        </label>
+
+                        <!-- Registrazione call: nasconde suggerimenti + strumenti -->
+                        <label class="flex items-center gap-2 text-[13px] cursor-pointer select-none">
+                            <input type="checkbox" v-model="recordWorkCallEnabled"
+                                class="h-3.5 w-3.5 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
+                            <span>{{ ui.recordWorkCallLabel }}</span>
                         </label>
 
                         <!-- Doppiaggio (solo se la traduzione è attiva nella tab Call) -->
@@ -151,13 +151,14 @@
                     <div class="mt-1 w-full px-4">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3 w-full">
                             <div class="flex flex-col gap-1">
-                                <div class="flex items-center justify-between w-full min-h-[20px]">
-                                    <label class="flex items-center gap-1 cursor-pointer select-none">
+                                <div class="flex items-center justify-between w-full min-h-[22px]">
+                                    <label
+                                        class="flex items-center gap-2 cursor-pointer select-none text-[11px] md:text-xs text-slate-300">
                                         <input type="checkbox" v-model="callAutoPauseEnabled"
                                             class="h-3 w-3 rounded border-slate-500 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
-                                        <span>{{ ui.youtubeAutoPauseLabel }}</span>
+                                        <span class="leading-none">{{ ui.youtubeAutoPauseLabel }}</span>
                                     </label>
-                                    <span class="text-[10px] text-slate-400">
+                                    <span class="text-[11px] md:text-xs text-slate-400 tabular-nums leading-none">
                                         {{ whisperSilenceMs }} ms
                                     </span>
                                 </div>
@@ -166,11 +167,11 @@
                             </div>
 
                             <div class="flex flex-col gap-1">
-                                <div class="flex items-center justify-between w-full min-h-[20px]">
-                                    <span class="text-[11px] text-slate-300">
+                                <div class="flex items-center justify-between w-full min-h-[22px]">
+                                    <span class="text-[11px] md:text-xs text-slate-300 leading-none">
                                         {{ ui.backgroundNoiseLabel }}
                                     </span>
-                                    <span class="text-[10px] text-slate-400">
+                                    <span class="text-[11px] md:text-xs text-slate-400 tabular-nums leading-none">
                                         {{ Number(whisperNoiseThreshold || 0).toFixed(3) }}
                                     </span>
                                 </div>
@@ -254,8 +255,7 @@
                 </div>
                 <div class="mt-4 space-y-6">
                     <!-- Righe principali: originale, traduzione, suggerimenti affiancati -->
-                    <div class="grid grid-cols-1 gap-4 md:gap-6"
-                        :class="callTranslationEnabled ? 'lg:grid-cols-3' : 'lg:grid-cols-2'">
+                    <div class="grid grid-cols-1 gap-4 md:gap-6" :class="callMainGridClass">
                         <div class="flex flex-col gap-2">
                             <div class="flex items-center justify-between">
                                 <span class="text-base md:text-lg font-semibold text-slate-100">
@@ -322,7 +322,7 @@
                                 <div ref="translationLiveContainer" class="whitespace-pre-wrap"></div>
                             </div>
                         </div>
-                        <div class="flex flex-col gap-2" v-if="!isMobileLowPower">
+                        <div class="flex flex-col gap-2" v-if="!isMobileLowPower && recordWorkCallEnabled">
                             <div class="flex items-center justify-between gap-4">
                                 <div>
                                     <h2 class="text-base md:text-lg font-semibold text-slate-100">
@@ -399,7 +399,7 @@
                     </div>
 
                     <!-- CV e strumenti call: stessa griglia (2 colonne sotto Testo originale + Traduzione) -->
-                    <div class="border-t border-slate-700 pt-4" v-if="!isMobileLowPower">
+                    <div class="border-t border-slate-700 pt-4" v-if="showWorkCallTools">
                         <div class="grid grid-cols-1 gap-4 md:gap-6 items-start"
                             :class="callTranslationEnabled ? 'lg:grid-cols-3' : 'lg:grid-cols-2'">
                             <!-- Sezione CV: occupa le stesse 2 colonne di Testo originale + Traduzione -->
@@ -887,6 +887,8 @@ export default {
             callTranslationEnabled: false,
             // TAB call: modalità auricolari (output TTS su canale L/R)
             earphonesModeEnabledCall: false,
+            // TAB call: registrazione call (nasconde suggerimenti/strumenti per focus)
+            recordWorkCallEnabled: false,
             // Auto-pausa basata sul silenzio (sia per modalità call che YouTube)
             callAutoPauseEnabled: true,
             youtubeAutoPauseEnabled: true,
@@ -990,12 +992,29 @@ export default {
         };
     },
     computed: {
+        showWorkCallTools() {
+            return !this.isMobileLowPower && this.recordWorkCallEnabled;
+        },
+        callMainGridClass() {
+            // Layout adattivo:
+            // - Se non mostriamo suggerimenti/strumenti, i riquadri devono espandersi e non lasciare colonne vuote.
+            // - callTranslationEnabled:
+            //   - true  => originale + traduzione (+ suggestions se attive)
+            //   - false => solo originale (+ suggestions se attive)
+            if (this.callTranslationEnabled) {
+                return this.showWorkCallTools ? 'lg:grid-cols-3' : 'lg:grid-cols-2';
+            }
+
+            return this.showWorkCallTools ? 'lg:grid-cols-2' : 'lg:grid-cols-1';
+        },
         ui() {
             const lang = (this.uiLocale || 'it').toLowerCase();
             const dict = {
                 it: {
                     title: 'Interpreter – l\'interprete virtuale che ti fa parlare con chiunque',
                     subtitle: 'Parla in qualsiasi lingua: vedrai il testo originale e la traduzione live.',
+                    enableTranslationLabel: 'Abilita traduzione',
+                    recordWorkCallLabel: 'Registra Call di Lavoro',
                     langALabel: 'Lingua dell\'interlocutore',
                     langBLabel: 'Lingua di traduzione',
                     whisperLabel: 'Usa il motore avanzato (cloud)',
@@ -1089,7 +1108,6 @@ export default {
                     translationCopyLabel: 'Copia traduzione',
                     translationExportPdfLabel: 'Esporta PDF traduzione',
                     nextCallButton: 'Migliora prossima call',
-                    offlineNotice: 'Tra poco potrai usare Interpreter anche offline, senza connessione: stiamo preparando una modalità locale dedicata.',
                     youtubeMobileWarning: 'Su questo dispositivo mobile il browser non permette di tradurre i video bene come da computer. Per l’esperienza completa di YouTube Interprete usa un PC o Mac (meglio se con Chrome).',
                     clarifyIntentButton: 'Chiarisci intenzione interlocutore',
                     clarifyIntentTitle: 'Cosa intende davvero l\'interlocutore',
@@ -1101,6 +1119,8 @@ export default {
                 en: {
                     title: 'Interpreter – the virtual interpreter that lets you talk to anyone',
                     subtitle: 'Speak in any language: you will see the original text and the live translation.',
+                    enableTranslationLabel: 'Enable translation',
+                    recordWorkCallLabel: 'Record Work Call',
                     langALabel: 'Interlocutor language',
                     langBLabel: 'Translation language',
                     whisperLabel: 'Use the advanced engine (cloud)',
@@ -1175,7 +1195,6 @@ export default {
                     tabCallSubtitle: 'Real-time work call',
                     tabYoutubeTitle: 'YouTube Interpreter',
                     tabYoutubeSubtitle: 'Video + phrase-by-phrase translation',
-                    offlineNotice: 'Soon you will be able to use Interpreter offline, without an internet connection: we are working on a dedicated local mode.',
                     youtubeMobileWarning: 'On this mobile device the browser cannot handle video translation as well as on desktop. For the full YouTube Interpreter experience, use a PC or Mac (ideally with Chrome).',
                     clarifyIntentButton: 'Clarify interlocutor intent',
                     clarifyIntentTitle: 'What the interlocutor probably means',
