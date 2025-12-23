@@ -4,7 +4,6 @@ namespace App\Filament\Resources\ArticleResource\Pages;
 
 use App\Filament\Resources\ArticleResource;
 use App\Jobs\GenerateSeoArticleFromKeywordJob;
-use App\Models\Article;
 use App\Services\Seo\CsvKeywordExtractor;
 use App\Services\Seo\KeywordRelevanceService;
 use App\Services\Seo\MenuItemUrlResolver;
@@ -22,8 +21,8 @@ use Filament\Forms\Components\Wizard\Step;
 use Filament\Forms\Set;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
+use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use function Safe\preg_match;
 
@@ -138,7 +137,7 @@ class ListArticles extends ListRecords
                                                     $csvPath = $csvFile;
                                                 } elseif (Storage::disk('local')->exists($csvFile)) {
                                                     // Se è stato salvato su disco local (pattern già usato in CustomerResource)
-                                                    $csvPath = Storage::disk('local')->path($csvFile);
+                                                    $csvPath = storage_path('app/'.$csvFile);
                                                 }
                                             }
 
@@ -213,10 +212,6 @@ class ListArticles extends ListRecords
                                     ->options(fn (callable $get): array => is_array($get('suggested_keywords')) ? $get('suggested_keywords') : [])
                                     ->columns(2)
                                     ->required(),
-
-                                Placeholder::make('limit_note')
-                                    ->label('Limite')
-                                    ->content('Per sicurezza, la generazione è limitata a 10 articoli per singola esecuzione.'),
                             ]),
                     ])->columnSpanFull(),
                 ])
@@ -232,49 +227,26 @@ class ListArticles extends ListRecords
                     }
 
                     $keywords = array_values(array_unique(array_filter(array_map('strval', $keywords), fn ($k) => trim($k) !== '')));
-                    $keywords = array_slice($keywords, 0, 10);
+                    $queued = count($keywords);
 
-                    $queued = 0;
-                    $firstEditUrl = null;
-
-                    foreach ($keywords as $kw) {
-                        // Crea placeholder subito visibile in lista
-                        $placeholderTitle = "In generazione: {$kw}";
-                        $placeholderSlug = Str::slug("in-generazione-{$kw}-".Str::random(6));
-
-                        $article = Article::create([
-                            'title' => $placeholderTitle,
-                            'slug' => $placeholderSlug,
-                            'summary' => 'Generazione in corso…',
-                            'content' => "Generazione in coda.\n\nKeyword: {$kw}\nTarget: {$targetHref}",
-                        ]);
-
-                        if ($firstEditUrl === null) {
-                            $firstEditUrl = ArticleResource::getUrl('edit', ['record' => $article]);
+                    // Unlimited: dispatch UN job che crea placeholder + dispatcha i job per keyword
+                    Bus::dispatch(function () use ($keywords, $targetHref) {
+                        foreach ($keywords as $kw) {
+                            $kw = trim((string) $kw);
+                            if ($kw === '') {
+                                continue;
+                            }
+                            GenerateSeoArticleFromKeywordJob::dispatch(
+                                targetHref: $targetHref,
+                                keyword: $kw
+                            );
                         }
-
-                        GenerateSeoArticleFromKeywordJob::dispatch(
-                            articleId: (int) $article->id,
-                            targetHref: $targetHref,
-                            keyword: $kw
-                        );
-
-                        $queued++;
-                    }
+                    });
 
                     $notif = Notification::make()
                         ->title("Messi in coda {$queued} articoli")
-                        ->body('I record placeholder sono già in lista. Verranno aggiornati quando i job di coda finiscono.')
+                        ->body('Generazione illimitata in coda: i placeholder compariranno in lista e verranno aggiornati quando i job finiscono.')
                         ->success();
-
-                    if ($firstEditUrl) {
-                        $notif->actions([
-                            \Filament\Notifications\Actions\Action::make('open_first')
-                                ->label('Apri primo placeholder')
-                                ->url($firstEditUrl)
-                                ->button(),
-                        ]);
-                    }
 
                     $notif->send();
                 }),

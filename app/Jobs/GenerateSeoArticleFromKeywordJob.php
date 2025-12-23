@@ -17,7 +17,6 @@ class GenerateSeoArticleFromKeywordJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public function __construct(
-        public int $articleId,
         public string $targetHref,
         public string $keyword,
     ) {
@@ -25,19 +24,8 @@ class GenerateSeoArticleFromKeywordJob implements ShouldQueue
 
     public function handle(SeoArticleGenerator $generator): void
     {
-        /** @var Article|null $article */
-        $article = Article::query()->find($this->articleId);
-        if (! $article) {
-            Log::warning('GenerateSeoArticleFromKeywordJob: articolo non trovato', [
-                'article_id' => $this->articleId,
-                'keyword' => $this->keyword,
-            ]);
-
-            return;
-        }
-
         try {
-            $generator->generateInto($article, $this->targetHref, $this->keyword);
+            $article = $generator->generate($this->targetHref, $this->keyword);
 
             try {
                 $tag = Tag::firstOrCreate(
@@ -50,15 +38,8 @@ class GenerateSeoArticleFromKeywordJob implements ShouldQueue
             }
         } catch (\Throwable $e) {
             Log::error('GenerateSeoArticleFromKeywordJob: errore generazione', [
-                'article_id' => $this->articleId,
                 'keyword' => $this->keyword,
                 'error' => $e->getMessage(),
-            ]);
-
-            // Lascia traccia visibile nel record
-            $article->update([
-                'summary' => 'Errore generazione: '.$e->getMessage(),
-                'content' => "Errore durante la generazione automatica.\n\nKeyword: {$this->keyword}\n\nDettagli: {$e->getMessage()}",
             ]);
         }
     }
