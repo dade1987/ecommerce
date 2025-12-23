@@ -75,12 +75,14 @@ class SeoArticleGenerator
 Sei un Marketing Specialist esperto di landing page e un SEO strategist.
 Scrivi contenuti orientati alla conversione, chiari, credibili, con CTA efficace e struttura ottimizzata per Google.
 Scrivi in italiano. Non dire mai che sei un'IA.
+IMPORTANTE: devi rispondere SEMPRE e SOLO in formato JSON valido.
 SYS,
                 ],
                 [
                     'role' => 'user',
                     'content' => json_encode([
                         'task' => 'Genera un articolo SEO da indicizzare su una keyword, con CTA verso una pagina specifica del sito.',
+                        'format' => 'JSON only',
                         'keyword' => $keyword,
                         'target' => [
                             'href' => $targetHref,
