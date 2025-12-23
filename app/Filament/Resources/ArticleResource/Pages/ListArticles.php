@@ -207,6 +207,20 @@ class ListArticles extends ListRecords
                         Step::make('Seleziona + genera')
                             ->description('Seleziona le keyword e genera 1 articolo per keyword')
                             ->schema([
+                                \Filament\Forms\Components\Actions::make([
+                                    FormAction::make('select_all_keywords')
+                                        ->label('Seleziona tutte')
+                                        ->icon('heroicon-o-check')
+                                        ->action(function (Set $set, callable $get) {
+                                            $options = $get('suggested_keywords');
+                                            $options = is_array($options) ? $options : [];
+                                            $set('selected_keywords', array_keys($options));
+                                        }),
+                                    FormAction::make('deselect_all_keywords')
+                                        ->label('Deseleziona tutte')
+                                        ->icon('heroicon-o-x-mark')
+                                        ->action(fn (Set $set) => $set('selected_keywords', [])),
+                                ]),
                                 CheckboxList::make('selected_keywords')
                                     ->label('Keyword da generare')
                                     ->options(fn (callable $get): array => is_array($get('suggested_keywords')) ? $get('suggested_keywords') : [])
