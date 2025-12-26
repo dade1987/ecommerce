@@ -881,7 +881,7 @@
                                     </div>
                                     <div ref="originalBox"
                                         :class="isMobileLowPower
-                                            ? 'rounded-xl border border-slate-700 bg-slate-900/60 p-3 text-sm md:text-base leading-relaxed'
+                                            ? 'h-[190px] overflow-y-auto rounded-xl border border-slate-700 bg-slate-900/60 p-3 text-sm md:text-base leading-relaxed'
                                             : 'flex-1 min-h-0 rounded-xl border border-slate-700 bg-slate-900/60 p-3 text-sm md:text-base overflow-y-auto leading-relaxed'">
                                         <p v-if="!displayOriginalText" class="text-slate-500 text-xs md:text-sm">
                                             {{ ui.youtubeOriginalPlaceholder }}
@@ -903,7 +903,7 @@
                                     </div>
                                     <div ref="translationBox"
                                         :class="isMobileLowPower
-                                            ? 'rounded-xl border border-slate-700 bg-slate-900/60 p-3 text-sm md:text-base leading-relaxed'
+                                            ? 'h-[190px] overflow-y-auto rounded-xl border border-slate-700 bg-slate-900/60 p-3 text-sm md:text-base leading-relaxed'
                                             : 'flex-1 min-h-0 rounded-xl border border-slate-700 bg-slate-900/60 p-3 text-sm md:text-base overflow-y-auto leading-relaxed'">
                                         <div v-if="!hasAnyTranslation" class="text-slate-500 text-xs md:text-sm">
                                             {{ ui.youtubeTranslationPlaceholder }}

@@ -176,6 +176,57 @@ function withWindowWebSpeechStub() {
   };
 }
 
+function withGlobalNavigatorStub({ userAgent = 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/120.0 Mobile Safari/537.36' } = {}) {
+  const prevDesc = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
+  const prevValue = globalThis.navigator;
+  const nextNav = {
+    userAgent,
+    language: 'it-IT',
+    languages: ['it-IT', 'en-US'],
+  };
+
+  // In Node >= 20 navigator può essere definito come getter non-writable.
+  // Forziamo un override configurabile se possibile.
+  try {
+    Object.defineProperty(globalThis, 'navigator', {
+      value: nextNav,
+      configurable: true,
+      writable: true,
+      enumerable: true,
+    });
+  } catch {
+    // fallback: prova a modificare i campi se navigator è un oggetto mutabile
+    try {
+      if (globalThis.navigator && typeof globalThis.navigator === 'object') {
+        globalThis.navigator.userAgent = userAgent;
+        globalThis.navigator.language = 'it-IT';
+        globalThis.navigator.languages = ['it-IT', 'en-US'];
+      }
+    } catch {
+      // se non possiamo stubbare, lasciamo com'è (i test che dipendono dallo stub useranno window)
+    }
+  }
+  return {
+    restore() {
+      try {
+        if (prevDesc) {
+          Object.defineProperty(globalThis, 'navigator', prevDesc);
+        } else {
+          // Se prima non esisteva un descriptor proprio, ripristina valore se possibile
+          Object.defineProperty(globalThis, 'navigator', {
+            value: prevValue,
+            configurable: true,
+            writable: true,
+            enumerable: true,
+          });
+        }
+      } catch {
+        // ignora se non ripristinabile (ambiente Node speciale)
+      }
+    },
+  };
+}
+
 // Verifica che il label "Lingua di traduzione" sia presente (regressione su UX lingue)
 {
   const hasLabel = source.includes('translation language') ||
@@ -186,6 +237,120 @@ function withWindowWebSpeechStub() {
     hasLabel,
     'LiveTranslator.vue deve esporre la label per la lingua di traduzione (langBLabel).',
   );
+}
+
+// Regressione: rimossa dicitura "solo desktop" dalla tab YouTube
+{
+  const hasDesktopOnlyRemoved =
+    source.includes("youtubeDesktopOnlyLabel: ''") &&
+    !source.includes("youtubeDesktopOnlyLabel: 'Solo desktop'") &&
+    !source.includes("youtubeDesktopOnlyLabel: 'Desktop only'");
+
+  assert.ok(
+    hasDesktopOnlyRemoved,
+    'LiveTranslator.vue: youtubeDesktopOnlyLabel deve essere vuoto (niente “Solo desktop / Desktop only”).',
+  );
+}
+
+// Avviso mobile YouTube deve essere collassabile (details/summary)
+{
+  const hasCollapsibleMobileWarning =
+    source.includes('youtubeMobileWarningShort') &&
+    source.includes('<details') &&
+    source.includes('ui.youtubeMobileWarning');
+
+  assert.ok(
+    hasCollapsibleMobileWarning,
+    'LiveTranslator.vue: avviso mobile YouTube deve usare <details> (collassabile) con label breve + testo completo.',
+  );
+}
+
+// Avviso “Novità 🎄” dismissibile deve essere presente (wow natalizio)
+{
+  const hasHolidayNotice =
+    source.includes('showHolidayNotice') &&
+    source.includes('ui.holidayNoticeTitle') &&
+    source.includes('holiday-wow') &&
+    source.includes('showHolidayNotice = false');
+
+  assert.ok(
+    hasHolidayNotice,
+    'LiveTranslator.vue: deve esistere un avviso “Novità 🎄” dismissibile con stile wow natalizio.',
+  );
+}
+
+// Android/YouTube mobile: niente CTA fixed overlay (evita sovrapposizioni)
+{
+  const hasFixedCtaOverlay = source.includes('fixed left-0 right-0 bottom-0');
+  assert.ok(
+    !hasFixedCtaOverlay,
+    'LiveTranslator.vue: su YouTube mobile non deve esistere un CTA fixed overlay (causa sovrapposizioni).',
+  );
+}
+
+// Android/YouTube mobile: i box trascritto/tradotto devono avere altezza fissa (scroll interno)
+{
+  const hasFixedHeightBoxes =
+    source.includes("h-[190px] overflow-y-auto") &&
+    source.includes("ref=\"originalBox\"") &&
+    source.includes("ref=\"translationBox\"");
+
+  assert.ok(
+    hasFixedHeightBoxes,
+    'LiveTranslator.vue: su YouTube mobile i box original/translation devono avere altezza fissa (h-[190px]) con overflow-y-auto.',
+  );
+}
+
+// Gating tab YouTube in emulazione: deve dipendere dalla disponibilità reale WebSpeech, non dal match user-agent.
+{
+  const options = loadComponentOptions({ WhisperSpeechRecognition: FakeWhisperRecognition });
+  const vm = createVm(options);
+  vm.activeTab = 'call';
+  vm.isMobileLowPower = true;
+
+  // Caso 1: WebSpeech NON disponibile → tab disabilitata
+  {
+    const prevWindow = globalThis.window;
+    globalThis.window = {};
+    assert.equal(vm.isYoutubeTabDisabled, true, 'Se WebSpeech non esiste, su mobile YouTube deve essere disabilitata.');
+    globalThis.window = prevWindow;
+  }
+
+  // Caso 2: WebSpeech disponibile → tab NON disabilitata (anche in emulazione)
+  {
+    const w = withWindowWebSpeechStub();
+    try {
+      assert.equal(vm.isYoutubeTabDisabled, false, 'Se WebSpeech esiste, su mobile la tab YouTube deve essere cliccabile.');
+    } finally {
+      w.restore();
+    }
+  }
+
+  // Inoltre detectEnvAndDefaultMode deve settare isChromeWithWebSpeech basandosi su hasWebSpeech (non UA)
+  {
+    const w = withWindowWebSpeechStub();
+    const n = withGlobalNavigatorStub({ userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1' });
+    try {
+      vm.isChromeWithWebSpeech = false;
+      vm.detectEnvAndDefaultMode();
+      assert.equal(vm.isChromeWithWebSpeech, true, 'detectEnvAndDefaultMode: con WebSpeech disponibile deve impostare isChromeWithWebSpeech=true anche se UA non è Chrome.');
+    } finally {
+      n.restore();
+      w.restore();
+    }
+  }
+
+  // setActiveTab deve bloccare lo switch se disabilitata
+  {
+    const prevWindow = globalThis.window;
+    globalThis.window = {};
+    vm.activeTab = 'call';
+    vm.statusMessage = '';
+    vm.setActiveTab('youtube');
+    assert.equal(vm.activeTab, 'call', 'setActiveTab: se YouTube è disabilitata non deve cambiare tab.');
+    assert.ok((vm.statusMessage || '').length > 0, 'setActiveTab: se YouTube è disabilitata deve mostrare un messaggio di stato.');
+    globalThis.window = prevWindow;
+  }
 }
 
 // -------------------------
