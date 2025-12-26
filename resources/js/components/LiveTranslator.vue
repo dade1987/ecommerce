@@ -1,6 +1,8 @@
 <template>
     <div
-        class="relative w-full h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-slate-100 flex items-stretch justify-center px-3 md:px-5 py-3 md:py-5 overflow-hidden">
+        :class="(isMobileLowPower && activeTab === 'youtube')
+            ? 'relative w-full min-h-[100dvh] bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-slate-100 flex items-start justify-center px-3 md:px-5 py-3 md:py-5'
+            : 'relative w-full h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-slate-100 flex items-stretch justify-center px-3 md:px-5 py-3 md:py-5 overflow-hidden'">
         <!-- Ambient background glow - più intenso -->
         <div class="pointer-events-none fixed inset-0 overflow-hidden">
             <div
@@ -14,7 +16,9 @@
         </div>
 
         <div
-            class="relative w-full max-w-7xl h-full bg-slate-900/60 backdrop-blur-2xl border border-slate-700/40 rounded-2xl shadow-[0_30px_100px_-20px_rgba(0,0,0,0.9)] p-4 md:p-5 flex flex-col overflow-hidden">
+            :class="(isMobileLowPower && activeTab === 'youtube')
+                ? 'relative w-full max-w-7xl bg-slate-900/60 backdrop-blur-2xl border border-slate-700/40 rounded-2xl shadow-[0_30px_100px_-20px_rgba(0,0,0,0.9)] p-4 md:p-5 flex flex-col'
+                : 'relative w-full max-w-7xl h-full bg-slate-900/60 backdrop-blur-2xl border border-slate-700/40 rounded-2xl shadow-[0_30px_100px_-20px_rgba(0,0,0,0.9)] p-4 md:p-5 flex flex-col overflow-hidden'">
             <!-- Hero Header - COMPATTO con status LIVE -->
             <div class="mb-3 md:mb-4 flex items-center justify-between gap-4 flex-shrink-0">
                 <div class="min-w-0">
@@ -722,8 +726,9 @@
             </div>
 
             <!-- TAB 2: Traduttore Video Youtube -->
-            <div v-else class="flex flex-col gap-3 flex-1 min-h-0 overflow-hidden"
-                :class="isMobileLowPower ? 'pb-24' : ''">
+            <div v-else :class="isMobileLowPower
+                ? 'flex flex-col gap-3'
+                : 'flex flex-col gap-3 flex-1 min-h-0 overflow-hidden'">
                 <p v-if="statusMessage" class="text-xs text-slate-300 text-center">
                     {{ statusMessage }}
                 </p>
@@ -792,147 +797,159 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-3 flex-1 min-h-0">
-                    <!-- Colonna impostazioni video -->
-                    <div class="lg:col-span-1 space-y-3 min-h-0">
-                        <!-- Lingue: su mobile mostriamo sempre entrambi i selettori affiancati -->
-                        <div class="grid grid-cols-2 gap-2">
-                            <div class="flex flex-col gap-1">
-                                <label class="text-[11px] font-semibold text-emerald-400">
-                                    {{ ui.youtubeLangSourceLabel }}
+                <!-- Mobile YouTube: eccezione layout per evitare sovrapposizioni.
+                     Rende il contenuto scrollabile e lascia il CTA dentro il pannello (no fixed). -->
+                <div :class="isMobileLowPower ? '' : 'flex-1 min-h-0 overflow-y-auto'">
+                    <div
+                        :class="isMobileLowPower ? 'grid grid-cols-1 gap-3' : 'grid grid-cols-1 lg:grid-cols-3 gap-3 min-h-0'">
+                        <!-- Colonna impostazioni video -->
+                        <div class="lg:col-span-1 space-y-3 min-h-0">
+                            <!-- Lingue: su mobile mostriamo sempre entrambi i selettori affiancati -->
+                            <div class="grid grid-cols-2 gap-2">
+                                <div class="flex flex-col gap-1">
+                                    <label class="text-[11px] font-semibold text-emerald-400">
+                                        {{ ui.youtubeLangSourceLabel }}
+                                    </label>
+                                    <select v-model="youtubeLangSource"
+                                        class="bg-slate-900 border text-[13px] rounded-md px-2.5 py-2 focus:outline-none focus:ring-2"
+                                        :class="youtubeLangSource ? 'border-slate-600 focus:ring-emerald-500' : 'border-red-500 focus:ring-red-500'">
+                                        <option value="">{{ ui.selectOptionPlaceholder }}</option>
+                                        <option v-for="opt in availableLanguages" :key="'yt-src-' + opt.code"
+                                            :value="opt.code">
+                                            {{ opt.label }}
+                                        </option>
+                                    </select>
+                                </div>
+                                <div class="flex flex-col gap-1">
+                                    <label class="text-[11px] font-semibold text-emerald-400">
+                                        {{ ui.youtubeLangTargetLabel }}
+                                    </label>
+                                    <select v-model="youtubeLangTarget"
+                                        class="bg-slate-900 border text-[13px] rounded-md px-2.5 py-2 focus:outline-none focus:ring-2"
+                                        :class="youtubeLangTarget ? 'border-slate-600 focus:ring-emerald-500' : 'border-red-500 focus:ring-red-500'">
+                                        <option value="">{{ ui.selectOptionPlaceholder }}</option>
+                                        <option v-for="opt in availableLanguages" :key="'yt-tgt-' + opt.code"
+                                            :value="opt.code">
+                                            {{ opt.label }}
+                                        </option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- URL video -->
+                            <div class="space-y-2">
+                                <label class="text-xs font-semibold text-emerald-400">
+                                    {{ ui.youtubeUrlLabel }}
                                 </label>
-                                <select v-model="youtubeLangSource"
-                                    class="bg-slate-900 border text-[13px] rounded-md px-2.5 py-2 focus:outline-none focus:ring-2"
-                                    :class="youtubeLangSource ? 'border-slate-600 focus:ring-emerald-500' : 'border-red-500 focus:ring-red-500'">
-                                    <option value="">{{ ui.selectOptionPlaceholder }}</option>
-                                    <option v-for="opt in availableLanguages" :key="'yt-src-' + opt.code"
-                                        :value="opt.code">
-                                        {{ opt.label }}
-                                    </option>
-                                </select>
+                                <input v-model="youtubeUrl" type="text"
+                                    placeholder="https://www.youtube.com/watch?v=..."
+                                    class="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                                <p class="text-[11px] text-slate-400">
+                                    {{ ui.youtubeUrlHelp }}
+                                </p>
                             </div>
-                            <div class="flex flex-col gap-1">
-                                <label class="text-[11px] font-semibold text-emerald-400">
-                                    {{ ui.youtubeLangTargetLabel }}
-                                </label>
-                                <select v-model="youtubeLangTarget"
-                                    class="bg-slate-900 border text-[13px] rounded-md px-2.5 py-2 focus:outline-none focus:ring-2"
-                                    :class="youtubeLangTarget ? 'border-slate-600 focus:ring-emerald-500' : 'border-red-500 focus:ring-red-500'">
-                                    <option value="">{{ ui.selectOptionPlaceholder }}</option>
-                                    <option v-for="opt in availableLanguages" :key="'yt-tgt-' + opt.code"
-                                        :value="opt.code">
-                                        {{ opt.label }}
-                                    </option>
-                                </select>
+
+                            <!-- Hint desktop: usare PLAY per ascoltare e PAUSA per tradurre -->
+                            <div v-if="!isMobileLowPower"
+                                class="mt-1 px-3 py-2 rounded-lg border border-emerald-500/70 bg-emerald-900/40 text-[11px] md:text-xs text-emerald-100 font-semibold">
+                                {{ ui.youtubePlayPauseHint }}
                             </div>
                         </div>
 
-                        <!-- URL video -->
-                        <div class="space-y-2">
-                            <label class="text-xs font-semibold text-emerald-400">
-                                {{ ui.youtubeUrlLabel }}
-                            </label>
-                            <input v-model="youtubeUrl" type="text" placeholder="https://www.youtube.com/watch?v=..."
-                                class="w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-                            <p class="text-[11px] text-slate-400">
-                                {{ ui.youtubeUrlHelp }}
-                            </p>
-                        </div>
-
-                        <!-- Hint desktop: usare PLAY per ascoltare e PAUSA per tradurre -->
-                        <div v-if="!isMobileLowPower"
-                            class="mt-1 px-3 py-2 rounded-lg border border-emerald-500/70 bg-emerald-900/40 text-[11px] md:text-xs text-emerald-100 font-semibold">
-                            {{ ui.youtubePlayPauseHint }}
-                        </div>
-                    </div>
-
-                    <!-- Colonna video + pannelli di traduzione riutilizzati -->
-                    <div class="lg:col-span-2 flex flex-col gap-3 min-h-0">
-                        <!-- Video: grande ma sempre dentro viewport (vh + min/max) -->
-                        <div
-                            class="w-full h-[34vh] md:h-[40vh] lg:h-[44vh] min-h-[220px] md:min-h-[260px] max-h-[520px] rounded-xl border border-slate-700 bg-black overflow-hidden flex items-center justify-center flex-shrink-0">
-                            <div v-if="!youtubeVideoId" class="text-xs text-slate-400 px-4 text-center">
-                                {{ ui.youtubePlayerPlaceholder }}
-                            </div>
-                            <div v-else ref="youtubePlayer" class="w-full h-full"></div>
-                        </div>
-
-                        <!-- Riutilizzo pannelli originale/traduzione (solo layout) -->
-                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 flex-1 min-h-0">
-                            <div class="flex flex-col gap-1 min-h-0">
-                                <div class="flex items-center justify-between">
-                                    <span class="text-sm md:text-base font-semibold text-slate-100">
-                                        {{ ui.youtubeOriginalTitle }}
-                                    </span>
+                        <!-- Colonna video + pannelli di traduzione riutilizzati -->
+                        <div class="lg:col-span-2 flex flex-col gap-3 min-h-0">
+                            <!-- Video: grande ma sempre dentro viewport (vh + min/max) -->
+                            <div
+                                :class="isMobileLowPower
+                                    ? 'w-full aspect-video rounded-xl border border-slate-700 bg-black overflow-hidden flex items-center justify-center'
+                                    : 'w-full h-[34vh] md:h-[40vh] lg:h-[44vh] min-h-[220px] md:min-h-[260px] max-h-[520px] rounded-xl border border-slate-700 bg-black overflow-hidden flex items-center justify-center flex-shrink-0'">
+                                <div v-if="!youtubeVideoId" class="text-xs text-slate-400 px-4 text-center">
+                                    {{ ui.youtubePlayerPlaceholder }}
                                 </div>
-                                <div ref="originalBox"
-                                    class="flex-1 min-h-0 rounded-xl border border-slate-700 bg-slate-900/60 p-3 text-sm md:text-base overflow-y-auto leading-relaxed">
-                                    <p v-if="!displayOriginalText" class="text-slate-500 text-xs md:text-sm">
-                                        {{ ui.youtubeOriginalPlaceholder }}
-                                    </p>
-                                    <p v-else class="whitespace-pre-wrap">
-                                        {{ displayOriginalText }}
-                                    </p>
-                                </div>
+                                <div v-else ref="youtubePlayer" class="w-full h-full"></div>
                             </div>
-                            <div class="flex flex-col gap-1 min-h-0">
-                                <div class="flex items-center justify-between">
-                                    <span class="text-sm md:text-base font-semibold text-slate-100">
-                                        {{ ui.youtubeTranslationTitle }}
-                                    </span>
-                                    <span v-if="isTtsLoading"
-                                        class="text-[10px] md:text-[11px] text-emerald-300 italic ml-2">
-                                        {{ ui.ttsLoadingMessage }}
-                                    </span>
-                                </div>
-                                <div ref="translationBox"
-                                    class="flex-1 min-h-0 rounded-xl border border-slate-700 bg-slate-900/60 p-3 text-sm md:text-base overflow-y-auto leading-relaxed">
-                                    <div v-if="!hasAnyTranslation" class="text-slate-500 text-xs md:text-sm">
-                                        {{ ui.youtubeTranslationPlaceholder }}
+
+                            <!-- Riutilizzo pannelli originale/traduzione (solo layout) -->
+                            <div :class="isMobileLowPower
+                                ? 'grid grid-cols-1 gap-3'
+                                : 'grid grid-cols-1 lg:grid-cols-2 gap-3 flex-1 min-h-0'">
+                                <div :class="isMobileLowPower ? 'flex flex-col gap-1' : 'flex flex-col gap-1 min-h-0'">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-sm md:text-base font-semibold text-slate-100">
+                                            {{ ui.youtubeOriginalTitle }}
+                                        </span>
                                     </div>
-                                    <div v-else class="space-y-2">
-                                        <div v-for="(seg, idx) in translationSegments" :key="'yt-seg-' + idx"
-                                            class="whitespace-pre-wrap">
-                                            {{ seg }}
+                                    <div ref="originalBox"
+                                        :class="isMobileLowPower
+                                            ? 'rounded-xl border border-slate-700 bg-slate-900/60 p-3 text-sm md:text-base leading-relaxed'
+                                            : 'flex-1 min-h-0 rounded-xl border border-slate-700 bg-slate-900/60 p-3 text-sm md:text-base overflow-y-auto leading-relaxed'">
+                                        <p v-if="!displayOriginalText" class="text-slate-500 text-xs md:text-sm">
+                                            {{ ui.youtubeOriginalPlaceholder }}
+                                        </p>
+                                        <p v-else class="whitespace-pre-wrap">
+                                            {{ displayOriginalText }}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div :class="isMobileLowPower ? 'flex flex-col gap-1' : 'flex flex-col gap-1 min-h-0'">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-sm md:text-base font-semibold text-slate-100">
+                                            {{ ui.youtubeTranslationTitle }}
+                                        </span>
+                                        <span v-if="isTtsLoading"
+                                            class="text-[10px] md:text-[11px] text-emerald-300 italic ml-2">
+                                            {{ ui.ttsLoadingMessage }}
+                                        </span>
+                                    </div>
+                                    <div ref="translationBox"
+                                        :class="isMobileLowPower
+                                            ? 'rounded-xl border border-slate-700 bg-slate-900/60 p-3 text-sm md:text-base leading-relaxed'
+                                            : 'flex-1 min-h-0 rounded-xl border border-slate-700 bg-slate-900/60 p-3 text-sm md:text-base overflow-y-auto leading-relaxed'">
+                                        <div v-if="!hasAnyTranslation" class="text-slate-500 text-xs md:text-sm">
+                                            {{ ui.youtubeTranslationPlaceholder }}
                                         </div>
-                                        <div ref="translationLiveContainer" class="whitespace-pre-wrap"></div>
+                                        <div v-else class="space-y-2">
+                                            <div v-for="(seg, idx) in translationSegments" :key="'yt-seg-' + idx"
+                                                class="whitespace-pre-wrap">
+                                                {{ seg }}
+                                            </div>
+                                            <div ref="translationLiveContainer" class="whitespace-pre-wrap"></div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                        <div v-if="lastBackendAudioUrl"
-                            class="text-[11px] text-slate-400 italic break-all flex-shrink-0">
-                            <a :href="lastBackendAudioUrl" download="backend-audio.webm"
-                                class="underline hover:text-emerald-300">
-                                {{ ui.downloadBackendAudioLabel }}
-                            </a>
+                            <div v-if="lastBackendAudioUrl"
+                                class="text-[11px] text-slate-400 italic break-all flex-shrink-0">
+                                <a :href="lastBackendAudioUrl" download="backend-audio.webm"
+                                    class="underline hover:text-emerald-300">
+                                    {{ ui.downloadBackendAudioLabel }}
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Mobile: CTA sticky in basso (posizione comoda pollice) -->
-                <div v-if="isMobileLowPower"
-                    class="fixed left-0 right-0 bottom-0 z-40 px-3 pb-3 pt-2 bg-slate-950/80 backdrop-blur border-t border-slate-700/50">
-                    <div class="max-w-7xl mx-auto">
-                        <button type="button" @click="toggleListeningForLang('A')"
-                            :disabled="!youtubeLangSource || !youtubeLangTarget" class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl text-sm font-black border transition
-                                focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900"
-                            :class="isListening
-                                ? 'bg-emerald-600 text-white border-emerald-400 shadow-lg shadow-emerald-500/30'
-                                : 'bg-slate-800 text-slate-100 border-slate-600 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed'">
-                            <span
-                                class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-black/30 border border-slate-600">
-                                <span class="inline-block w-2 h-4 rounded-full"
-                                    :class="isListening ? 'bg-red-400 animate-pulse' : 'bg-slate-300'">
-                                </span>
+                <!-- Mobile: CTA in fondo al pannello (no overlay/fixed, niente sovrapposizioni) -->
+                <div v-if="isMobileLowPower" class="flex-shrink-0 pt-2 pb-1"
+                    :style="{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 6px)' }">
+                    <button type="button" @click="toggleListeningForLang('A')"
+                        :disabled="!youtubeLangSource || !youtubeLangTarget" class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl text-sm font-black border transition
+                            focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900"
+                        :class="isListening
+                            ? 'bg-emerald-600 text-white border-emerald-400 shadow-lg shadow-emerald-500/30'
+                            : 'bg-slate-800 text-slate-100 border-slate-600 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed'">
+                        <span
+                            class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-black/30 border border-slate-600">
+                            <span class="inline-block w-2 h-4 rounded-full"
+                                :class="isListening ? 'bg-red-400 animate-pulse' : 'bg-slate-300'">
                             </span>
-                            <span>
-                                {{ isListening ? ui.youtubeMicAActive : ui.youtubeMicAHelp }}
-                            </span>
-                        </button>
-                        <div class="mt-1 text-[10px] text-slate-400 text-center">
-                            {{ getLangLabel(youtubeLangSource) }} → {{ getLangLabel(youtubeLangTarget) }}
-                        </div>
+                        </span>
+                        <span>
+                            {{ isListening ? ui.youtubeMicAActive : ui.youtubeMicAHelp }}
+                        </span>
+                    </button>
+                    <div class="mt-1 text-[10px] text-slate-400 text-center">
+                        {{ getLangLabel(youtubeLangSource) }} → {{ getLangLabel(youtubeLangTarget) }}
                     </div>
                 </div>
             </div>
