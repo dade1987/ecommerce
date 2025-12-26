@@ -26,8 +26,21 @@ class MenuItemUrlResolver
             return $href;
         }
 
-        $baseConfig = config('app.url');
-        $base = is_string($baseConfig) ? $baseConfig : '';
+        // Preferisci l'host corrente quando sei in HTTP request (es. Filament),
+        // così non dipendi da APP_URL/ config('app.url') eventualmente non allineato.
+        $base = '';
+        if (! app()->runningInConsole()) {
+            try {
+                $base = request()->getSchemeAndHttpHost();
+            } catch (\Throwable $e) {
+                $base = '';
+            }
+        }
+
+        if (trim($base) === '') {
+            $baseConfig = config('app.url');
+            $base = is_string($baseConfig) ? $baseConfig : '';
+        }
         if (trim($base) === '') {
             throw new \InvalidArgumentException('config(app.url) mancante: impossibile risolvere URL assoluto.');
         }

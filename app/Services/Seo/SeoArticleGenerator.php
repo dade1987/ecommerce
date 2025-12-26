@@ -10,6 +10,7 @@ use Illuminate\Support\Str;
 use OpenAI;
 use function Safe\json_decode;
 use function Safe\json_encode;
+use function Safe\preg_match;
 
 class SeoArticleGenerator
 {
@@ -19,7 +20,7 @@ class SeoArticleGenerator
     ) {
     }
 
-    public function generate(string $targetHref, string $keyword): Article
+    public function generate(string $targetHref, string $keyword, string $language = 'it'): Article
     {
         $apiKeyConfig = config('openapi.key');
         $apiKey = is_string($apiKeyConfig) ? $apiKeyConfig : '';
@@ -30,6 +31,11 @@ class SeoArticleGenerator
         $keyword = trim($keyword);
         if ($keyword === '') {
             throw new \InvalidArgumentException('Keyword vuota.');
+        }
+
+        $language = strtolower(trim($language));
+        if (! preg_match('/^[a-z]{2}$/', $language)) {
+            $language = 'it';
         }
 
         $targetHref = trim($targetHref);
@@ -65,18 +71,21 @@ class SeoArticleGenerator
 
         $client = OpenAI::client($apiKey);
 
+        $languageName = $this->languageName($language);
+        $systemPrompt = <<<SYS
+Sei un Marketing Specialist esperto di landing page e un SEO strategist.
+Scrivi contenuti orientati alla conversione, chiari, credibili, con CTA efficace e struttura ottimizzata per Google.
+Scrivi SEMPRE e SOLO in {$languageName} (codice lingua: {$language}). Non mescolare lingue. Non dire mai che sei un'IA.
+IMPORTANTE: devi rispondere SEMPRE e SOLO in formato json valido (json object), senza testo extra.
+SYS;
+
         $response = $client->chat()->create([
             'model' => 'gpt-4o',
             'response_format' => ['type' => 'json_object'],
             'messages' => [
                 [
                     'role' => 'system',
-                    'content' => <<<'SYS'
-Sei un Marketing Specialist esperto di landing page e un SEO strategist.
-Scrivi contenuti orientati alla conversione, chiari, credibili, con CTA efficace e struttura ottimizzata per Google.
-Scrivi in italiano. Non dire mai che sei un'IA.
-IMPORTANTE: devi rispondere SEMPRE e SOLO in formato json valido (json object), senza testo extra.
-SYS,
+                    'content' => $systemPrompt,
                 ],
                 [
                     'role' => 'user',
@@ -84,6 +93,10 @@ SYS,
                         'task' => 'Genera un articolo SEO da indicizzare su una keyword, con CTA verso una pagina specifica del sito.',
                         'format' => 'json only',
                         'keyword' => $keyword,
+                        'language' => [
+                            'code' => $language,
+                            'name' => $languageName,
+                        ],
                         'target' => [
                             'href' => $targetHref,
                             'url' => $targetUrl,
@@ -154,7 +167,7 @@ SYS,
         // Immagine con DALL·E 3 (ultima versione richiesta)
         $imagePrompt = trim((string) ($data['image_prompt'] ?? ''));
         if ($imagePrompt === '') {
-            $imagePrompt = "Immagine moderna e professionale per un articolo SEO su: {$keyword}. Stile pulito, business, minimal, nessun testo.";
+            $imagePrompt = "Immagine moderna e professionale per un articolo SEO su: {$keyword}. Stile pulito, business, minimal, nessun testo. Lingua articolo: {$language}.";
         }
 
         $imageResponse = $client->images()->create([
@@ -205,9 +218,9 @@ SYS,
         return $article;
     }
 
-    public function generateInto(Article $article, string $targetHref, string $keyword): void
+    public function generateInto(Article $article, string $targetHref, string $keyword, string $language = 'it'): void
     {
-        $generated = $this->generate($targetHref, $keyword);
+        $generated = $this->generate($targetHref, $keyword, $language);
 
         // Copia i campi sul record placeholder (mantiene id stabile)
         $generatedSlugAttr = $generated->getAttribute('slug');
@@ -261,5 +274,18 @@ SYS,
         }
 
         return $slug;
+    }
+
+    private function languageName(string $code): string
+    {
+        return match ($code) {
+            'it' => 'Italiano',
+            'en' => 'Inglese',
+            'fr' => 'Francese',
+            'es' => 'Spagnolo',
+            'de' => 'Tedesco',
+            'pt' => 'Portoghese',
+            default => strtoupper($code),
+        };
     }
 }

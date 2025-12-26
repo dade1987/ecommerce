@@ -20,6 +20,7 @@ class GenerateSeoArticleFromKeywordJob implements ShouldQueue
     public function __construct(
         public string $targetHref,
         public string $keyword,
+        public string $language = 'it',
     ) {
     }
 
@@ -35,10 +36,10 @@ class GenerateSeoArticleFromKeywordJob implements ShouldQueue
                 'title' => $placeholderTitle,
                 'slug' => $placeholderSlug,
                 'summary' => 'Generazione in corso…',
-                'content' => "Generazione in coda.\n\nKeyword: {$this->keyword}\nTarget: {$this->targetHref}",
+                'content' => "Generazione in coda.\n\nKeyword: {$this->keyword}\nLingua: {$this->language}\nTarget: {$this->targetHref}",
             ]);
 
-            $generator->generateInto($article, $this->targetHref, $this->keyword);
+            $generator->generateInto($article, $this->targetHref, $this->keyword, $this->language);
 
             try {
                 $tag = Tag::firstOrCreate(

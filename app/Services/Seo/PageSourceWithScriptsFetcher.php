@@ -31,11 +31,20 @@ class PageSourceWithScriptsFetcher
 
         $url = $this->urlResolver->resolveHref($targetHref);
 
-        $htmlResponse = Http::timeout(25)->withHeaders([
-            'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-            'Accept-Language' => 'it-IT,it;q=0.9,en;q=0.8',
-            'User-Agent' => 'Mozilla/5.0 (compatible; EcommerceSeoBot/1.0)',
-        ])->get($url);
+        try {
+            $htmlResponse = Http::connectTimeout(5)
+                ->timeout(60)
+                ->withHeaders([
+                    'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                    'Accept-Language' => 'it-IT,it;q=0.9,en;q=0.8',
+                    'User-Agent' => 'Mozilla/5.0 (compatible; EcommerceSeoBot/1.0)',
+                ])
+                ->get($url);
+        } catch (\Throwable $e) {
+            return [
+                'error' => "Impossibile scaricare HTML: {$e->getMessage()}. Se l'URL è relativo, verifica APP_URL/config(app.url) o inserisci un URL assoluto raggiungibile dal server.",
+            ];
+        }
 
         if (! $htmlResponse->successful()) {
             return ['error' => 'Impossibile scaricare HTML (HTTP '.$htmlResponse->status().').'];
@@ -158,7 +167,7 @@ class PageSourceWithScriptsFetcher
 
         foreach (array_slice($scriptUrls, 0, $maxScripts) as $u) {
             try {
-                $resp = Http::timeout(25)->withHeaders([
+                $resp = Http::connectTimeout(5)->timeout(30)->withHeaders([
                     'Accept' => '*/*',
                     'User-Agent' => 'Mozilla/5.0 (compatible; EcommerceSeoBot/1.0)',
                 ])->get($u);

@@ -5,9 +5,12 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\ArticleResource\Pages;
 use App\Models\Article;
 use App\Models\Tag;
+use App\Services\OpenAi\OpenAiLanguageDetector;
 use Awcodes\Curator\Components\Forms\CuratorPicker;
 use Filament\Forms;
 use Filament\Forms\Components\Actions\Action;
+use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Form;
@@ -18,6 +21,7 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Support\Str;
 use function Safe\json_decode;
+use function Safe\preg_match;
 
 class ArticleResource extends Resource
 {
@@ -42,7 +46,7 @@ class ArticleResource extends Resource
                     ->required()
                     ->maxLength(255)
                     ->live(onBlur: true) // Met à jour le slug après modification du titre
-                    ->afterStateUpdated(fn (Set $set, ?string $state) => $set('slug', Str::slug($state))),
+                    ->afterStateUpdated(fn (Set $set, ?string $state) => $set('slug', Str::slug($state ?? ''))),
 
                 Forms\Components\TextInput::make('slug')
                     ->label('Slug')
@@ -50,7 +54,7 @@ class ArticleResource extends Resource
                     ->unique(ignoreRecord: true) // Vérifie l'unicité sauf lors de la modification
                     ->dehydrated() // Assure que la valeur est bien envoyée au modèle
                     ->disabled(fn ($livewire) => $livewire instanceof Pages\EditArticle) // Édition désactivée sauf lors de la modification
-                    ->afterStateUpdated(fn (Set $set, ?string $state) => $set('slug', Str::slug($state)))
+                    ->afterStateUpdated(fn (Set $set, ?string $state) => $set('slug', Str::slug($state ?? '')))
                     ->reactive(),
 
                 Forms\Components\Textarea::make('summary')
@@ -63,8 +67,77 @@ class ArticleResource extends Resource
                         Action::make('generateWithGpt')
                             ->icon('heroicon-m-sparkles')
                             ->label('Generate with AI')
+                            ->modalHeading('Genera contenuto (con lingua suggerita)')
+                            ->modalSubmitActionLabel('Genera')
                             ->requiresConfirmation()
-                            ->action(function (Set $set, callable $get) {
+                            ->form([
+                                Select::make('language')
+                                    ->label('Lingua articolo')
+                                    ->options(static::languageOptions())
+                                    ->required()
+                                    ->helperText('Suggerita automaticamente in base al titolo (puoi cambiarla).'),
+                                Placeholder::make('language_suggestion')
+                                    ->label('Suggerimento')
+                                    ->content(function (callable $get): string {
+                                        $detected = $get('detected_language');
+                                        $name = $get('detected_language_name');
+                                        $conf = $get('detected_language_confidence');
+
+                                        $detected = is_string($detected) ? $detected : '';
+                                        $name = is_string($name) ? $name : '';
+                                        $conf = is_numeric($conf) ? (float) $conf : null;
+
+                                        if ($detected === '') {
+                                            return 'Non disponibile (fallback: IT).';
+                                        }
+
+                                        $confText = $conf !== null ? (string) round($conf * 100).'%' : '—';
+
+                                        return trim("Rilevata: {$name} ({$detected}) • Confidenza: {$confText}");
+                                    }),
+                                Hidden::make('detected_language'),
+                                Hidden::make('detected_language_name'),
+                                Hidden::make('detected_language_confidence'),
+                            ])
+                            ->fillForm(function (callable $get, OpenAiLanguageDetector $detector): array {
+                                $title = $get('title');
+                                $title = is_string($title) ? trim($title) : '';
+
+                                $prompt = $get('content');
+                                $prompt = is_string($prompt) ? trim($prompt) : '';
+
+                                // Preferiamo il titolo (keyword) come segnale principale.
+                                $text = $title !== '' ? $title : $prompt;
+                                if ($text === '') {
+                                    return [
+                                        'language' => 'it',
+                                        'detected_language' => 'it',
+                                        'detected_language_name' => 'Italian',
+                                        'detected_language_confidence' => 0.0,
+                                    ];
+                                }
+
+                                try {
+                                    $detected = $detector->detect($text);
+                                } catch (\Throwable $e) {
+                                    // fallback silenzioso: non bloccare il modal
+                                    $detected = [
+                                        'language_code' => 'it',
+                                        'language_name' => 'Italian',
+                                        'confidence' => 0.0,
+                                    ];
+                                }
+
+                                $code = (string) ($detected['language_code'] ?? 'it');
+
+                                return [
+                                    'language' => $code,
+                                    'detected_language' => $code,
+                                    'detected_language_name' => (string) ($detected['language_name'] ?? ''),
+                                    'detected_language_confidence' => (float) ($detected['confidence'] ?? 0.0),
+                                ];
+                            })
+                            ->action(function (array $data, Set $set, callable $get) {
                                 $title = $get('title');
                                 $prompt = $get('content');
 
@@ -76,7 +149,13 @@ class ArticleResource extends Resource
                                     throw new \Exception('The content field must be filled before generating content.');
                                 }
 
-                                $generatedContent = static::generateContent($title, $prompt);
+                                $language = $data['language'] ?? 'it';
+                                $language = is_string($language) ? trim($language) : 'it';
+                                if ($language === '') {
+                                    $language = 'it';
+                                }
+
+                                $generatedContent = static::generateContent($title, $prompt, $language);
                                 $set('content', $generatedContent);
                             })
                     ),
@@ -110,7 +189,7 @@ class ArticleResource extends Resource
 
                 CuratorPicker::make('featured_image_id')
                     ->relationship('featuredImage', 'id')
-                    ->imageResizeTargetWidth(10),
+                    ->imageResizeTargetWidth('10'),
             ]);
     }
 
@@ -121,17 +200,23 @@ class ArticleResource extends Resource
      * @return string
      * @throws \Exception
      */
-    protected static function generateContent(string $title, string $prompt): string
+    protected static function generateContent(string $title, string $prompt, string $language): string
     {
-        $apiKey = config('services.openai.key');
+        $apiKeyConfig = config('services.openai.key');
+        $apiKey = is_string($apiKeyConfig) ? trim($apiKeyConfig) : '';
 
-        if (! $apiKey) {
+        if ($apiKey === '') {
             throw new \Exception('OpenAI API key is missing.');
         }
 
         $client = new \GuzzleHttp\Client();
 
         try {
+            $language = strtolower(trim($language));
+            if (! preg_match('/^[a-z]{2}$/', $language)) {
+                $language = 'it';
+            }
+
             $response = $client->post('https://api.openai.com/v1/chat/completions', [
                 'headers' => [
                     'Authorization' => "Bearer {$apiKey}",
@@ -140,21 +225,63 @@ class ArticleResource extends Resource
                 'json' => [
                     'model' => 'gpt-4o',
                     'messages' => [
-                        ['role' => 'system', 'content' => 'Sei uno scrittore professionista di blog.'],
-                        ['role' => 'user', 'content' => "Scrivi un articolo dettagliato con testo NON FORMATTATO ECCETTO GLI \"A CAPI\", sul seguente argomento: {$title}"],
-                        ['role' => 'user', 'content' => "In più ti fornisco le seguenti indicazioni: {$prompt}"],
+                        [
+                            'role' => 'system',
+                            'content' => "Sei uno scrittore professionista di blog.\nSCRIVI SEMPRE E SOLO nella lingua corrispondente a questo codice ISO-639-1: {$language}.\nNon dire mai che sei un'IA.",
+                        ],
+                        [
+                            'role' => 'user',
+                            'content' => "Titolo/Keyword: {$title}\n\nScrivi un articolo dettagliato con testo NON FORMATTATO ECCETTO GLI \"A CAPI\".",
+                        ],
+                        [
+                            'role' => 'user',
+                            'content' => "Indicazioni aggiuntive: {$prompt}",
+                        ],
                     ],
                     'max_tokens' => 1000,
                     'temperature' => 0.75,
                 ],
             ]);
 
-            $data = json_decode($response->getBody(), true);
+            $decoded = json_decode((string) $response->getBody(), true);
+            if (! is_array($decoded)) {
+                return 'No content generated.';
+            }
 
-            return $data['choices'][0]['message']['content'] ?? 'No content generated.';
+            $choices = $decoded['choices'] ?? null;
+            if (! is_array($choices) || ! isset($choices[0]) || ! is_array($choices[0])) {
+                return 'No content generated.';
+            }
+
+            $message = $choices[0]['message'] ?? null;
+            if (! is_array($message)) {
+                return 'No content generated.';
+            }
+
+            $content = $message['content'] ?? null;
+            if (! is_string($content) || trim($content) === '') {
+                return 'No content generated.';
+            }
+
+            return $content;
         } catch (\Exception $e) {
             return 'Error: '.$e->getMessage();
         }
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function languageOptions(): array
+    {
+        return [
+            'it' => 'Italiano (it)',
+            'en' => 'English (en)',
+            'fr' => 'Français (fr)',
+            'es' => 'Español (es)',
+            'de' => 'Deutsch (de)',
+            'pt' => 'Português (pt)',
+        ];
     }
 
     public static function table(Table $table): Table

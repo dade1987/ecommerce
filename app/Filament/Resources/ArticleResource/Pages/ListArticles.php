@@ -4,6 +4,7 @@ namespace App\Filament\Resources\ArticleResource\Pages;
 
 use App\Filament\Resources\ArticleResource;
 use App\Jobs\GenerateSeoArticleFromKeywordJob;
+use App\Services\OpenAi\OpenAiLanguageDetector;
 use App\Services\Seo\CsvKeywordExtractor;
 use App\Services\Seo\KeywordRelevanceService;
 use App\Services\Seo\MenuItemUrlResolver;
@@ -77,6 +78,9 @@ class ListArticles extends ListRecords
                             ->schema([
                                 Hidden::make('csv_keywords'),
                                 Hidden::make('suggested_keywords'),
+                                Hidden::make('detected_language'),
+                                Hidden::make('detected_language_name'),
+                                Hidden::make('detected_language_confidence'),
 
                                 Placeholder::make('csv_keywords_count')
                                     ->label('Keyword estratte dal CSV')
@@ -104,7 +108,7 @@ class ListArticles extends ListRecords
                                     FormAction::make('analyze')
                                         ->label('Analizza e suggerisci keyword')
                                         ->icon('heroicon-o-magnifying-glass')
-                                        ->action(function (Set $set, callable $get, CsvKeywordExtractor $extractor, KeywordRelevanceService $relevance) {
+                                        ->action(function (Set $set, callable $get, CsvKeywordExtractor $extractor, KeywordRelevanceService $relevance, OpenAiLanguageDetector $langDetector) {
                                             $targetHref = $get('target_href');
                                             $targetHref = is_string($targetHref) ? trim($targetHref) : '';
                                             $csv = $get('csv_file');
@@ -188,6 +192,34 @@ class ListArticles extends ListRecords
                                             $set('suggested_keywords', $options);
                                             $set('selected_keywords', $selected);
 
+                                            // Suggerisci lingua (Step 4) usando un campione di keyword
+                                            try {
+                                                $sample = array_slice($selected, 0, 30);
+                                                $text = implode("\n", array_map(fn ($k) => (string) $k, $sample));
+                                                $detected = $langDetector->detect($text);
+                                                $code = (string) ($detected['language_code'] ?? 'it');
+                                                $set('detected_language', $code);
+                                                $set('detected_language_name', (string) ($detected['language_name'] ?? ''));
+                                                $set('detected_language_confidence', (float) ($detected['confidence'] ?? 0.0));
+
+                                                // Se non hai già scelto una lingua, precompilala
+                                                $currentLang = $get('language');
+                                                $currentLang = is_string($currentLang) ? trim($currentLang) : '';
+                                                if ($currentLang === '') {
+                                                    $set('language', $code);
+                                                }
+                                            } catch (\Throwable $e) {
+                                                // non bloccare: fallback IT
+                                                $set('detected_language', 'it');
+                                                $set('detected_language_name', 'Italian');
+                                                $set('detected_language_confidence', 0.0);
+                                                $currentLang = $get('language');
+                                                $currentLang = is_string($currentLang) ? trim($currentLang) : '';
+                                                if ($currentLang === '') {
+                                                    $set('language', 'it');
+                                                }
+                                            }
+
                                             Notification::make()
                                                 ->title('Suggerimenti aggiornati')
                                                 ->body('Ora puoi selezionare le keyword da usare per la generazione.')
@@ -203,8 +235,8 @@ class ListArticles extends ListRecords
                                 ]),
                             ]),
 
-                        Step::make('Seleziona + genera')
-                            ->description('Seleziona le keyword e genera 1 articolo per keyword')
+                        Step::make('Seleziona keyword')
+                            ->description('Seleziona le keyword che vuoi generare')
                             ->schema([
                                 \Filament\Forms\Components\Actions::make([
                                     FormAction::make('select_all_keywords')
@@ -226,12 +258,45 @@ class ListArticles extends ListRecords
                                     ->columns(2)
                                     ->required(),
                             ]),
+                        Step::make('Lingua (Step 4)')
+                            ->description('Conferma la lingua di scrittura (suggerita automaticamente dalle keyword)')
+                            ->schema([
+                                Select::make('language')
+                                    ->label('Lingua articolo')
+                                    ->options(ArticleResource::languageOptions())
+                                    ->required()
+                                    ->helperText('Viene suggerita in base alle keyword.'),
+                                Placeholder::make('language_suggestion')
+                                    ->label('Suggerimento')
+                                    ->content(function (callable $get): string {
+                                        $detected = $get('detected_language');
+                                        $name = $get('detected_language_name');
+                                        $conf = $get('detected_language_confidence');
+
+                                        $detected = is_string($detected) ? $detected : '';
+                                        $name = is_string($name) ? $name : '';
+                                        $conf = is_numeric($conf) ? (float) $conf : null;
+
+                                        if ($detected === '') {
+                                            return 'Non disponibile (fallback: IT).';
+                                        }
+
+                                        $confText = $conf !== null ? (string) round($conf * 100).'%' : '—';
+
+                                        return trim("Rilevata: {$name} ({$detected}) • Confidenza: {$confText}");
+                                    }),
+                            ]),
                     ])->columnSpanFull(),
                 ])
                 ->action(function (array $data) {
                     $targetHref = $data['target_href'] ?? '';
                     $targetHref = is_string($targetHref) ? trim($targetHref) : '';
                     $keywords = $data['selected_keywords'] ?? [];
+                    $language = $data['language'] ?? 'it';
+                    $language = is_string($language) ? strtolower(trim($language)) : 'it';
+                    if (! preg_match('/^[a-z]{2}$/', $language)) {
+                        $language = 'it';
+                    }
 
                     if ($targetHref === '' || ! is_array($keywords) || empty($keywords)) {
                         Notification::make()->title('Dati mancanti: inserisci URL target e seleziona keyword.')->danger()->send();
@@ -250,7 +315,8 @@ class ListArticles extends ListRecords
                         }
                         GenerateSeoArticleFromKeywordJob::dispatch(
                             targetHref: $targetHref,
-                            keyword: $kw
+                            keyword: $kw,
+                            language: $language,
                         );
                     }
 
