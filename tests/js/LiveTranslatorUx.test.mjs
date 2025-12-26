@@ -77,6 +77,63 @@ const source = fs.readFileSync(componentPath, 'utf8');
   );
 }
 
+// Flussi principali UX (Call): toggle e opzioni chiave devono restare presenti
+{
+  const hasCallCoreToggles =
+    source.includes('callTranslationEnabled') &&
+    source.includes('readTranslationEnabledCall') &&
+    source.includes('earphonesModeEnabledCall') &&
+    source.includes('callAutoPauseEnabled');
+
+  assert.ok(
+    hasCallCoreToggles,
+    'LiveTranslator.vue: la tab Call deve includere i toggle principali (traduzione, doppiaggio, auricolari, auto-pausa).',
+  );
+}
+
+// Flussi principali UX (YouTube): opzioni chiave devono restare presenti
+{
+  const hasYoutubeCoreControls =
+    source.includes('readTranslationEnabledYoutube') &&
+    source.includes('youtubeAutoPauseEnabled') &&
+    source.includes('youtubeAutoResumeEnabled') &&
+    source.includes('youtubeUrl') &&
+    source.includes('youtubeLangSource') &&
+    source.includes('youtubeLangTarget');
+
+  assert.ok(
+    hasYoutubeCoreControls,
+    'LiveTranslator.vue: la tab YouTube deve includere controlli principali (doppiaggio, auto pause/resume, URL, lingue).',
+  );
+}
+
+// UX Android/mobile: avviso YouTube deve essere collassabile per non occupare troppo spazio
+{
+  const youtubeMobileWarningIsDetails =
+    source.includes('youtubeMobileWarningShort') &&
+    source.includes('<details') &&
+    source.includes('ui.youtubeMobileWarning');
+
+  assert.ok(
+    youtubeMobileWarningIsDetails,
+    'LiveTranslator.vue: l’avviso YouTube su mobile deve essere collassabile (<details>) e includere una label breve + testo completo.',
+  );
+}
+
+// Avviso “Novità” in pagina (wow natalizio) deve esistere ed essere dismissibile
+{
+  const hasHolidayNotice =
+    source.includes('showHolidayNotice') &&
+    source.includes('ui.holidayNoticeTitle') &&
+    source.includes('holiday-wow') &&
+    source.includes('showHolidayNotice = false');
+
+  assert.ok(
+    hasHolidayNotice,
+    'LiveTranslator.vue: deve esistere un avviso “Novità” dismissibile (showHolidayNotice) con stile wow natalizio (holiday-wow).',
+  );
+}
+
 
 
 

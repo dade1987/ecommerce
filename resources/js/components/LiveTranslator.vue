@@ -91,6 +91,39 @@
             </div>
 
             <!-- TAB 1: Interprete e Suggeritore Call Lavoro -->
+            <!-- Avviso “Novità” (in-page, dismissibile) -->
+            <div v-if="showHolidayNotice" class="mb-3 flex-shrink-0 animate-fadeInUp">
+                <div
+                    class="relative rounded-2xl border border-emerald-500/30 bg-slate-950/50 backdrop-blur px-3 py-2 holiday-wow">
+                    <!-- ping/glow decorativi -->
+                    <span class="pointer-events-none absolute inset-0 rounded-2xl holiday-wow-pulse"></span>
+                    <span class="pointer-events-none absolute inset-0 rounded-2xl holiday-wow-sparkle"></span>
+
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0">
+                            <div class="text-[11px] md:text-xs font-black tracking-wide text-emerald-200 uppercase">
+                                {{ ui.holidayNoticeTitle }}
+                            </div>
+
+                            <details :open="!isMobileLowPower" class="mt-1">
+                                <summary class="cursor-pointer select-none text-xs text-slate-200">
+                                    {{ ui.holidayNoticeSummary }}
+                                </summary>
+                                <div class="mt-2 text-[11px] md:text-xs text-slate-200/90 leading-relaxed space-y-2">
+                                    <div>{{ ui.holidayNoticeBody1 }}</div>
+                                    <div>{{ ui.holidayNoticeBody2 }}</div>
+                                </div>
+                            </details>
+                        </div>
+                        <button type="button" @click="showHolidayNotice = false"
+                            class="flex-shrink-0 h-7 w-7 rounded-full border border-slate-700/60 bg-slate-900/60 text-slate-200 hover:bg-slate-800/70 transition"
+                            :aria-label="ui.holidayNoticeDismissAria">
+                            ✕
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <div v-if="activeTab === 'call'" class="flex flex-col gap-3 flex-1 min-h-0">
                 <p v-if="statusMessage" class="text-xs text-slate-300 text-center">
                     {{ statusMessage }}
@@ -695,10 +728,21 @@
                 </p>
 
                 <!-- Avviso mobile-only: YouTube interprete limitato su smartphone -->
-                <div v-if="isMobileLowPower"
-                    class="w-full rounded-lg border border-amber-500/40 bg-amber-900/25 px-3 py-2 text-[11px] md:text-xs text-amber-100 flex items-start gap-2">
-                    <span class="mt-0.5 text-sm">📱</span>
-                    <span>{{ ui.youtubeMobileWarning }}</span>
+                <div v-if="isMobileLowPower" class="w-full">
+                    <details
+                        class="w-full rounded-xl border border-amber-500/40 bg-amber-900/20 px-3 py-2 text-amber-100">
+                        <summary
+                            class="cursor-pointer select-none text-[11px] font-semibold flex items-center justify-between gap-2">
+                            <span class="inline-flex items-center gap-2">
+                                <span class="text-sm">📱</span>
+                                <span>{{ ui.youtubeMobileWarningShort }}</span>
+                            </span>
+                            <span class="text-[10px] text-amber-200/90">info</span>
+                        </summary>
+                        <div class="mt-2 text-[11px] leading-relaxed text-amber-100/95">
+                            {{ ui.youtubeMobileWarning }}
+                        </div>
+                    </details>
                 </div>
 
                 <!-- Pannello debug: pulsante + finestra log copiabile (anche in modalità YouTube) -->
@@ -1080,6 +1124,8 @@ export default {
             translationSegments: [],
             translationTokens: [],
             statusMessage: '',
+            // Avviso “Novità” (in-page)
+            showHolidayNotice: true,
             autoRestart: true,
             currentStream: null,
             cvText: '',
@@ -1339,6 +1385,12 @@ export default {
                     tabYoutubeTitle: 'YouTube Interprete',
                     youtubeDesktopOnlyLabel: '',
                     tabYoutubeSubtitle: 'Video + traduzione frase per frase',
+                    holidayNoticeTitle: 'Novità 🎄',
+                    holidayNoticeSummary: 'Bugfix microfono + test anti-regressione. Buon Natale e buone traduzioni!',
+                    holidayNoticeBody1: 'Ho risolto il bug dell’interprete “a turni di frasi”, che era stato introdotto da una modifica legata alla modalità auricolari.',
+                    holidayNoticeBody2: 'In più ho inserito test automatici per evitare regressioni future. Buon Natale e buone traduzioni!',
+                    holidayNoticeDismissAria: 'Chiudi avviso novità',
+                    youtubeMobileWarningShort: 'Esperienza mobile: tocchi qui per i dettagli',
                     translationPlaceholder: 'La traduzione apparirà qui man mano che parli.',
                     youtubePlayerPlaceholder: 'Incolla un URL di YouTube e seleziona le lingue a sinistra: il player si carica automaticamente.',
                     youtubeOriginalTitle: 'Testo riconosciuto dal microfono',
@@ -1447,6 +1499,12 @@ export default {
                     tabYoutubeTitle: 'YouTube Interpreter',
                     youtubeDesktopOnlyLabel: '',
                     tabYoutubeSubtitle: 'Video + phrase-by-phrase translation',
+                    holidayNoticeTitle: 'News 🎄',
+                    holidayNoticeSummary: 'Mic bugfix + anti-regression tests. Merry Christmas and happy translating!',
+                    holidayNoticeBody1: 'I fixed the “turn-by-turn phrases” interpreter bug, which was caused by a change related to Earphones mode.',
+                    holidayNoticeBody2: 'I also added automatic tests to prevent future regressions. Merry Christmas and happy translating!',
+                    holidayNoticeDismissAria: 'Dismiss news notice',
+                    youtubeMobileWarningShort: 'Mobile experience: tap for details',
                     youtubeMobileWarning: 'On this mobile device the browser cannot handle video translation as well as on desktop. For the full YouTube Interpreter experience, use a PC or Mac (ideally with Chrome).',
                     clarifyIntentButton: 'Clarify interlocutor intent',
                     clarifyIntentTitle: 'What the interlocutor probably means',
@@ -6019,6 +6077,42 @@ export default {
     background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
     background-size: 200% 100%;
     animation: shimmer 1.5s infinite;
+}
+
+/* Effetto wow natalizio (solo CSS): glow + shimmer + “sparkle” leggero */
+.holiday-wow {
+    overflow: hidden;
+}
+
+.holiday-wow::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: 18px;
+    background: linear-gradient(90deg,
+            rgba(16, 185, 129, 0.0),
+            rgba(16, 185, 129, 0.25),
+            rgba(56, 189, 248, 0.18),
+            rgba(16, 185, 129, 0.0));
+    background-size: 220% 100%;
+    animation: shimmer 2.8s linear infinite;
+    pointer-events: none;
+    opacity: 0.9;
+}
+
+.holiday-wow-pulse {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.25);
+    animation: pingOnce 1100ms ease-out 1;
+}
+
+.holiday-wow-sparkle {
+    background-image:
+        radial-gradient(circle at 12% 30%, rgba(255, 255, 255, 0.28) 0 1px, transparent 2px),
+        radial-gradient(circle at 32% 70%, rgba(255, 255, 255, 0.18) 0 1px, transparent 2px),
+        radial-gradient(circle at 68% 40%, rgba(255, 255, 255, 0.22) 0 1px, transparent 2px),
+        radial-gradient(circle at 86% 62%, rgba(255, 255, 255, 0.18) 0 1px, transparent 2px);
+    opacity: 0.55;
+    animation: fadeIn 0.6s ease-out both;
 }
 
 /* Transizioni fluide per tutti i bottoni */
