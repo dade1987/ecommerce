@@ -312,6 +312,19 @@ function withGlobalNavigatorStub({ userAgent = 'Mozilla/5.0 (Linux; Android 14) 
   );
 }
 
+// YouTube desktop: i box trascritto/tradotto devono avere altezza fissa e scroll interno (stanno nella pagina)
+{
+  const hasDesktopFixedHeightBoxes =
+    source.includes("h-[220px] md:h-[240px] lg:h-[260px] overflow-y-auto") &&
+    source.includes("ref=\"originalBox\"") &&
+    source.includes("ref=\"translationBox\"");
+
+  assert.ok(
+    hasDesktopFixedHeightBoxes,
+    'LiveTranslator.vue: su YouTube desktop i box original/translation devono avere altezza fissa (h-[220/240/260px]) con overflow-y-auto.',
+  );
+}
+
 // Mobile Call: se callTranslationEnabled è false (solo trascrizione), non deve comparire "Traduzione disattivata"
 {
   const hasTranslationDisabledPlaceholder = source.includes('Traduzione disattivata');
