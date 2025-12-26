@@ -312,6 +312,15 @@ function withGlobalNavigatorStub({ userAgent = 'Mozilla/5.0 (Linux; Android 14) 
   );
 }
 
+// Mobile Call: se callTranslationEnabled è false (solo trascrizione), non deve comparire "Traduzione disattivata"
+{
+  const hasTranslationDisabledPlaceholder = source.includes('Traduzione disattivata');
+  assert.ok(
+    !hasTranslationDisabledPlaceholder,
+    'LiveTranslator.vue: su mobile in modalità solo trascrizione non deve mostrare il placeholder "Traduzione disattivata" (deve esserci solo il riquadro trascrizione).',
+  );
+}
+
 // Gating tab YouTube in emulazione: deve dipendere dalla disponibilità reale WebSpeech, non dal match user-agent.
 {
   const options = loadComponentOptions({ WhisperSpeechRecognition: FakeWhisperRecognition });

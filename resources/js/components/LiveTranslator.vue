@@ -262,8 +262,11 @@
                         </button>
                     </div>
 
-                    <!-- 2 riquadri: occupano tutto lo spazio restante (50/50 altezza) -->
-                    <div class="flex-1 min-h-0 grid grid-rows-2 gap-2 overflow-hidden">
+                    <!-- Riquadri output:
+                         - se traduzione disattivata → mostra SOLO trascrizione (un riquadro)
+                         - altrimenti → trascrizione + traduzione (2 righe 50/50) -->
+                    <div class="flex-1 min-h-0 grid gap-2 overflow-hidden"
+                        :class="callTranslationEnabled ? 'grid-rows-2' : 'grid-rows-1'">
                         <div class="min-h-0 rounded-2xl border border-slate-700/50 bg-slate-950/40 overflow-hidden flex flex-col"
                             :class="(isListening && callPrimaryFocusTarget === 'original') ? 'ring-2 ring-emerald-400/35 focus-wow' : ''">
                             <div class="px-3 py-2 text-[11px] font-semibold text-slate-300 flex-shrink-0">
@@ -297,10 +300,6 @@
                                 </div>
                                 <div ref="translationLiveContainer" class="whitespace-pre-wrap"></div>
                             </div>
-                        </div>
-                        <div v-else
-                            class="min-h-0 rounded-2xl border border-slate-700/50 bg-slate-950/40 overflow-hidden flex items-center justify-center text-xs text-slate-500/70">
-                            Traduzione disattivata
                         </div>
                     </div>
                 </template>
