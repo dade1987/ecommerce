@@ -10,14 +10,14 @@
     "src": "resources/css/filament/admin/theme.css"
   },
   "resources/js/app.css": {
-    "file": "assets/app-028a43ad.css",
+    "file": "assets/app-217fe7bb.css",
     "src": "resources/js/app.css"
   },
   "resources/js/app.js": {
     "css": [
-      "assets/app-028a43ad.css"
+      "assets/app-217fe7bb.css"
     ],
-    "file": "assets/app-18a86b15.js",
+    "file": "assets/app-4b50f472.js",
     "isEntry": true,
     "src": "resources/js/app.js"
   }

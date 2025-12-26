@@ -869,6 +869,30 @@
                                 <div v-else ref="youtubePlayer" class="w-full h-full"></div>
                             </div>
 
+                            <!-- Mobile: CTA subito sotto il video -->
+                            <div v-if="isMobileLowPower" class="pt-2">
+                                <button type="button" @click="toggleListeningForLang('A')"
+                                    :disabled="!youtubeLangSource || !youtubeLangTarget"
+                                    class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl text-sm font-black border transition
+                                        focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900"
+                                    :class="isListening
+                                        ? 'bg-emerald-600 text-white border-emerald-400 shadow-lg shadow-emerald-500/30'
+                                        : 'bg-slate-800 text-slate-100 border-slate-600 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed'">
+                                    <span
+                                        class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-black/30 border border-slate-600">
+                                        <span class="inline-block w-2 h-4 rounded-full"
+                                            :class="isListening ? 'bg-red-400 animate-pulse' : 'bg-slate-300'">
+                                        </span>
+                                    </span>
+                                    <span>
+                                        {{ isListening ? ui.youtubeMicAActive : ui.youtubeMicAHelp }}
+                                    </span>
+                                </button>
+                                <div class="mt-1 text-[10px] text-slate-400 text-center">
+                                    {{ getLangLabel(youtubeLangSource) }} → {{ getLangLabel(youtubeLangTarget) }}
+                                </div>
+                            </div>
+
                             <!-- Riutilizzo pannelli originale/traduzione (solo layout) -->
                             <div :class="isMobileLowPower
                                 ? 'grid grid-cols-1 gap-3'
@@ -929,29 +953,6 @@
                     </div>
                 </div>
 
-                <!-- Mobile: CTA in fondo al pannello (no overlay/fixed, niente sovrapposizioni) -->
-                <div v-if="isMobileLowPower" class="flex-shrink-0 pt-2 pb-1"
-                    :style="{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 6px)' }">
-                    <button type="button" @click="toggleListeningForLang('A')"
-                        :disabled="!youtubeLangSource || !youtubeLangTarget" class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl text-sm font-black border transition
-                            focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900"
-                        :class="isListening
-                            ? 'bg-emerald-600 text-white border-emerald-400 shadow-lg shadow-emerald-500/30'
-                            : 'bg-slate-800 text-slate-100 border-slate-600 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed'">
-                        <span
-                            class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-black/30 border border-slate-600">
-                            <span class="inline-block w-2 h-4 rounded-full"
-                                :class="isListening ? 'bg-red-400 animate-pulse' : 'bg-slate-300'">
-                            </span>
-                        </span>
-                        <span>
-                            {{ isListening ? ui.youtubeMicAActive : ui.youtubeMicAHelp }}
-                        </span>
-                    </button>
-                    <div class="mt-1 text-[10px] text-slate-400 text-center">
-                        {{ getLangLabel(youtubeLangSource) }} → {{ getLangLabel(youtubeLangTarget) }}
-                    </div>
-                </div>
             </div>
         </div>
     </div>

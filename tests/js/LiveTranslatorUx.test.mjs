@@ -288,6 +288,17 @@ function withGlobalNavigatorStub({ userAgent = 'Mozilla/5.0 (Linux; Android 14) 
   );
 }
 
+// Android/YouTube mobile: CTA deve stare sotto il video (prima dei box original/translation)
+{
+  const idxVideo = source.indexOf('ref="youtubePlayer"');
+  const idxCta = source.indexOf('Mobile: CTA subito sotto il video');
+  // Ci sono più originalBox nel file (call + youtube). Prendiamo quello DOPO il CTA.
+  const idxBoxes = source.indexOf('ref="originalBox"', Math.max(0, idxCta));
+
+  assert.ok(idxVideo !== -1 && idxCta !== -1 && idxBoxes !== -1, 'LiveTranslator.vue: markup YouTube atteso non trovato (video/cta/box).');
+  assert.ok(idxVideo < idxCta && idxCta < idxBoxes, 'LiveTranslator.vue: su mobile YouTube il CTA deve essere sotto il video e sopra i riquadri testo.');
+}
+
 // Android/YouTube mobile: i box trascritto/tradotto devono avere altezza fissa (scroll interno)
 {
   const hasFixedHeightBoxes =
