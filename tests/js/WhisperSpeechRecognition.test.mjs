@@ -43,6 +43,18 @@ const source = fs.readFileSync(filePath, 'utf8');
   );
 }
 
+// Se il testo viene filtrato, NON deve "returnare" senza dare modo al chiamante di ripartire:
+// deve emettere comunque un onresult (anche con transcript vuoto) per evitare deadlock sul mic.
+{
+  const closingFilterSetsEmpty = /testo filtrato \(closing\/filler\)[\s\S]*?text\s*=\s*'';/.test(source);
+  const symbolsFilterSetsEmpty = /testo filtrato \(troppi simboli\)[\s\S]*?text\s*=\s*'';/.test(source);
+
+  assert.ok(
+    closingFilterSetsEmpty && symbolsFilterSetsEmpty,
+    'WhisperSpeechRecognition: i filtri testo devono trasformare in stringa vuota (text = \'\') invece di interrompere il flusso senza onresult.',
+  );
+}
+
 
 
 

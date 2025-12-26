@@ -1337,7 +1337,7 @@ export default {
                     tabCallTitle: 'Interprete & CV',
                     tabCallSubtitle: 'Call di lavoro in tempo reale',
                     tabYoutubeTitle: 'YouTube Interprete',
-                    youtubeDesktopOnlyLabel: 'Solo desktop',
+                    youtubeDesktopOnlyLabel: '',
                     tabYoutubeSubtitle: 'Video + traduzione frase per frase',
                     translationPlaceholder: 'La traduzione apparirà qui man mano che parli.',
                     youtubePlayerPlaceholder: 'Incolla un URL di YouTube e seleziona le lingue a sinistra: il player si carica automaticamente.',
@@ -1445,7 +1445,7 @@ export default {
                     tabCallTitle: 'Interpreter & CV',
                     tabCallSubtitle: 'Real-time work call',
                     tabYoutubeTitle: 'YouTube Interpreter',
-                    youtubeDesktopOnlyLabel: 'Desktop only',
+                    youtubeDesktopOnlyLabel: '',
                     tabYoutubeSubtitle: 'Video + phrase-by-phrase translation',
                     youtubeMobileWarning: 'On this mobile device the browser cannot handle video translation as well as on desktop. For the full YouTube Interpreter experience, use a PC or Mac (ideally with Chrome).',
                     clarifyIntentButton: 'Clarify interlocutor intent',
@@ -2945,47 +2945,6 @@ export default {
                             });
                         }
                     }
-
-                    // Caso importante: TTS attivo (modalità normale) ma Whisper ha restituito testo vuoto/filtrato
-                    // → non parte nessun TTS, quindi NON dobbiamo rimanere bloccati in attesa di pendingAutoResumeSpeakerAfterTts.
-                    const shouldAutoResumeCallAfterTtsFallback =
-                        isBackendEngine &&
-                        this.activeTab === 'call' &&
-                        this.callAutoPauseEnabled &&
-                        !!this.pendingAutoResumeSpeakerAfterTts &&
-                        !this.isListening &&
-                        !this.isTtsPlaying &&
-                        (!this.ttsQueueByChannel ||
-                            ((this.ttsQueueByChannel.left || []).length === 0 &&
-                                (this.ttsQueueByChannel.right || []).length === 0 &&
-                                (this.ttsQueueByChannel.center || []).length === 0)) &&
-                        !this.currentStream;
-
-                    if (shouldAutoResumeCallAfterTtsFallback) {
-                        const speaker = this.pendingAutoResumeSpeakerAfterTts;
-                        this.pendingAutoResumeSpeakerAfterTts = null;
-                        this.pendingAutoResumeSpeaker = null;
-
-                        this.debugLog('WebSpeech onend: fallback auto-resume (no TTS started / empty text)', {
-                            speaker,
-                        });
-                        console.log('▶️ WebSpeech onend: fallback auto-resume (no TTS started / empty text)', {
-                            ts: new Date().toISOString(),
-                            speaker,
-                        });
-
-                        try {
-                            this.toggleListeningForLang(speaker);
-                        } catch (err) {
-                            this.debugLog('WebSpeech onend: error fallback auto-resuming mic', {
-                                error: String(err),
-                            });
-                            console.error('❌ WebSpeech onend: error fallback auto-resuming mic', {
-                                ts: new Date().toISOString(),
-                                error: String(err),
-                            });
-                        }
-                    }
                 };
 
                 this.recognition.onresult = (event) => {
@@ -3046,6 +3005,7 @@ export default {
                         });
 
                         let interim = '';
+                        let gotNonEmptyFinal = false;
                         // event.results è un SpeechRecognitionResultList (array-like), non un vero array
                         // Su mobile Chrome può essere un oggetto array-like, quindi lo convertiamo in array
                         const results = event.results ? Array.from(event.results) : [];
@@ -3122,6 +3082,7 @@ export default {
                             if (res.isFinal) {
                                 const clean = text.trim().toLowerCase();
                                 if (clean) {
+                                    gotNonEmptyFinal = true;
                                     const phraseWithDash = `- ${clean}`;
 
                                     this.debugLog('speechFinal', {
@@ -3200,6 +3161,33 @@ export default {
                                 }
                                 interim = [interim, text.trim().toLowerCase()].filter(Boolean).join(' ');
                             }
+                        }
+
+                        // In modalità call (no auricolari) + auto-pausa: se Whisper ha restituito
+                        // un risultato "vuoto" (es. filtrato lato WhisperSpeechRecognition),
+                        // non parte alcun TTS: quindi riaccendiamo il mic qui (dopo onresult),
+                        // non in onend (che arriva prima del risultato con Whisper).
+                        if (
+                            isBackendEngine &&
+                            this.activeTab === 'call' &&
+                            this.callAutoPauseEnabled &&
+                            !!this.pendingAutoResumeSpeakerAfterTts &&
+                            !this.earphonesModeEffective &&
+                            !this.isListening &&
+                            !gotNonEmptyFinal
+                        ) {
+                            const resumeSpeaker = this.pendingAutoResumeSpeakerAfterTts;
+                            this.pendingAutoResumeSpeakerAfterTts = null;
+                            this.pendingAutoResumeSpeaker = null;
+
+                            this.debugLog('WebSpeech onresult: resuming CALL listening after empty/filtered result (auto-pause)', {
+                                speaker: resumeSpeaker,
+                            });
+                            console.log('▶️ WebSpeech onresult: resuming CALL listening after empty/filtered result (auto-pause)', {
+                                ts: new Date().toISOString(),
+                                speaker: resumeSpeaker,
+                            });
+                            this.toggleListeningForLang(resumeSpeaker);
                         }
 
                         this.originalInterim = interim;

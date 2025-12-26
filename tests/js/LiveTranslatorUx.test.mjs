@@ -47,6 +47,36 @@ const source = fs.readFileSync(componentPath, 'utf8');
   );
 }
 
+// Regressione critica: in modalità call "leggi traduzione senza auricolari"
+// il mic NON deve riaccendersi in onend (con Whisper onend arriva prima di onresult).
+{
+  const hasOldOnendFallback = source.includes('fallback auto-resume (no TTS started / empty text)');
+  assert.ok(
+    !hasOldOnendFallback,
+    'LiveTranslator.vue: non deve esistere un fallback auto-resume in onend per pendingAutoResumeSpeakerAfterTts (causa resume troppo presto).',
+  );
+}
+
+// Deve esistere il resume post-TTS in call (no auricolari) per l’auto-pausa.
+{
+  const hasResumeAfterTts = source.includes('resuming CALL listening after TTS (auto-pause)') &&
+    source.includes('pendingAutoResumeSpeakerAfterTts');
+
+  assert.ok(
+    hasResumeAfterTts,
+    'LiveTranslator.vue: deve riaccendere il microfono dopo la lettura TTS quando pendingAutoResumeSpeakerAfterTts è impostato.',
+  );
+}
+
+// Se Whisper restituisce un risultato vuoto/filtrato (quindi niente TTS), deve comunque ripartire dal punto giusto (onresult).
+{
+  const hasResumeAfterEmptyFiltered = source.includes('resuming CALL listening after empty/filtered result (auto-pause)');
+  assert.ok(
+    hasResumeAfterEmptyFiltered,
+    'LiveTranslator.vue: deve gestire il resume dopo risultato vuoto/filtrato in onresult (auto-pause), per evitare mic bloccato.',
+  );
+}
+
 
 
 

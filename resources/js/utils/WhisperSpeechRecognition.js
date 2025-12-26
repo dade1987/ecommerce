@@ -307,7 +307,7 @@ export default class WhisperSpeechRecognition {
                 /^\s*s{3,}h{2,}[\s\!\.\,\-–•]*$/.test(lower)
             ) {
                 console.log('🚫 WhisperSpeechRecognition: testo filtrato (closing/filler)', { text });
-                return;
+                text = '';
             }
 
             // Filtri per testi corti con molti simboli
@@ -333,7 +333,7 @@ export default class WhisperSpeechRecognition {
                         symbolRatio,
                         hasSpace,
                     });
-                    return;
+                    text = '';
                 }
             }
 
