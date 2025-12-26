@@ -14,6 +14,168 @@ import path from 'node:path';
 const componentPath = path.resolve('resources/js/components/LiveTranslator.vue');
 const source = fs.readFileSync(componentPath, 'utf8');
 
+function extractVueScript(vueSource) {
+  const match = vueSource.match(/<script>\s*[\s\S]*?\s*<\/script>/);
+  assert.ok(match, 'LiveTranslator.vue deve contenere un blocco <script>...</script>.');
+  return match[0]
+    .replace(/^<script>\s*/i, '')
+    .replace(/\s*<\/script>\s*$/i, '');
+}
+
+function loadComponentOptions({ WhisperSpeechRecognition }) {
+  const rawScript = extractVueScript(source);
+
+  // Rimuovi gli import (Node non li può risolvere qui).
+  // Manteniamo il contenuto dell'export default e lo valutiamo come plain object.
+  let code = rawScript.replace(/^\s*import\s+.*$/gm, '');
+
+  // Trasforma export default in return, così possiamo ottenere l'oggetto opzioni.
+  code = code.replace(/export\s+default\s*{/, 'return {');
+
+  // Nel file il blocco termina con "};" → va bene dentro la Function.
+  const fakeNetwork = function FakeNetwork() { };
+  const factory = new Function('WhisperSpeechRecognition', 'Network', code); // eslint-disable-line no-new-func
+  return factory(WhisperSpeechRecognition, fakeNetwork);
+}
+
+function createVm(options) {
+  assert.ok(options && typeof options === 'object', 'Opzioni Vue non valide.');
+  assert.ok(typeof options.data === 'function', 'LiveTranslator.vue deve esportare data().');
+  assert.ok(options.methods && typeof options.methods === 'object', 'LiveTranslator.vue deve esportare methods.');
+  assert.ok(options.computed && typeof options.computed === 'object', 'LiveTranslator.vue deve esportare computed.');
+
+  // data() usa pochissimo "this" in inizializzazione, ma passiamo comunque una props-like shape.
+  const vm = options.data.call({ locale: 'it-IT' });
+  vm.locale = 'it-IT';
+
+  // Stubs minimi per evitare crash in metodi richiamati dai test.
+  vm.debugLog = () => { };
+  vm.$nextTick = (cb) => { if (typeof cb === 'function') cb(); };
+  vm.$refs = {};
+
+  // Lingue minime per i flussi call/youtube
+  vm.availableLanguages = [
+    { code: 'it', micCode: 'it-IT', label: 'Italiano' },
+    { code: 'en', micCode: 'en-US', label: 'English' },
+  ];
+  vm.langA = 'it';
+  vm.langB = 'en';
+  vm.youtubeLangSource = 'en';
+  vm.youtubeLangTarget = 'it';
+
+  // Computed: definiamo getter sul vm (come farebbe Vue)
+  for (const [key, def] of Object.entries(options.computed)) {
+    if (Object.getOwnPropertyDescriptor(vm, key)) {
+      continue;
+    }
+    if (typeof def === 'function') {
+      Object.defineProperty(vm, key, { get: def.bind(vm) });
+    } else if (def && typeof def.get === 'function') {
+      Object.defineProperty(vm, key, { get: def.get.bind(vm) });
+    }
+  }
+
+  // Methods: bind su vm
+  for (const [key, fn] of Object.entries(options.methods)) {
+    if (typeof fn === 'function') {
+      vm[key] = fn.bind(vm);
+    }
+  }
+
+  // In test non vogliamo toccare permessi reali.
+  vm.ensureMicPermission = () => true;
+
+  return vm;
+}
+
+class FakeWhisperRecognition {
+  constructor() {
+    this.lang = 'it-IT';
+    this.continuous = true;
+    this.interimResults = false;
+    this.maxAlternatives = 1;
+
+    // Proprietà "feature flags" attese dal componente.
+    this.allowedLangs = null;
+    this.sourceHint = null;
+    this.singleSegmentMode = true;
+    this._silenceMs = 800;
+    this._silenceThreshold = 0.03;
+    this.onAutoPause = null;
+
+    this.onstart = null;
+    this.onresult = null;
+    this.onerror = null;
+    this.onend = null;
+
+    this._startCalls = 0;
+    this._stopCalls = 0;
+  }
+
+  start() {
+    this._startCalls += 1;
+    if (typeof this.onstart === 'function') {
+      this.onstart();
+    }
+  }
+
+  stop() {
+    this._stopCalls += 1;
+    if (typeof this.onend === 'function') {
+      this.onend();
+    }
+  }
+
+  abort() { }
+}
+
+class FakeWebSpeechRecognition {
+  constructor() {
+    this.lang = 'it-IT';
+    this.continuous = true;
+    this.interimResults = true;
+    this.maxAlternatives = 1;
+
+    this.onstart = null;
+    this.onresult = null;
+    this.onerror = null;
+    this.onend = null;
+
+    this._startCalls = 0;
+    this._stopCalls = 0;
+  }
+
+  start() {
+    this._startCalls += 1;
+    if (typeof this.onstart === 'function') {
+      this.onstart();
+    }
+  }
+
+  stop() {
+    this._stopCalls += 1;
+    if (typeof this.onend === 'function') {
+      this.onend();
+    }
+  }
+
+  abort() { }
+}
+
+function withWindowWebSpeechStub() {
+  const prevWindow = globalThis.window;
+  globalThis.window = {
+    SpeechRecognition: FakeWebSpeechRecognition,
+    webkitSpeechRecognition: FakeWebSpeechRecognition,
+  };
+
+  return {
+    restore() {
+      globalThis.window = prevWindow;
+    },
+  };
+}
+
 // Verifica che il label "Lingua di traduzione" sia presente (regressione su UX lingue)
 {
   const hasLabel = source.includes('translation language') ||
@@ -24,6 +186,379 @@ const source = fs.readFileSync(componentPath, 'utf8');
     hasLabel,
     'LiveTranslator.vue deve esporre la label per la lingua di traduzione (langBLabel).',
   );
+}
+
+// -------------------------
+// TEST FUNZIONALI (state machine mic / impostazioni UX)
+// -------------------------
+
+{
+  const options = loadComponentOptions({ WhisperSpeechRecognition: FakeWhisperRecognition });
+  const newVm = () => {
+    const vm = createVm(options);
+    // Setup comune: tab call, Whisper attivo
+    vm.activeTab = 'call';
+    vm.isMobileLowPower = false;
+    vm.callAutoPauseEnabled = true;
+    vm.callTranslationEnabled = true;
+    vm.readTranslationEnabledCall = true;
+    vm.earphonesModeEnabledCall = false;
+    vm.isListening = false;
+    vm.activeSpeaker = null;
+    vm.isTtsPlaying = false;
+    vm.recognition = null;
+    vm.pendingAutoResumeSpeaker = null;
+    vm.pendingAutoResumeSpeakerAfterTts = null;
+    return vm;
+  };
+
+  const withNodeStubs = () => {
+    // processTtsQueue usa URL.createObjectURL + Audio + fetch: in Node vanno stubbare.
+    const originalFetch = globalThis.fetch;
+    const originalAudio = globalThis.Audio;
+    const originalUrl = globalThis.URL;
+
+    const createdAudios = [];
+
+    // Node può avere URL senza createObjectURL: creiamo wrapper minimale.
+    const urlObj = typeof originalUrl === 'function' || typeof originalUrl === 'object'
+      ? originalUrl
+      : {};
+    if (!urlObj.createObjectURL) {
+      urlObj.createObjectURL = () => 'blob:fake-audio-url';
+    }
+    if (!urlObj.revokeObjectURL) {
+      urlObj.revokeObjectURL = () => { };
+    }
+    globalThis.URL = urlObj;
+
+    class FakeAudio {
+      constructor(src) {
+        this.src = src || '';
+        this.onended = null;
+        this.onerror = null;
+        createdAudios.push(this);
+      }
+      play() {
+        return Promise.resolve();
+      }
+      _triggerEnded() {
+        if (typeof this.onended === 'function') {
+          this.onended();
+        }
+      }
+    }
+    globalThis.Audio = FakeAudio;
+
+    globalThis.fetch = async () => {
+      return {
+        ok: true,
+        headers: { get: () => 'audio/mpeg' },
+        blob: async () => new Blob(['x'], { type: 'audio/mpeg' }),
+      };
+    };
+
+    return {
+      createdAudios,
+      restore() {
+        globalThis.fetch = originalFetch;
+        globalThis.Audio = originalAudio;
+        globalThis.URL = originalUrl;
+      },
+    };
+  };
+
+  // 1) Se TTS sta leggendo e NON siamo in earphones mode → toggleListening deve essere ignorato
+  {
+    const vm = newVm();
+    let ensureCalls = 0;
+    vm.ensureMicPermission = () => { ensureCalls += 1; return true; };
+    vm.isTtsPlaying = true;
+
+    await vm.toggleListeningForLang('A');
+
+    assert.equal(ensureCalls, 0, 'Quando TTS è in corso e NON earphones mode, non deve chiedere permessi mic.');
+    assert.equal(vm.recognition, null, 'Quando TTS è in corso e NON earphones mode, non deve inizializzare recognition.');
+    assert.equal(vm.isListening, false, 'Quando TTS è in corso e NON earphones mode, non deve partire in ascolto.');
+  }
+
+  // 2) In earphones mode → anche se TTS sta leggendo, il mic deve potersi avviare (no blocco)
+  {
+    const vm = newVm();
+    let ensureCalls = 0;
+    vm.ensureMicPermission = () => { ensureCalls += 1; return true; };
+    vm.isTtsPlaying = true;
+    vm.readTranslationEnabledCall = true;
+    vm.callTranslationEnabled = true;
+    vm.earphonesModeEnabledCall = true;
+
+    await vm.toggleListeningForLang('A');
+
+    assert.ok(ensureCalls >= 1, 'In earphones mode deve passare dalla pipeline di avvio mic.');
+    assert.ok(vm.recognition, 'In earphones mode deve inizializzare recognition.');
+    assert.equal(vm.isListening, true, 'In earphones mode deve andare in ascolto.');
+    assert.ok(vm.recognition._startCalls >= 1, 'In earphones mode deve chiamare recognition.start().');
+  }
+
+  // 3) Auto-pausa: earphones mode → pendingAutoResumeSpeaker immediato
+  {
+    const vm = newVm();
+    vm.isTtsPlaying = false;
+    vm.callAutoPauseEnabled = true;
+    vm.readTranslationEnabledCall = true;
+    vm.callTranslationEnabled = true;
+    vm.earphonesModeEnabledCall = true;
+
+    let stopCalls = 0;
+    vm.stopListeningInternal = () => { stopCalls += 1; vm.isListening = false; vm.activeSpeaker = null; };
+
+    await vm.toggleListeningForLang('A');
+    assert.ok(vm.recognition && typeof vm.recognition.onAutoPause === 'function', 'onAutoPause deve essere configurato in Whisper (call).');
+
+    // Simula pausa VAD
+    vm.recognition.onAutoPause();
+
+    assert.equal(vm.pendingAutoResumeSpeaker, 'A', 'In earphones mode, auto-pausa deve impostare pendingAutoResumeSpeaker.');
+    assert.equal(vm.pendingAutoResumeSpeakerAfterTts, null, 'In earphones mode, non deve usare pendingAutoResumeSpeakerAfterTts.');
+    assert.equal(stopCalls, 1, 'onAutoPause deve fermare l’ascolto (stopListeningInternal).');
+  }
+
+  // 4) Auto-pausa: NO earphones + TTS attivo → pendingAutoResumeSpeakerAfterTts
+  {
+    const vm = newVm();
+    vm.isTtsPlaying = false;
+    vm.callAutoPauseEnabled = true;
+    vm.readTranslationEnabledCall = true;
+    vm.callTranslationEnabled = true;
+    vm.earphonesModeEnabledCall = false;
+
+    let stopCalls = 0;
+    vm.stopListeningInternal = () => { stopCalls += 1; vm.isListening = false; vm.activeSpeaker = null; };
+
+    await vm.toggleListeningForLang('A');
+    vm.recognition.onAutoPause();
+
+    assert.equal(vm.pendingAutoResumeSpeaker, null, 'In modalità normale con TTS, auto-pausa non deve impostare pendingAutoResumeSpeaker.');
+    assert.equal(vm.pendingAutoResumeSpeakerAfterTts, 'A', 'In modalità normale con TTS, auto-pausa deve impostare pendingAutoResumeSpeakerAfterTts.');
+    assert.equal(stopCalls, 1, 'onAutoPause deve fermare l’ascolto (stopListeningInternal).');
+  }
+
+  // 5) Caso “vuoto/filtrato”: dopo onresult con transcript vuoto, deve auto-resumare (no deadlock)
+  {
+    const vm2 = newVm();
+    vm2.activeTab = 'call';
+    vm2.isMobileLowPower = false;
+    vm2.callAutoPauseEnabled = true;
+    vm2.callTranslationEnabled = true;
+    vm2.readTranslationEnabledCall = true;
+    vm2.earphonesModeEnabledCall = false;
+    vm2.isListening = false;
+    vm2.isTtsPlaying = false;
+    vm2.pendingAutoResumeSpeakerAfterTts = 'A';
+
+    const resumeCalls = [];
+    vm2.toggleListeningForLang = (speaker) => { resumeCalls.push(speaker); };
+
+    vm2.initSpeechRecognition();
+    assert.ok(vm2.recognition && typeof vm2.recognition.onresult === 'function', 'onresult deve essere configurato.');
+
+    // Event con final vuoto
+    const emptyEvent = {
+      resultIndex: 0,
+      results: [{
+        0: { transcript: '' },
+        length: 1,
+        isFinal: true,
+      }],
+    };
+
+    vm2.recognition.onresult(emptyEvent);
+
+    assert.deepEqual(resumeCalls, ['A'], 'Con risultato vuoto/filtrato deve ripartire automaticamente sullo stesso speaker.');
+    assert.equal(vm2.pendingAutoResumeSpeakerAfterTts, null, 'Dopo resume da risultato vuoto, pendingAutoResumeSpeakerAfterTts deve essere pulito.');
+  }
+
+  // 6) YouTube: autoPause enabled → onAutoPause deve essere configurato (desktop/Whisper) e chiamare stopListeningInternal
+  {
+    const vm = newVm();
+    vm.activeTab = 'youtube';
+    vm.isMobileLowPower = false; // desktop → Whisper
+    vm.youtubeAutoPauseEnabled = true;
+    vm.youtubeLangSource = 'en';
+    vm.youtubeLangTarget = 'it';
+
+    let stopCalls = 0;
+    vm.stopListeningInternal = () => { stopCalls += 1; vm.isListening = false; vm.activeSpeaker = null; };
+
+    await vm.toggleListeningForLang('A');
+
+    assert.ok(vm.recognition && typeof vm.recognition.onAutoPause === 'function', 'YouTube+Whisper: onAutoPause deve essere configurato quando youtubeAutoPauseEnabled=true.');
+
+    vm.recognition.onAutoPause();
+    assert.equal(stopCalls, 1, 'YouTube+Whisper: onAutoPause deve fermare l’ascolto (stopListeningInternal).');
+  }
+
+  // 7) YouTube: autoPause disabled → onAutoPause deve essere null
+  {
+    const vm = newVm();
+    vm.activeTab = 'youtube';
+    vm.isMobileLowPower = false; // desktop → Whisper
+    vm.youtubeAutoPauseEnabled = false;
+    vm.youtubeLangSource = 'en';
+    vm.youtubeLangTarget = 'it';
+
+    await vm.toggleListeningForLang('A');
+
+    assert.equal(vm.recognition && vm.recognition.onAutoPause, null, 'YouTube+Whisper: onAutoPause deve essere null quando youtubeAutoPauseEnabled=false.');
+  }
+
+  // 8) YouTube: autoResume deve riaccendere il mic SOLO dopo TTS (audio.onended)
+  {
+    const stubs = withNodeStubs();
+    try {
+      const vm = newVm();
+      vm.activeTab = 'youtube';
+      vm.youtubeAutoResumeEnabled = true;
+
+      // Evita routing audio e logica extra: usa Audio(url)
+      vm.ensureTtsAudioRouting = () => false;
+      vm.getTtsAudioElementForChannel = () => null;
+      vm.updateIsTtsPlaying = () => { };
+
+      const resumeCalls = [];
+      vm.toggleListeningForLang = (speaker) => { resumeCalls.push(speaker); };
+
+      // Prepara una coda TTS minimale
+      vm.ttsQueueByChannel = { left: [], right: [], center: [{ text: 'ciao', locale: 'it-IT' }] };
+      vm.ttsPlayingByChannel = { left: false, right: false, center: false };
+
+      const p = vm.processTtsQueue('center');
+      await p;
+
+      assert.deepEqual(resumeCalls, [], 'YouTube autoResume: non deve riaccendere il mic prima della fine del TTS.');
+      assert.ok(stubs.createdAudios.length === 1, 'processTtsQueue deve creare un Audio instance.');
+
+      stubs.createdAudios[0]._triggerEnded();
+
+      assert.deepEqual(resumeCalls, ['A'], 'YouTube autoResume: deve riaccendere il mic solo dopo audio.onended.');
+    } finally {
+      stubs.restore();
+    }
+  }
+
+  // 9) YouTube: se autoResume è disattivato, non deve riaccendere dopo TTS
+  {
+    const stubs = withNodeStubs();
+    try {
+      const vm = newVm();
+      vm.activeTab = 'youtube';
+      vm.youtubeAutoResumeEnabled = false;
+
+      vm.ensureTtsAudioRouting = () => false;
+      vm.getTtsAudioElementForChannel = () => null;
+      vm.updateIsTtsPlaying = () => { };
+
+      const resumeCalls = [];
+      vm.toggleListeningForLang = (speaker) => { resumeCalls.push(speaker); };
+
+      vm.ttsQueueByChannel = { left: [], right: [], center: [{ text: 'hello', locale: 'en-US' }] };
+      vm.ttsPlayingByChannel = { left: false, right: false, center: false };
+
+      await vm.processTtsQueue('center');
+      stubs.createdAudios[0]._triggerEnded();
+
+      assert.deepEqual(resumeCalls, [], 'YouTube autoResume disabled: non deve riaccendere il mic dopo TTS.');
+    } finally {
+      stubs.restore();
+    }
+  }
+
+  // 10) YouTube mobile (isMobileLowPower): deve usare WebSpeech (non Whisper) e NON configurare onAutoPause se il motore non lo supporta
+  {
+    const w = withWindowWebSpeechStub();
+    try {
+      const vm = newVm();
+      vm.activeTab = 'youtube';
+      vm.isMobileLowPower = true; // mobile → WebSpeech
+      vm.youtubeAutoPauseEnabled = true; // UI può essere attiva, ma WebSpeech non espone onAutoPause
+      vm.youtubeLangSource = 'en';
+      vm.youtubeLangTarget = 'it';
+
+      assert.equal(vm.useWhisperEffective, false, 'YouTube mobile: useWhisperEffective deve essere false (usa WebSpeech).');
+
+      await vm.toggleListeningForLang('A');
+
+      assert.ok(vm.recognition instanceof FakeWebSpeechRecognition, 'YouTube mobile: recognition deve essere WebSpeech (FakeWebSpeechRecognition).');
+      assert.equal(vm.recognition.continuous, false, 'YouTube mobile: WebSpeech deve usare continuous=false.');
+      assert.equal(vm.recognition.interimResults, false, 'YouTube mobile: WebSpeech deve usare interimResults=false.');
+      assert.equal(vm.isListening, true, 'YouTube mobile: deve andare in ascolto.');
+      assert.ok(!('onAutoPause' in vm.recognition), 'YouTube mobile: non deve aspettarsi onAutoPause sul motore WebSpeech.');
+      assert.equal(typeof vm.recognition.onAutoPause, 'undefined', 'YouTube mobile: onAutoPause deve essere undefined (non configurato).');
+    } finally {
+      w.restore();
+    }
+  }
+
+  // 11) YouTube mobile: autoResume deve comunque riaccendere il mic SOLO dopo fine TTS (audio.onended)
+  {
+    const w = withWindowWebSpeechStub();
+    const stubs = withNodeStubs();
+    try {
+      const vm = newVm();
+      vm.activeTab = 'youtube';
+      vm.isMobileLowPower = true;
+      vm.youtubeAutoResumeEnabled = true;
+
+      // Evita routing audio e logica extra: usa Audio(url)
+      vm.ensureTtsAudioRouting = () => false;
+      vm.getTtsAudioElementForChannel = () => null;
+      vm.updateIsTtsPlaying = () => { };
+
+      const resumeCalls = [];
+      vm.toggleListeningForLang = (speaker) => { resumeCalls.push(speaker); };
+
+      vm.ttsQueueByChannel = { left: [], right: [], center: [{ text: 'ciao', locale: 'it-IT' }] };
+      vm.ttsPlayingByChannel = { left: false, right: false, center: false };
+
+      await vm.processTtsQueue('center');
+      assert.deepEqual(resumeCalls, [], 'YouTube mobile autoResume: non deve riaccendere il mic prima di audio.onended.');
+
+      stubs.createdAudios[0]._triggerEnded();
+      assert.deepEqual(resumeCalls, ['A'], 'YouTube mobile autoResume: deve riaccendere il mic solo dopo audio.onended.');
+    } finally {
+      stubs.restore();
+      w.restore();
+    }
+  }
+
+  // 12) YouTube mobile: se autoResume è disattivato, non deve riaccendere dopo TTS
+  {
+    const w = withWindowWebSpeechStub();
+    const stubs = withNodeStubs();
+    try {
+      const vm = newVm();
+      vm.activeTab = 'youtube';
+      vm.isMobileLowPower = true;
+      vm.youtubeAutoResumeEnabled = false;
+
+      vm.ensureTtsAudioRouting = () => false;
+      vm.getTtsAudioElementForChannel = () => null;
+      vm.updateIsTtsPlaying = () => { };
+
+      const resumeCalls = [];
+      vm.toggleListeningForLang = (speaker) => { resumeCalls.push(speaker); };
+
+      vm.ttsQueueByChannel = { left: [], right: [], center: [{ text: 'hello', locale: 'en-US' }] };
+      vm.ttsPlayingByChannel = { left: false, right: false, center: false };
+
+      await vm.processTtsQueue('center');
+      stubs.createdAudios[0]._triggerEnded();
+      assert.deepEqual(resumeCalls, [], 'YouTube mobile autoResume disabled: non deve riaccendere il mic dopo TTS.');
+    } finally {
+      stubs.restore();
+      w.restore();
+    }
+  }
 }
 
 // Verifica che il pulsante principale usi il testo "Registra" quando non in ascolto

@@ -722,7 +722,8 @@
             </div>
 
             <!-- TAB 2: Traduttore Video Youtube -->
-            <div v-else class="flex flex-col gap-3 flex-1 min-h-0 overflow-hidden">
+            <div v-else class="flex flex-col gap-3 flex-1 min-h-0 overflow-hidden"
+                :class="isMobileLowPower ? 'pb-24' : ''">
                 <p v-if="statusMessage" class="text-xs text-slate-300 text-center">
                     {{ statusMessage }}
                 </p>
@@ -794,6 +795,39 @@
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-3 flex-1 min-h-0">
                     <!-- Colonna impostazioni video -->
                     <div class="lg:col-span-1 space-y-3 min-h-0">
+                        <!-- Lingue: su mobile mostriamo sempre entrambi i selettori affiancati -->
+                        <div class="grid grid-cols-2 gap-2">
+                            <div class="flex flex-col gap-1">
+                                <label class="text-[11px] font-semibold text-emerald-400">
+                                    {{ ui.youtubeLangSourceLabel }}
+                                </label>
+                                <select v-model="youtubeLangSource"
+                                    class="bg-slate-900 border text-[13px] rounded-md px-2.5 py-2 focus:outline-none focus:ring-2"
+                                    :class="youtubeLangSource ? 'border-slate-600 focus:ring-emerald-500' : 'border-red-500 focus:ring-red-500'">
+                                    <option value="">{{ ui.selectOptionPlaceholder }}</option>
+                                    <option v-for="opt in availableLanguages" :key="'yt-src-' + opt.code"
+                                        :value="opt.code">
+                                        {{ opt.label }}
+                                    </option>
+                                </select>
+                            </div>
+                            <div class="flex flex-col gap-1">
+                                <label class="text-[11px] font-semibold text-emerald-400">
+                                    {{ ui.youtubeLangTargetLabel }}
+                                </label>
+                                <select v-model="youtubeLangTarget"
+                                    class="bg-slate-900 border text-[13px] rounded-md px-2.5 py-2 focus:outline-none focus:ring-2"
+                                    :class="youtubeLangTarget ? 'border-slate-600 focus:ring-emerald-500' : 'border-red-500 focus:ring-red-500'">
+                                    <option value="">{{ ui.selectOptionPlaceholder }}</option>
+                                    <option v-for="opt in availableLanguages" :key="'yt-tgt-' + opt.code"
+                                        :value="opt.code">
+                                        {{ opt.label }}
+                                    </option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- URL video -->
                         <div class="space-y-2">
                             <label class="text-xs font-semibold text-emerald-400">
                                 {{ ui.youtubeUrlLabel }}
@@ -805,62 +839,10 @@
                             </p>
                         </div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            <div class="flex flex-col gap-1">
-                                <label class="text-xs font-semibold text-emerald-400">
-                                    {{ ui.youtubeLangSourceLabel }}
-                                </label>
-                                <select v-model="youtubeLangSource"
-                                    class="bg-slate-900 border text-sm rounded-md px-3 py-2 focus:outline-none focus:ring-2"
-                                    :class="youtubeLangSource ? 'border-slate-600 focus:ring-emerald-500' : 'border-red-500 focus:ring-red-500'">
-                                    <option value="">{{ ui.selectOptionPlaceholder }}</option>
-                                    <option v-for="opt in availableLanguages" :key="'yt-src-' + opt.code"
-                                        :value="opt.code">
-                                        {{ opt.label }}
-                                    </option>
-                                </select>
-                            </div>
-                            <div class="flex flex-col gap-1">
-                                <label class="text-xs font-semibold text-emerald-400">
-                                    {{ ui.youtubeLangTargetLabel }}
-                                </label>
-                                <select v-model="youtubeLangTarget"
-                                    class="bg-slate-900 border text-sm rounded-md px-3 py-2 focus:outline-none focus:ring-2"
-                                    :class="youtubeLangTarget ? 'border-slate-600 focus:ring-emerald-500' : 'border-red-500 focus:ring-red-500'">
-                                    <option value="">{{ ui.selectOptionPlaceholder }}</option>
-                                    <option v-for="opt in availableLanguages" :key="'yt-tgt-' + opt.code"
-                                        :value="opt.code">
-                                        {{ opt.label }}
-                                    </option>
-                                </select>
-                            </div>
-                        </div>
-
                         <!-- Hint desktop: usare PLAY per ascoltare e PAUSA per tradurre -->
                         <div v-if="!isMobileLowPower"
                             class="mt-1 px-3 py-2 rounded-lg border border-emerald-500/70 bg-emerald-900/40 text-[11px] md:text-xs text-emerald-100 font-semibold">
                             {{ ui.youtubePlayPauseHint }}
-                        </div>
-
-                        <!-- Pulsante microfono per modalità YouTube SOLO su mobile/low-power.
-                             Su desktop il microfono segue automaticamente play/pause del player. -->
-                        <div class="mt-4" v-if="isMobileLowPower">
-                            <button type="button" @click="toggleListeningForLang('A')"
-                                :disabled="!youtubeLangSource || !youtubeLangTarget" class="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold border transition
-                                    focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900"
-                                :class="isListening
-                                    ? 'bg-emerald-600 text-white border-emerald-400 shadow-lg shadow-emerald-500/30'
-                                    : 'bg-slate-700 text-slate-100 border-slate-500 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed'">
-                                <span
-                                    class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-black/30 border border-slate-500">
-                                    <span class="inline-block w-1.5 h-3 rounded-full"
-                                        :class="isListening ? 'bg-red-400 animate-pulse' : 'bg-slate-300'">
-                                    </span>
-                                </span>
-                                <span>
-                                    {{ isListening ? ui.youtubeMicAActive : ui.youtubeMicAHelp }}
-                                </span>
-                            </button>
                         </div>
                     </div>
 
@@ -924,6 +906,32 @@
                                 class="underline hover:text-emerald-300">
                                 {{ ui.downloadBackendAudioLabel }}
                             </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mobile: CTA sticky in basso (posizione comoda pollice) -->
+                <div v-if="isMobileLowPower"
+                    class="fixed left-0 right-0 bottom-0 z-40 px-3 pb-3 pt-2 bg-slate-950/80 backdrop-blur border-t border-slate-700/50">
+                    <div class="max-w-7xl mx-auto">
+                        <button type="button" @click="toggleListeningForLang('A')"
+                            :disabled="!youtubeLangSource || !youtubeLangTarget" class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl text-sm font-black border transition
+                                focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900"
+                            :class="isListening
+                                ? 'bg-emerald-600 text-white border-emerald-400 shadow-lg shadow-emerald-500/30'
+                                : 'bg-slate-800 text-slate-100 border-slate-600 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed'">
+                            <span
+                                class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-black/30 border border-slate-600">
+                                <span class="inline-block w-2 h-4 rounded-full"
+                                    :class="isListening ? 'bg-red-400 animate-pulse' : 'bg-slate-300'">
+                                </span>
+                            </span>
+                            <span>
+                                {{ isListening ? ui.youtubeMicAActive : ui.youtubeMicAHelp }}
+                            </span>
+                        </button>
+                        <div class="mt-1 text-[10px] text-slate-400 text-center">
+                            {{ getLangLabel(youtubeLangSource) }} → {{ getLangLabel(youtubeLangTarget) }}
                         </div>
                     </div>
                 </div>
@@ -2181,7 +2189,14 @@ export default {
         isYoutubeTabDisabled() {
             // Su mobile/low-power la tab YouTube è disponibile solo se il browser
             // espone la Web Speech API; altrimenti la disabilitiamo del tutto.
-            return this.isMobileLowPower && !this.isChromeWithWebSpeech;
+            // Nota: in DevTools "device emulation" l'user-agent può essere spoofato,
+            // quindi controlliamo la disponibilità reale dell'API, non il UA match.
+            try {
+                const hasWebSpeech = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+                return this.isMobileLowPower && !hasWebSpeech;
+            } catch {
+                return this.isMobileLowPower;
+            }
         },
     },
     watch: {
@@ -2737,9 +2752,10 @@ export default {
             try {
                 const hasWebSpeech = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
                 const ua = (navigator.userAgent || '').toLowerCase();
-                const isChrome = hasWebSpeech && ua.includes('chrome') && !ua.includes('edg') && !ua.includes('opr');
-
-                this.isChromeWithWebSpeech = !!isChrome;
+                // In UI usiamo questo flag come “browser supporta WebSpeech”.
+                // Il match sullo user-agent in emulazione può essere fuorviante (es. Safari iPhone),
+                // mentre la presenza dell'API è ciò che conta davvero.
+                this.isChromeWithWebSpeech = !!hasWebSpeech;
 
                 console.log('🌐 detectEnvAndDefaultMode', {
                     hasWebSpeech,
