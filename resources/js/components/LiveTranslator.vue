@@ -798,9 +798,9 @@
 
                 <!-- Mobile YouTube: eccezione layout per evitare sovrapposizioni.
                      Rende il contenuto scrollabile e lascia il CTA dentro il pannello (no fixed). -->
-                <div :class="isMobileLowPower ? '' : 'flex-1 min-h-0 overflow-y-auto'">
+                <div :class="isMobileLowPower ? '' : 'flex-1 min-h-0 overflow-hidden'">
                     <div
-                        :class="isMobileLowPower ? 'grid grid-cols-1 gap-3' : 'grid grid-cols-1 lg:grid-cols-3 gap-3 min-h-0'">
+                        :class="isMobileLowPower ? 'grid grid-cols-1 gap-3' : 'grid grid-cols-1 lg:grid-cols-3 gap-3 min-h-0 h-full'">
                         <!-- Colonna impostazioni video -->
                         <div class="lg:col-span-1 space-y-3 min-h-0">
                             <!-- Lingue: su mobile mostriamo sempre entrambi i selettori affiancati -->
@@ -856,7 +856,7 @@
                         </div>
 
                         <!-- Colonna video + pannelli di traduzione riutilizzati -->
-                        <div class="lg:col-span-2 flex flex-col gap-3 min-h-0">
+                        <div class="lg:col-span-2 flex flex-col gap-3 min-h-0 h-full">
                             <!-- Video: grande ma sempre dentro viewport (vh + min/max) -->
                             <div
                                 :class="isMobileLowPower
@@ -905,7 +905,7 @@
                                     <div ref="originalBox"
                                         :class="isMobileLowPower
                                             ? 'h-[190px] overflow-y-auto rounded-xl border border-slate-700 bg-slate-900/60 p-3 text-sm md:text-base leading-relaxed'
-                                            : 'h-[220px] md:h-[240px] lg:h-[260px] overflow-y-auto rounded-xl border border-slate-700 bg-slate-900/60 p-3 text-sm md:text-base leading-relaxed'">
+                                            : 'flex-1 min-h-0 rounded-xl border border-slate-700 bg-slate-900/60 p-3 text-sm md:text-base overflow-y-auto leading-relaxed'">
                                         <p v-if="!displayOriginalText" class="text-slate-500 text-xs md:text-sm">
                                             {{ ui.youtubeOriginalPlaceholder }}
                                         </p>
@@ -927,7 +927,7 @@
                                     <div ref="translationBox"
                                         :class="isMobileLowPower
                                             ? 'h-[190px] overflow-y-auto rounded-xl border border-slate-700 bg-slate-900/60 p-3 text-sm md:text-base leading-relaxed'
-                                            : 'h-[220px] md:h-[240px] lg:h-[260px] overflow-y-auto rounded-xl border border-slate-700 bg-slate-900/60 p-3 text-sm md:text-base leading-relaxed'">
+                                            : 'flex-1 min-h-0 rounded-xl border border-slate-700 bg-slate-900/60 p-3 text-sm md:text-base overflow-y-auto leading-relaxed'">
                                         <div v-if="!hasAnyTranslation" class="text-slate-500 text-xs md:text-sm">
                                             {{ ui.youtubeTranslationPlaceholder }}
                                         </div>

@@ -312,16 +312,25 @@ function withGlobalNavigatorStub({ userAgent = 'Mozilla/5.0 (Linux; Android 14) 
   );
 }
 
-// YouTube desktop: i box trascritto/tradotto devono avere altezza fissa e scroll interno (stanno nella pagina)
+// YouTube desktop: i box trascritto/tradotto devono stare nella pagina senza scroll della tab.
+// Quindi usano flex-1/min-h-0 (altezza adattiva) con overflow interno.
 {
-  const hasDesktopFixedHeightBoxes =
-    source.includes("h-[220px] md:h-[240px] lg:h-[260px] overflow-y-auto") &&
-    source.includes("ref=\"originalBox\"") &&
-    source.includes("ref=\"translationBox\"");
+  const hasDesktopAdaptiveBoxes =
+    source.includes("flex-1 min-h-0 rounded-xl border border-slate-700 bg-slate-900/60 p-3 text-sm md:text-base overflow-y-auto leading-relaxed");
 
   assert.ok(
-    hasDesktopFixedHeightBoxes,
-    'LiveTranslator.vue: su YouTube desktop i box original/translation devono avere altezza fissa (h-[220/240/260px]) con overflow-y-auto.',
+    hasDesktopAdaptiveBoxes,
+    'LiveTranslator.vue: su YouTube desktop i box original/translation devono usare altezza adattiva (flex-1/min-h-0) e scroll interno.',
+  );
+  assert.ok(
+    !source.includes("h-[220px] md:h-[240px] lg:h-[260px]"),
+    'LiveTranslator.vue: su YouTube desktop non deve usare altezze fisse (h-[220/240/260px]).',
+  );
+
+  // Requisito UX: i box devono arrivare a fine card → la griglia desktop deve essere h-full
+  assert.ok(
+    source.includes("grid grid-cols-1 lg:grid-cols-3 gap-3 min-h-0 h-full"),
+    'LiveTranslator.vue: su YouTube desktop la griglia principale deve avere h-full per far espandere i box fino in fondo al card.',
   );
 }
 
