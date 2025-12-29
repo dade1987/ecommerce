@@ -9,8 +9,14 @@
     <!-- Title -->
     <title>{{ $pageTitle ?? config('app.name', 'Laravel') }}</title>
 
-    <link rel="icon" href="{{ asset('images/logo15.png') }}" type="image/jpeg">
-    <link rel="apple-touch-icon" href="{{ asset('images/logo15.png') }}">
+    @php
+        $logoPath = request()->getHost() === 'interpreter.digital' 
+            ? 'images/interpreter_logo.png' 
+            : 'images/logo15.png';
+    @endphp
+
+    <link rel="icon" href="{{ asset($logoPath) }}" type="image/jpeg">
+    <link rel="apple-touch-icon" href="{{ asset($logoPath) }}">
 
 
 
@@ -86,7 +92,7 @@ In your html page, add the snippet and call gtag_report_conversion when someone 
     <!-- Open Graph Tags -->
     <meta property="og:title" content="{{ $pageTitle ?? config('app.name', 'Laravel') }}">
     <meta property="og:description" content="{{ $pageDescription ?? 'Cavallini Service, a Noale: soluzioni software su misura, integrazione AI e cybersecurity. Ottimizza flussi di lavoro e proteggi i dati aziendali.' }}">
-    <meta property="og:image" content="{{ $ogImage ?? asset('images/logo15.png') }}">
+    <meta property="og:image" content="{{ $ogImage ?? asset($logoPath) }}">
     <meta property="og:url" content="{{ request()->url() }}">
     <meta property="og:type" content="website">
 
@@ -94,7 +100,7 @@ In your html page, add the snippet and call gtag_report_conversion when someone 
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="{{ $pageTitle ?? config('app.name', 'Laravel') }}">
     <meta name="twitter:description" content="{{ $pageDescription ?? 'Cavallini Service, a Noale: soluzioni software su misura, integrazione AI e cybersecurity. Ottimizza flussi di lavoro e proteggi i dati aziendali.' }}">
-    <meta name="twitter:image" content="{{ $ogImage ?? asset('images/logo15.png') }}">
+    <meta name="twitter:image" content="{{ $ogImage ?? asset($logoPath) }}">
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
@@ -119,7 +125,7 @@ In your html page, add the snippet and call gtag_report_conversion when someone 
             "@type": "Organization",
             "name": "Cavallini Service",
             "url": "https://cavalliniservice.com",
-            "logo": "{{ asset('images/logo15.png') }}"
+            "logo": "{{ asset($logoPath) }}"
         }
     </script>
     @stack('structured-data')
