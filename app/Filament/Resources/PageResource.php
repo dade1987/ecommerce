@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources;
 
+use App\Models\Article;
+use App\Services\Seo\LlmsTxtGenerator;
 use Closure;
 use Filament\Forms\Components\Actions\Action as FormAction;
 use Filament\Forms\Components\Group;
@@ -13,21 +15,23 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
+use Filament\Notifications\Notification;
+use Filament\Resources\Resource;
+use Filament\Tables;
+use Filament\Tables\Actions\Action;
+use Filament\Tables\Actions\BulkAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Unique;
 use Z3d0X\FilamentFabricator\Facades\FilamentFabricator;
 use Z3d0X\FilamentFabricator\Forms\Components\PageBuilder;
 use Z3d0X\FilamentFabricator\Models\Contracts\Page as PageContract;
+use Z3d0X\FilamentFabricator\Models\Page as PageModel;
 use Z3d0X\FilamentFabricator\Resources\PageResource as ResourcesPageResource;
 use Z3d0X\FilamentFabricator\Resources\PageResource\Pages;
-use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Actions\Action;
-use Illuminate\Database\Eloquent\Model;
-use Z3d0X\FilamentFabricator\Models\Page as PageModel;
 
 class PageResource extends ResourcesPageResource
 {
@@ -140,7 +144,7 @@ class PageResource extends ResourcesPageResource
                 ->icon('heroicon-o-square-2-stack')
                 ->action(function (Model $record) {
                     $newRecord = $record->replicate();
-                    $newRecord->title = $record->title . ' - Copia';
+                    $newRecord->title = $record->title.' - Copia';
                     $newRecord->slug = Str::slug($newRecord->title);
                     $newRecord->created_at = now();
                     $newRecord->updated_at = now();
@@ -149,6 +153,62 @@ class PageResource extends ResourcesPageResource
             ...$parentTable->getActions(), // Mantiene le azioni originali (View, Edit, Delete)
         ])
         ->bulkActions([
+            BulkAction::make('generate_llms_txt')
+                ->label('Genera llms.txt')
+                ->icon('heroicon-o-document-text')
+                ->modalHeading('Genera llms.txt')
+                ->modalSubheading('Seleziona le pagine (bulk selection) e, opzionalmente, includi anche articoli del blog. Il file verrà salvato in public_html/llms.txt.')
+                ->form([
+                    TextInput::make('base_url')
+                        ->label('Base URL')
+                        ->helperText('Es: https://cavalliniservice.com (serve per generare link assoluti).')
+                        ->default(fn () => (string) config('app.url'))
+                        ->required(),
+                    Select::make('article_ids')
+                        ->label('Articoli da includere (opzionali)')
+                        ->multiple()
+                        ->searchable()
+                        ->getSearchResultsUsing(fn (string $search): array => Article::query()
+                            ->where('title', 'like', "%{$search}%")
+                            ->orderByDesc('id')
+                            ->limit(50)
+                            ->pluck('title', 'id')
+                            ->toArray())
+                        ->getOptionLabelsUsing(fn (array $values): array => Article::query()
+                            ->whereIn('id', $values)
+                            ->orderByDesc('id')
+                            ->pluck('title', 'id')
+                            ->toArray()),
+                ])
+                ->action(function (array $data, \Illuminate\Support\Collection $records) {
+                    $baseUrl = (string) ($data['base_url'] ?? config('app.url'));
+                    $baseUrl = trim($baseUrl);
+
+                    $articleIds = $data['article_ids'] ?? [];
+                    $articleIds = is_array($articleIds) ? $articleIds : [];
+
+                    $articles = Article::query()
+                        ->whereIn('id', $articleIds)
+                        ->orderByDesc('id')
+                        ->get();
+
+                    $targetPath = base_path('public_html/llms.txt');
+
+                    app(LlmsTxtGenerator::class)->writeToPublic(
+                        pages: $records,
+                        articles: $articles,
+                        baseUrl: $baseUrl,
+                        targetPath: $targetPath,
+                    );
+
+                    Notification::make()
+                        ->title('llms.txt generato')
+                        ->body("Salvato in: {$targetPath}")
+                        ->success()
+                        ->send();
+                })
+                ->deselectRecordsAfterCompletion()
+                ->requiresConfirmation(),
             Tables\Actions\BulkActionGroup::make([
                 Tables\Actions\DeleteBulkAction::make(),
             ]),
