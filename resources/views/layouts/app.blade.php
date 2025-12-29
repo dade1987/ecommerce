@@ -13,15 +13,24 @@
         $logoPath = request()->getHost() === 'interpreter.digital' 
             ? 'images/interpreter_logo.png' 
             : 'images/logo15.png';
+        
+        // Google Analytics ID in base al dominio
+        $host = request()->getHost();
+        if ($host === 'interpreter.digital') {
+            $gaId = 'G-YRPCVKJJK3';
+        } elseif ($host === 'en.cavalliniservice.com') {
+            $gaId = 'G-T84PFCB4FM';
+        } else {
+            // cavalliniservice.com e altri sottodomini
+            $gaId = 'G-D7G8J1GF0M';
+        }
     @endphp
 
     <link rel="icon" href="{{ asset($logoPath) }}" type="image/jpeg">
     <link rel="apple-touch-icon" href="{{ asset($logoPath) }}">
 
-
-
-    <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-YRPCVKJJK3"></script>
+    <!-- Google Analytics (gtag.js) - ID specifico per dominio -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id={{ $gaId }}"></script>
     <script>
         window.dataLayer = window.dataLayer || [];
 
@@ -29,13 +38,11 @@
             dataLayer.push(arguments);
         }
         gtag('js', new Date());
-
-        gtag('config', 'G-YRPCVKJJK3');
+        gtag('config', '{{ $gaId }}');
     </script>
 
-
-    <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-D7G8J1GF0M"></script>
+    <!-- Google Ads (gtag.js) - Sempre presente su tutti i domini -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=AW-1001130032"></script>
     <script>
         window.dataLayer = window.dataLayer || [];
 
@@ -43,21 +50,6 @@
             dataLayer.push(arguments);
         }
         gtag('js', new Date());
-
-        gtag('config', 'G-D7G8J1GF0M');
-    </script>
-
-    <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=AW-1001130032">
-    </script>
-    <script>
-        window.dataLayer = window.dataLayer || [];
-
-        function gtag() {
-            dataLayer.push(arguments);
-        }
-        gtag('js', new Date());
-
         gtag('config', 'AW-1001130032');
     </script>
     <!-- Event snippet for Lead da chiamata conversion page
