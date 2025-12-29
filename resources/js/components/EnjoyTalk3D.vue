@@ -45,7 +45,7 @@
 
     <!-- Contenuto principale: full layout oppure widget snippet fisso in basso a destra -->
     <div v-show="!isWebComponent || widgetOpen" :class="isWebComponent
-      ? 'fixed z-[9999] bottom-24 right-4 w-[320px] max-w-[90vw] pointer-events-none'
+      ? 'fixed z-[9999] bottom-24 right-4 w-[640px] max-w-[90vw] pointer-events-none'
       : 'flex flex-col flex-1 w-full'">
 
       <!-- Header solo in layout full -->
