@@ -122,7 +122,8 @@ In your html page, add the snippet and call gtag_report_conversion when someone 
     </script>
     @stack('structured-data')
 
-
+    <link href="https://assets.calendly.com/assets/external/widget.css" rel="stylesheet">
+    <script src="https://assets.calendly.com/assets/external/widget.js" type="text/javascript"></script>
 
 </head>
 
@@ -147,10 +148,7 @@ In your html page, add the snippet and call gtag_report_conversion when someone 
     @stack('scripts')
     @livewireScripts
 
-    {{-- Calendly Widget --}}
-    <link href="https://assets.calendly.com/assets/external/widget.css" rel="stylesheet">
-    <script src="https://assets.calendly.com/assets/external/widget.js" type="text/javascript"></script>
-
+   
     <script>
         document.addEventListener('livewire:initialized', () => {
             Livewire.on('gtag_report_conversion', (event) => {
