@@ -40,6 +40,10 @@
                         </span>
                         LIVE
                     </span>
+                    <button type="button" @click="openPrivacyPolicyModal"
+                        class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-slate-700/70 bg-slate-950/60 text-slate-200 hover:bg-slate-800/70 hover:text-white transition text-[11px] font-semibold">
+                        <span>{{ ui.privacyPolicyButton }}</span>
+                    </button>
                 </div>
             </div>
 
@@ -113,9 +117,66 @@
                                 <summary class="cursor-pointer select-none text-xs text-slate-200">
                                     {{ ui.holidayNoticeSummary }}
                                 </summary>
-                                <div class="mt-2 text-[11px] md:text-xs text-slate-200/90 leading-relaxed space-y-2">
-                                    <div>{{ ui.holidayNoticeBody1 }}</div>
-                                    <div>{{ ui.holidayNoticeBody2 }}</div>
+                                <div class="mt-3 space-y-3">
+                                    <!-- Value prop (molto compatta) -->
+                                    <div class="text-[11px] md:text-sm text-slate-200/90 leading-relaxed">
+                                        <span class="text-slate-100 font-semibold">{{ ui.holidayNoticeBody1 }}</span>
+                                        <span class="text-slate-200/80"> {{ ui.holidayNoticeBody2 }}</span>
+                                    </div>
+
+                                    <!-- 3 card: target principali -->
+                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-3">
+                                        <div v-for="seg in marketingUseCases" :key="seg.key"
+                                            class="group rounded-2xl border border-slate-700/70 bg-slate-950/40 hover:bg-slate-900/50 transition p-3 md:p-4">
+                                            <div class="flex items-start justify-between gap-3">
+                                                <div class="min-w-0">
+                                                    <div class="flex items-center gap-2">
+                                                        <span
+                                                            class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border"
+                                                            :class="seg.accentClass">
+                                                            {{ seg.kicker }}
+                                                        </span>
+                                                        <div
+                                                            class="text-slate-100 font-bold text-[12px] md:text-sm truncate">
+                                                            {{ seg.title }}
+                                                        </div>
+                                                    </div>
+                                                    <div
+                                                        class="mt-1 text-[11px] md:text-xs text-slate-300/90 leading-relaxed">
+                                                        {{ seg.desc }}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- WOW: Leggi la traduzione -->
+                                    <div
+                                        class="relative overflow-hidden rounded-2xl border border-emerald-500/30 bg-gradient-to-r from-emerald-950/35 via-slate-950/45 to-slate-950/35 p-4">
+                                        <div
+                                            class="pointer-events-none absolute -top-10 -right-10 h-40 w-40 rounded-full bg-emerald-500/20 blur-3xl">
+                                        </div>
+                                        <div class="flex items-start justify-between gap-3 relative">
+                                            <div class="min-w-0">
+                                                <div
+                                                    class="text-[10px] md:text-[11px] font-black tracking-wide text-emerald-200 uppercase">
+                                                    {{ ui.holidayNoticeWowTitle }}
+                                                </div>
+                                                <div
+                                                    class="mt-1 text-slate-100 font-extrabold text-sm md:text-base leading-snug">
+                                                    {{ ui.holidayNoticeWowBody }}
+                                                </div>
+                                                <div
+                                                    class="mt-2 grid grid-cols-1 md:grid-cols-3 gap-2 text-[11px] md:text-xs text-slate-200/90">
+                                                    <div v-for="(item, idx) in marketingDubbingBullets"
+                                                        :key="'lt-dubbing-' + idx"
+                                                        class="rounded-xl border border-emerald-500/20 bg-slate-950/30 px-3 py-2">
+                                                        {{ item }}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </details>
                         </div>
@@ -1065,6 +1126,40 @@
         </div>
     </div>
 
+    <!-- Modal Privacy Policy -->
+    <div v-if="showPrivacyPolicyModal" @click.self="closePrivacyPolicyModal"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+        <div
+            class="bg-slate-900 rounded-2xl border border-slate-700 w-[92vw] max-w-4xl max-h-[90vh] flex flex-col shadow-2xl">
+            <div class="flex items-center justify-between px-4 py-2 border-b border-slate-700">
+                <div class="flex flex-col">
+                    <span class="text-sm md:text-base font-semibold text-slate-100">
+                        {{ ui.privacyPolicyTitle }}
+                    </span>
+                    <span class="text-[11px] text-slate-400">
+                        {{ ui.privacyPolicySubtitle }}
+                    </span>
+                </div>
+                <button type="button"
+                    class="inline-flex items-center justify-center w-7 h-7 rounded-full border border-slate-600 text-slate-200 hover:bg-slate-700 transition"
+                    @click="closePrivacyPolicyModal">
+                    ✕
+                </button>
+            </div>
+            <div class="p-4 overflow-y-auto">
+                <div class="text-xs md:text-sm text-slate-200 whitespace-pre-wrap leading-relaxed">
+                    {{ privacyPolicyText }}
+                </div>
+            </div>
+            <div class="px-4 py-3 border-t border-slate-700 flex justify-end">
+                <button type="button" @click="closePrivacyPolicyModal"
+                    class="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-[11px] md:text-xs font-semibold border border-slate-600 text-slate-200 bg-slate-950/50 hover:bg-slate-800/70 transition">
+                    {{ ui.privacyPolicyCloseButton }}
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal Chiarisci Intenzione Interlocutore -->
     <div v-if="showClarifyIntentModal"
         class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
@@ -1119,6 +1214,138 @@
     <audio ref="ttsAudioLeft" class="hidden" preload="none" playsinline></audio>
     <audio ref="ttsAudioRight" class="hidden" preload="none" playsinline></audio>
     <audio ref="ttsAudioCenter" class="hidden" preload="none" playsinline></audio>
+
+    <!-- Cookie Banner (solo per LiveTranslator) -->
+    <div v-if="showCookieBanner" class="fixed inset-x-0 bottom-0 z-[70] p-3 md:p-4 pointer-events-auto">
+        <div
+            class="mx-auto max-w-5xl rounded-2xl border border-slate-700/70 bg-slate-950/90 backdrop-blur-xl shadow-2xl">
+            <div class="p-4 md:p-5 flex flex-col gap-4">
+                <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                        <div class="text-sm md:text-base font-black text-slate-100">
+                            {{ ui.cookieBannerTitle }}
+                        </div>
+                        <div class="mt-1 text-[11px] md:text-sm text-slate-300 leading-relaxed">
+                            {{ ui.cookieBannerBody }}
+                        </div>
+                        <button type="button" @click="openPrivacyPolicyModal"
+                            class="mt-2 inline-flex items-center gap-2 text-[11px] md:text-xs font-semibold text-emerald-300 hover:text-emerald-200 underline">
+                            {{ ui.cookieBannerPrivacyLink }}
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex flex-col md:flex-row gap-2 md:gap-3 md:items-center md:justify-end">
+                    <button type="button" @click="acceptAllCookies"
+                        class="inline-flex items-center justify-center px-4 py-2 rounded-xl text-[12px] md:text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white transition">
+                        {{ ui.cookieBannerAcceptAll }}
+                    </button>
+                    <button type="button" @click="rejectNonEssentialCookies"
+                        class="inline-flex items-center justify-center px-4 py-2 rounded-xl text-[12px] md:text-sm font-bold bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-600 transition">
+                        {{ ui.cookieBannerRejectNonEssential }}
+                    </button>
+                    <button type="button" @click="openCookiePreferences"
+                        class="inline-flex items-center justify-center px-4 py-2 rounded-xl text-[12px] md:text-sm font-bold bg-slate-900 hover:bg-slate-800 text-slate-100 border border-slate-600 transition">
+                        {{ ui.cookieBannerManagePreferences }}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cookie Preferences Modal -->
+    <div v-if="showCookiePreferencesModal" @click.self="closeCookiePreferences"
+        class="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 backdrop-blur-sm">
+        <div
+            class="bg-slate-900 rounded-2xl border border-slate-700 w-[92vw] max-w-2xl max-h-[90vh] flex flex-col shadow-2xl">
+            <div class="flex items-center justify-between px-4 py-3 border-b border-slate-700">
+                <div class="flex flex-col">
+                    <span class="text-sm md:text-base font-semibold text-slate-100">
+                        {{ ui.cookiePrefsTitle }}
+                    </span>
+                    <span class="text-[11px] text-slate-400">
+                        {{ ui.cookiePrefsSubtitle }}
+                    </span>
+                </div>
+                <button type="button"
+                    class="inline-flex items-center justify-center w-7 h-7 rounded-full border border-slate-600 text-slate-200 hover:bg-slate-700 transition"
+                    @click="closeCookiePreferences">
+                    ✕
+                </button>
+            </div>
+
+            <div class="p-4 md:p-5 space-y-4 overflow-y-auto">
+                <div class="rounded-xl border border-slate-700/60 bg-slate-950/40 p-4">
+                    <div class="flex items-center justify-between gap-3">
+                        <div>
+                            <div class="text-sm font-bold text-slate-100">{{ ui.cookiePrefsNecessaryLabel }}</div>
+                            <div class="text-[11px] text-slate-400">{{ ui.cookiePrefsNecessaryHint }}</div>
+                        </div>
+                        <span
+                            class="px-2 py-1 text-[11px] font-bold rounded-lg bg-slate-800 text-slate-200 border border-slate-600">
+                            ON
+                        </span>
+                    </div>
+                </div>
+
+                <div class="rounded-xl border border-slate-700/60 bg-slate-950/40 p-4">
+                    <div class="flex items-center justify-between gap-3">
+                        <div>
+                            <div class="text-sm font-bold text-slate-100">{{ ui.cookiePrefsAnalyticsLabel }}</div>
+                            <div class="text-[11px] text-slate-400">{{ ui.cookiePrefsAnalyticsHint }}</div>
+                        </div>
+                        <label class="inline-flex items-center gap-2 cursor-pointer select-none">
+                            <span class="relative">
+                                <input type="checkbox" v-model="cookiePrefsAnalytics" class="sr-only peer" />
+                                <div
+                                    class="w-10 h-5 bg-slate-700 rounded-full peer peer-checked:bg-emerald-500 transition-colors">
+                                </div>
+                                <div
+                                    class="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-5 shadow">
+                                </div>
+                            </span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="rounded-xl border border-slate-700/60 bg-slate-950/40 p-4">
+                    <div class="flex items-center justify-between gap-3">
+                        <div>
+                            <div class="text-sm font-bold text-slate-100">{{ ui.cookiePrefsCalendlyLabel }}</div>
+                            <div class="text-[11px] text-slate-400">{{ ui.cookiePrefsCalendlyHint }}</div>
+                        </div>
+                        <label class="inline-flex items-center gap-2 cursor-pointer select-none">
+                            <span class="relative">
+                                <input type="checkbox" v-model="cookiePrefsCalendly" class="sr-only peer" />
+                                <div
+                                    class="w-10 h-5 bg-slate-700 rounded-full peer peer-checked:bg-emerald-500 transition-colors">
+                                </div>
+                                <div
+                                    class="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-5 shadow">
+                                </div>
+                            </span>
+                        </label>
+                    </div>
+                </div>
+
+                <button type="button" @click="openPrivacyPolicyModal"
+                    class="inline-flex items-center gap-2 text-[11px] md:text-xs font-semibold text-emerald-300 hover:text-emerald-200 underline">
+                    {{ ui.cookieBannerPrivacyLink }}
+                </button>
+            </div>
+
+            <div class="px-4 py-3 border-t border-slate-700 flex items-center justify-end gap-2">
+                <button type="button" @click="closeCookiePreferences"
+                    class="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-[11px] md:text-xs font-semibold border border-slate-600 text-slate-200 bg-slate-950/50 hover:bg-slate-800/70 transition">
+                    {{ ui.cookiePrefsCancel }}
+                </button>
+                <button type="button" @click="saveCookiePreferences"
+                    class="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-[11px] md:text-xs font-semibold border border-emerald-600 text-white bg-emerald-600 hover:bg-emerald-700 transition">
+                    {{ ui.cookiePrefsSave }}
+                </button>
+            </div>
+        </div>
+    </div>
 </template>
 
 <script>
@@ -1243,6 +1470,13 @@ export default {
             debugCopyStatus: '',
             // Migliora prossima call
             showNextCallModal: false,
+            // Privacy policy
+            showPrivacyPolicyModal: false,
+            // Cookie banner / preferences (solo LiveTranslator)
+            showCookieBanner: false,
+            showCookiePreferencesModal: false,
+            cookiePrefsAnalytics: false,
+            cookiePrefsCalendly: false,
             isNextCallLoading: false,
             nextCallGoal: '',
             nextCallSuggestionsLangA: '',
@@ -1326,12 +1560,242 @@ export default {
 
             return this.showWorkCallTools ? 'lg:grid-cols-2' : 'lg:grid-cols-1';
         },
+        marketingUseCases() {
+            const lang = (this.uiLocale || 'it').toLowerCase();
+            if (lang === 'en') {
+                return [
+                    {
+                        key: 'b2b',
+                        kicker: 'B2B',
+                        title: 'International B2B sales',
+                        desc: 'Close deals faster: clarity in discovery calls, demos and negotiations—without language friction.',
+                        accentClass: 'border-emerald-500/40 text-emerald-200 bg-emerald-950/30',
+                    },
+                    {
+                        key: 'support',
+                        kicker: 'SUPPORT',
+                        title: 'Tech customer support',
+                        desc: 'Reduce back-and-forth: understand the issue, reply confidently, and keep conversations flowing.',
+                        accentClass: 'border-cyan-500/40 text-cyan-200 bg-cyan-950/20',
+                    },
+                    {
+                        key: 'sme',
+                        kicker: 'PMI',
+                        title: 'SMEs selling abroad',
+                        desc: 'Sell internationally even if you don’t speak English: calls, follow-ups and customer conversations, simplified.',
+                        accentClass: 'border-indigo-500/40 text-indigo-200 bg-indigo-950/25',
+                    },
+                ];
+            }
+            return [
+                {
+                    key: 'b2b',
+                    kicker: 'B2B',
+                    title: 'Vendite B2B internazionali',
+                    desc: 'Più chiusure e meno frizione: discovery, demo e negoziazioni con messaggi chiari in tempo reale.',
+                    accentClass: 'border-emerald-500/40 text-emerald-200 bg-emerald-950/30',
+                },
+                {
+                    key: 'support',
+                    kicker: 'SUPPORT',
+                    title: 'Customer support di aziende tech',
+                    desc: 'Capisci subito il problema e rispondi con sicurezza: meno ping‑pong, più flusso nella conversazione.',
+                    accentClass: 'border-cyan-500/40 text-cyan-200 bg-cyan-950/20',
+                },
+                {
+                    key: 'sme',
+                    kicker: 'PMI che vendono all’estero',
+                    desc: 'Vendi anche senza parlare inglese: call, follow‑up e gestione clienti, semplificati.',
+                    accentClass: 'border-indigo-500/40 text-indigo-200 bg-indigo-950/25',
+                },
+            ];
+        },
+        marketingDubbingBullets() {
+            const lang = (this.uiLocale || 'it').toLowerCase();
+            if (lang === 'en') {
+                return [
+                    'Automatic voice: the translation is read out loud right after each sentence.',
+                    'Hands-free in calls: less “can you repeat?”, more flow.',
+                    'Instant clarity: the other person understands immediately.',
+                ];
+            }
+            return [
+                'Voce automatica: la traduzione viene letta appena finisci la frase.',
+                'In call è “hands‑free”: meno interruzioni, più flow.',
+                'Chiarezza immediata: l’altra persona capisce al volo.',
+            ];
+        },
+        privacyPolicyText() {
+            const lang = (this.uiLocale || 'it').toLowerCase();
+
+            if (lang === 'en') {
+                return `PRIVACY POLICY – INTERPRETER.DIGITAL
+
+Data Controller
+The data controller is Davide Cavallini, with registered office at via del Musonetto, 4, 30033 Noale (VE), Italy.
+Contact email: d.cavallini@cavalliniservice.com
+
+Nature of the Service
+Interpreter.digital is a virtual interpreting service that allows users to transcribe audio, translate the transcribed text, and reproduce it via Text-to-Speech (TTS).
+Audio input may originate from the user’s microphone, multimedia content, or conversations between individuals.
+
+Categories of Data Processed
+The service may process the following categories of data:
+– audio content and transcribed text
+– voice data
+– technical usage data (IP address, browser type, operating system, access logs)
+– cookies and browsing data collected through analytics tools
+
+Interpreter.digital does not require user registration and does not collect personal identification data such as name, surname, or email address.
+
+Processing of Audio and Text Content
+Audio recordings, transcriptions, and translations may be recorded, stored, and retained by the data controller for the purposes of:
+– providing the requested service
+– improving service quality
+– analyzing service usage and audience characteristics
+
+The content is not used for direct marketing purposes and is not sold or transferred to third parties for commercial exploitation.
+
+Legal Basis for Processing
+Personal data is processed on the basis of:
+– performance of a service explicitly requested by the user
+– user consent expressed through use of the service
+– the legitimate interest of the data controller in improving the service
+
+For analytics cookies, processing is based on user consent where required by applicable law.
+
+Minors
+The service may also be used by minors. Users are responsible for the content transmitted through the service.
+The data controller does not encourage the inclusion of sensitive personal data or identifiable information, particularly relating to minors.
+
+Cookies
+Interpreter.digital uses technical cookies and analytics tools, including services such as Google Analytics, to analyze website usage and improve user experience.
+Users may manage or disable cookies through their browser settings or via dedicated consent mechanisms where available.
+
+Transfer of Data Outside the European Union
+To provide the service, Interpreter.digital relies on third-party technology providers, including natural language processing and transcription services such as OpenAI and Groq.
+Such services may involve the transfer of data outside the European Union. Where applicable, such transfers are carried out in compliance with Regulation (EU) 2016/679, including the use of Standard Contractual Clauses.
+
+Data Retention
+Data is retained until a deletion request is submitted by the user, unless retention is required by law or for technical operational needs.
+
+Data Subject Rights
+Users may exercise their rights under Articles 15–22 of the GDPR at any time, including:
+– right of access
+– right to rectification
+– right to erasure
+– right to restriction of processing
+– right to object
+– right to data portability
+
+Requests may be sent to the data controller via the contact email provided above.
+Due to the absence of personal identifiers, it may not always be possible to associate a specific conversation with a specific user.
+
+Security Measures
+The data controller adopts appropriate technical and organizational security measures, including:
+– HTTPS encrypted connections
+– logging systems
+– restricted access to data
+
+Policy Updates
+This privacy policy may be subject to updates. Users are encouraged to review it periodically.`;
+            }
+
+            return `PRIVACY POLICY – INTERPRETER.DIGITAL
+
+Titolare del trattamento
+Il titolare del trattamento dei dati personali è Davide Cavallini, con sede in via del Musonetto, 4, 30033 Noale (VE), Italia.
+Email di contatto: d.cavallini@cavalliniservice.com
+
+Tipologia di servizio
+Interpreter.digital è un servizio di interpretariato virtuale che consente agli utenti di trascrivere audio, tradurre il testo trascritto e riprodurlo tramite sintesi vocale (Text-to-Speech). L’audio può provenire dal microfono dell’utente, da contenuti multimediali o da conversazioni tra persone.
+
+Tipologia di dati trattati
+Il servizio può trattare le seguenti categorie di dati:
+– contenuto delle conversazioni audio e dei testi trascritti
+– dati vocali
+– dati tecnici di utilizzo del servizio (indirizzo IP, browser, sistema operativo, log di accesso)
+– cookie e dati di navigazione tramite strumenti di analisi statistica
+
+Interpreter.digital non richiede registrazione e non raccoglie dati anagrafici quali nome, cognome o indirizzo email degli utenti.
+
+Trattamento dei contenuti audio e testuali
+Le conversazioni audio, le trascrizioni e le traduzioni possono essere registrate, salvate e conservate dal titolare al fine di:
+– fornire il servizio richiesto
+– migliorare la qualità del servizio
+– analizzare l’utilizzo del servizio e il target di riferimento
+
+I contenuti non vengono utilizzati per finalità di marketing diretto né ceduti a terzi per scopi commerciali.
+
+Base giuridica del trattamento
+Il trattamento dei dati avviene sulla base:
+– dell’esecuzione di un servizio richiesto volontariamente dall’utente
+– del consenso dell’utente espresso tramite l’utilizzo del servizio
+– del legittimo interesse del titolare al miglioramento del servizio
+
+Per l’utilizzo dei cookie di analisi, il trattamento avviene sulla base del consenso dell’utente, ove richiesto dalla normativa applicabile.
+
+Minori
+Il servizio può essere utilizzato anche da minori. Tuttavia, l’utente è responsabile dei contenuti trasmessi tramite il servizio. Il titolare non incoraggia l’inserimento di dati personali sensibili o informazioni identificative, in particolare relative a minori.
+
+Cookie
+Interpreter.digital utilizza cookie tecnici e strumenti di analisi statistica, inclusi servizi come Google Analytics, al fine di comprendere l’utilizzo del sito e migliorare l’esperienza dell’utente.
+L’utente può gestire o disabilitare i cookie tramite le impostazioni del proprio browser o tramite appositi strumenti di consenso, ove presenti.
+
+Trasferimento dei dati verso paesi extra UE
+Per l’erogazione del servizio, Interpreter.digital utilizza fornitori tecnologici terzi, tra cui servizi di elaborazione del linguaggio naturale e trascrizione (es. OpenAI, Groq).
+Tali servizi possono comportare il trasferimento dei dati verso paesi al di fuori dell’Unione Europea. In tali casi, il trasferimento avviene nel rispetto delle garanzie previste dal Regolamento (UE) 2016/679, incluse clausole contrattuali standard.
+
+Conservazione dei dati
+I dati vengono conservati fino a richiesta di cancellazione da parte dell’utente, salvo obblighi di legge o necessità tecniche legate al funzionamento del servizio.
+
+Diritti dell’interessato
+L’utente può esercitare in qualsiasi momento i diritti previsti dagli articoli 15-22 del GDPR, inclusi:
+– accesso ai dati
+– rettifica
+– cancellazione
+– limitazione del trattamento
+– opposizione
+– portabilità dei dati
+
+Le richieste possono essere inviate all’indirizzo email del titolare indicato sopra.
+Si precisa che, in assenza di identificativi personali, potrebbe non essere sempre possibile associare una specifica conversazione a un singolo utente.
+
+Misure di sicurezza
+Il titolare adotta misure di sicurezza tecniche e organizzative adeguate, tra cui:
+– utilizzo di connessioni HTTPS
+– sistemi di logging
+– limitazione degli accessi ai dati
+
+Aggiornamenti
+La presente informativa può essere soggetta a modifiche. Gli utenti sono invitati a consultarla periodicamente.`;
+        },
         ui() {
             const lang = (this.uiLocale || 'it').toLowerCase();
             const dict = {
                 it: {
                     title: 'Interpreter – l\'interprete virtuale che ti fa parlare con chiunque',
                     subtitle: 'Parla in qualsiasi lingua: vedrai il testo originale e la traduzione live.',
+                    privacyPolicyButton: 'Privacy Policy',
+                    privacyPolicyTitle: 'Privacy Policy – Interpreter.digital',
+                    privacyPolicySubtitle: 'Informativa ai sensi del Regolamento (UE) 2016/679 (GDPR)',
+                    privacyPolicyCloseButton: 'Chiudi',
+                    cookieBannerTitle: 'Utilizziamo i cookie',
+                    cookieBannerBody: 'Utilizziamo cookie tecnici e cookie di analisi per migliorare la tua esperienza di navigazione e comprendere come viene utilizzato questo sito. Puoi accettare tutti i cookie, rifiutare quelli non essenziali o gestire le tue preferenze in qualsiasi momento.',
+                    cookieBannerAcceptAll: 'Accetta tutti',
+                    cookieBannerRejectNonEssential: 'Rifiuta non essenziali',
+                    cookieBannerManagePreferences: 'Gestisci preferenze',
+                    cookieBannerPrivacyLink: 'Informativa sulla privacy',
+                    cookiePrefsTitle: 'Preferenze cookie',
+                    cookiePrefsSubtitle: 'Puoi modificare le preferenze in qualsiasi momento.',
+                    cookiePrefsNecessaryLabel: 'Cookie tecnici (necessari)',
+                    cookiePrefsNecessaryHint: 'Sempre attivi: necessari per il funzionamento del servizio.',
+                    cookiePrefsAnalyticsLabel: 'Cookie di analisi (Analytics)',
+                    cookiePrefsAnalyticsHint: 'Aiutano a capire come viene usato il sito (es. Google Analytics).',
+                    cookiePrefsCalendlyLabel: 'Calendly',
+                    cookiePrefsCalendlyHint: 'Necessari per aprire/gestire la prenotazione tramite Calendly.',
+                    cookiePrefsCancel: 'Annulla',
+                    cookiePrefsSave: 'Salva preferenze',
                     enableTranslationLabel: 'Abilita traduzione',
                     recordWorkCallLabel: 'Registra Call di Lavoro',
                     langALabel: 'Lingua dell\'interlocutore',
@@ -1410,11 +1874,13 @@ export default {
                     tabYoutubeTitle: 'YouTube Interprete',
                     youtubeDesktopOnlyLabel: '',
                     tabYoutubeSubtitle: 'Video + traduzione frase per frase',
-                    holidayNoticeTitle: 'Novità 🎄',
-                    holidayNoticeSummary: 'Bugfix microfono + test anti-regressione. Buon Natale e buone traduzioni!',
-                    holidayNoticeBody1: 'Ho risolto il bug dell’interprete “a turni di frasi”, che era stato introdotto da una modifica legata alla modalità auricolari.',
-                    holidayNoticeBody2: 'In più ho inserito test automatici per evitare regressioni future. Buon Natale e buone traduzioni!',
-                    holidayNoticeDismissAria: 'Chiudi avviso novità',
+                    holidayNoticeTitle: 'COME FUNZIONA',
+                    holidayNoticeSummary: 'Parli. Interpreter trascrive, traduce e (se vuoi) legge la traduzione: effetto WOW in pochi secondi.',
+                    holidayNoticeBody1: 'Parli nel microfono e ottieni testo + traduzione in tempo reale.',
+                    holidayNoticeBody2: 'Pensato per chi lavora con l’estero: scegli il tuo scenario qui sotto.',
+                    holidayNoticeWowTitle: 'EFFETTO WOW: “LEGGI LA TRADUZIONE”',
+                    holidayNoticeWowBody: 'Attivala: la traduzione viene letta ad alta voce appena finisci la frase.',
+                    holidayNoticeDismissAria: 'Chiudi info su come funziona',
                     youtubeMobileWarningShort: 'Esperienza mobile: tocchi qui per i dettagli',
                     translationPlaceholder: 'La traduzione apparirà qui man mano che parli.',
                     youtubePlayerPlaceholder: 'Incolla un URL di YouTube e seleziona le lingue a sinistra: il player si carica automaticamente.',
@@ -1446,6 +1912,26 @@ export default {
                 en: {
                     title: 'Interpreter – the virtual interpreter that lets you talk to anyone',
                     subtitle: 'Speak in any language: you will see the original text and the live translation.',
+                    privacyPolicyButton: 'Privacy Policy',
+                    privacyPolicyTitle: 'Privacy Policy – Interpreter.digital',
+                    privacyPolicySubtitle: 'Information notice under Regulation (EU) 2016/679 (GDPR)',
+                    privacyPolicyCloseButton: 'Close',
+                    cookieBannerTitle: 'We use cookies',
+                    cookieBannerBody: 'We use technical cookies and analytics cookies to improve your browsing experience and understand how this website is used. You can accept all cookies, reject non-essential cookies, or manage your preferences at any time.',
+                    cookieBannerAcceptAll: 'Accept all',
+                    cookieBannerRejectNonEssential: 'Reject non-essential',
+                    cookieBannerManagePreferences: 'Manage preferences',
+                    cookieBannerPrivacyLink: 'Privacy Policy',
+                    cookiePrefsTitle: 'Cookie preferences',
+                    cookiePrefsSubtitle: 'You can change your preferences at any time.',
+                    cookiePrefsNecessaryLabel: 'Technical cookies (necessary)',
+                    cookiePrefsNecessaryHint: 'Always on: required for the service to work.',
+                    cookiePrefsAnalyticsLabel: 'Analytics cookies',
+                    cookiePrefsAnalyticsHint: 'Help us understand how the site is used (e.g. Google Analytics).',
+                    cookiePrefsCalendlyLabel: 'Calendly',
+                    cookiePrefsCalendlyHint: 'Required to open/manage booking via Calendly.',
+                    cookiePrefsCancel: 'Cancel',
+                    cookiePrefsSave: 'Save preferences',
                     enableTranslationLabel: 'Enable translation',
                     recordWorkCallLabel: 'Record Work Call',
                     langALabel: 'Interlocutor language',
@@ -1524,11 +2010,13 @@ export default {
                     tabYoutubeTitle: 'YouTube Interpreter',
                     youtubeDesktopOnlyLabel: '',
                     tabYoutubeSubtitle: 'Video + phrase-by-phrase translation',
-                    holidayNoticeTitle: 'News 🎄',
-                    holidayNoticeSummary: 'Mic bugfix + anti-regression tests. Merry Christmas and happy translating!',
-                    holidayNoticeBody1: 'I fixed the “turn-by-turn phrases” interpreter bug, which was caused by a change related to Earphones mode.',
-                    holidayNoticeBody2: 'I also added automatic tests to prevent future regressions. Merry Christmas and happy translating!',
-                    holidayNoticeDismissAria: 'Dismiss news notice',
+                    holidayNoticeTitle: 'HOW IT WORKS',
+                    holidayNoticeSummary: 'You speak. Interpreter transcribes, translates and (optionally) reads the translation out loud: instant wow effect.',
+                    holidayNoticeBody1: 'Speak into the mic and get text + real-time translation.',
+                    holidayNoticeBody2: 'Built for international work: pick your scenario below.',
+                    holidayNoticeWowTitle: 'WOW MODE: “READ THE TRANSLATION”',
+                    holidayNoticeWowBody: 'Turn it on: the translation is spoken right after you finish the sentence.',
+                    holidayNoticeDismissAria: 'Dismiss how-it-works info',
                     youtubeMobileWarningShort: 'Mobile experience: tap for details',
                     youtubeMobileWarning: 'On this mobile device the browser cannot handle video translation as well as on desktop. For the full YouTube Interpreter experience, use a PC or Mac (ideally with Chrome).',
                     clarifyIntentButton: 'Clarify interlocutor intent',
@@ -2263,6 +2751,7 @@ export default {
         this.initDefaultLanguages();
         this.detectEnvAndDefaultMode();
         this.detectMobileLowPower();
+        this.initCookieConsent();
     },
     beforeUnmount() {
         this.stopListeningInternal();
@@ -2274,6 +2763,299 @@ export default {
         }
     },
     methods: {
+        // Cookie consent management (solo LiveTranslator)
+        getCookie(name) {
+            try {
+                const n = `${name}=`;
+                const parts = (document.cookie || '').split(';');
+                for (let i = 0; i < parts.length; i++) {
+                    const c = parts[i].trim();
+                    if (c.indexOf(n) === 0) {
+                        return decodeURIComponent(c.substring(n.length));
+                    }
+                }
+                return '';
+            } catch {
+                return '';
+            }
+        },
+
+        setCookie(name, value, days) {
+            try {
+                const d = new Date();
+                const expDays = (typeof days === 'number' && days > 0) ? days : 365;
+                d.setTime(d.getTime() + (expDays * 24 * 60 * 60 * 1000));
+                const expires = `expires=${d.toUTCString()}`;
+                document.cookie = `${name}=${encodeURIComponent(value)};${expires};path=/;SameSite=Lax`;
+            } catch {
+                // ignore
+            }
+        },
+
+        deleteCookieEverywhere(name) {
+            try {
+                const expires = 'expires=Thu, 01 Jan 1970 00:00:00 GMT';
+                const host = (window.location && window.location.hostname) ? window.location.hostname : '';
+                const domains = [];
+                if (host) {
+                    domains.push(host);
+                    if (host.indexOf('.') !== -1) {
+                        domains.push(`.${host}`);
+                    }
+                    // prova anche il dominio “root” (ultimi 2 segmenti)
+                    const parts = host.split('.').filter(Boolean);
+                    if (parts.length >= 2) {
+                        const root = `.${parts.slice(-2).join('.')}`;
+                        if (domains.indexOf(root) === -1) domains.push(root);
+                    }
+                }
+
+                const domainAttrs = domains.length ? domains.map((d) => `;domain=${d}`) : [''];
+                for (let i = 0; i < domainAttrs.length; i++) {
+                    document.cookie = `${name}=;${expires};path=/${domainAttrs[i]};SameSite=Lax`;
+                }
+            } catch {
+                // ignore
+            }
+        },
+
+        getGaMeasurementIdForHost() {
+            try {
+                const host = (window.location && window.location.hostname) ? window.location.hostname : '';
+                if (host === 'interpreter.digital') return 'G-YRPCVKJJK3';
+                if (host === 'en.cavalliniservice.com') return 'G-T84PFCB4FM';
+                return 'G-D7G8J1GF0M';
+            } catch {
+                return 'G-D7G8J1GF0M';
+            }
+        },
+
+        setGtagConsent(isGranted) {
+            try {
+                if (typeof window === 'undefined') return;
+                if (typeof window.gtag !== 'function') return;
+                const mode = isGranted ? 'granted' : 'denied';
+                window.gtag('consent', 'update', {
+                    analytics_storage: mode,
+                    ad_storage: mode,
+                    ad_user_data: mode,
+                    ad_personalization: mode,
+                });
+            } catch {
+                // ignore
+            }
+        },
+
+        disableAnalyticsBestEffort() {
+            try {
+                if (typeof window === 'undefined') return;
+                const gaId = this.getGaMeasurementIdForHost();
+                const adsId = 'AW-1001130032';
+
+                window[`ga-disable-${gaId}`] = true;
+                window[`ga-disable-${adsId}`] = true;
+
+                this.setGtagConsent(false);
+
+                // best effort cleanup di cookie noti (non HttpOnly)
+                try {
+                    const all = (document.cookie || '').split(';').map((c) => c.trim().split('=')[0]).filter(Boolean);
+                    for (let i = 0; i < all.length; i++) {
+                        const name = all[i];
+                        if (name === '_ga' || name === '_gid' || name === '_gat' || name === '_gcl_au' ||
+                            name.indexOf('_ga_') === 0 || name.indexOf('_gcl_') === 0) {
+                            this.deleteCookieEverywhere(name);
+                        }
+                    }
+                } catch {
+                    // ignore
+                }
+            } catch {
+                // ignore
+            }
+        },
+
+        enableAnalyticsBestEffort() {
+            try {
+                if (typeof window === 'undefined') return;
+                const gaId = this.getGaMeasurementIdForHost();
+                const adsId = 'AW-1001130032';
+
+                window[`ga-disable-${gaId}`] = false;
+                window[`ga-disable-${adsId}`] = false;
+
+                this.setGtagConsent(true);
+
+                // opzionale: ri-config se gtag esiste (in caso fosse stato bloccato)
+                if (typeof window.gtag === 'function') {
+                    window.gtag('config', gaId);
+                    window.gtag('config', adsId);
+                }
+            } catch {
+                // ignore
+            }
+        },
+
+        disableCalendlyBestEffort() {
+            try {
+                if (typeof window === 'undefined') return;
+                window.__LT_CALENDLY_DISABLED__ = true;
+
+                // Se Calendly è già caricato, sostituiamo initPopupWidget con un no-op reversibile
+                if (window.Calendly && typeof window.Calendly === 'object') {
+                    if (!window.__LT_CALENDLY_INIT_ORIG__ && typeof window.Calendly.initPopupWidget === 'function') {
+                        window.__LT_CALENDLY_INIT_ORIG__ = window.Calendly.initPopupWidget;
+                    }
+                    if (typeof window.Calendly.initPopupWidget === 'function') {
+                        window.Calendly.initPopupWidget = function () {
+                            return false;
+                        };
+                    }
+                }
+
+                // Rimuove eventuali overlay/iframe già aperti
+                try {
+                    const overlays = document.querySelectorAll('.calendly-overlay, .calendly-popup, iframe[src*="calendly.com"]');
+                    overlays.forEach((el) => {
+                        try { el.remove(); } catch { }
+                    });
+                } catch {
+                    // ignore
+                }
+            } catch {
+                // ignore
+            }
+        },
+
+        enableCalendlyBestEffort() {
+            try {
+                if (typeof window === 'undefined') return;
+                window.__LT_CALENDLY_DISABLED__ = false;
+
+                if (window.Calendly && typeof window.Calendly === 'object') {
+                    if (window.__LT_CALENDLY_INIT_ORIG__ && typeof window.__LT_CALENDLY_INIT_ORIG__ === 'function') {
+                        window.Calendly.initPopupWidget = window.__LT_CALENDLY_INIT_ORIG__;
+                    }
+                }
+            } catch {
+                // ignore
+            }
+        },
+
+        readCookieConsent() {
+            const COOKIE_CONSENT_NAME = 'cavallini_cookie_consent';
+            try {
+                const raw = this.getCookie(COOKIE_CONSENT_NAME);
+                if (!raw) return null;
+                const parsed = JSON.parse(raw);
+                if (!parsed || typeof parsed !== 'object') return null;
+
+                const analytics = !!parsed.analytics;
+                // compat: se calendly non è presente, lo agganciamo alla scelta analytics
+                const calendly = (typeof parsed.calendly === 'boolean') ? parsed.calendly : analytics;
+
+                return {
+                    necessary: true,
+                    analytics,
+                    calendly,
+                    timestamp: parsed.timestamp || null,
+                };
+            } catch {
+                return null;
+            }
+        },
+
+        writeCookieConsent(consent) {
+            const COOKIE_CONSENT_NAME = 'cavallini_cookie_consent';
+            try {
+                const payload = {
+                    necessary: true,
+                    analytics: !!(consent && consent.analytics),
+                    calendly: !!(consent && consent.calendly),
+                    timestamp: new Date().toISOString(),
+                };
+                this.setCookie(COOKIE_CONSENT_NAME, JSON.stringify(payload), 365);
+            } catch {
+                // ignore
+            }
+        },
+
+        applyCookieConsent(consent) {
+            const allowAnalytics = !!(consent && consent.analytics);
+            const allowCalendly = !!(consent && consent.calendly);
+
+            if (allowAnalytics) {
+                this.enableAnalyticsBestEffort();
+            } else {
+                this.disableAnalyticsBestEffort();
+            }
+
+            if (allowCalendly) {
+                this.enableCalendlyBestEffort();
+            } else {
+                this.disableCalendlyBestEffort();
+            }
+        },
+
+        initCookieConsent() {
+            // Se non c'è consenso, mostriamo banner e (solo qui) impostiamo non-essenziali su denied finché l'utente non sceglie.
+            const existing = this.readCookieConsent();
+            if (!existing) {
+                this.showCookieBanner = true;
+                // default: non essenziali OFF finché non c'è scelta
+                this.applyCookieConsent({ analytics: false, calendly: false });
+                this.cookiePrefsAnalytics = false;
+                this.cookiePrefsCalendly = false;
+                return;
+            }
+
+            this.showCookieBanner = false;
+            this.cookiePrefsAnalytics = !!existing.analytics;
+            this.cookiePrefsCalendly = !!existing.calendly;
+            this.applyCookieConsent(existing);
+        },
+
+        acceptAllCookies() {
+            const consent = { analytics: true, calendly: true };
+            this.writeCookieConsent(consent);
+            this.showCookieBanner = false;
+            this.showCookiePreferencesModal = false;
+            this.cookiePrefsAnalytics = true;
+            this.cookiePrefsCalendly = true;
+            this.applyCookieConsent(consent);
+        },
+
+        rejectNonEssentialCookies() {
+            const consent = { analytics: false, calendly: false };
+            this.writeCookieConsent(consent);
+            this.showCookieBanner = false;
+            this.showCookiePreferencesModal = false;
+            this.cookiePrefsAnalytics = false;
+            this.cookiePrefsCalendly = false;
+            this.applyCookieConsent(consent);
+        },
+
+        openCookiePreferences() {
+            const existing = this.readCookieConsent();
+            if (existing) {
+                this.cookiePrefsAnalytics = !!existing.analytics;
+                this.cookiePrefsCalendly = !!existing.calendly;
+            }
+            this.showCookiePreferencesModal = true;
+        },
+
+        closeCookiePreferences() {
+            this.showCookiePreferencesModal = false;
+        },
+
+        saveCookiePreferences() {
+            const consent = { analytics: !!this.cookiePrefsAnalytics, calendly: !!this.cookiePrefsCalendly };
+            this.writeCookieConsent(consent);
+            this.showCookieBanner = false;
+            this.showCookiePreferencesModal = false;
+            this.applyCookieConsent(consent);
+        },
+
         applyWhisperVadSettings() {
             try {
                 if (!this.recognition || typeof this.recognition !== 'object') {
@@ -5957,6 +6739,14 @@ export default {
 
         closeNextCallModal() {
             this.showNextCallModal = false;
+        },
+
+        openPrivacyPolicyModal() {
+            this.showPrivacyPolicyModal = true;
+        },
+
+        closePrivacyPolicyModal() {
+            this.showPrivacyPolicyModal = false;
         },
 
         async onNextCallSuggestClick() {
