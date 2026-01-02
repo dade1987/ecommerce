@@ -7,6 +7,22 @@
 @php
     $selectedTag = $selectedTag ?? request('tag');
     $search = request('search');
+
+    $isHtml = static fn(string $string): bool => preg_match('/<[a-z][\s\S]*>/i', $string) === 1;
+    $excerptFromContent = static function (?string $raw) use ($isHtml): string {
+        $raw = (string) ($raw ?? '');
+        $html = $raw;
+
+        if (! $isHtml($html)) {
+            $html = preg_replace('/([.?!])\s*(##+)/', "$1\n\n$2", $html);
+            $html = \Illuminate\Support\Str::markdown($html, [
+                'html_input' => 'strip',
+                'allow_unsafe_links' => false,
+            ]);
+        }
+
+        return \Illuminate\Support\Str::limit(trim(strip_tags($html)), 160);
+    };
 @endphp
 
 <section class="bg-slate-900 text-slate-100">
@@ -97,7 +113,7 @@
                                 </h2>
 
                                 <p class="mt-2 text-sm text-slate-300 line-clamp-3">
-                                    {{ \Illuminate\Support\Str::limit(strip_tags($row->content), 160) }}
+                                    {{ $excerptFromContent($row->content) }}
                                 </p>
 
                                 @if($row->tags?->isNotEmpty())

@@ -4,6 +4,24 @@
     'tags',
     'selectedTag'
 ])
+@php
+    $isHtml = static fn(string $string): bool => preg_match('/<[a-z][\s\S]*>/i', $string) === 1;
+
+    $excerptFromContent = static function (?string $raw) use ($isHtml): string {
+        $raw = (string) ($raw ?? '');
+        $html = $raw;
+
+        if (! $isHtml($html)) {
+            $html = preg_replace('/([.?!])\s*(##+)/', "$1\n\n$2", $html);
+            $html = \Illuminate\Support\Str::markdown($html, [
+                'html_input' => 'strip',
+                'allow_unsafe_links' => false,
+            ]);
+        }
+
+        return \Illuminate\Support\Str::limit(trim(strip_tags($html)), 160);
+    };
+@endphp
 <section class="py-24 bg-gray-100">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div class="flex flex-col gap-4 md:flex-row md:justify-between md:items-center mb-16">
@@ -36,7 +54,7 @@
                             {{ $row->title }}
                         </a>
                         <p class="text-gray-600 leading-6 mb-6 flex-grow">
-                            {{ Str::limit(strip_tags($row->content), 150) }}
+                            {{ $excerptFromContent($row->content) }}
                         </p>
                         <div class="flex justify-between items-center">
                             <div class="flex gap-2">
