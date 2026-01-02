@@ -11,7 +11,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use NeuronAI\Chat\Messages\UserMessage;
 use function Safe\json_encode;
-use function Safe\ob_flush;
 use function Safe\preg_split;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 

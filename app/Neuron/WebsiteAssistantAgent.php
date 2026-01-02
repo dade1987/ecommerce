@@ -140,7 +140,6 @@ class WebsiteAssistantAgent extends Agent
             $this->createCreateOrderTool(),
             $this->createSubmitUserDataTool(),
             $this->createGetFAQsTool(),
-            $this->createSearchSiteTool(),
             $this->createFallbackTool(),
             $this->createScrapeSiteTool(),
             $this->createScrapeUrlTool(),
@@ -285,7 +284,7 @@ class WebsiteAssistantAgent extends Agent
             ->setCallable(fn (string $query) => $this->fetchFAQs($query));
     }
 
-    private function createSearchSiteTool(): Tool
+    private function createSearchSiteToolOld(): Tool
     {
         return Tool::make(
             name: 'searchSite',
@@ -1092,7 +1091,7 @@ class WebsiteAssistantAgent extends Agent
      * @param int|null $maxPages Numero massimo di pagine da analizzare (solo per fallback)
      * @return array Risultato della ricerca con answer, sources e metadata
      */
-    private function searchSite(string $query, ?string $url = null, ?int $maxPages = null): array
+    private function searchSiteOld(string $query, ?string $url = null, ?int $maxPages = null): array
     {
         Log::info('WebsiteAssistantAgent.searchSite', [
             'query' => $query,

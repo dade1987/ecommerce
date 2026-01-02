@@ -71,6 +71,12 @@ chown -R www-data:www-data /var/www/html/bootstrap/cache
 chmod -R 775 /var/www/html/storage
 chmod -R 775 /var/www/html/bootstrap/cache
 
+# Verifica permessi public/avatar3d (per TTS audio files)
+echo "Checking avatar3d audio permissions..."
+mkdir -p /var/www/html/public/avatar3d/audio
+chown -R www-data:www-data /var/www/html/public/avatar3d
+chmod -R 775 /var/www/html/public/avatar3d
+
 # Verifica storage link
 if [ ! -L /var/www/html/public/storage ]; then
     echo "Creating storage link..."
